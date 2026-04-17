@@ -1,0 +1,29 @@
+{
+  "name": "Default Dark Tech",
+  "version": "1.0.0",
+  "author": "APayShop",
+  "description": "The default clean dark tech theme for selling digital products.",
+  "settings": [
+    {
+      "key": "hero_title",
+      "label": "Hero Section Title",
+      "type": "string",
+      "default": "Your Ultimate Digital Store",
+      "description": "The main headline on the homepage."
+    },
+    {
+      "key": "hero_subtitle",
+      "label": "Hero Subtitle",
+      "type": "string",
+      "default": "Start selling digital products instantly",
+      "description": "The secondary text under the main headline."
+    },
+    {
+      "key": "support_email",
+      "label": "Support Email",
+      "type": "string",
+      "default": "support@apayshop.com",
+      "description": "Email address displayed in the footer."
+    }
+  ]
+}
