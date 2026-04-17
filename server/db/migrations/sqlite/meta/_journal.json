@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1775653636133,
+      "tag": "0000_wild_doctor_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1775653863044,
+      "tag": "0001_brave_longshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1775653940143,
+      "tag": "0002_mysterious_snowbird",
+      "breakpoints": true
+    }
+  ]
+}

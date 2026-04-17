@@ -1,0 +1,17 @@
+.data
+node_modules
+.nuxt
+/dist
+.output
+/app/themes/*
+!/app/themes/default/
+/app/themes/default/**
+/build
+/content
+/payments
+/uploads
+.env
+APAYSHOP_TEMPLATE_GUIDE.md
+build_local.sh
+prompt.md
+wrangler.toml

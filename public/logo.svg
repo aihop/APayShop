@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-opacity="0.4" flood-color="#9333ea" />
+    </filter>
+    <filter id="shadow-card">
+      <feDropShadow dx="0" dy="16" stdDeviation="12" flood-opacity="0.3" flood-color="#000000" />
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#g-bg)" filter="url(#shadow)" />
+  <path d="M 196 160 v -24 a 60 60 0 0 1 120 0 v 24" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" opacity="0.6" />
+  <g>
+    <rect x="86" y="160" width="340" height="220" rx="32" fill="#ffffff" filter="url(#shadow-card)" />
+    <rect x="130" y="200" width="56" height="40" rx="8" fill="url(#g-bg)" opacity="0.8" />
+    <path d="M 130 220 H 186 M 158 200 V 240" stroke="#ffffff" stroke-width="2" opacity="0.5" />
+    <path d="M 256 200 L 200 330 M 256 200 L 312 330 M 220 285 H 292" stroke="url(#g-bg)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
