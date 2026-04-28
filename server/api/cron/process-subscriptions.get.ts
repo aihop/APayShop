@@ -1,4 +1,4 @@
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 import { orders, apiKeys } from '../../db/schema'
 import { eq, and } from 'drizzle-orm'
 import { ORDER_STATUS } from '../../utils/constants'

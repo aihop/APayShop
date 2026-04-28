@@ -41,6 +41,14 @@
             <div class="flex flex-col">
               <span class="text-sm font-medium text-white">{{ row.original.title }}</span>
               <span class="text-xs text-gray-500 font-mono">/blog/{{ row.original.slug }}</span>
+              <span
+                v-if="row.original.sort !== null && row.original.sort !== undefined && row.original.sort !== ''"
+                class="text-xs text-gray-500 font-mono"
+              >sort: {{ row.original.sort }}</span>
+              <span
+                v-if="row.original.key"
+                class="text-xs text-gray-500 font-mono"
+              >key: {{ row.original.key }}</span>
             </div>
           </template>
 
@@ -204,6 +212,31 @@
           </UFormField>
 
           <UFormField
+            label="Key (Optional)"
+            name="key"
+            v-if="currentTabLocale === defaultLocale"
+          >
+            <UInput
+              v-model="form.key"
+              class="w-full font-mono text-sm"
+              placeholder="例如：gopanel-changelog / release-gopanel"
+            />
+          </UFormField>
+
+          <UFormField
+            label="Sort (Optional)"
+            name="sort"
+            v-if="currentTabLocale === defaultLocale"
+          >
+            <UInput
+              v-model="form.sort"
+              type="number"
+              class="w-full font-mono text-sm"
+              placeholder="例如：100 / 200"
+            />
+          </UFormField>
+
+          <UFormField
             label="Type"
             name="type"
             v-if="currentTabLocale === defaultLocale"
@@ -315,7 +348,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
 definePageMeta({ title: 'Posts Management' })
@@ -368,7 +400,7 @@ const currentTabLocale = ref(defaultLocale.value || 'en') as any
 
 watch(
   defaultLocale,
-  (val) => {
+  (val: string) => {
     if (!currentTabLocale.value || currentTabLocale.value === 'en') {
       currentTabLocale.value = val || 'en'
     }
@@ -406,13 +438,13 @@ const {
   data: postsData,
   pending,
   refresh,
-} = await useFetch<any>('/api/admin/posts', {
+} = useFetch<any>('/api/admin/posts', {
   query: {
     page,
     pageSize: pageSize,
   },
   watch: [page],
-})
+} as any)
 
 const totalItems = computed(() => postsData.value?.total || 0)
 const paginatedPosts = computed(() => postsData.value?.data || [])
@@ -426,6 +458,8 @@ const editingId = ref<number | null>(null)
 
 const defaultForm = {
   title: '',
+  key: '',
+  sort: '',
   slug: '',
   description: '',
   content: '',
@@ -465,6 +499,9 @@ const openModal = (post?: any) => {
   if (post) {
     editingId.value = post.id
     form.value = { ...post }
+    if (!form.value.key) form.value.key = ''
+    if (form.value.sort === null || form.value.sort === undefined)
+      form.value.sort = ''
     if (!form.value.metaData) form.value.metaData = {}
     if (typeof form.value.metaData === 'string') {
       try {
@@ -531,7 +568,21 @@ const onSubmit = async () => {
 
     await $fetch(url, {
       method,
-      body: form.value,
+      body: {
+        ...form.value,
+        key:
+          typeof form.value.key === 'string' && form.value.key.trim()
+            ? form.value.key.trim()
+            : null,
+        sort:
+          form.value.sort === '' ||
+          form.value.sort === null ||
+          form.value.sort === undefined
+            ? null
+            : Number.isFinite(Number(form.value.sort))
+            ? Number(form.value.sort)
+            : null,
+      },
     })
 
     toast.add({

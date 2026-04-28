@@ -1,6 +1,6 @@
 import { users, orders } from "../../db/schema"
 import { eq } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 import { dispatchEvent } from "../../utils/eventBus"
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 

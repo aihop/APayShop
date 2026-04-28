@@ -1,6 +1,6 @@
 import { cards, products } from "../../../db/schema"
 import { desc, eq, count } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)

@@ -1,6 +1,6 @@
 import { failures } from "../../../db/schema"
 import { desc } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
 

@@ -1,6 +1,6 @@
 import { products } from "../../../db/schema"
 import { eq } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 const normalizeImageUrls = (value: unknown) => {
   if (value === null || value === undefined || value === '') {

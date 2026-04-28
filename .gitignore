@@ -5,7 +5,7 @@ node_modules
 .output
 /app/themes/*
 !/app/themes/default/
-/app/themes/default/**
+!/app/themes/default/**
 /build
 /content
 /payments

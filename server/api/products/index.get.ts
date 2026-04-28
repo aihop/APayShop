@@ -1,6 +1,6 @@
 import { products } from "../../db/schema"
 import { eq, desc, count } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
   const query = getQuery(event)

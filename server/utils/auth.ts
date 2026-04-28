@@ -1,6 +1,6 @@
 import { users, oauthAccounts } from "../db/schema"
 import { eq, and } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../db/runtime'
 import { H3Event } from 'h3'
 
 

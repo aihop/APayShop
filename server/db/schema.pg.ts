@@ -267,6 +267,8 @@ export const visitorEvents = pgTable('visitor_events', {
 
 export const posts = pgTable('posts', {
   id: serial('id').primaryKey(),
+  key: text('key'),
+  sort: integer('sort'),
   slug: text('slug').notNull().unique(), // Used for URL /blog/:slug
   title: text('title').notNull(),
   description: text('description'), // Short description for list view

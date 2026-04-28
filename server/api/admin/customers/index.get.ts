@@ -1,6 +1,6 @@
 import { orders } from "../../../db/schema"
 import { desc, sql, eq } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 import { ORDER_PAY_STATUS } from "~~/server/utils/constants"
 
 export default defineEventHandler(async (event) => {

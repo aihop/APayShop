@@ -1,6 +1,6 @@
 import { apiKeys, users, orders, products } from "../../../db/schema"
 import { eq, desc } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   if (event.method === "GET") {

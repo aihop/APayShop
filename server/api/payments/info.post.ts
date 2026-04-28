@@ -2,7 +2,7 @@ import { paymentMethods, orders } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import fs from 'fs'
 import path from 'path'
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   try {

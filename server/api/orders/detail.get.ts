@@ -1,6 +1,6 @@
 import { orders, products } from "../../db/schema"
 import { eq, and, or } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
   const orderId = getQuery(event).orderId as string

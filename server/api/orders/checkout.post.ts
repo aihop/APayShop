@@ -2,7 +2,7 @@ import { orders, products, settings, users } from "../../db/schema"
 import { eq, and, desc, gte } from "drizzle-orm"
 import crypto from "crypto"
 import { z } from "zod"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 import { ORDER_STATUS, ORDER_PAY_STATUS } from '../../utils/constants'
 import { ensureVisitorId, trackVisitorEvent } from '../../utils/visitorAnalytics'
 

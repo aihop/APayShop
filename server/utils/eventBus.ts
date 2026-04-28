@@ -1,7 +1,7 @@
 import { webhooks, settings } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import crypto from 'crypto'
-import { db } from '@nuxthub/db'
+import { db } from '../db/runtime'
 
 /**
  * Dispatch an event to all active webhooks subscribed to it

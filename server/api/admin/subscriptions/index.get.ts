@@ -1,6 +1,6 @@
 import { subscriptions, products, users } from "../../../db/schema"
 import { desc, eq, sql } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   // Fetch all active subscriptions

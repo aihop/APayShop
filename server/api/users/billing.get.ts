@@ -1,5 +1,5 @@
 import { eq, desc, and, gte, inArray, ne } from 'drizzle-orm'
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 import { users, orders, products } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {

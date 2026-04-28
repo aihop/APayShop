@@ -1,5 +1,5 @@
 import { products } from "../../../db/schema"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 import { eq } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {

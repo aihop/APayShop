@@ -1,7 +1,7 @@
 import { orders, products, cards, apiKeys, subscriptions } from "../db/schema"
 import { eq, and } from "drizzle-orm"
 import crypto from "crypto"
-import { db } from '@nuxthub/db'
+import { db } from '../db/runtime'
 
 
 export async function fulfillOrder(orderId: string) {

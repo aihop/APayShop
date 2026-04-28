@@ -1,6 +1,6 @@
 import { posts } from "../../db/schema"
 import { desc, eq, and, count } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
   const query = getQuery(event)
@@ -16,6 +16,8 @@ export default defineCachedEventHandler(async (event) => {
   
   const result = await db.select({
     id: posts.id,
+    key: posts.key,
+    sort: posts.sort,
     slug: posts.slug,
     title: posts.title,
     description: posts.description,

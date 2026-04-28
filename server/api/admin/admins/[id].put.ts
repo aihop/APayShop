@@ -1,6 +1,6 @@
 import { admins } from "../../../db/schema"
 import { eq, ne, and } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   try {

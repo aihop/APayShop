@@ -7,7 +7,7 @@ import { logger } from "../../utils/logger"
 import { trackVisitorEvent } from "../../utils/visitorAnalytics"
 import fs from 'fs'
 import path from 'path'
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS,ORDER_STATUS } from '../../utils/constants'
 import { readRawBody, readBody } from 'h3'
 

@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { getCookie, getHeader, getRequestURL, setCookie } from 'h3'
 import { eq } from 'drizzle-orm'
-import { db } from '@nuxthub/db'
+import { db } from '../db/runtime'
 import { visitorEvents, visitorProfiles } from '../db/schema'
 
 type TrackVisitorEventInput = {

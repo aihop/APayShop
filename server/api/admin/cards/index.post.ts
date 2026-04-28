@@ -1,5 +1,5 @@
 import { cards } from "../../../db/schema"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)

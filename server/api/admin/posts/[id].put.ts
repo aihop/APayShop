@@ -1,6 +1,6 @@
 import { posts } from "../../../db/schema"
 import { eq } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id")
@@ -13,9 +13,15 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const normalizedKey = typeof body.key === 'string' ? body.key.trim() : ''
+    const normalizedSort = (body.sort === '' || body.sort === null || body.sort === undefined)
+      ? null
+      : (Number.isFinite(Number(body.sort)) ? Number(body.sort) : null)
     const postData = {
       title: body.title,
       slug: body.slug,
+      key: normalizedKey || null,
+      sort: normalizedSort,
       description: body.description || null,
       content: body.content || null,
       type: body.type || 'blog',
@@ -33,8 +39,13 @@ export default defineEventHandler(async (event) => {
     return { code: 0, message: "Post updated successfully", data: result[0] }
   } catch (error: any) {
     console.error('Update post error:', error)
-    if (error.message?.includes('UNIQUE constraint failed')) {
-      return { code: 1, message: "A post with this slug already exists" }
+    const msg = String(error?.message || '')
+    const pgCode = String(error?.code || '')
+    if (msg.includes('UNIQUE constraint failed') || pgCode === '23505') {
+      if (msg.includes('posts.slug') || msg.includes('posts_slug') || msg.includes('posts_slug_key')) {
+        return { code: 1, message: "A post with this slug already exists" }
+      }
+      return { code: 1, message: "Duplicate constraint" }
     }
     return { code: 1, message: error.message || "Internal server error" }
   }

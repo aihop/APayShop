@@ -1,5 +1,5 @@
 import { admins } from "../../db/schema"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   const existingUsers = await db.select().from(admins).limit(1)

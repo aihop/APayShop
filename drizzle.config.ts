@@ -12,4 +12,4 @@ export default defineConfig({
   push: {
     force: true
   }
-});
+} as any);

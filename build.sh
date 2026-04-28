@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 输入 ./build.sh <repo-name> [theme-name] sqlite|pg
+DIALECT="${3:-sqlite}"
+
+# 切换到项目根目录
 cd "$(dirname "$0")"
 
 LOAD_ENV="${LOAD_ENV:-1}"
@@ -124,7 +128,11 @@ copy_file() {
 
 echo "==> Building project"
 filter_themes_for_build
-run npm run build
+if [[ "${DIALECT}" == "pg" ]]; then
+  run npm run build-pg
+else
+  run npm run build
+fi
 
 if [[ ! -d ".output" ]]; then
   echo ".output not found after build"

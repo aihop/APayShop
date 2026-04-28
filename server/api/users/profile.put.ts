@@ -1,6 +1,6 @@
 import { users } from "../../db/schema"
 import { eq } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)

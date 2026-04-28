@@ -1,15 +1,6 @@
-const isPostgresDialect = process.env.DB_DIALECT === 'postgresql'
-const isCloudflarePages = !!process.env.CF_PAGES
-const isBuildCommand = process.argv.some(arg => arg.includes('build'))
-
-if (isPostgresDialect && !isCloudflarePages && isBuildCommand) {
-  delete process.env.DATABASE_URL
-  delete process.env.POSTGRES_URL
-  delete process.env.POSTGRESQL_URL
-}
-
 import fs from 'fs'
 import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   hooks: {
@@ -80,9 +71,10 @@ export default defineNuxtConfig({
     'nuxt-auth-utils',
     '@nuxt/content'
   ],
+  ui: {
+    prose: true
+  },
   content: {
-    // Note: Do not use content.dir to point to template directories, as it breaks Nuxt i18n
-    // dynamic route resolution for nested templates.
     locales: ['zh'],
     defaultLocale: 'en'
   },
@@ -127,16 +119,9 @@ export default defineNuxtConfig({
   },
   hub: {
     db: {
-      dialect: (process.env.DB_DIALECT as any) || 'sqlite',
-      driver: isCloudflarePages ? 'd1' : (isPostgresDialect ? 'postgres-js' : 'libsql'),
-      connection: isCloudflarePages
-        ? undefined
-        : isPostgresDialect
-          ? {}
-          : {
-              url: process.env.LIBSQL_URL || 'file:.data/db/sqlite.db'
-            },
-      // 关键：如果在VPS上，打包时禁用自动迁移，防止它去尝试连接不存在的云端 DB
+      dialect: "sqlite",
+      driver: process.env.CF_PAGES ? 'd1' : "libsql",
+      connection: process.env.CF_PAGES ? {} : { url: process.env.LIBSQL_URL || 'file:.data/db/sqlite.db' },
       applyMigrationsDuringBuild: !!process.env.CF_PAGES,
       applyMigrationsDuringDev: false, // 禁用开发环境的自动迁移，避免与正式环境冲突
     },
@@ -148,13 +133,8 @@ export default defineNuxtConfig({
       googleicons: false,
     }
   },
-  ui: {
-    icons: ['heroicons', 'ph']
-  },
-  tailwindcss: {
-    config: {
-      plugins: [require('@tailwindcss/typography')],
-    }
+  icon: {
+    collections: ['heroicons', 'ph']
   },
   colorMode: {
     preference: 'dark',
@@ -175,6 +155,7 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    plugins: [tailwindcss()],
     build: {
       chunkSizeWarningLimit: 1000,
       rollupOptions: {

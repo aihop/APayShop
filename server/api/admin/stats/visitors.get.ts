@@ -1,5 +1,5 @@
 import { and, count, desc, eq, gte, inArray, lt } from 'drizzle-orm'
-import { db } from '@nuxthub/db'
+import { db } from '../../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../../db/schema'
 import { clampStatsPage, clampStatsPageSize, parseStatsRange } from '../../../utils/adminStats'
 

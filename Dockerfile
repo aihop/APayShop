@@ -12,7 +12,8 @@ COPY . .
 RUN npm install entities
 RUN npm install libsql
 RUN npm install parse5
-RUN npm run build
+ARG DB_DIALECT=sqlite
+RUN if [ "$DB_DIALECT" = "postgresql" ]; then npm run build-pg; else npm run build; fi
 
 
 ENV HOST=0.0.0.0

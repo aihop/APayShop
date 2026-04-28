@@ -1,6 +1,6 @@
 {
   "name": "apayshop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "scripts": {
     "build": "nuxt build",
@@ -26,9 +26,10 @@
     "@libsql/client": "^0.17.2",
     "@nuxt/content": "^2.13.4",
     "@nuxt/icon": "^2.2.1",
-    "@nuxt/ui": "^4.6.0",
+    "@nuxt/ui": "^4.6.1",
     "@tiptap/extension-image": "^3.21.0",
     "@tiptap/extension-link": "^3.21.0",
+    "@tiptap/extension-ordered-list": "^3.22.3",
     "@tiptap/pm": "^3.21.0",
     "@tiptap/vue-3": "^3.21.0",
     "@vueuse/integrations": "^14.2.1",
@@ -46,7 +47,7 @@
     "@nuxthub/core": "^0.10.7",
     "@nuxtjs/i18n": "^9.0.0",
     "@tailwindcss/typography": "^0.5.19",
-    "@tailwindcss/vite": "^4.0.0",
+    "@tailwindcss/vite": "^4.2.2",
     "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.6",

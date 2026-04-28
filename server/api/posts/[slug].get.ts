@@ -1,6 +1,6 @@
 import { posts } from "../../db/schema"
-import { eq, and, sql } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { eq, and, or, sql } from "drizzle-orm"
+import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
   const slug = getRouterParam(event, "slug")
@@ -9,7 +9,7 @@ export default defineCachedEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "Missing post slug" })
   }
 
-  const postList = await db.select().from(posts).where(and(eq(posts.slug, slug), eq(posts.isActive, true))).limit(1)
+  const postList = await db.select().from(posts).where(and(or(eq(posts.slug, slug), eq(posts.key, slug)), eq(posts.isActive, true))).limit(1)
   const post = postList[0]
 
   if (!post) {

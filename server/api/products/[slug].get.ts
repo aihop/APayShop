@@ -1,6 +1,6 @@
 import { products, cards } from "../../db/schema"
 import { eq, sql } from "drizzle-orm"
-import { db } from '@nuxthub/db'
+import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
   const slug = getRouterParam(event, "slug")
