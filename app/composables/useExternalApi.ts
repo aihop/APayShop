@@ -29,6 +29,11 @@ export interface ExternalApiOptions {
    */
   proxy?: boolean
   /**
+   * Custom internal proxy endpoint.
+   * Default: /api/proxy/external
+   */
+  proxyEndpoint?: string
+  /**
    * Default headers to attach to every request
    */
   headers?: Record<string, string>
@@ -45,7 +50,7 @@ export const useExternalApi = (globalOptions: ExternalApiOptions = {}) => {
     
     // If proxy is enabled
     if (globalOptions.proxy) {
-      targetUrl = '/api/proxy/external'
+      targetUrl = globalOptions.proxyEndpoint || '/api/proxy/external'
       
       // Merge baseURL if provided and the url isn't already an absolute URL
       if (globalOptions.baseURL && !url.startsWith('http')) {

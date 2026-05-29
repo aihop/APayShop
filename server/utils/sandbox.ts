@@ -38,6 +38,40 @@ export async function executeCallbackScript(
         sha1: (str: string) => crypto.createHash('sha1').update(str, 'utf8').digest('hex'),
         sha256: (str: string) => crypto.createHash('sha256').update(str, 'utf8').digest('hex'),
         hmacSha256: (str: string, key: string) => crypto.createHmac('sha256', key).update(str, 'utf8').digest('hex'),
+        randomString: (length = 32) => crypto.randomBytes(Math.max(16, Math.ceil(length / 2))).toString('hex').slice(0, length),
+        rsaSha256Sign: (content: string, privateKey: string) => {
+          const signer = crypto.createSign('RSA-SHA256')
+          signer.update(content, 'utf8')
+          signer.end()
+          return signer.sign(privateKey, 'base64')
+        },
+        rsaSha256Verify: (content: string, signature: string, publicKey: string) => {
+          const verifier = crypto.createVerify('RSA-SHA256')
+          verifier.update(content, 'utf8')
+          verifier.end()
+          return verifier.verify(publicKey, signature, 'base64')
+        },
+        aes256GcmDecrypt: (
+          ciphertextBase64: string,
+          key: string,
+          nonce: string,
+          associatedData = '',
+        ) => {
+          const decipher = crypto.createDecipheriv(
+            'aes-256-gcm',
+            Buffer.from(key, 'utf8'),
+            Buffer.from(nonce, 'utf8'),
+          )
+          if (associatedData) {
+            decipher.setAAD(Buffer.from(associatedData, 'utf8'))
+          }
+          const ciphertext = Buffer.from(ciphertextBase64, 'base64')
+          const authTag = ciphertext.subarray(ciphertext.length - 16)
+          const encrypted = ciphertext.subarray(0, ciphertext.length - 16)
+          decipher.setAuthTag(authTag)
+          const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()])
+          return decrypted.toString('utf8')
+        },
         createHash: (algo: string) => crypto.createHash(algo),
         createHmac: (algo: string, key: any) => crypto.createHmac(algo, key)
       },
@@ -105,6 +139,40 @@ export async function executeCreateScript(
         sha256: (str: string) => crypto.createHash('sha256').update(str, 'utf8').digest('hex'),
         hmacSha256: (str: string, key: string) => crypto.createHmac('sha256', key).update(str, 'utf8').digest('hex'),
         hmacSha512: (str: string, key: string) => crypto.createHmac('sha512', key).update(str, 'utf8').digest('hex'),
+        randomString: (length = 32) => crypto.randomBytes(Math.max(16, Math.ceil(length / 2))).toString('hex').slice(0, length),
+        rsaSha256Sign: (content: string, privateKey: string) => {
+          const signer = crypto.createSign('RSA-SHA256')
+          signer.update(content, 'utf8')
+          signer.end()
+          return signer.sign(privateKey, 'base64')
+        },
+        rsaSha256Verify: (content: string, signature: string, publicKey: string) => {
+          const verifier = crypto.createVerify('RSA-SHA256')
+          verifier.update(content, 'utf8')
+          verifier.end()
+          return verifier.verify(publicKey, signature, 'base64')
+        },
+        aes256GcmDecrypt: (
+          ciphertextBase64: string,
+          key: string,
+          nonce: string,
+          associatedData = '',
+        ) => {
+          const decipher = crypto.createDecipheriv(
+            'aes-256-gcm',
+            Buffer.from(key, 'utf8'),
+            Buffer.from(nonce, 'utf8'),
+          )
+          if (associatedData) {
+            decipher.setAAD(Buffer.from(associatedData, 'utf8'))
+          }
+          const ciphertext = Buffer.from(ciphertextBase64, 'base64')
+          const authTag = ciphertext.subarray(ciphertext.length - 16)
+          const encrypted = ciphertext.subarray(0, ciphertext.length - 16)
+          decipher.setAuthTag(authTag)
+          const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()])
+          return decrypted.toString('utf8')
+        },
         createHash: (algo: string) => crypto.createHash(algo),
         createHmac: (algo: string, key: any) => crypto.createHmac(algo, key)
       },

@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
+import { getRequestIP } from 'h3'
 import { db } from '../../db/runtime'
 import { orders, paymentMethods } from '../../db/schema'
 import { executeCreateScript } from '../../utils/sandbox'
@@ -71,6 +72,8 @@ export default defineEventHandler(async (event) => {
     const callbackUrl = `${origin}/api/webhooks/${order.id}`
     const returnUrl = body.returnUrl || body.successUrl || `${origin}/callback/${order.id}`
     const cancelUrl = body.cancelUrl || `${origin}/callback/cancel?orderId=${order.id}`
+    const clientIp = getRequestIP(event, { xForwardedFor: true }) || event.node.req.socket.remoteAddress || ''
+    const requestHeaders = getRequestHeaders(event)
 
     const result = await executeCreateScript(createScript, {
       order: {
@@ -81,6 +84,11 @@ export default defineEventHandler(async (event) => {
         metaData: typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
       },
       input: body,
+      request: {
+        clientIp,
+        userAgent: requestHeaders['user-agent'] || '',
+        headers: requestHeaders,
+      },
       callbackUrl,
       returnUrl,
       cancelUrl

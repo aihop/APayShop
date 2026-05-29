@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
   const explicitDialect = process.env.DB_DIALECT?.replace(/"/g, '').toLowerCase()
   const connectionUrl =
     process.env.DATABASE_URL
+    || process.env.MYSQL_URL
     || process.env.POSTGRES_URL
     || process.env.POSTGRESQL_URL
     || process.env.NUXT_DATABASE_URL
@@ -15,6 +16,9 @@ export default defineEventHandler(async (event) => {
     explicitDialect === 'postgresql'
     || connectionUrl.startsWith('postgres://')
     || connectionUrl.startsWith('postgresql://')
+  const isMysql =
+    explicitDialect === 'mysql'
+    || connectionUrl.startsWith('mysql://')
 
   // Get start of today
   const startOfDay = new Date()
@@ -22,6 +26,7 @@ export default defineEventHandler(async (event) => {
   const startOfDayMs = startOfDay.getTime()
   const startOfDayDate = new Date(startOfDayMs)
   const startOfDayIso = startOfDayDate.toISOString()
+  const startOfDayMysql = startOfDayDate.toISOString().replace('T', ' ').substring(0, 19)
 
   // 1. Get Summary Stats
   // 注意：在之前的版本中，有的 createdAt 是按秒存的（10位），有的是按毫秒存的（13位）
@@ -35,6 +40,13 @@ export default defineEventHandler(async (event) => {
         totalRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
         todayOrders: sql<number>`coalesce(sum(case when ${orders.createdAt} >= ${startOfDayIso}::timestamptz then 1 else 0 end), 0)`,
         todayRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} and ${orders.createdAt} >= ${startOfDayIso}::timestamptz then ${orders.amount} else 0 end), 0)`,
+      }).from(orders)
+    : isMysql
+    ? await db.select({
+        totalOrders: sql<number>`count(*)`,
+        totalRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
+        todayOrders: sql<number>`coalesce(sum(case when ${orders.createdAt} >= ${startOfDayMysql} then 1 else 0 end), 0)`,
+        todayRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} and ${orders.createdAt} >= ${startOfDayMysql} then ${orders.amount} else 0 end), 0)`,
       }).from(orders)
     : await db.select({
         totalOrders: sql<number>`count(*)`,
@@ -56,6 +68,15 @@ export default defineEventHandler(async (event) => {
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayIso}::timestamptz`)
         .groupBy(sql`date_trunc('hour', ${orders.createdAt})`)
+    : isMysql
+    ? await db.select({
+        hour: sql<string>`DATE_FORMAT(${orders.createdAt}, '%H')`,
+        ordersCount: sql<number>`count(*)`,
+        revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
+      })
+        .from(orders)
+        .where(sql`${orders.createdAt} >= ${startOfDayMysql}`)
+        .groupBy(sql`DATE_FORMAT(${orders.createdAt}, '%H')`)
     : await db.select({
         hour: sql<string>`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', 'localtime'))`,
         ordersCount: sql<number>`count(*)`,

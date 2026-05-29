@@ -7,7 +7,7 @@ import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics
 export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
-  const { email, password, nickname } = body
+  const { email, password, nickname, inviteCode } = body
 
   if (!email || !password) {
     throw createError({
@@ -48,7 +48,8 @@ export default defineEventHandler(async (event) => {
     dispatchEvent('user.registered', {
       id: user.id,
       email: user.email,
-      nickname: user.nickname
+      nickname: user.nickname,
+      inviteCode: inviteCode
     })
   } catch (err) {
     console.error('Failed to dispatch user.registered event', err)

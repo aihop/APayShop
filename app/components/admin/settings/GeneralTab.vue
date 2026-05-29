@@ -98,6 +98,20 @@
           :ui="{ base: 'bg-[#09090b]' }"
         />
       </UFormField>
+
+      <UFormField
+        label="Footer Copyright"
+        description="Copyright text displayed in the site footer"
+      >
+        <UInput
+          v-model="form.footer_copyright"
+          placeholder="© 2024 APayShop. All rights reserved."
+          icon="ph:copyright"
+          size="md"
+          class="w-full"
+          :ui="{ base: 'bg-[#09090b]' }"
+        />
+      </UFormField>
     </div>
   </div>
 </template>
