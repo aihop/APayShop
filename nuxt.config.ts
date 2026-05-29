@@ -8,7 +8,7 @@ export default defineNuxtConfig({
       const themesDir = path.resolve(__dirname, 'app/themes')
       if (fs.existsSync(themesDir)) {
         const themes = fs.readdirSync(themesDir)
-        themes.forEach(theme => {
+        themes.filter(theme => theme !== 'core').forEach(theme => {
           const apiDir = path.join(themesDir, theme, 'api')
           if (fs.existsSync(apiDir)) {
             const walkSync = (dir: string, filelist: string[] = []) => {

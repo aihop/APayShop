@@ -50,9 +50,10 @@ const formatThemeName = (theme: string) =>
 export const useAdminExtensions = () => {
   const { getSetting } = useSettings()
 
-  const activeTheme = computed(() => getSetting('active_theme') || 'default')
+  const activeTheme = computed(() => getSetting('active_theme') || '')
 
   const manifest = computed<AdminExtensionManifest>(() => {
+    if (!activeTheme.value) return {}
     return manifestModules[`../themes/${activeTheme.value}/theme.admin.json`] || {}
   })
 

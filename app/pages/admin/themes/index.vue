@@ -30,11 +30,12 @@
         </div>
         <div>
           <h3 class="text-lg font-semibold text-white">Active Theme Configuration</h3>
-          <p class="text-sm text-gray-400">Customize layout, colors, and features for your currently active theme ({{ getSetting('active_theme') || 'default' }}).</p>
+          <p class="text-sm text-gray-400">Customize layout, colors, and features for your currently active theme ({{ getSetting('active_theme') || '(none - using system default)' }}).</p>
         </div>
       </div>
       <UButton
-        :to="`/admin/themes/${getSetting('active_theme') || 'default'}`"
+        v-if="getSetting('active_theme')"
+        :to="`/admin/themes/${getSetting('active_theme')}`"
         color="primary"
         variant="outline"
         class="shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_25px_rgba(147,51,234,0.5)] transition-all"
@@ -45,6 +46,14 @@
           <UIcon name="ph:sliders-horizontal" />
         </template>
       </UButton>
+      <UBadge
+        v-else
+        color="neutral"
+        variant="subtle"
+        class="text-gray-400"
+      >
+        No theme needed — using system default rendering
+      </UBadge>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

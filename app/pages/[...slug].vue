@@ -14,7 +14,7 @@
       <component
         v-else-if="activeComponent"
         :is="activeComponent"
-        :key="activeTheme + targetFile"
+        :key="(activeTheme || '_core_') + targetFile"
       />
       <div
         v-else
@@ -73,66 +73,111 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-const { getSetting } = useSettings()
 const route = useRoute()
 
-// ✅ 1. 关键：使用 eager: true 同步导入所有页面组件
-// 这样 modules 里的值直接就是组件对象，而不是返回 Promise 的函数
-const modules = import.meta.glob('../themes/**/pages/**/*.vue', {
+// 兼容处理：如果 URL 包含 .vue 或以 /index 结尾，重定向到清理后的规范路径
+const cleanPath = route.path.replace(/\.vue$/, '').replace(/\/index$/, '')
+if (cleanPath !== route.path) {
+  navigateTo({ path: cleanPath || '/', query: route.query }, { replace: true })
+}
+
+const { getSetting } = useSettings()
+
+// ✅ 1. 关键：使用 eager: true 同步导入所有组件
+// core: 系统默认渲染层（原 default 主题）
+// themes: 可选主题，可覆盖 core 的页面
+const coreModules = import.meta.glob('../core/pages/**/*.vue', {
   eager: true,
   import: 'default',
 })
 
-const activeTheme = computed(() => getSetting('active_theme') || 'default')
+const themeModules = import.meta.glob('../themes/**/pages/**/*.vue', {
+  eager: true,
+  import: 'default',
+})
+
+// 合并：theme 同名文件会覆盖 core，实现主题页面替换系统默认页面的效果
+const modules = { ...coreModules, ...themeModules }
+
+// 自动提取所有可用的路由模板路径 (e.g. 'user/orders/index.vue', 'products/[slug].vue')
+const routeTemplates = Array.from(
+  new Set(
+    Object.keys(modules)
+      .map(key => key.split('/pages/')[1])
+      .filter((path): path is string => Boolean(path))
+  )
+)
+
+const activeTheme = computed(() => getSetting('active_theme') || '')
+
 const pathSegments = computed(() => (route.params.slug as string[]) || [])
 
-// 路径计算逻辑保持不变
-const getFilePath = (segments: string[]) => {
+// 自动匹配路径逻辑：无主题时走 core，有主题时优先查主题然后 fallback 到 core
+const getFilePath = (segments: string[], theme: string) => {
   if (segments.length === 0) return 'index.vue'
 
-  if (segments[0] === 'products') {
-    if (segments.length === 1) return 'products/index.vue'
-    if (segments.length === 2) return 'products/[slug].vue'
+  const pathStr = segments.join('/')
+
+  const existsInCore = (file: string) => {
+    return !!coreModules[`../core/pages/${file}`]
   }
 
-  if (segments[0] === 'user') {
-    if (segments[1] === 'orders') {
-      if (segments.length === 2) return 'user/orders/index.vue'
-      if (segments.length === 3) return 'user/orders/[order_id].vue'
+  const existsInTheme = (file: string, t: string) => {
+    return !!themeModules[`../themes/${t}/pages/${file}`]
+  }
+
+  // 1. 如果有设置主题，优先在主题中查找精确匹配
+  if (theme) {
+    if (existsInTheme(`${pathStr}.vue`, theme)) return `${pathStr}.vue`
+    if (existsInTheme(`${pathStr}/index.vue`, theme)) return `${pathStr}/index.vue`
+  }
+
+  // 2. 在 core（系统默认）中查找精确匹配
+  if (existsInCore(`${pathStr}.vue`)) return `${pathStr}.vue`
+  if (existsInCore(`${pathStr}/index.vue`)) return `${pathStr}/index.vue`
+
+  const exists = (file: string) => {
+    if (theme && existsInTheme(file, theme)) return true
+    return existsInCore(file)
+  }
+
+  // 3. 匹配动态路由 (e.g. products/123 -> products/[slug].vue)
+  for (const template of routeTemplates) {
+    const templateSegments = template.replace(/\.vue$/, '').split('/')
+    if (templateSegments.length === segments.length) {
+      let isMatch = true
+      for (let i = 0; i < segments.length; i++) {
+        const tSegment = templateSegments[i]
+        if (!tSegment) {
+          isMatch = false
+          break
+        }
+        const isDynamic = tSegment.startsWith('[') && tSegment.endsWith(']')
+        if (!isDynamic && tSegment !== segments[i]) {
+          isMatch = false
+          break
+        }
+      }
+      if (isMatch && exists(template)) return template
     }
-    if (segments[1] === 'invoice') {
-      if (segments.length === 3) return 'user/invoice/[order_id].vue'
-    }
   }
 
-  if (segments[0] === 'blog') {
-    if (segments.length === 1) return 'blog/index.vue'
-    if (segments.length === 2) return 'blog/[slug].vue'
-  }
-
-  if (segments[0] === 'callback' && segments.length === 2) {
-    if (segments[1] === 'cancel') {
-      return 'callback/cancel.vue'
-    }
-    return 'callback/[order_id].vue'
-  }
-
-  if (segments[0] === 'docs') return 'docs.vue'
-
-  return `${segments.join('/')}.vue`
+  // 兜底返回
+  return `${pathStr}.vue`
 }
 
-const targetFile = computed(() => getFilePath(pathSegments.value))
+const targetFile = computed(() => getFilePath(pathSegments.value, activeTheme.value))
 
 // ✅ 2. 同步计算当前组件
-// 不再使用 watch 和 shallowRef 异步赋值，而是直接 computed
 const activeComponent = computed(() => {
   const file = targetFile.value
-  const path = `../themes/${activeTheme.value}/pages/${file}`
-  const fallback = `../themes/default/pages/${file}`
-
-  // 直接从同步加载的 modules 中取值
-  return modules[path] || modules[fallback] || null
+  // 有主题时先查主题
+  if (activeTheme.value) {
+    const themePath = `../themes/${activeTheme.value}/pages/${file}`
+    if (themeModules[themePath]) return themeModules[themePath]
+  }
+  // fallback 到 core
+  return coreModules[`../core/pages/${file}`] || null
 })
 
 const isLoading = ref(false)
@@ -173,21 +218,24 @@ watch(
 
     if (isLoading.value) {
       const elapsed = Date.now() - loadingShownAt
-      const remaining = Math.max(0, MIN_VISIBLE - elapsed)
-      if (remaining > 0) await wait(remaining)
-      if (token !== transitionToken) return
-      isLoading.value = false
+      if (elapsed < MIN_VISIBLE) {
+        await wait(MIN_VISIBLE - elapsed)
+      }
     }
-  }
+
+    if (token !== transitionToken) return
+    isLoading.value = false
+  },
+  { immediate: true }
 )
 
 onBeforeUnmount(() => {
   if (loadingDelayTimer) {
     clearTimeout(loadingDelayTimer)
-    loadingDelayTimer = null
   }
 })
 </script>
+
 <style scoped>
 .page-fade-enter-active,
 .page-fade-leave-active {

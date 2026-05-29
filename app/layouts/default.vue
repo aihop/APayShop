@@ -18,7 +18,7 @@ const route = useRoute()
 const normalizeAdminPath = (path: string) =>
   path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
 
-const activeTheme = computed(() => getSetting('active_theme') || 'default')
+const activeTheme = computed(() => getSetting('active_theme') || '')
 
 const isAdminRoute = computed(
   () => {
@@ -29,17 +29,18 @@ const isAdminRoute = computed(
 
 // Dynamic layout loader
 const activeLayout = computed(() => {
-  // Always use the default admin layout for backend routes
+  // Always use the core layout for admin routes
   if (isAdminRoute.value) {
     return defineAsyncComponent(
-      () => import('../themes/default/layouts/default.vue')
+      () => import('../core/layouts/default.vue')
     )
   }
 
-  return defineAsyncComponent(() =>
-    import(`../themes/${activeTheme.value}/layouts/default.vue`).catch(() => {
-      return import('../themes/default/layouts/default.vue')
+  return defineAsyncComponent(() => {
+    if (!activeTheme.value) return import('../core/layouts/default.vue')
+    return import(`../themes/${activeTheme.value}/layouts/default.vue`).catch(() => {
+      return import('../core/layouts/default.vue')
     })
-  )
+  })
 })
 </script>
