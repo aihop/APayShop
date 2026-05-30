@@ -13,7 +13,14 @@ export default defineEventHandler(async (event) => {
   const [{ value: total }] = await db.select({ value: count() }).from(logs)
 
   // Get paginated data
-  const result = await db.select()
+  const result = await db.select({
+    id: logs.id,
+    level: logs.level,
+    message: logs.message,
+    details: logs.details,
+    source: logs.source,
+    createdAt: logs.createdAt
+  })
     .from(logs)
     .orderBy(desc(logs.createdAt))
     .limit(pageSize)
