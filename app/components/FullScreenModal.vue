@@ -6,12 +6,12 @@
   >
     <template #content>
       <div
-        class="flex flex-col bg-[#121214]"
-        :class="isFullscreen ? 'h-screen' : 'max-h-[90vh] rounded-xl border border-gray-800'"
+        class="flex flex-col bg-white dark:bg-[#121214]"
+        :class="isFullscreen ? 'h-screen' : 'max-h-[90vh] rounded-xl border border-gray-200 dark:border-gray-800'"
       >
         <!-- Header -->
-        <div class="flex justify-between items-center p-6 border-b border-gray-800 shrink-0">
-          <h3 class="text-xl font-bold text-white">{{ title }}</h3>
+        <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-800 shrink-0">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ title }}</h3>
           <div class="flex items-center gap-2">
             <UButton
               color="neutral"
@@ -42,7 +42,7 @@
         <!-- Footer -->
         <div
           v-if="$slots.footer"
-          class="p-6 border-t border-gray-800 bg-gray-900/50 shrink-0"
+          class="p-6 border-t border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900/50 shrink-0"
           :class="!isFullscreen ? 'rounded-b-xl' : ''"
         >
           <div

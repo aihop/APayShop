@@ -1,14 +1,14 @@
 <template>
-  <div class="rich-editor border border-gray-800 rounded-lg overflow-hidden bg-[#121214]">
+  <div class="rich-editor border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-[#121214]">
     <div
       v-if="editor"
-      class="border-b border-gray-800 bg-gray-900/50 p-2 flex flex-wrap gap-2 items-center sticky top-0 z-10"
+      class="border-b border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900/50 p-2 flex flex-wrap gap-2 items-center sticky top-0 z-10"
     >
       <UButton
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('bold') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('bold') }"
         @click="editor.chain().focus().toggleBold().run()"
         icon="ph:text-b-bold"
       />
@@ -16,7 +16,7 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('italic') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('italic') }"
         @click="editor.chain().focus().toggleItalic().run()"
         icon="ph:text-italic-bold"
       />
@@ -24,18 +24,18 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('strike') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('strike') }"
         @click="editor.chain().focus().toggleStrike().run()"
         icon="ph:text-strikethrough-bold"
       />
 
-      <div class="w-px h-5 bg-gray-700 mx-1"></div>
+      <div class="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
       <UButton
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('heading', { level: 1 }) }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('heading', { level: 1 }) }"
         @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
         icon="ph:text-h-one-bold"
       />
@@ -43,7 +43,7 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('heading', { level: 2 }) }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('heading', { level: 2 }) }"
         @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
         icon="ph:text-h-two-bold"
       />
@@ -51,18 +51,18 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('heading', { level: 3 }) }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('heading', { level: 3 }) }"
         @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
         icon="ph:text-h-three-bold"
       />
 
-      <div class="w-px h-5 bg-gray-700 mx-1"></div>
+      <div class="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
       <UButton
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('bulletList') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('bulletList') }"
         @click="editor.chain().focus().toggleBulletList().run()"
         icon="ph:list-bullets-bold"
       />
@@ -70,7 +70,7 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('orderedList') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('orderedList') }"
         @click="editor.chain().focus().toggleOrderedList().run()"
         icon="ph:list-numbers-bold"
       />
@@ -78,12 +78,12 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('blockquote') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('blockquote') }"
         @click="editor.chain().focus().toggleBlockquote().run()"
         icon="ph:quotes-bold"
       />
 
-      <div class="w-px h-5 bg-gray-700 mx-1"></div>
+      <div class="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
       <UButton
         size="sm"
@@ -96,7 +96,7 @@
         size="sm"
         variant="ghost"
         color="neutral"
-        :class="{ 'bg-gray-800 text-white': editor.isActive('link') }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white': editor.isActive('link') }"
         @click="setLink"
         icon="ph:link-bold"
       />
@@ -115,14 +115,14 @@
         size="sm"
         variant="ghost"
         :color="showCode ? 'primary' : 'neutral'"
-        :class="{ 'bg-gray-800 text-purple-400': showCode }"
+        :class="{ 'bg-gray-200 dark:bg-gray-800 text-purple-600 dark:text-purple-400': showCode }"
         @click="toggleCodeView"
         icon="ph:code-bold"
         title="Toggle Source Code"
       />
     </div>
 
-    <div class="p-4 min-h-[300px] text-white relative">
+    <div class="p-4 min-h-[300px] text-gray-900 dark:text-white relative">
       <EditorContent
         v-show="!showCode"
         :editor="editor"
@@ -131,7 +131,7 @@
         v-if="showCode"
         v-model="rawHtml"
         @input="updateFromRaw"
-        class="absolute inset-0 w-full h-full p-4 bg-[#121214] text-gray-300 font-mono text-sm resize-none outline-none border-none focus:ring-0"
+        class="absolute inset-0 w-full h-full p-4 bg-gray-50 dark:bg-[#121214] text-gray-600 dark:text-gray-300 font-mono text-sm resize-none outline-none border-none focus:ring-0"
         placeholder="Enter HTML here..."
       ></textarea>
     </div>
@@ -331,11 +331,15 @@ const setLink = () => {
   margin-bottom: 0.5em;
 }
 .rich-editor .ProseMirror blockquote {
-  border-left: 3px solid #4b5563;
+  border-left: 3px solid #d1d5db;
   padding-left: 1em;
-  color: #9ca3af;
+  color: #6b7280;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
+}
+.dark .rich-editor .ProseMirror blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
 }
 .rich-editor .ProseMirror img {
   max-width: 100%;
@@ -349,16 +353,22 @@ const setLink = () => {
   text-decoration: underline;
 }
 .rich-editor .ProseMirror code {
-  background-color: #374151;
+  background-color: #e5e7eb;
   padding: 0.2em 0.4em;
   border-radius: 0.25rem;
   font-family: monospace;
 }
+.dark .rich-editor .ProseMirror code {
+  background-color: #374151;
+}
 .rich-editor .ProseMirror pre {
-  background-color: #1f2937;
+  background-color: #f3f4f6;
   padding: 1em;
   border-radius: 0.5rem;
   overflow-x: auto;
   font-family: monospace;
+}
+.dark .rich-editor .ProseMirror pre {
+  background-color: #1f2937;
 }
 </style>
