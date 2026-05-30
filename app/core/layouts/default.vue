@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-[#09090b] text-gray-100 font-sans">
-    <header class="border-b border-gray-800/50 sticky top-0 z-50 bg-[#09090b]/80 backdrop-blur">
+  <div class="min-h-screen bg-white text-gray-900 font-sans dark:bg-[#09090b] dark:text-gray-100">
+    <header class="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur dark:border-gray-800/50 dark:bg-[#09090b]/80">
       <div class="max-w-[1440px] w-full px-6 lg:px-12 mx-auto h-16 flex items-center justify-between">
         <div class="flex items-center gap-8">
           <NuxtLink
@@ -22,34 +22,34 @@
           <!-- Desktop Navigation -->
           <nav
             v-if="isAdminRoute"
-            class="hidden md:flex items-center gap-4 text-sm text-gray-400 font-medium"
+            class="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600 dark:text-gray-400"
           >
             <RouteSearch />
             <NuxtLink
               to="https://apayshop.com/docs"
               target="_blank"
-              class="hover:text-purple-400 transition-colors"
+              class="transition-colors hover:text-purple-500 dark:hover:text-purple-400"
             >{{ $t('admin.nav.docs') }}</NuxtLink>
           </nav>
           <nav
             v-else
-            class="hidden md:flex items-center gap-6 text-sm text-gray-400 font-medium"
+            class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-400"
           >
             <NuxtLink
               to="/"
-              class="hover:text-purple-400 transition-colors"
+              class="transition-colors hover:text-purple-500 dark:hover:text-purple-400"
             >Home</NuxtLink>
             <NuxtLink
               to="/products"
-              class="hover:text-purple-400 transition-colors"
+              class="transition-colors hover:text-purple-500 dark:hover:text-purple-400"
             >Products</NuxtLink>
             <NuxtLink
               to="/pricing"
-              class="hover:text-purple-400 transition-colors"
+              class="transition-colors hover:text-purple-500 dark:hover:text-purple-400"
             >Pricing</NuxtLink>
             <NuxtLink
               to="/about"
-              class="hover:text-purple-400 transition-colors"
+              class="transition-colors hover:text-purple-500 dark:hover:text-purple-400"
             >About Us</NuxtLink>
           </nav>
         </div>
@@ -58,7 +58,7 @@
             <div class="hidden md:block">
               <NuxtLink
                 to="/admin/login"
-                class="text-sm text-gray-300 hover:text-purple-400 transition-colors"
+                class="text-sm text-gray-600 transition-colors hover:text-purple-500 dark:text-gray-300 dark:hover:text-purple-400"
               >
                 <UButton
                   color="primary"
@@ -107,7 +107,7 @@
                     <UButton
                       color="neutral"
                       variant="ghost"
-                      class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold border border-purple-500/30 text-sm hover:bg-purple-500/30 transition-colors p-0 cursor-pointer"
+                      class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-purple-500/30 bg-purple-500/10 p-0 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400 dark:hover:bg-purple-500/30"
                     >
                       A
                     </UButton>
@@ -133,7 +133,7 @@
       side="left"
     >
       <template #content>
-        <div class="p-6 flex flex-col h-full bg-[#09090b]">
+        <div class="flex h-full flex-col bg-white p-6 text-gray-900 dark:bg-[#09090b] dark:text-gray-100">
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center p-1.5">
@@ -161,10 +161,10 @@
             class="flex flex-col gap-4"
           >
             <div class="space-y-1">
-              <h3 class="text-[11px] font-semibold text-gray-500 tracking-wider mb-3 px-3">{{ $t('admin.nav.store') }}</h3>
+              <h3 :class="adminSectionTitleClass">{{ $t('admin.nav.store') }}</h3>
               <NuxtLink
                 to="/admin"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -177,7 +177,7 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/stats"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -190,7 +190,7 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/orders"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -203,7 +203,7 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/products"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -216,7 +216,7 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/customers"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -229,7 +229,7 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/posts"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -243,7 +243,7 @@
               <NuxtLink
                 v-if="hasKeyProducts"
                 to="/admin/cards"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -257,7 +257,7 @@
               <NuxtLink
                 v-if="hasSubscriptionProducts"
                 to="/admin/subscriptions"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -269,9 +269,22 @@
                 </div>
               </NuxtLink>
               <NuxtLink
+                to="/admin/failures"
+                :class="adminMobileNavItemClass"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:warning-circle"
+                    class="w-5 h-5"
+                  />
+                  {{ $t('admin.nav.failures') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
                 v-if="hasApiKeysProducts"
                 to="/admin/api-keys"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -285,10 +298,34 @@
             </div>
 
             <div class="space-y-1 mt-4">
-              <h3 class="text-[11px] font-semibold text-gray-500 tracking-wider mb-3 px-3">{{ $t('admin.nav.account') }}</h3>
+              <h3
+                v-if="extensionPages.length"
+                :class="adminSectionTitleClass"
+              >
+                {{ themeSectionTitle }}
+              </h3>
+              <NuxtLink
+                v-for="page in extensionPages"
+                :key="page.key"
+                :to="page.route"
+                :class="adminMobileNavItemClass"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    :name="page.icon"
+                    class="w-5 h-5"
+                  />
+                  {{ page.title }}
+                </div>
+              </NuxtLink>
+            </div>
+
+            <div class="space-y-1 mt-4">
+              <h3 :class="adminSectionTitleClass">{{ $t('admin.nav.configs') }}</h3>
               <NuxtLink
                 to="/admin/payments"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -300,21 +337,8 @@
                 </div>
               </NuxtLink>
               <NuxtLink
-                to="/admin/failures"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
-                @click="isMobileMenuOpen = false"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:warning-circle"
-                    class="w-5 h-5"
-                  />
-                  {{ $t('admin.nav.failures') }}
-                </div>
-              </NuxtLink>
-              <NuxtLink
                 to="/admin/users"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -325,13 +349,35 @@
                   {{ $t('admin.nav.users') }}
                 </div>
               </NuxtLink>
-            </div>
-
-            <div class="space-y-1 mt-4">
-              <h3 class="text-[11px] font-semibold text-gray-500 tracking-wider mb-3 px-3">{{ $t('admin.nav.configs') }}</h3>
+              <NuxtLink
+                to="/admin/logs"
+                :class="adminMobileNavItemClass"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:log"
+                    class="w-5 h-5"
+                  />
+                  {{ $t('admin.nav.logs') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/themes"
+                :class="adminMobileNavItemClass"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    name="i-heroicons-sparkles"
+                    class="w-5 h-5 text-purple-400"
+                  />
+                  {{ $t('admin.nav.themes') }}
+                </div>
+              </NuxtLink>
               <NuxtLink
                 to="/admin/settings"
-                class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-[#121214]"
+                :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
               >
                 <div class="flex items-center gap-2">
@@ -352,27 +398,27 @@
           >
             <NuxtLink
               to="/"
-              class="px-4 py-3 rounded-xl text-lg font-medium text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+              class="rounded-xl px-4 py-3 text-lg font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
               @click="isMobileMenuOpen = false"
             >Home</NuxtLink>
             <NuxtLink
               to="/products"
-              class="px-4 py-3 rounded-xl text-lg font-medium text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+              class="rounded-xl px-4 py-3 text-lg font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
               @click="isMobileMenuOpen = false"
             >Products</NuxtLink>
             <NuxtLink
               to="/pricing"
-              class="px-4 py-3 rounded-xl text-lg font-medium text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+              class="rounded-xl px-4 py-3 text-lg font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
               @click="isMobileMenuOpen = false"
             >Pricing</NuxtLink>
             <NuxtLink
               to="/about"
-              class="px-4 py-3 rounded-xl text-lg font-medium text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+              class="rounded-xl px-4 py-3 text-lg font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
               @click="isMobileMenuOpen = false"
             >About</NuxtLink>
             <NuxtLink
               to="/contact"
-              class="px-4 py-3 rounded-xl text-lg font-medium text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+              class="rounded-xl px-4 py-3 text-lg font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
               @click="isMobileMenuOpen = false"
             >Contact</NuxtLink>
 
@@ -405,12 +451,12 @@
       >
         <div class="space-y-8">
           <div>
-            <h3 class="text-[11px] font-semibold text-gray-500 tracking-wider mb-3 px-3">{{ $t('admin.nav.store') }}</h3>
+            <h3 :class="adminSectionTitleClass">{{ $t('admin.nav.store') }}</h3>
             <nav class="space-y-1">
               <NuxtLink
                 to="/admin"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                exact-active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :exact-active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -422,8 +468,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/stats"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -435,8 +481,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/orders"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -448,8 +494,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/products"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -461,8 +507,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/customers"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -474,8 +520,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/posts"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -488,8 +534,8 @@
               <NuxtLink
                 v-if="hasKeyProducts"
                 to="/admin/cards"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -502,8 +548,8 @@
               <NuxtLink
                 v-if="hasSubscriptionProducts"
                 to="/admin/subscriptions"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -514,10 +560,23 @@
                 </div>
               </NuxtLink>
               <NuxtLink
+                to="/admin/failures"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:warning-circle"
+                    class="w-4 h-4"
+                  />
+                  {{ $t('admin.nav.failures') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
                 v-if="hasApiKeysProducts"
                 to="/admin/api-keys"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -527,10 +586,61 @@
                   {{ $t('admin.nav.apiKeys') }}
                 </div>
               </NuxtLink>
+            </nav>
+          </div>
+          <div v-if="extensionPages.length">
+            <h3 :class="adminSectionTitleClass">{{ themeSectionTitle }}</h3>
+            <nav class="space-y-1">
+              <NuxtLink
+                v-for="page in extensionPages"
+                :key="page.key"
+                :to="page.route"
+                :class="adminDesktopNavItemClass"
+                :exact-active-class="adminNavActiveClass"
+              >
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    :name="page.icon"
+                    class="w-4 h-4"
+                  />
+                  {{ page.title }}
+                </div>
+              </NuxtLink>
+            </nav>
+          </div>
+          <div>
+            <h3 :class="adminSectionTitleClass">{{ $t('admin.nav.configs') }}</h3>
+            <nav class="space-y-1">
+              <NuxtLink
+                to="/admin/payments"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:credit-card"
+                    class="w-4 h-4"
+                  />
+                  {{ $t('admin.nav.payments') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/users"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:users-four"
+                    class="w-4 h-4"
+                  />
+                  {{ $t('admin.nav.users') }}
+                </div>
+              </NuxtLink>
               <NuxtLink
                 to="/admin/logs"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -542,8 +652,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/themes"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <UIcon
@@ -555,8 +665,8 @@
               </NuxtLink>
               <NuxtLink
                 to="/admin/settings"
-                class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#121214]"
-                active-class="bg-[#121214] text-white"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
               >
                 <div class="flex items-center gap-2">
                   <Icon
@@ -581,22 +691,22 @@
 
     <footer
       v-if="!isAdminRoute"
-      class="border-t border-gray-800/50 py-12 mt-20"
+      class="mt-20 border-t border-gray-200/80 py-12 dark:border-gray-800/50"
     >
       <div class="max-w-7xl mx-auto px-4">
         <div class="flex flex-col md:flex-row items-center justify-between">
-          <p class="text-sm text-gray-500 leading-6">
+          <p class="text-sm leading-6 text-gray-500 dark:text-gray-500">
             &copy; {{ new Date().getFullYear() }} {{ getSetting('site_name') || 'Your Site' }}. All rights reserved.
             <span class="ml-1">Designed & Developed by <a
                 href="https://apayshop.com/"
                 target="_blank"
-                class="text-gray-400 hover:text-purple-400 transition-colors"
+                class="text-gray-600 transition-colors hover:text-purple-500 dark:text-gray-400 dark:hover:text-purple-400"
               >APayShop</a></span>
           </p>
           <div class="flex items-center space-x-4 mt-4 md:mt-0">
             <a
               href="#"
-              class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all duration-300 hover:bg-gray-200 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Twitter"
             >
               <Icon
@@ -606,7 +716,7 @@
             </a>
             <a
               href="#"
-              class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all duration-300 hover:bg-gray-200 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="LinkedIn"
             >
               <Icon
@@ -616,7 +726,7 @@
             </a>
             <a
               href="#"
-              class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all duration-300 hover:bg-gray-200 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="YouTube"
             >
               <Icon
@@ -626,7 +736,7 @@
             </a>
             <a
               href="#"
-              class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all duration-300 hover:bg-gray-200 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="GitHub"
             >
               <Icon
@@ -646,9 +756,12 @@ import { computed, ref, onMounted } from 'vue'
 
 const route = useRoute()
 const isMobileMenuOpen = ref(false)
-const isConfigsExpanded = ref(false)
 const { getSetting } = useSettings()
 const { extensionPages, themeSectionTitle } = useAdminExtensions()
+const adminSectionTitleClass = 'mb-3 px-3 text-[11px] font-semibold tracking-wider text-gray-500 dark:text-gray-500'
+const adminMobileNavItemClass = 'block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-[#121214] dark:hover:text-white'
+const adminDesktopNavItemClass = 'block rounded-md px-3 py-2 text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#121214] dark:hover:text-white'
+const adminNavActiveClass = 'bg-gray-100 text-gray-900 dark:bg-[#121214] dark:text-white'
 const normalizeAdminPath = (path: string) =>
   path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
 
