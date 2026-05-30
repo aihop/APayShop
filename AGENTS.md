@@ -1,7 +1,8 @@
 # APayShop: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
-> - `2026-05-29`: 修正 Section 6 章节编号 (A→B→C→D→E→F→G)；补充测试策略与本节说明。
+> `2026-05-29`: 修正 Section 6 章节编号 (A→B→C→D→E→F→G)；补充测试策略与本节说明。
+> `2026-05-30`: 新增 Section 9 Git 提交流程约束。
 
 ## 1. 项目定位与核心架构
 
@@ -18,7 +19,7 @@ APayShop 是一个专为**虚拟商品（服务订阅、卡密、数字文件、
 
 ### SaaS 矩阵中的商业定位
 
-APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + IQingPu 演示小程序）中的**唯一计费中心和引流门户**。它负责完成“按月/按年订阅”的售卖，以规避小程序端虚拟支付的合规风险。APayShop 只负责“收钱”和“通知”，绝对不参与具体的建站、小程序提审等繁重业务逻辑。
+APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示小程序）中的**唯一计费中心和引流门户**。它负责完成“按月/按年订阅”的售卖，以规避小程序端虚拟支付的合规风险。APayShop 只负责“收钱”和“通知”，绝对不参与具体的建站、小程序提审等繁重业务逻辑。
 
 ---
 
@@ -184,6 +185,21 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + IQingPu 演�
 
 - **数据多语言**: 数据库字段通过 `metaData.translations` 存储多语言，前端用 `useLocalizedProduct()` 解析。
 - **API 文档强制同步**: 新增或修改 API 接口时，**必须**同步更新 `content/docs/` (英文) 和 `content/zh/docs/` (中文) 下的 Markdown 文档。一个模块对应一个文档，必须包含请求参数、响应体示例。
+
+---
+
+## 9. Git 提交流程 (任务完成约束)
+
+每个任务完成并验证后，必须按此顺序执行 git 流程：
+
+```bash
+git pull --rebase   # 1. 先拉取远程最新代码，避免冲突
+git add -A          # 2. 暂存所有变更
+git commit -m "..." # 3. 提交（描述性信息）
+git push            # 4. 推送至远程
+```
+
+> 先拉后推，绝不可颠倒。此规则也在 `.codewhale/instructions.md` 中记录，为 AI 的跨会话持久约束。
 
 ---
 
