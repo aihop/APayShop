@@ -3,7 +3,7 @@
     <UButton
       color="neutral"
       variant="ghost"
-      class="text-gray-400 hover:text-white"
+      class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
       @click="isOpen = true"
     >
       <template #leading>
@@ -28,7 +28,7 @@
           :groups="groups"
           :autoselect="false"
           placeholder="Search pages and settings..."
-          class="h-80 bg-[#121214] ring-1 ring-gray-800"
+          class="h-80 bg-white dark:bg-[#121214] ring-1 ring-gray-200 dark:ring-gray-800"
         />
       </template>
     </UModal>
