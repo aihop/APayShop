@@ -193,7 +193,7 @@ export const logs = sqliteTable('logs', {
   message: text('message').notNull(),
   details: text('details'), // Optional JSON string or detailed stack trace
   source: text('source'), // e.g., 'webhook', 'admin', 'payment', 'system'
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const visitorProfiles = sqliteTable('visitor_profiles', {
