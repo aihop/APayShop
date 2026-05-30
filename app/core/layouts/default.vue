@@ -98,6 +98,16 @@
               >
                 {{ $t('admin.header.viewStore') }}
               </UButton>
+              <ClientOnly>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  :icon="isDark ? 'ph:sun-dim-bold' : 'ph:moon-bold'"
+                  class="rounded-full"
+                  :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+                  @click="toggleColorMode"
+                />
+              </ClientOnly>
               <div class="hidden md:flex">
                 <ClientOnly>
                   <UDropdownMenu
@@ -115,6 +125,16 @@
                 </ClientOnly>
               </div>
             </div>
+            <ClientOnly>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                :icon="isDark ? 'ph:sun-dim-bold' : 'ph:moon-bold'"
+                class="md:hidden"
+                :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+                @click="toggleColorMode"
+              />
+            </ClientOnly>
             <!-- Mobile Menu Toggle -->
             <UButton
               color="neutral"
@@ -147,12 +167,24 @@
                 {{ getSetting('site_name') }}
               </span>
             </div>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="ph:x-bold"
-              @click="isMobileMenuOpen = false"
-            />
+            <div class="flex items-center gap-1">
+              <ClientOnly>
+                <UButton
+                  v-if="isAdminRoute"
+                  color="neutral"
+                  variant="ghost"
+                  :icon="isDark ? 'ph:sun-dim-bold' : 'ph:moon-bold'"
+                  :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+                  @click="toggleColorMode"
+                />
+              </ClientOnly>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="ph:x-bold"
+                @click="isMobileMenuOpen = false"
+              />
+            </div>
           </div>
 
           <!-- Mobile Admin Nav -->
@@ -755,6 +787,7 @@
 import { computed, ref, onMounted } from 'vue'
 
 const route = useRoute()
+const colorMode = useColorMode()
 const isMobileMenuOpen = ref(false)
 const { getSetting } = useSettings()
 const { extensionPages, themeSectionTitle } = useAdminExtensions()
@@ -762,10 +795,15 @@ const adminSectionTitleClass = 'mb-3 px-3 text-[11px] font-semibold tracking-wid
 const adminMobileNavItemClass = 'block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-[#121214] dark:hover:text-white'
 const adminDesktopNavItemClass = 'block rounded-md px-3 py-2 text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#121214] dark:hover:text-white'
 const adminNavActiveClass = 'bg-gray-100 text-gray-900 dark:bg-[#121214] dark:text-white'
+const isDark = computed(() => colorMode.value === 'dark')
 const normalizeAdminPath = (path: string) =>
   path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
 
 const { locale, locales, t } = useI18n()
+
+const toggleColorMode = () => {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+}
 
 const switchLocale = async (newLocale: 'en' | 'zh') => {
   locale.value = newLocale
