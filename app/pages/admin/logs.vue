@@ -6,7 +6,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">View and manage application event logs</p>
       </div>
       <UButton
-        color="red"
+        color="error"
         variant="outline"
         icon="ph:trash-bold"
         @click="clearAllLogs"
@@ -54,7 +54,7 @@
 
           <template #createdAt-cell="{ row }">
             <span class="text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
-              {{ new Date(row.original.createdAt).toLocaleString() }}
+              {{ formatCreatedAt(row.original.createdAt) }}
             </span>
           </template>
 
@@ -62,14 +62,14 @@
             <div class="flex items-center gap-2">
               <UButton
                 v-if="row.original.details"
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 icon="ph:eye"
                 size="sm"
                 @click="viewDetails(row.original)"
               />
               <UButton
-                color="red"
+                color="error"
                 variant="ghost"
                 icon="ph:trash"
                 size="sm"
@@ -101,7 +101,6 @@
       <template #content>
         <UCard
           class="bg-white dark:bg-[#121214] ring-1 ring-gray-200 dark:ring-gray-800"
-          :ui="{ divide: 'divide-gray-200 dark:divide-gray-800' }"
         >
           <template #header>
             <div class="flex items-center justify-between">
@@ -113,7 +112,7 @@
                 Log Details
               </h3>
               <UButton
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 icon="ph:x"
                 class="-my-1"
@@ -144,7 +143,7 @@
               </div>
               <div>
                 <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Time</div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog ? new Date(selectedLog.createdAt).toLocaleString() : '' }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog ? formatCreatedAt(selectedLog.createdAt) : '' }}</div>
               </div>
             </div>
           </div>
@@ -155,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 definePageMeta({ title: 'System Logs' })
 
@@ -182,7 +181,7 @@ const columns = [
 const { page, pageSize, onPageChange } = usePagination(15)
 const isClearing = ref(false)
 const isDetailsOpen = ref(false)
-const selectedLog = ref<any>(null)
+const selectedLog = ref<Record<string, any> | null>(null)
 
 const { data, pending, refresh } = await useFetch<any>('/api/admin/logs', {
   query: {
@@ -192,25 +191,58 @@ const { data, pending, refresh } = await useFetch<any>('/api/admin/logs', {
   watch: [page],
 })
 
-const logs = computed(() => data.value?.logs || [])
+const logs = computed<any[]>(() => data.value?.logs || [])
 const totalItems = computed(() => data.value?.total || 0)
 
-const getLevelColor = (level: string) => {
+const getLevelColor = (level?: string): 'error' | 'warning' | 'neutral' | 'primary' => {
   switch (level?.toLowerCase()) {
     case 'error':
-      return 'red'
+      return 'error'
     case 'warn':
       return 'warning'
     case 'debug':
-      return 'gray'
+      return 'neutral'
     case 'info':
     default:
       return 'primary'
   }
 }
 
-const formatDetails = (details: string | null) => {
-  if (!details) return ''
+const formatCreatedAt = (value: unknown) => {
+  if (!value) return '-'
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '-' : value.toLocaleString()
+  }
+
+  if (typeof value === 'number') {
+    const timestamp = value < 1e12 ? value * 1000 : value
+    const date = new Date(timestamp)
+    return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString()
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return '-'
+
+    if (/^\d+$/.test(trimmed)) {
+      const numeric = Number(trimmed)
+      const date = new Date(trimmed.length <= 10 ? numeric * 1000 : numeric)
+      return Number.isNaN(date.getTime()) ? trimmed : date.toLocaleString()
+    }
+
+    const sqliteTimestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
+      ? `${trimmed.replace(' ', 'T')}Z`
+      : trimmed
+    const date = new Date(sqliteTimestamp)
+    return Number.isNaN(date.getTime()) ? trimmed : date.toLocaleString()
+  }
+
+  return '-'
+}
+
+const formatDetails = (details: unknown) => {
+  if (typeof details !== 'string' || !details) return ''
   try {
     // Try to format if it's a JSON string
     return JSON.stringify(JSON.parse(details), null, 2)

@@ -3,6 +3,7 @@
 > **变更日志 (Changelog)**
 > `2026-05-29`: 修正 Section 6 章节编号 (A→B→C→D→E→F→G)；补充测试策略与本节说明。
 > `2026-05-30`: 新增 Section 9 Git 提交流程约束。
+> `2026-05-30`: 补充后台日志/列表时间字段的跨环境归一化约定，见 Section 6.A。
 
 ## 1. 项目定位与核心架构
 
@@ -107,6 +108,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
   - **SQLite**: `strftime('%H', datetime(..., 'unixepoch', 'localtime'))`
   - **PostgreSQL**: `to_char(date_trunc('hour', ...), 'HH24')` 并且不能把 `Date` 对象直接塞进 Drizzle 原始 `sql\`` 条件里，优先转成 ISO 字符串再显式 `::timestamptz`。
   - **MySQL**: `DATE_FORMAT(..., '%H')`
+- **后台时间字段返回格式归一化 (新增坑点)**: 后台列表接口如果直接返回 `createdAt`、`updatedAt` 等时间字段，不能把 SQLite 原始 `CURRENT_TIMESTAMP` 字符串直接透传给前端再 `new Date(...)`；应优先在服务端统一转换成 ISO 字符串，前端再做容错格式化，避免日志、安装记录这类列表在 SQLite 下“明明有时间但不显示”。
 - **Schema 维护**: 由于 Drizzle 的类型绑定特性，目前系统平行维护了 `schema.sqlite.ts`, `schema.pg.ts` 和 `schema.mysql.ts` 三套表结构。每次新增或修改表字段时，必须同时在这三个文件中进行更新。
 
 ### B. 文件上传与静态资源
