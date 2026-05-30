@@ -12,7 +12,7 @@
             :key="option.value"
             type="button"
             class="px-3 py-1.5 rounded-lg text-sm transition-colors"
-            :class="preset === option.value ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'"
+            :class="preset === option.value ? 'bg-purple-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'"
             @click="preset = option.value"
           >
             {{ option.label }}
@@ -35,7 +35,7 @@
         class="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-gray-200 dark:border-gray-800/50"
       >
         <div class="flex items-center justify-between">
-          <span class="text-sm text-gray-400">{{ card.label }}</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">{{ card.label }}</span>
           <UIcon
             :name="card.icon"
             class="w-5 h-5"
@@ -62,7 +62,7 @@
             class="grid grid-cols-[72px_1fr_72px_72px_72px] gap-3 items-center"
           >
             <div class="text-xs text-gray-500">{{ item.label }}</div>
-            <div class="space-y-2">
+            <div class="space-y-2 bg-gray-100 dark:bg-transparent rounded-lg p-1">
               <div class="h-2 rounded-full bg-white/5 overflow-hidden">
                 <div
                   class="h-full rounded-full bg-cyan-500"
@@ -76,9 +76,9 @@
                 />
               </div>
             </div>
-            <div class="text-right text-sm text-cyan-300">{{ formatNumber(item.pageViews) }}</div>
-            <div class="text-right text-sm text-purple-300">{{ formatNumber(item.uniqueVisitors) }}</div>
-            <div class="text-right text-sm text-emerald-300">{{ formatNumber(item.paidVisitors) }}</div>
+            <div class="text-right text-sm text-cyan-600 dark:text-cyan-300">{{ formatNumber(item.pageViews) }}</div>
+            <div class="text-right text-sm text-purple-600 dark:text-purple-300">{{ formatNumber(item.uniqueVisitors) }}</div>
+            <div class="text-right text-sm text-emerald-600 dark:text-emerald-300">{{ formatNumber(item.paidVisitors) }}</div>
           </div>
         </div>
         <div class="mt-4 flex items-center gap-6 text-xs text-gray-500">
@@ -112,7 +112,7 @@
             <span class="text-gray-500 dark:text-gray-300">{{ step.label }}</span>
             <span class="text-gray-900 dark:text-white font-medium">{{ formatNumber(step.visitors) }} · {{ formatPercent(step.rate) }}</span>
             </div>
-            <div class="h-2 rounded-full bg-white/5 overflow-hidden">
+            <div class="h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
               <div
                 class="h-full rounded-full bg-emerald-500"
                 :style="{ width: `${step.rate}%` }"
@@ -137,14 +137,14 @@
             :key="item.label"
             class="flex items-center gap-3"
           >
-            <div class="w-40 text-sm text-gray-300 truncate">{{ formatSourceLabel(item.label) }}</div>
-            <div class="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+            <div class="w-40 text-sm text-gray-600 dark:text-gray-300 truncate">{{ formatSourceLabel(item.label) }}</div>
+            <div class="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
               <div
                 class="h-full rounded-full bg-purple-500"
                 :style="{ width: `${item.percentage}%` }"
               />
             </div>
-            <div class="w-16 text-right text-sm text-white">{{ formatNumber(item.count) }}</div>
+            <div class="w-16 text-right text-sm text-gray-900 dark:text-white">{{ formatNumber(item.count) }}</div>
           </div>
         </div>
       </div>
@@ -162,14 +162,14 @@
             :key="item.label"
             class="flex items-center gap-3"
           >
-            <div class="w-40 text-sm text-gray-300 truncate">{{ formatSourceLabel(item.label) }}</div>
-            <div class="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+            <div class="w-40 text-sm text-gray-600 dark:text-gray-300 truncate">{{ formatSourceLabel(item.label) }}</div>
+            <div class="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
               <div
                 class="h-full rounded-full bg-cyan-500"
                 :style="{ width: `${item.percentage}%` }"
               />
             </div>
-            <div class="w-16 text-right text-sm text-white">{{ formatNumber(item.count) }}</div>
+            <div class="w-16 text-right text-sm text-gray-900 dark:text-white">{{ formatNumber(item.count) }}</div>
           </div>
         </div>
       </div>
@@ -217,8 +217,8 @@
             :key="item.label"
             class="flex items-center justify-between text-sm"
           >
-            <span class="text-gray-300">{{ item.label }}</span>
-            <span class="text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
+            <span class="text-gray-600 dark:text-gray-300">{{ item.label }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
           </div>
         </div>
       </div>
@@ -232,8 +232,8 @@
             :key="item.label"
             class="flex items-center justify-between text-sm"
           >
-            <span class="text-gray-300">{{ item.label }}</span>
-            <span class="text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
+            <span class="text-gray-600 dark:text-gray-300">{{ item.label }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
           </div>
         </div>
       </div>
@@ -276,17 +276,17 @@
               <tr
                 v-for="item in visitorRows"
                 :key="item.visitorId"
-                class="border-b border-gray-900/80"
+                class="border-b border-gray-100 dark:border-gray-900/80"
               >
-                <td class="py-3 px-4 text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
-                <td class="py-3 pr-4 text-gray-300">{{ formatSourceLabel(item.firstTouch) }}</td>
-                <td class="py-3 pr-4 text-gray-300">{{ formatSourceLabel(item.lastTouch) }}</td>
-                <td class="py-3 pr-4 text-gray-300">{{ item.country }}</td>
-                <td class="py-3 pr-4 text-gray-300">{{ item.deviceType }}</td>
-                <td class="py-3 pr-4 text-gray-400 max-w-52 truncate">{{ item.landingPath }}</td>
-                <td class="py-3 pr-4 text-white">{{ formatNumber(item.pageViews) }}</td>
-                <td class="py-3 pr-4 text-amber-300">{{ formatNumber(item.checkouts) }}</td>
-                <td class="py-3 pr-4 text-emerald-300">{{ formatNumber(item.paid) }}</td>
+                <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.firstTouch) }}</td>
+                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.lastTouch) }}</td>
+                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.country }}</td>
+                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.deviceType }}</td>
+                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-52 truncate">{{ item.landingPath }}</td>
+                <td class="py-3 pr-4 text-gray-900 dark:text-white">{{ formatNumber(item.pageViews) }}</td>
+                <td class="py-3 pr-4 text-amber-600 dark:text-amber-300">{{ formatNumber(item.checkouts) }}</td>
+                <td class="py-3 pr-4 text-emerald-600 dark:text-emerald-300">{{ formatNumber(item.paid) }}</td>
               </tr>
               <tr v-if="!visitorsPending && visitorRows.length === 0">
                 <td
@@ -300,14 +300,14 @@
           </table>
         </div>
 
-        <div class="p-4 border-t border-gray-800/50 flex justify-between items-center bg-[#121214]">
-          <div class="text-sm text-gray-400">
+        <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center bg-white dark:bg-[#121214]">
+          <div class="text-sm text-gray-500 dark:text-gray-400">
             {{ $t('admin.common.showing') }}
-            <span class="text-white">{{ visitorTotalItems > 0 ? (visitorsPage - 1) * visitorsPageCount + 1 : 0 }}</span>
+            <span class="text-gray-900 dark:text-white">{{ visitorTotalItems > 0 ? (visitorsPage - 1) * visitorsPageCount + 1 : 0 }}</span>
             {{ $t('admin.common.to') }}
-            <span class="text-white">{{ Math.min(visitorsPage * visitorsPageCount, visitorTotalItems) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ Math.min(visitorsPage * visitorsPageCount, visitorTotalItems) }}</span>
             {{ $t('admin.common.of') }}
-            <span class="text-white">{{ visitorTotalItems }}</span>
+            <span class="text-gray-900 dark:text-white">{{ visitorTotalItems }}</span>
             {{ $t('admin.common.results') }}
           </div>
           <UPagination
@@ -340,7 +340,7 @@
               <tr
                 v-for="item in eventRows"
                 :key="item.id"
-                class="border-b border-gray-900/80"
+                class="border-b border-gray-100 dark:border-gray-900/80"
               >
                 <td class="py-3 px-4">
                   <UBadge
@@ -350,11 +350,11 @@
                     {{ eventLabel(item.eventName, item.eventAction) }}
                   </UBadge>
                 </td>
-                <td class="py-3 pr-4 text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
-                <td class="py-3 pr-4 text-gray-300">{{ formatSourceLabel(item.source) }}</td>
-                <td class="py-3 pr-4 text-gray-300">{{ item.country }} / {{ item.deviceType }}</td>
-                <td class="py-3 pr-4 text-gray-400 max-w-72 truncate">{{ item.path || '-' }}</td>
-                <td class="py-3 pr-4 text-gray-400">{{ formatDateTime(item.createdAt) }}</td>
+                <td class="py-3 pr-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.source) }}</td>
+                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.country }} / {{ item.deviceType }}</td>
+                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-72 truncate">{{ item.path || '-' }}</td>
+                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ formatDateTime(item.createdAt) }}</td>
               </tr>
               <tr v-if="!eventsPending && eventRows.length === 0">
                 <td
@@ -368,14 +368,14 @@
           </table>
         </div>
 
-        <div class="p-4 border-t border-gray-800/50 flex justify-between items-center bg-[#121214]">
-          <div class="text-sm text-gray-400">
+        <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center bg-white dark:bg-[#121214]">
+          <div class="text-sm text-gray-500 dark:text-gray-400">
             {{ $t('admin.common.showing') }}
-            <span class="text-white">{{ eventTotalItems > 0 ? (eventsPage - 1) * eventsPageCount + 1 : 0 }}</span>
+            <span class="text-gray-900 dark:text-white">{{ eventTotalItems > 0 ? (eventsPage - 1) * eventsPageCount + 1 : 0 }}</span>
             {{ $t('admin.common.to') }}
-            <span class="text-white">{{ Math.min(eventsPage * eventsPageCount, eventTotalItems) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ Math.min(eventsPage * eventsPageCount, eventTotalItems) }}</span>
             {{ $t('admin.common.of') }}
-            <span class="text-white">{{ eventTotalItems }}</span>
+            <span class="text-gray-900 dark:text-white">{{ eventTotalItems }}</span>
             {{ $t('admin.common.results') }}
           </div>
           <UPagination
