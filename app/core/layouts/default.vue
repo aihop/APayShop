@@ -479,7 +479,7 @@
       <!-- Admin Sidebar -->
       <aside
         v-if="isAdminRoute"
-        class="w-56 flex-shrink-0 hidden md:block py-10 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto"
+        class="admin-sidebar-scrollbar sticky top-16 hidden h-[calc(100vh-4rem)] w-56 shrink-0 overflow-y-auto py-10 pr-6 md:block"
       >
         <div class="space-y-8">
           <div>
@@ -874,3 +874,41 @@ const userMenuItems = computed(() => [
   ],
 ])
 </script>
+
+<style scoped>
+.admin-sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.7) transparent;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.7);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.9);
+}
+
+:global(.dark) .admin-sidebar-scrollbar {
+  scrollbar-color: rgba(75, 85, 99, 0.85) transparent;
+}
+
+:global(.dark) .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.85);
+}
+
+:global(.dark) .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.95);
+}
+</style>
