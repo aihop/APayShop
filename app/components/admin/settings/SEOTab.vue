@@ -1,17 +1,17 @@
 <template>
-  <div class="bg-[#121214] border border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
-    <div class="px-6 py-5 border-b border-gray-800/60 bg-gray-900/20 flex items-center gap-3">
+  <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400">
         <UIcon
           name="ph:magnifying-glass-fill"
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-white">Search Engine Optimization (SEO)</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Search Engine Optimization (SEO)</h2>
     </div>
 
     <!-- Language Tabs -->
-    <div class="px-6 pt-4 border-b border-gray-800/60 bg-[#121214]">
+    <div class="px-6 pt-4 border-b border-gray-200 dark:border-gray-800/60 bg-white dark:bg-[#121214]">
       <nav class="flex space-x-2 overflow-x-auto hide-scrollbar pb-2">
         <button
           v-for="locale in supportedLocales"
@@ -21,8 +21,8 @@
           :class="[
             'flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
             activeLocale === locale.code
-              ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
-              : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+              ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
           ]"
         >
           <UIcon
@@ -49,7 +49,7 @@
             icon="ph:browser"
             size="md"
             class="w-full"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           />
         </UFormField>
 
@@ -63,7 +63,7 @@
             icon="ph:text-align-left"
             size="md"
             class="w-full"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           />
         </UFormField>
       </div>

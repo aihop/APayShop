@@ -1,13 +1,13 @@
 <template>
-  <div class="bg-[#121214] border border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
-    <div class="px-6 py-5 border-b border-gray-800/60 bg-gray-900/20 flex items-center gap-3">
+  <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
         <UIcon
           name="ph:translate-fill"
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-white">Localization & Currency</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Localization & Currency</h2>
     </div>
     <div class="p-6 space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -23,7 +23,7 @@
             icon="ph:flag"
             size="md"
             class="w-full"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           >
 
           </USelectMenu>
@@ -43,7 +43,7 @@
             class="w-full"
             create-item
             :search-input="{ placeholder: 'Search or type currency...' }"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           >
           </USelectMenu>
         </UFormField>
@@ -59,7 +59,7 @@
           <div
             v-for="locale in availableLocales"
             :key="locale.code"
-            class="flex items-center gap-2 p-3 rounded-xl border border-gray-800/60 bg-[#09090b] hover:border-gray-700 transition-colors cursor-pointer group"
+            class="flex items-center gap-2 p-3 rounded-xl border border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-[#09090b] hover:border-gray-300 dark:hover:border-gray-700 transition-colors cursor-pointer group"
             @click="toggleLocale(locale.code, !isLocaleSelected(locale.code))"
           >
             <UIcon
@@ -71,10 +71,10 @@
               :model-value="isLocaleSelected(locale.code)"
               @update:model-value="(checked) => toggleLocale(locale.code, checked)"
               @click.stop
-              :ui="{ base: 'bg-[#121214]' }"
+              :ui="{ base: 'bg-white dark:bg-[#121214]' }"
             />
             <div class="flex flex-col overflow-hidden">
-              <span class="text-sm font-medium text-gray-200 truncate">{{ locale.label }}</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{{ locale.label }}</span>
               <span class="text-xs text-gray-500 uppercase">{{ locale.code }}</span>
             </div>
           </div>

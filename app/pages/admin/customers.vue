@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.customers.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.customers.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.customers.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.customers.subtitle') }}</p>
       </div>
       <UButton
         v-if="activeTab === 'users'"
@@ -23,7 +23,7 @@
     <!-- Customers Tab Content -->
     <div
       v-if="activeTab === 'customers'"
-      class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0"
+      class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0"
     >
       <div class="flex-1 overflow-auto custom-scrollbar">
         <UTable
@@ -33,7 +33,7 @@
           class="min-w-full"
         >
           <template #email-cell="{ row }">
-            <span :class="row.original.email === 'Anonymous' ? 'text-gray-500 italic' : 'text-white font-medium'">
+            <span :class="row.original.email === 'Anonymous' ? 'text-gray-500 italic' : 'text-gray-900 dark:text-white font-medium'">
               {{ row.original.email }}
             </span>
           </template>
@@ -69,15 +69,15 @@
           </template>
 
           <template #lastOrderAt-cell="{ row }">
-            <span class="text-sm text-gray-400">{{ new Date(Number(row.original.lastOrderAt || 0)).toLocaleString() }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(Number(row.original.lastOrderAt || 0)).toLocaleString() }}</span>
           </template>
         </UTable>
       </div>
 
       <!-- Pagination -->
-      <div class="p-4 border-t border-gray-800/50 flex justify-between items-center shrink-0 bg-[#121214] rounded-b-2xl">
-        <div class="text-sm text-gray-400">
-          {{ $t('admin.common.showing') }} <span class="text-white">{{ totalItems > 0 ? (page - 1) * pageCount + 1 : 0 }}</span> {{ $t('admin.common.to') }} <span class="text-white">{{ Math.min(page * pageCount, totalItems) }}</span> {{ $t('admin.common.of') }} <span class="text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          {{ $t('admin.common.showing') }} <span class="text-gray-900 dark:text-white">{{ totalItems > 0 ? (page - 1) * pageCount + 1 : 0 }}</span> {{ $t('admin.common.to') }} <span class="text-gray-900 dark:text-white">{{ Math.min(page * pageCount, totalItems) }}</span> {{ $t('admin.common.of') }} <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
         </div>
         <UPagination
           v-model="page"
@@ -91,7 +91,7 @@
     <!-- Users Tab Content -->
     <div
       v-else-if="activeTab === 'users'"
-      class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0"
+      class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0"
     >
       <div class="flex-1 overflow-auto custom-scrollbar">
         <UTable
@@ -101,7 +101,7 @@
           class="min-w-full"
         >
           <template #createdAt-cell="{ row }">
-            <span class="text-sm text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
           </template>
 
           <template #actions-cell="{ row }">
@@ -128,9 +128,9 @@
       </div>
 
       <!-- Pagination -->
-      <div class="p-4 border-t border-gray-800/50 flex justify-between items-center shrink-0 bg-[#121214] rounded-b-2xl">
-        <div class="text-sm text-gray-400">
-          <span class="text-white">{{ usersTotalItems }}</span> {{ $t('admin.common.results') }}
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          <span class="text-gray-900 dark:text-white">{{ usersTotalItems }}</span> {{ $t('admin.common.results') }}
         </div>
         <UPagination
           v-model="usersPage"
@@ -144,7 +144,7 @@
     <!-- User Modal -->
     <UModal
       v-model:open="isModalOpen"
-      :ui="{ content: 'bg-[#121214] border border-gray-800' }"
+      :ui="{ content: 'bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800' }"
     >
       <template #content>
         <div class="p-6">
@@ -167,7 +167,7 @@
               <UInput
                 v-model="form.username"
                 required
-                class="text-white w-full"
+                class="text-gray-900 dark:text-white w-full"
                 :disabled="!!form.id && form.username === 'admin'"
               />
             </UFormField>
@@ -177,11 +177,11 @@
                 v-model="form.password"
                 type="password"
                 :required="!form.id"
-                class="text-white w-full"
+                class="text-gray-900 dark:text-white w-full"
               />
             </UFormField>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
               <UButton
                 color="neutral"
                 variant="ghost"

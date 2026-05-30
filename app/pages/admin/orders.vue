@@ -2,12 +2,12 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.orders.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.orders.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.orders.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.orders.subtitle') }}</p>
       </div>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 shadow-[0_0_30px_rgba(0,0,0,0.3)] rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 shadow-[0_0_30px_rgba(0,0,0,0.3)] rounded-2xl flex flex-col flex-1 min-h-0">
 
       <UTable
         :columns="columns"
@@ -18,7 +18,7 @@
         <template #id-cell="{ row }">
           <div class="flex flex-col min-w-[150px]">
             <span
-              class="text-sm font-mono text-white cursor-pointer hover:text-primary-400"
+              class="text-sm font-mono text-gray-900 dark:text-white cursor-pointer hover:text-primary-400"
               :title="row.original.id"
               @click="copyToClipboard(row.original.id, 'Order ID')"
             >
@@ -30,7 +30,7 @@
             >
               <span
                 v-if="row.original.payMethod"
-                class="capitalize font-medium text-gray-400"
+                class="capitalize font-medium text-gray-500 dark:text-gray-400"
               >
                 {{ row.original.payMethod }}
               </span>
@@ -58,7 +58,7 @@
         <template #productName-cell="{ row }">
           <div class="flex items-center gap-3">
             <!-- Product Image (if available) -->
-            <div class="w-10 h-10 rounded overflow-hidden bg-gray-800 shrink-0 flex items-center justify-center border border-gray-700">
+            <div class="w-10 h-10 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center border border-gray-200 dark:border-gray-700">
               <img
                 v-if="row.original.productImage"
                 :src="row.original.productImage"
@@ -78,20 +78,20 @@
                 v-if="row.original.productId"
                 :to="`/products/${row.original.productSlug || row.original.productId}`"
                 target="_blank"
-                class="text-sm font-medium text-white hover:text-primary-400 hover:underline truncate"
+                class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-400 hover:underline truncate"
                 :title="row.original.productName"
               >
                 {{ row.original.productName }}
               </NuxtLink>
               <span
                 v-else
-                class="text-sm font-medium text-white truncate"
+                class="text-sm font-medium text-gray-900 dark:text-white truncate"
               >{{ row.original.productName || 'Unknown' }}</span>
 
-              <div class="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+              <div class="flex items-center gap-2 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                 <span
                   v-if="row.original.productType"
-                  class="capitalize px-1.5 py-0.5 bg-gray-800 rounded text-[10px]"
+                  class="capitalize px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px]"
                 >{{ row.original.productType }}</span>
                 <span class="text-emerald-400 font-medium">${{ Number(row.original.amount || 0).toFixed(2) }}</span>
               </div>
@@ -102,7 +102,7 @@
           <div class="flex flex-col">
             <!-- If registered user -->
             <template v-if="row.original.userEmail">
-              <span class="text-sm font-medium text-white flex items-center gap-1.5">
+              <span class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
                 <UIcon
                   name="ph:user-circle-fill"
                   class="w-4 h-4 text-primary-500"
@@ -113,7 +113,7 @@
             </template>
             <!-- If anonymous visitor -->
             <template v-else>
-              <span class="text-sm text-gray-300">{{ row.original.contactEmail }}</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">{{ row.original.contactEmail }}</span>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <UIcon
                   name="ph:ghost"
@@ -169,9 +169,9 @@
       </UTable>
 
       <!-- Pagination -->
-      <div class="p-4 border-t border-gray-800/50 flex justify-between items-center shrink-0 bg-[#121214]">
-        <div class="text-sm text-gray-400">
-          <span class="text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
         </div>
         <UPagination
           v-model="page"
@@ -193,11 +193,11 @@
       >
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <p class="text-sm text-gray-400">Order ID</p>
-            <p class="text-white font-mono">{{ selectedOrder.id }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Order ID</p>
+            <p class="text-gray-900 dark:text-white font-mono">{{ selectedOrder.id }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Payment Status</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Payment Status</p>
             <UBadge
               :color="getPayStatusColor(selectedOrder.payStatus)"
               variant="subtle"
@@ -207,7 +207,7 @@
             </UBadge>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Fulfillment Status</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Fulfillment Status</p>
             <UBadge
               :color="getStatusColor(selectedOrder.status)"
               variant="subtle"
@@ -217,33 +217,33 @@
             </UBadge>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Contact Email</p>
-            <p class="text-white">{{ selectedOrder.contactEmail }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Contact Email</p>
+            <p class="text-gray-900 dark:text-white">{{ selectedOrder.contactEmail }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Amount</p>
-            <p class="text-white">${{ Number(selectedOrder.amount).toFixed(2) }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+            <p class="text-gray-900 dark:text-white">${{ Number(selectedOrder.amount).toFixed(2) }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Payment Method</p>
-            <p class="text-white">{{ selectedOrder.payMethod || 'N/A' }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Payment Method</p>
+            <p class="text-gray-900 dark:text-white">{{ selectedOrder.payMethod || 'N/A' }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Trade No</p>
-            <p class="text-white font-mono">{{ selectedOrder.tradeNo || 'N/A' }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Trade No</p>
+            <p class="text-gray-900 dark:text-white font-mono">{{ selectedOrder.tradeNo || 'N/A' }}</p>
           </div>
         </div>
 
         <div
           v-if="selectedOrder.metaData"
-          class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
+          class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-[#1a1a1c]"
         >
-          <h3 class="text-white font-medium mb-2">Order Meta Data (User Input)</h3>
-          <pre class="text-xs text-gray-300 overflow-auto whitespace-pre-wrap">{{ formatMetaData(selectedOrder.metaData) }}</pre>
+          <h3 class="text-gray-900 dark:text-white font-medium mb-2">Order Meta Data (User Input)</h3>
+          <pre class="text-xs text-gray-700 dark:text-gray-300 overflow-auto whitespace-pre-wrap">{{ formatMetaData(selectedOrder.metaData) }}</pre>
         </div>
 
-        <div class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]">
-          <h3 class="text-white font-medium mb-4">Fulfillment & Status</h3>
+        <div class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-[#1a1a1c]">
+          <h3 class="text-gray-900 dark:text-white font-medium mb-4">Fulfillment & Status</h3>
           <div class="space-y-4">
             <UFormField label="Update Fulfillment Status">
               <USelect
@@ -263,7 +263,7 @@
               <UTextarea
                 v-model="selectedOrder.deliveryInfo"
                 :rows="3"
-                class="text-white w-full"
+                class="text-gray-900 dark:text-white w-full"
               />
             </UFormField>
             <UButton
@@ -298,8 +298,8 @@ const columns = computed(() => [
     header: t('admin.common.actions'),
     meta: {
       class: {
-        th: 'text-right sticky right-0 z-30 bg-[#121214]/95 backdrop-blur-md before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
-        td: 'text-right font-medium sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
+        th: 'text-right sticky right-0 z-30 bg-white/95 backdrop-blur-md dark:bg-[#121214]/95 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
+        td: 'text-right font-medium sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
       },
     },
   },

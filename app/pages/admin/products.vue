@@ -3,8 +3,8 @@
 
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.products.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.products.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.products.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.products.subtitle') }}</p>
       </div>
       <UButton
         color="primary"
@@ -14,17 +14,17 @@
       >{{ $t('admin.products.add') }}</UButton>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedProducts"
           :columns="columns"
           :loading="pending"
-          :ui="{ tbody: 'my-table-tbody divide-y divide-gray-800' }"
+          :ui="{ tbody: 'my-table-tbody divide-y divide-gray-200 dark:divide-gray-800' }"
           sticky
         >
           <template #drag-cell>
-            <div class="w-10 flex items-center justify-center cursor-move text-gray-500 hover:text-white transition-colors">
+            <div class="w-10 flex items-center justify-center cursor-move text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
               <UIcon
                 name="ph:dots-six-vertical"
                 class="w-5 h-5"
@@ -32,7 +32,7 @@
             </div>
           </template>
           <template #image-cell="{ row }">
-            <div class="w-12 h-12 rounded-lg overflow-hidden border border-gray-800 bg-gray-900 flex items-center justify-center">
+            <div class="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
               <img
                 v-if="row.original.imageUrl"
                 :src="String(row.original.imageUrl)"
@@ -72,7 +72,7 @@
           </template>
 
           <template #views-cell="{ row }">
-            <span class="text-gray-400 text-sm flex items-center gap-1">
+            <span class="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1">
               <UIcon
                 name="ph:eye"
                 class="w-4 h-4"
@@ -116,9 +116,9 @@
       </div>
 
       <!-- Pagination -->
-      <div class="p-4 border-t border-gray-800/50 flex justify-between items-center shrink-0 bg-[#121214]">
-        <div class="text-sm text-gray-400">
-          <span class="text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
         </div>
         <UPagination
           v-model="page"
@@ -164,8 +164,8 @@ const columns = computed(() => [
     header: t('admin.products.actions'),
     meta: {
       class: {
-        th: 'text-right sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
-        td: 'text-right font-medium sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
+        th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
+        td: 'text-right font-medium sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
       },
     },
   },

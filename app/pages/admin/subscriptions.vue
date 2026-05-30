@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.subscriptions.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.subscriptions.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.subscriptions.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.subscriptions.subtitle') }}</p>
       </div>
       <UInput
         v-model="searchQuery"
@@ -13,7 +13,7 @@
       />
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedSubscriptions"
@@ -29,7 +29,7 @@
 
           <template #productName-cell="{ row }">
             <div class="flex flex-col">
-              <span class="text-sm font-medium text-white">{{ row.original.productName || 'Unknown Product' }}</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">{{ row.original.productName || 'Unknown Product' }}</span>
               <span
                 v-if="row.original.payMethod"
                 class="text-xs text-gray-500 capitalize"
@@ -41,7 +41,7 @@
 
           <template #customer-cell="{ row }">
             <div class="flex flex-col">
-              <span class="text-sm text-gray-300">{{ row.original.userEmail || 'Unknown User' }}</span>
+              <span class="text-sm text-gray-500 dark:text-gray-300">{{ row.original.userEmail || 'Unknown User' }}</span>
               <span
                 v-if="row.original.userNickname"
                 class="text-xs text-gray-500"
@@ -63,7 +63,7 @@
           </template>
 
           <template #amount-cell="{ row }">
-            <span class="text-sm font-medium text-white">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">
               {{ row.original.amount }} {{ row.original.currency }}
             </span>
           </template>
@@ -86,8 +86,8 @@
       </div>
 
       <!-- Pagination Footer -->
-      <div class="p-4 border-t border-gray-800/50 flex items-center justify-between shrink-0 bg-[#121214] rounded-b-2xl">
-        <span class="text-sm text-gray-400">
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           Showing {{ Math.min((page - 1) * pageSize + 1, totalItems) }} to
           {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
         </span>

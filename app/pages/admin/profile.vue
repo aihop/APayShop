@@ -2,12 +2,12 @@
   <div class="h-full flex flex-col max-w-2xl mx-auto w-full">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.profile.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.profile.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.profile.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.profile.subtitle') }}</p>
       </div>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl p-8">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-8">
       <form
         @submit.prevent="updatePassword"
         class="space-y-6"
@@ -26,7 +26,7 @@
             v-model="form.oldPassword"
             type="password"
             required
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
             icon="ph:lock-key"
           />
         </UFormField>
@@ -36,7 +36,7 @@
             v-model="form.newPassword"
             type="password"
             required
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
             icon="ph:lock-key-open"
           />
         </UFormField>
@@ -46,12 +46,12 @@
             v-model="form.confirmPassword"
             type="password"
             required
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
             icon="ph:lock-key-open"
           />
         </UFormField>
 
-        <div class="pt-4 border-t border-gray-800/50 flex justify-end">
+        <div class="pt-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-end">
           <UButton
             type="submit"
             color="primary"

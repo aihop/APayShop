@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.users.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.users.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.users.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.users.subtitle') }}</p>
       </div>
       <UButton
         color="primary"
@@ -13,7 +13,7 @@
       >{{ $t('admin.users.add') }}</UButton>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedUsers"
@@ -22,7 +22,7 @@
           class="min-w-full"
         >
           <template #createdAt-cell="{ row }">
-            <span class="text-sm text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
           </template>
 
           <template #actions-cell="{ row }">
@@ -49,9 +49,9 @@
       </div>
 
       <!-- Pagination -->
-      <div class="p-4 border-t border-gray-800/50 flex justify-between items-center shrink-0 bg-[#121214]">
-        <div class="text-sm text-gray-400">
-          <span class="text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
         </div>
         <UPagination
           v-model="page"
@@ -65,7 +65,7 @@
     <!-- User Modal -->
     <UModal
       v-model:open="isModalOpen"
-      :ui="{ content: 'bg-[#121214] border border-gray-800' }"
+      :ui="{ content: 'bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800' }"
     >
       <template #content>
         <div class="p-6">
@@ -88,7 +88,7 @@
               <UInput
                 v-model="form.username"
                 required
-                class="text-white w-full"
+                class="text-gray-900 dark:text-white w-full"
                 :disabled="!!form.id && form.username === 'admin'"
               />
             </UFormField>
@@ -98,11 +98,11 @@
                 v-model="form.password"
                 type="password"
                 :required="!form.id"
-                class="text-white w-full"
+                class="text-gray-900 dark:text-white w-full"
               />
             </UFormField>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
               <UButton
                 color="neutral"
                 variant="ghost"

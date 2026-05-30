@@ -2,8 +2,8 @@
   <div>
     <div class="flex justify-between items-end mb-10">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">Payment Methods</h1>
-        <p class="text-gray-400 mt-2 text-sm">Configure gateways and payment options.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Payment Methods</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Configure gateways and payment options.</p>
       </div>
       <UButton
         color="primary"
@@ -13,7 +13,7 @@
       >Add Method</UButton>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl overflow-hidden">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
       <UTable
         :columns="columns"
         :data="methods || []"

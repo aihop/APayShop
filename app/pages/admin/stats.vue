@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#09090b] p-4 md:p-8">
+  <div class="min-h-screen bg-white dark:bg-[#09090b] p-4 md:p-8">
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ t('admin.stats.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ t('admin.stats.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ t('admin.stats.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ t('admin.stats.subtitle') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-2 rounded-xl border border-gray-800 bg-[#121214] p-1">
+        <div class="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121214] p-1">
           <button
             v-for="option in dayOptions"
             :key="option.value"
@@ -32,7 +32,7 @@
       <div
         v-for="card in overviewCards"
         :key="card.label"
-        class="bg-[#121214] p-5 rounded-2xl border border-gray-800/50"
+        class="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-gray-200 dark:border-gray-800/50"
       >
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-400">{{ card.label }}</span>
@@ -42,16 +42,16 @@
             :class="card.iconClass"
           />
         </div>
-        <div class="mt-4 text-3xl font-bold text-white tracking-tight">{{ card.value }}</div>
+        <div class="mt-4 text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ card.value }}</div>
         <p class="mt-2 text-xs text-gray-500">{{ card.tip }}</p>
       </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6 mb-8">
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-lg font-bold text-white">{{ t('admin.stats.trafficTrend') }}</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.trafficTrend') }}</h2>
             <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.trafficTrendSubtitle') }}</p>
           </div>
         </div>
@@ -97,9 +97,9 @@
         </div>
       </div>
 
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
         <div>
-          <h2 class="text-lg font-bold text-white">{{ t('admin.stats.funnel') }}</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.funnel') }}</h2>
           <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.funnelSubtitle') }}</p>
         </div>
         <div class="mt-6 space-y-4">
@@ -109,8 +109,8 @@
             class="space-y-2"
           >
             <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-300">{{ step.label }}</span>
-              <span class="text-white font-medium">{{ formatNumber(step.visitors) }} · {{ formatPercent(step.rate) }}</span>
+            <span class="text-gray-500 dark:text-gray-300">{{ step.label }}</span>
+            <span class="text-gray-900 dark:text-white font-medium">{{ formatNumber(step.visitors) }} · {{ formatPercent(step.rate) }}</span>
             </div>
             <div class="h-2 rounded-full bg-white/5 overflow-hidden">
               <div
@@ -124,10 +124,10 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
-            <h2 class="text-lg font-bold text-white">{{ t('admin.stats.firstTouch') }}</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.firstTouch') }}</h2>
             <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.firstTouchSubtitle') }}</p>
           </div>
         </div>
@@ -149,10 +149,10 @@
         </div>
       </div>
 
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
-            <h2 class="text-lg font-bold text-white">{{ t('admin.stats.lastTouch') }}</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.lastTouch') }}</h2>
             <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.lastTouchSubtitle') }}</p>
           </div>
         </div>
@@ -176,8 +176,8 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
-        <h2 class="text-lg font-bold text-white">{{ t('admin.stats.sourceCategories') }}</h2>
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.sourceCategories') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.sourceCategoriesSubtitle') }}</p>
         <div class="mt-5 space-y-3">
           <div
@@ -185,14 +185,14 @@
             :key="item.label"
             class="flex items-center justify-between text-sm"
           >
-            <span class="text-gray-300">{{ formatSourceLabel(item.label) }}</span>
-            <span class="text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
+            <span class="text-gray-500 dark:text-gray-300">{{ formatSourceLabel(item.label) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
           </div>
         </div>
       </div>
 
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
-        <h2 class="text-lg font-bold text-white">{{ t('admin.stats.externalSources') }}</h2>
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.externalSources') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.externalSourcesSubtitle') }}</p>
         <div class="mt-5 space-y-3">
           <div
@@ -200,16 +200,16 @@
             :key="item.label"
             class="flex items-center justify-between text-sm"
           >
-            <span class="text-gray-300">{{ formatSourceLabel(item.label) }}</span>
-            <span class="text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
+            <span class="text-gray-500 dark:text-gray-300">{{ formatSourceLabel(item.label) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatNumber(item.count) }} · {{ formatPercent(item.percentage) }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
-        <h2 class="text-lg font-bold text-white">{{ t('admin.stats.regions') }}</h2>
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.regions') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.regionsSubtitle') }}</p>
         <div class="mt-5 space-y-3">
           <div
@@ -223,8 +223,8 @@
         </div>
       </div>
 
-      <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
-        <h2 class="text-lg font-bold text-white">{{ t('admin.stats.devices') }}</h2>
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.devices') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.devicesSubtitle') }}</p>
         <div class="mt-5 space-y-3">
           <div
@@ -239,10 +239,10 @@
       </div>
     </div>
 
-    <div class="bg-[#121214] rounded-2xl border border-gray-800/50 p-6">
+    <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
       <div class="flex items-center justify-between mb-5">
         <div>
-          <h2 class="text-lg font-bold text-white">{{ t('admin.stats.details') }}</h2>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.details') }}</h2>
           <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.detailsSubtitle') }}</p>
         </div>
       </div>
@@ -255,12 +255,12 @@
 
       <div
         v-if="activeDetailsTab === 'visitors'"
-        class="rounded-2xl border border-gray-800/50 overflow-hidden"
+        class="rounded-2xl border border-gray-200 dark:border-gray-800/50 overflow-hidden"
       >
         <div class="overflow-auto">
           <table class="min-w-full text-sm">
             <thead>
-              <tr class="text-left text-gray-500 border-b border-gray-800">
+              <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
                 <th class="py-3 px-4">{{ t('admin.stats.visitor') }}</th>
                 <th class="py-3 pr-4">{{ t('admin.stats.firstSource') }}</th>
                 <th class="py-3 pr-4">{{ t('admin.stats.lastSource') }}</th>
@@ -322,12 +322,12 @@
 
       <div
         v-else
-        class="rounded-2xl border border-gray-800/50 overflow-hidden"
+        class="rounded-2xl border border-gray-200 dark:border-gray-800/50 overflow-hidden"
       >
         <div class="overflow-auto">
           <table class="min-w-full text-sm">
             <thead>
-              <tr class="text-left text-gray-500 border-b border-gray-800">
+              <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
                 <th class="py-3 px-4">{{ t('admin.stats.event') }}</th>
                 <th class="py-3 pr-4">{{ t('admin.stats.visitor') }}</th>
                 <th class="py-3 pr-4">{{ t('admin.stats.source') }}</th>

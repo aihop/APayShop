@@ -8,8 +8,8 @@
         to="/admin/themes"
       />
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">Theme Configuration</h1>
-        <p class="text-gray-400 mt-2 text-sm">Configure specific settings for the <span class="text-purple-400 font-bold">{{ schema?.name || route.params.theme }}</span> theme.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Theme Configuration</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Configure specific settings for the</p>
       </div>
     </div>
 
@@ -25,23 +25,23 @@
 
     <div
       v-else-if="!schema || !schema.settings || schema.settings.length === 0"
-      class="text-center py-20 bg-[#121214] border border-gray-800/50 rounded-2xl"
+      class="text-center py-20 bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl"
     >
       <UIcon
         name="i-heroicons-cog-6-tooth"
         class="w-16 h-16 text-gray-700 mx-auto mb-4"
       />
-      <h2 class="text-xl font-bold text-white mb-2">No configuration needed</h2>
-      <p class="text-gray-400">This theme does not expose any custom settings.</p>
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No configuration needed</h2>
+      <p class="text-gray-500 dark:text-gray-400">This theme does not expose any custom settings.</p>
     </div>
 
     <div
       v-else
-      class="max-w-2xl bg-[#121214] border border-gray-800/50 rounded-2xl p-8"
+      class="max-w-2xl bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-8"
     >
-      <div class="mb-8 pb-8 border-b border-gray-800/50">
-        <h2 class="text-xl font-bold text-white mb-2">{{ schema.name }}</h2>
-        <p class="text-sm text-gray-400 mb-4">{{ schema.description }}</p>
+      <div class="mb-8 pb-8 border-b border-gray-200 dark:border-gray-800/50">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ schema.name }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ schema.description }}</p>
         <div class="flex gap-4 text-xs text-gray-500">
           <span>Version: {{ schema.version }}</span>
           <span>Author: {{ schema.author }}</span>

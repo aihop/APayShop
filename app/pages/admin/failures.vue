@@ -2,12 +2,12 @@
   <div>
     <div class="flex justify-between items-end mb-10">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">Failed Transactions</h1>
-        <p class="text-gray-400 mt-2 text-sm">View rejected card payments and transaction failures.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Failed Transactions</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">View rejected card payments and transaction failures.</p>
       </div>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl overflow-hidden">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
       <UTable
         :columns="columns"
         :data="failures || []"
@@ -57,7 +57,7 @@
         </template>
 
         <template #createdAt-cell="{ row }">
-          <span class="text-sm text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
         </template>
 
         <template #actions-cell="{ row }">
@@ -74,12 +74,12 @@
     <!-- Details Modal -->
     <UModal
       v-model:open="isModalOpen"
-      :ui="{ content: 'bg-[#121214] border border-gray-800 sm:max-w-2xl' }"
+      :ui="{ content: 'bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800 sm:max-w-2xl' }"
     >
       <template #content>
         <div class="p-6">
-          <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
-            <h3 class="text-xl font-bold text-white">Failure Details</h3>
+          <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Failure Details</h3>
             <UButton
               color="neutral"
               variant="ghost"
@@ -96,31 +96,31 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <span class="block text-xs text-gray-500 mb-1">ID</span>
-                <span class="text-white">{{ selectedFailure.id }}</span>
+                <span class="text-gray-900 dark:text-white">{{ selectedFailure.id }}</span>
               </div>
               <div>
                 <span class="block text-xs text-gray-500 mb-1">Order ID</span>
-                <span class="text-white font-mono text-sm">{{ selectedFailure.orderId }}</span>
+                <span class="text-gray-900 dark:text-white font-mono text-sm">{{ selectedFailure.orderId }}</span>
               </div>
               <div>
                 <span class="block text-xs text-gray-500 mb-1">Amount</span>
-                <span class="text-white">${{ Number(selectedFailure.amount || 0).toFixed(2) }}</span>
+                <span class="text-gray-900 dark:text-white">${{ Number(selectedFailure.amount || 0).toFixed(2) }}</span>
               </div>
               <div>
                 <span class="block text-xs text-gray-500 mb-1">Card BIN</span>
-                <span class="text-white font-mono">{{ selectedFailure.cardBin || 'N/A' }}</span>
+                <span class="text-gray-900 dark:text-white font-mono">{{ selectedFailure.cardBin || 'N/A' }}</span>
               </div>
               <div>
                 <span class="block text-xs text-gray-500 mb-1">Customer Email</span>
-                <span class="text-white">{{ selectedFailure.contactEmail || 'N/A' }}</span>
+                <span class="text-gray-900 dark:text-white">{{ selectedFailure.contactEmail || 'N/A' }}</span>
               </div>
               <div>
                 <span class="block text-xs text-gray-500 mb-1">Payment Method</span>
-                <span class="text-white capitalize">{{ selectedFailure.payMethod || 'Unknown' }}</span>
+                <span class="text-gray-900 dark:text-white capitalize">{{ selectedFailure.payMethod || 'Unknown' }}</span>
               </div>
               <div>
                 <span class="block text-xs text-gray-500 mb-1">Time</span>
-                <span class="text-white">{{ new Date(selectedFailure.createdAt).toLocaleString() }}</span>
+                <span class="text-gray-900 dark:text-white">{{ new Date(selectedFailure.createdAt).toLocaleString() }}</span>
               </div>
             </div>
 
@@ -136,8 +136,8 @@
               class="mt-4"
             >
               <span class="block text-xs text-gray-500 mb-2">Raw Gateway Response</span>
-              <div class="p-3 bg-black border border-gray-800 rounded-lg overflow-x-auto">
-                <pre class="text-xs text-gray-400 m-0">{{ formatJson(selectedFailure.rawResponse) }}</pre>
+              <div class="p-3 bg-black border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
+                <pre class="text-xs text-gray-500 dark:text-gray-400 m-0">{{ formatJson(selectedFailure.rawResponse) }}</pre>
               </div>
             </div>
           </div>

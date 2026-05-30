@@ -2,8 +2,8 @@
   <div class="space-y-8">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">Themes</h1>
-        <p class="text-gray-400 mt-2 text-sm">Manage your storefront appearance and layout.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Themes</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Manage your storefront appearance and layout.</p>
       </div>
       <UButton
         to="/admin/themes/builder"
@@ -19,7 +19,7 @@
     <!-- Active Theme Settings Link -->
     <div
       id="active-theme-section"
-      class="bg-[#121214] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-700"
+      class="bg-white dark:bg-[#121214] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-700"
     >
       <div class="flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
@@ -29,8 +29,8 @@
           />
         </div>
         <div>
-          <h3 class="text-lg font-semibold text-white">Active Theme Configuration</h3>
-          <p class="text-sm text-gray-400">Customize layout, colors, and features for your currently active theme ({{ getSetting('active_theme') || '(none - using system default)' }}).</p>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Active Theme Configuration</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Customize layout, colors, and features for your currently active theme</p>
         </div>
       </div>
       <UButton
@@ -50,7 +50,7 @@
         v-else
         color="neutral"
         variant="subtle"
-        class="text-gray-400"
+        class="text-gray-500 dark:text-gray-400"
       >
         No theme needed — using system default rendering
       </UBadge>
@@ -60,10 +60,10 @@
       <div
         v-for="theme in themes || []"
         :key="theme.id"
-        class="group bg-[#121214] border border-gray-800/60 rounded-2xl overflow-hidden hover:border-purple-500/30 transition-colors flex flex-col"
+        class="group bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 rounded-2xl overflow-hidden hover:border-purple-500/30 transition-colors flex flex-col"
         :class="{ 'ring-2 ring-purple-500 border-transparent': getSetting('active_theme') === theme.id }"
       >
-        <div class="aspect-video bg-gray-900 relative overflow-hidden">
+        <div class="aspect-video bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
           <img
             v-if="theme.image"
             :src="theme.image"
@@ -88,10 +88,10 @@
         </div>
 
         <div class="p-5 flex flex-col flex-1">
-          <h3 class="text-lg font-semibold text-white">{{ theme.name }}</h3>
-          <p class="text-sm text-gray-400 mt-1 line-clamp-2 flex-1">{{ theme.description }}</p>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ theme.name }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 flex-1">{{ theme.description }}</p>
 
-          <div class="mt-5 pt-5 border-t border-gray-800 flex items-center justify-between">
+          <div class="mt-5 pt-5 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
             <UButton
               v-if="getSetting('active_theme') !== theme.id"
               color="neutral"
@@ -122,7 +122,7 @@
               variant="ghost"
               icon="ph:sliders-horizontal"
               size="sm"
-              class="text-gray-400 hover:text-white"
+              class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             />
           </div>
         </div>

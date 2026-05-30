@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-screen bg-[#09090b] p-4 md:p-8">
+  <div class="min-h-screen bg-white dark:bg-[#09090b] p-4 md:p-8">
     <div class="mb-10">
-      <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.dashboard.title') }}</h1>
-      <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.dashboard.subtitle') }}</p>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.dashboard.title') }}</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.dashboard.subtitle') }}</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="bg-[#121214] p-6 rounded-2xl border border-gray-800/50 hover:border-gray-700 transition-colors"
+        class="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-gray-800/50 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
       >
         <div class="flex justify-between items-start mb-4">
-          <span class="text-gray-400 text-sm font-medium">{{ stat.label }}</span>
+          <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">{{ stat.label }}</span>
           <div
             :class="`p-2 rounded-lg bg-${stat.color}-500/10 text-${stat.color}-500`"
             class="flex items-center justify-center"
@@ -23,26 +23,26 @@
             />
           </div>
         </div>
-        <div class="text-3xl font-bold text-white tracking-tight">{{ stat.value }}</div>
+        <div class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ stat.value }}</div>
       </div>
     </div>
 
-    <div class="bg-[#121214] p-6 rounded-2xl border border-gray-800/50 shadow-sm">
+    <div class="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-gray-800/50 shadow-sm">
       <div class="flex items-center justify-between mb-12">
-        <h2 class="text-lg font-bold text-white">{{ $t('admin.dashboard.revenueOverview') }}</h2>
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.dashboard.revenueOverview') }}</h2>
 
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-4">
             <div class="flex items-center gap-2">
               <div class="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-              <span class="text-xs text-gray-400">Revenue</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">Revenue</span>
             </div>
             <div class="flex items-center gap-2">
               <div class="w-2.5 h-2.5 rounded-full bg-[#a855f7]"></div>
-              <span class="text-xs text-gray-400">Orders</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">Orders</span>
             </div>
           </div>
-          <span class="text-[10px] font-bold text-gray-400 bg-gray-800/50 border border-gray-700/50 px-3 py-1 rounded-full">
+          <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 px-3 py-1 rounded-full">
             LIVE UPDATE
           </span>
         </div>
@@ -173,25 +173,25 @@
         <Transition name="fade">
           <div
             v-if="hoveredIndex !== null && dashboardData?.chart"
-            class="absolute z-30 bg-[#18181b] border border-gray-700/50 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-4 transition-all duration-200"
+            class="absolute z-30 bg-white dark:bg-[#18181b] border border-gray-200 dark:border-gray-700/50 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-4 transition-all duration-200"
             :style="{
               left: svgData?.points[hoveredIndex]?.x + '%',
               top: `${(svgData?.points[hoveredIndex]?.y / 50) * 100}%`
             }"
           >
-            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-gray-800 pb-2">
+            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-gray-200 dark:border-gray-800 pb-2">
               {{ dashboardData.chart.labels[hoveredIndex] }}
             </div>
             <div class="space-y-2 min-w-[140px]">
               <div class="flex items-center justify-between gap-4">
-                <span class="text-xs text-gray-300">Revenue</span>
-                <span class="text-xs font-bold text-white">
+                <span class="text-xs text-gray-500 dark:text-gray-300">Revenue</span>
+                <span class="text-xs font-bold text-gray-900 dark:text-white">
                   ${{ dashboardData.chart.revenue[hoveredIndex].toLocaleString() }}
                 </span>
               </div>
               <div class="flex items-center justify-between gap-4">
-                <span class="text-xs text-gray-300">Orders</span>
-                <span class="text-xs font-bold text-white">
+                <span class="text-xs text-gray-500 dark:text-gray-300">Orders</span>
+                <span class="text-xs font-bold text-gray-900 dark:text-white">
                   {{ dashboardData.chart.orders[hoveredIndex] }}
                 </span>
               </div>

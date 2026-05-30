@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">{{ $t('admin.posts.title') }}</h1>
-        <p class="text-gray-400 mt-2 text-sm">{{ $t('admin.posts.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.posts.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.posts.subtitle') }}</p>
       </div>
       <UButton
         color="primary"
@@ -13,7 +13,7 @@
       >{{ $t('admin.posts.createPost') }}</UButton>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedPosts"
@@ -22,7 +22,7 @@
           sticky
         >
           <template #image-cell="{ row }">
-            <div class="w-12 h-12 rounded-lg overflow-hidden border border-gray-800 bg-gray-900 flex items-center justify-center">
+            <div class="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
               <img
                 v-if="row.original.imageUrl"
                 :src="String(row.original.imageUrl)"
@@ -39,7 +39,7 @@
 
           <template #title-cell="{ row }">
             <div class="flex flex-col">
-              <span class="text-sm font-medium text-white">{{ row.original.title }}</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">{{ row.original.title }}</span>
               <span class="text-xs text-gray-500 font-mono">/blog/{{ row.original.slug }}</span>
               <span
                 v-if="row.original.sort !== null && row.original.sort !== undefined && row.original.sort !== ''"
@@ -64,7 +64,7 @@
           </template>
 
           <template #views-cell="{ row }">
-            <span class="text-gray-400 text-sm flex items-center gap-1">
+            <span class="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1">
               <UIcon
                 name="ph:eye"
                 class="w-4 h-4"
@@ -84,7 +84,7 @@
           </template>
 
           <template #createdAt-cell="{ row }">
-            <span class="text-gray-400 text-sm">
+            <span class="text-gray-500 dark:text-gray-400 text-sm">
               {{ new Date(row.original.createdAt).toLocaleDateString() }}
             </span>
           </template>
@@ -119,8 +119,8 @@
       </div>
 
       <!-- Pagination Footer -->
-      <div class="p-4 border-t border-gray-800/50 flex items-center justify-between shrink-0 bg-[#121214] rounded-b-2xl">
-        <span class="text-sm text-gray-400">
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           Showing {{ Math.min((page - 1) * pageSize + 1, totalItems) }} to
           {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
         </span>
@@ -142,7 +142,7 @@
     >
       <div
         v-if="supportedLocales.length > 1"
-        class="border-b border-gray-800/60 bg-[#121214] mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6"
+        class="border-b border-gray-200 dark:border-gray-800/60 bg-white dark:bg-[#121214] mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6"
       >
         <nav class="flex space-x-2 overflow-x-auto hide-scrollbar pb-2">
           <button
@@ -159,7 +159,7 @@
                 ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20'
                 : locale !== defaultLocale && !form.title
                   ? 'text-gray-600 cursor-not-allowed border border-transparent'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
             ]"
             :disabled="locale !== defaultLocale && !form.title"
           >
@@ -301,7 +301,7 @@
           :label="`Content` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')"
           name="content"
         >
-          <div class="border border-gray-800 rounded-lg overflow-hidden bg-gray-900/50">
+          <div class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50">
             <RichEditor
               v-if="currentTabLocale === defaultLocale"
               v-model="form.content"
@@ -324,7 +324,7 @@
         </UFormField>
       </UForm>
       <template #footer>
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-800 mt-8">
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800 mt-8">
           <UButton
             color="gray"
             variant="ghost"
@@ -423,8 +423,8 @@ const columns = [
     header: 'Actions',
     meta: {
       class: {
-        th: 'text-right sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
-        td: 'text-right font-medium sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
+        th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:to-[#121214]',
+        td: 'text-right font-medium sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:to-[#121214]',
       },
     },
   },

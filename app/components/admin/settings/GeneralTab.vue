@@ -1,13 +1,13 @@
 <template>
-  <div class="bg-[#121214] border border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
-    <div class="px-6 py-5 border-b border-gray-800/60 bg-gray-900/20 flex items-center gap-3">
+  <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
         <UIcon
           name="ph:browser-fill"
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-white">General Information</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">General Information</h2>
     </div>
     <div class="p-6 space-y-6">
 
@@ -21,7 +21,7 @@
           icon="ph:text-t"
           size="md"
           class="w-full"
-          :ui="{ base: 'bg-[#09090b]' }"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
 
@@ -35,7 +35,7 @@
           icon="ph:globe"
           size="md"
           class="w-full"
-          :ui="{ base: 'bg-[#09090b]' }"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
 
@@ -50,7 +50,7 @@
             icon="ph:image"
             size="md"
             class="flex-1"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           />
           <input
             type="file"
@@ -82,7 +82,7 @@
           icon="ph:envelope"
           size="md"
           class="w-full"
-          :ui="{ base: 'bg-[#09090b]' }"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
 
@@ -95,7 +95,7 @@
           :rows="2"
           placeholder="Welcome to our new store!"
           class="w-full"
-          :ui="{ base: 'bg-[#09090b]' }"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
 
@@ -109,7 +109,7 @@
           icon="ph:copyright"
           size="md"
           class="w-full"
-          :ui="{ base: 'bg-[#09090b]' }"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
     </div>

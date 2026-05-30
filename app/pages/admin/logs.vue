@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">System Logs</h1>
-        <p class="text-gray-400 mt-2 text-sm">View and manage application event logs</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">System Logs</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">View and manage application event logs</p>
       </div>
       <UButton
         color="red"
@@ -14,7 +14,7 @@
       >Clear All Logs</UButton>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="logs"
@@ -34,14 +34,14 @@
           </template>
 
           <template #source-cell="{ row }">
-            <span class="text-xs text-gray-500 font-mono bg-gray-900 px-2 py-1 rounded">
+            <span class="text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
               {{ row.original.source || 'system' }}
             </span>
           </template>
 
           <template #message-cell="{ row }">
             <div class="flex flex-col gap-1 max-w-lg">
-              <span class="text-sm font-medium text-white line-clamp-2">{{ row.original.message }}</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">{{ row.original.message }}</span>
               <span
                 v-if="row.original.details"
                 class="text-xs text-gray-500 line-clamp-1 truncate cursor-help"
@@ -53,7 +53,7 @@
           </template>
 
           <template #createdAt-cell="{ row }">
-            <span class="text-gray-400 text-sm whitespace-nowrap">
+            <span class="text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
               {{ new Date(row.original.createdAt).toLocaleString() }}
             </span>
           </template>
@@ -81,8 +81,8 @@
       </div>
 
       <!-- Pagination Footer -->
-      <div class="p-4 border-t border-gray-800/50 flex items-center justify-between shrink-0 bg-[#121214] rounded-b-2xl">
-        <span class="text-sm text-gray-400">
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           Showing {{ logs.length > 0 ? (page - 1) * pageSize + 1 : 0 }} to
           {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
         </span>
@@ -100,15 +100,15 @@
     <UModal v-model:open="isDetailsOpen">
       <template #content>
         <UCard
-          class="bg-[#121214] ring-1 ring-gray-800"
-          :ui="{ divide: 'divide-gray-800' }"
+          class="bg-white dark:bg-[#121214] ring-1 ring-gray-200 dark:ring-gray-800"
+          :ui="{ divide: 'divide-gray-200 dark:divide-gray-800' }"
         >
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <UIcon
                   name="ph:terminal-window"
-                  class="w-5 h-5 text-gray-400"
+                  class="w-5 h-5 text-gray-500 dark:text-gray-400"
                 />
                 Log Details
               </h3>
@@ -125,26 +125,26 @@
           <div class="space-y-4">
             <div>
               <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Message</div>
-              <div class="text-white text-sm bg-gray-900 p-3 rounded-lg border border-gray-800">
+              <div class="text-gray-900 dark:text-white text-sm bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-800">
                 {{ selectedLog?.message }}
               </div>
             </div>
 
             <div>
               <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Technical Details</div>
-              <div class="bg-black p-4 rounded-lg border border-gray-800 overflow-y-auto max-h-96">
-                <pre class="text-xs font-mono text-gray-300 whitespace-pre-wrap">{{ formatDetails(selectedLog?.details) }}</pre>
+              <div class="bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-800 overflow-y-auto max-h-96">
+                <pre class="text-xs font-mono text-gray-500 dark:text-gray-300 whitespace-pre-wrap">{{ formatDetails(selectedLog?.details) }}</pre>
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Source</div>
-                <div class="text-sm text-gray-300">{{ selectedLog?.source || 'system' }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog?.source || 'system' }}</div>
               </div>
               <div>
                 <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Time</div>
-                <div class="text-sm text-gray-300">{{ selectedLog ? new Date(selectedLog.createdAt).toLocaleString() : '' }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog ? new Date(selectedLog.createdAt).toLocaleString() : '' }}</div>
               </div>
             </div>
           </div>
@@ -172,8 +172,8 @@ const columns = [
     header: 'Actions',
     meta: {
       class: {
-        th: 'text-right sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
-        td: 'text-right font-medium sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
+        th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
+        td: 'text-right font-medium sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
       },
     },
   },

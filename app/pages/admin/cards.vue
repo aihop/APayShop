@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">Card Management</h1>
-        <p class="text-gray-400 mt-2 text-sm">Manage license keys and activation codes for products</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Card Management</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Manage license keys and activation codes for products</p>
       </div>
       <UButton
         color="primary"
@@ -13,7 +13,7 @@
       >Import Cards</UButton>
     </div>
 
-    <div class="bg-[#121214] border border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedCards"
@@ -45,7 +45,7 @@
           </template>
 
           <template #createdAt-cell="{ row }">
-            <span class="text-gray-400 text-sm">
+            <span class="text-gray-500 dark:text-gray-400 text-sm">
               {{ new Date(row.original.createdAt).toLocaleString() }}
             </span>
           </template>
@@ -66,8 +66,8 @@
       </div>
 
       <!-- Pagination Footer -->
-      <div class="p-4 border-t border-gray-800/50 flex items-center justify-between shrink-0 bg-[#121214] rounded-b-2xl">
-        <span class="text-sm text-gray-400">
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           Showing {{ Math.min((page - 1) * pageSize + 1, totalItems) }} to
           {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
         </span>
@@ -88,12 +88,12 @@
     >
       <template #content>
         <UCard
-          class="bg-[#121214] ring-1 ring-gray-800"
-          :ui="{ divide: 'divide-gray-800' }"
+          class="bg-white dark:bg-[#121214] ring-1 ring-gray-200 dark:ring-gray-800"
+          :ui="{ divide: 'divide-gray-200 dark:divide-gray-800' }"
         >
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold text-white">Import Cards</h3>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import Cards</h3>
               <UButton
                 color="gray"
                 variant="ghost"
@@ -137,7 +137,7 @@
               />
             </UFormField>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
               <UButton
                 color="gray"
                 variant="ghost"
@@ -181,8 +181,8 @@ const columns = [
     header: 'Actions',
     meta: {
       class: {
-        th: 'text-right sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
-        td: 'text-right font-medium sticky right-0 bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-[#121214]',
+        th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
+        td: 'text-right font-medium sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
       },
     },
   },

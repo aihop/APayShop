@@ -1,13 +1,13 @@
 <template>
-  <div class="bg-[#121214] border border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
-    <div class="px-6 py-5 border-b border-gray-800/60 bg-gray-900/20 flex items-center gap-3">
+  <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400">
         <UIcon
           name="ph:buildings-fill"
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-white">Company Information</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Company Information</h2>
     </div>
     <div class="p-6 space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -17,7 +17,7 @@
             placeholder="Your Company Ltd."
             icon="ph:briefcase"
             size="md"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           />
         </UFormField>
 
@@ -27,7 +27,7 @@
             placeholder="+1 (555) 123-4567"
             icon="ph:phone"
             size="md"
-            :ui="{ base: 'bg-[#09090b]' }"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           />
         </UFormField>
       </div>
@@ -38,15 +38,15 @@
           :rows="3"
           class="w-full"
           placeholder="123 Business St, City, Country"
-          :ui="{ base: 'bg-[#09090b]' }"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
 
-      <div class="pt-2 border-t border-gray-800/60">
-        <h3 class="text-sm font-medium text-gray-300 mb-6">Social & Messaging</h3>
+      <div class="pt-2 border-t border-gray-200 dark:border-gray-800/60">
+        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-6">Social & Messaging</h3>
         <div class="space-y-6">
           <!-- WeChat -->
-          <div class="bg-[#18181b] border border-gray-800/40 rounded-xl p-5">
+          <div class="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-gray-800/40 rounded-xl p-5">
             <div class="flex items-center gap-3 mb-4">
               <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400">
                 <UIcon
@@ -54,7 +54,7 @@
                   class="w-5 h-5"
                 />
               </div>
-              <h4 class="text-base font-medium text-white">WeChat</h4>
+              <h4 class="text-base font-medium text-gray-900 dark:text-white">WeChat</h4>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <UFormField label="WeChat ID">
@@ -64,7 +64,7 @@
                   icon="ph:identification-badge"
                   size="md"
                   class="w-full"
-                  :ui="{ base: 'bg-[#09090b]' }"
+                  :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                 />
               </UFormField>
               <UFormField label="QR Code">
@@ -75,7 +75,7 @@
                     icon="ph:qr-code"
                     size="md"
                     class="flex-1"
-                    :ui="{ base: 'bg-[#09090b]' }"
+                    :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                   />
                   <input
                     type="file"
@@ -97,7 +97,7 @@
           </div>
 
           <!-- WhatsApp -->
-          <div class="bg-[#18181b] border border-gray-800/40 rounded-xl p-5">
+          <div class="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-gray-800/40 rounded-xl p-5">
             <div class="flex items-center gap-3 mb-4">
               <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <UIcon
@@ -105,7 +105,7 @@
                   class="w-5 h-5"
                 />
               </div>
-              <h4 class="text-base font-medium text-white">WhatsApp</h4>
+              <h4 class="text-base font-medium text-gray-900 dark:text-white">WhatsApp</h4>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <UFormField label="Number or Link">
@@ -115,7 +115,7 @@
                   icon="ph:phone"
                   size="md"
                   class="w-full"
-                  :ui="{ base: 'bg-[#09090b]' }"
+                  :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                 />
               </UFormField>
               <UFormField label="QR Code">
@@ -126,7 +126,7 @@
                     icon="ph:qr-code"
                     size="md"
                     class="flex-1"
-                    :ui="{ base: 'bg-[#09090b]' }"
+                    :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                   />
                   <input
                     type="file"
@@ -148,7 +148,7 @@
           </div>
 
           <!-- Telegram -->
-          <div class="bg-[#18181b] border border-gray-800/40 rounded-xl p-5">
+          <div class="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-gray-800/40 rounded-xl p-5">
             <div class="flex items-center gap-3 mb-4">
               <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400">
                 <UIcon
@@ -156,7 +156,7 @@
                   class="w-5 h-5"
                 />
               </div>
-              <h4 class="text-base font-medium text-white">Telegram</h4>
+              <h4 class="text-base font-medium text-gray-900 dark:text-white">Telegram</h4>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <UFormField label="Username or Link">
@@ -166,7 +166,7 @@
                   icon="ph:at"
                   size="md"
                   class="w-full"
-                  :ui="{ base: 'bg-[#09090b]' }"
+                  :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                 />
               </UFormField>
               <UFormField label="QR Code">
@@ -177,7 +177,7 @@
                     icon="ph:qr-code"
                     size="md"
                     class="flex-1"
-                    :ui="{ base: 'bg-[#09090b]' }"
+                    :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                   />
                   <input
                     type="file"

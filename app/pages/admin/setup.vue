@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#09090b] flex items-center justify-center p-4">
+  <div class="min-h-screen bg-white dark:bg-[#09090b] flex items-center justify-center p-4">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
@@ -8,11 +8,11 @@
             class="text-white w-6 h-6"
           />
         </div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">System Setup</h1>
-        <p class="text-gray-400 mt-2">Create your first administrator account</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">System Setup</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Create your first administrator account</p>
       </div>
 
-      <div class="bg-[#121214] border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
 
         <form

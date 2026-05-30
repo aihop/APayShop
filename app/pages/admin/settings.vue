@@ -2,14 +2,14 @@
   <div class="max-w-5xl mx-auto pb-12">
     <div class="mb-8 flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
           <UIcon
             name="ph:gear-six-fill"
             class="w-8 h-8 text-purple-500"
           />
           System Settings
         </h1>
-        <p class="text-gray-400 mt-2 text-sm">Configure global site information, AI models, and theme preferences.</p>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Configure global site information, AI models, and theme preferences.</p>
       </div>
       <div class="flex items-center gap-3">
         <UButton
@@ -43,7 +43,7 @@
               'flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2',
               activeTab === tab.id
                 ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
             ]"
           >
             <UIcon
@@ -67,7 +67,7 @@
               'w-full text-left block px-4 py-2.5 rounded-xl text-sm font-medium transition-colors',
               activeTab === tab.id
                 ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
             ]"
           >
             <div class="flex items-center gap-3">
@@ -93,18 +93,18 @@
           />
           <div
             v-if="activeTab === 'general'"
-            class="bg-gray-900/40 border border-gray-800 rounded-2xl p-6"
+            class="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6"
           >
             <div class="flex items-start justify-between gap-6">
               <div>
-                <h2 class="text-lg font-bold text-white">站点图标</h2>
-                <p class="text-sm text-gray-400 mt-1">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">站点图标</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   用于浏览器标签页与收藏夹展示。建议使用 .ico 或 32×32 PNG。
                 </p>
               </div>
               <div
                 v-if="dynamicForm.site_favicon"
-                class="shrink-0 h-10 w-10 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center overflow-hidden"
+                class="shrink-0 h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden"
               >
                 <img
                   :src="dynamicForm.site_favicon"
@@ -115,7 +115,7 @@
             </div>
 
             <div class="mt-5">
-              <div class="text-sm font-medium text-gray-300 mb-2">Favicon URL</div>
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Favicon URL</div>
               <UInput
                 v-model="dynamicForm.site_favicon"
                 placeholder="例如：https://gopanel.cn/favicon.ico"
@@ -125,7 +125,7 @@
                 <UButton
                   type="button"
                   size="lg"
-                  class="rounded-xl bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 justify-center"
+                  class="rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 justify-center"
                   :loading="isUploadingFavicon"
                   @click="triggerFaviconPick"
                 >
@@ -136,7 +136,7 @@
                   type="button"
                   size="lg"
                   variant="outline"
-                  class="rounded-xl border-gray-700 text-gray-200 hover:bg-gray-800 justify-center"
+                  class="rounded-xl border-gray-200 dark:border-gray-700 text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 justify-center"
                   @click="dynamicForm.site_favicon = ''"
                 >
                   清空
@@ -194,7 +194,7 @@
           </div>
 
           <!-- Desktop Save Button (Fallback) -->
-          <div class="hidden lg:flex justify-end pt-4 border-t border-gray-800">
+          <div class="hidden lg:flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800">
             <UButton
               color="primary"
               class="bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)] px-8 py-2.5"
