@@ -1062,8 +1062,8 @@
           "autoincrement": false,
           "default": 0
         },
-        "grant_expires_at": {
-          "name": "grant_expires_at",
+        "sub_expires_at": {
+          "name": "sub_expires_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

@@ -17,9 +17,10 @@ export const users = pgTable('users', {
   
   CashBalance: bigint('cash_balance', { mode: 'bigint' }).default(sql`0`), // 充值余额（永不过期），金额放大 10^8 倍存储
   GrantBalance: bigint('grant_balance', { mode: 'bigint' }).default(sql`0`), // 订阅周期赠送余额（按周期清零），金额放大 10^8 倍存储
-
+  SubBalance: bigint('sub_balance', { mode: 'bigint' }).default(sql`0`), // 订阅余额（按周期清零），金额放大 10^8 倍存储
+  
   TierLevel: integer('tier_level').default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
-  GrantExpiresAt: timestamp('grant_expires_at', { withTimezone: true }), // 订阅过期时间
+  SubExpiresAt: timestamp('sub_expires_at', { withTimezone: true }), // 订阅过期时间
   
   status: integer('status').default(1), // 1: 正常, 0: 禁用
   

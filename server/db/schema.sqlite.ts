@@ -18,7 +18,8 @@ export const users = sqliteTable('users', {
   // 融合自 PROMPT.md 中转站用户属性
   CashBalance: integer('cash_balance', { mode: 'number' }).default(0), // 充值余额（永不过期），金额放大 10^8 倍存储
   GrantBalance: integer('grant_balance', { mode: 'number' }).default(0), // 订阅周期赠送余额（按周期清零），金额放大 10^8 倍存储
-  GrantExpiresAt: integer('grant_expires_at', { mode: 'timestamp' }), // 订阅过期时间
+  SubBalance: integer('sub_balance', { mode: 'number' }).default(0), // 订阅余额（按周期清零），金额放大 10^8 倍存储
+  SubExpiresAt: integer('sub_expires_at', { mode: 'timestamp' }), // 订阅过期时间
   TierLevel: integer('tier_level', { mode: 'number' }).default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
   status: integer('status').default(1), // 1: 正常, 0: 禁用
   

@@ -160,7 +160,8 @@ CREATE TABLE `users` (
 	`last_login_at` integer,
 	`cash_balance` integer DEFAULT 0,
 	`grant_balance` integer DEFAULT 0,
-	`grant_expires_at` integer,
+	`sub_balance` integer DEFAULT 0,
+	`sub_expires_at` integer,
 	`tier_level` integer DEFAULT 0,
 	`status` integer DEFAULT 1,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL

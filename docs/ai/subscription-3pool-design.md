@@ -3,15 +3,15 @@
 ## 背景
 - APayShop 是支付/电商平台(Nuxt 3 + Nitro server,TypeScript,代码在 /Users/hugh/code/aihop/apayshop,服务端在 server/)。
 - ainode 是 AI 网关计费系统,它持有用户的余额「三池」:
-  1. 订阅实付 sub_paid(用户为订阅实际付的钱)
-  2. 订阅赠送 sub_grant(套餐附赠的额度)
+  1. 订阅实付 sub(用户为订阅实际付的钱)
+  2. 订阅赠送 grant(套餐附赠的额度)
   3. 充值余额 cash(永久)
-- 消费顺序:sub_paid → sub_grant → cash。
-- 取消/过期时:sub_grant 清零,sub_paid 剩余转入 cash(不没收)。
+- 消费顺序:sub → grant → cash。
+- 取消/过期时:grant 清零,sub 剩余转入 cash(不没收)。
 
 ## 职责边界(重要,不要越界)
 - **APayShop 只负责「钱」**:订阅定价、升级/降级的 proration(补差价/按比例)、实际收款金额、各套餐的赠送额、周期到期时间。算完后,把**最终结果**通过 Webhook 通知 ainode。
-- **APayShop 不负责余额池的加减**:不要去算 sub_paid/sub_grant/cash 怎么变,那是 ainode 的事。APayShop 只把「本周期实付多少、赠送多少、到期时间、套餐等级」发过去,ainode 自己做状态机。
+- **APayShop 不负责余额池的加减**:不要去算 sub/grant/cash 怎么变,那是 ainode 的事。APayShop 只把「本周期实付多少、赠送多少、到期时间、套餐等级」发过去,ainode 自己做状态机。
 
 ## 你要实现的功能
 在「订阅/续费/升级/降级/取消」的业务流程**成功并落库之后**,可靠地向 ainode 发送对应的 Webhook 事件。
@@ -89,7 +89,7 @@
   - `subscription.cancel` 在管理员取消订阅的 API 端点中调用（`server/api/admin/subscriptions/[id].delete.ts`）。
 
 ## 验收标准
-1. 首次订阅成功 → ainode 收到 `subscription.apply`,用户三池正确(sub_paid=paidAmount、sub_grant=grantAmount)。
+1. 首次订阅成功 → ainode 收到 `subscription.apply`,用户三池正确(sub=paidAmount、grant=grantAmount)。
 2. 续费 → 旧实付剩余进 cash、赠送清零、发放新一期(由 ainode 处理,APayShop 只发事件)。
 3. 升级/降级 → 同样只发一条 `subscription.apply`(带换套餐后的最终值)。
 4. 取消 → 发 `subscription.cancel`,ainode 赠送清零、实付剩余进 cash。

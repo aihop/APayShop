@@ -1014,8 +1014,8 @@
           "notNull": false,
           "default": 0
         },
-        "grant_expires_at": {
-          "name": "grant_expires_at",
+        "sub_expires_at": {
+          "name": "sub_expires_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
