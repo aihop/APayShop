@@ -1,5 +1,5 @@
 import { orders, products } from "../../db/schema"
-import { eq, desc, count } from "drizzle-orm"
+import { eq, desc, count, and, ne } from "drizzle-orm"
 import { db } from '../../db/runtime'
 
 export default defineEventHandler(async (event) => {
@@ -19,7 +19,12 @@ export default defineEventHandler(async (event) => {
   const pageSize = parseInt(query.pageSize as string) || 10
   const offset = (page - 1) * pageSize
 
-  const totalResult = await db.select({ value: count() }).from(orders).where(eq(orders.userId, userId))
+  const filter = and(
+    eq(orders.userId, userId),
+    ne(orders.payStatus, 'deleted')
+  )
+
+  const totalResult = await db.select({ value: count() }).from(orders).where(filter)
   const total = totalResult[0]?.value || 0
 
   // Fetch orders associated with this user, including product details
@@ -27,6 +32,7 @@ export default defineEventHandler(async (event) => {
     id: orders.id,
     amount: orders.amount,
     status: orders.status,
+    payStatus: orders.payStatus,
     createdAt: orders.createdAt,
     paidAt: orders.paidAt,
     tradeNo: orders.tradeNo,
@@ -38,7 +44,7 @@ export default defineEventHandler(async (event) => {
   })
   .from(orders)
   .leftJoin(products, eq(orders.productId, products.id))
-  .where(eq(orders.userId, userId))
+  .where(filter)
   .orderBy(desc(orders.createdAt))
   .limit(pageSize)
   .offset(offset)

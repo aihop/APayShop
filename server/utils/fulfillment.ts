@@ -1,7 +1,9 @@
-import { orders, products, cards, subscriptions } from "../db/schema"
+import { orders, products, cards, subscriptions, users } from "../db/schema"
 import { eq, and } from "drizzle-orm"
 import crypto from "crypto"
 import { db } from '../db/runtime'
+import { sendHttpWebhook } from './eventBus'
+import { getWebhookSubscriptionUrl, getIntegrationToken } from './externalProxy'
 
 
 export async function fulfillOrder(orderId: string) {
@@ -49,7 +51,23 @@ export async function fulfillOrder(orderId: string) {
     case 'subscription': {
       newStatus = "active"
       deliveryInfo = `Subscription active. Duration: ${(productMeta as any).subscription_cycle || 'Unknown'}`
-      
+
+      // Cancel any existing active subscription for this user (upgrade scenario)
+      // ainode will handle the old sub's remaining value transfer when it receives the new subscription.apply
+      if (order.userId) {
+        const oldSubs = await db.select({ id: subscriptions.id })
+          .from(subscriptions)
+          .where(and(
+            eq(subscriptions.userId, order.userId),
+            eq(subscriptions.status, 'active'),
+          ))
+        for (const old of oldSubs) {
+          await db.update(subscriptions)
+            .set({ status: 'canceled', cancelAtPeriodEnd: true, updatedAt: new Date() })
+            .where(eq(subscriptions.id, old.id))
+        }
+      }
+
       // Parse interval and intervalCount
       // subscription_cycle format: "1_month", "1_year"
       let interval = 'month'
@@ -57,8 +75,8 @@ export async function fulfillOrder(orderId: string) {
       if (productMeta && (productMeta as any).subscription_cycle) {
         const parts = String((productMeta as any).subscription_cycle).split('_')
         if (parts.length === 2) {
-          intervalCount = parseInt(parts[0]) || 1
-          interval = parts[1]
+          intervalCount = parseInt(parts[0]!, 10) || 1
+          interval = parts[1]!
         }
       }
       
@@ -108,7 +126,42 @@ export async function fulfillOrder(orderId: string) {
          await db.update(orders).set({ subscriptionId: subId }).where(eq(orders.id, order.id))
          order.subscriptionId = subId
       }
-      
+
+      // Update user's TierLevel if product has a level defined
+      const subProductLevel = (productMeta as any)?.level
+      if (subProductLevel !== undefined && order.userId) {
+        await db.update(users)
+          .set({ TierLevel: Number(subProductLevel) })
+          .where(eq(users.id, order.userId))
+      }
+
+      // Send subscription.apply event to ainode
+      const grantAmount = Number((productMeta as any)?.grant_amount || 0)
+      if (order.userId) {
+        const [webhookUrl, ainodeToken] = await Promise.all([getWebhookSubscriptionUrl(), getIntegrationToken()])
+        if (webhookUrl && ainodeToken) {
+          const eventId = `sub:apply:${subId}:1`
+          sendHttpWebhook(
+            webhookUrl,
+            {
+              event: 'subscription.apply',
+              timestamp: new Date().toISOString(),
+              data: {
+                eventId,
+                userId: Number(order.userId),
+                paidAmount: Number(order.amount) || 0,
+                grantAmount,
+                expiresAt: endDate.toISOString(),
+                tier: Number(subProductLevel || 0),
+                sourceId: order.id,
+                remark: `${String(product.name || '')} ${String((productMeta as any)?.subscription_cycle || '').replace('_', ' ')}`.trim(),
+              },
+            },
+            { headers: { Authorization: `Bearer ${ainodeToken}` } }
+          )
+        }
+      }
+
       break
     }
     case 'service': {

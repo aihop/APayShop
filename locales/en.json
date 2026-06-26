@@ -140,7 +140,38 @@
       "status": "Status",
       "method": "Method",
       "date": "Date",
-      "orderId": "Order ID"
+      "orderId": "Order ID",
+      "user": "User",
+      "unknown_product": "Unknown",
+      "no_visitor_id": "No Visitor ID",
+      "na": "N/A",
+      "payment_label": "Payment",
+      "fulfillment_label": "Fulfillment",
+      "modal": {
+        "title": "Order Details",
+        "order_id": "Order ID",
+        "payment_status": "Payment Status",
+        "fulfillment_status": "Fulfillment Status",
+        "contact_email": "Contact Email",
+        "amount": "Amount",
+        "payment_method": "Payment Method",
+        "trade_no": "Trade No",
+        "meta_data": "Order Meta Data (User Input)",
+        "fulfillment_title": "Fulfillment & Status",
+        "update_fulfillment": "Update Fulfillment Status",
+        "update_payment": "Update Payment Status",
+        "delivery_info": "Delivery Info (Note/Link/Key)",
+        "update_order": "Update Order"
+      },
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "copied": "Copied",
+        "order_updated": "Order updated",
+        "update_failed": "Failed to update order",
+        "visitor_id_copied": "Visitor ID copied to clipboard",
+        "copied_to_clipboard": "{label} copied to clipboard"
+      }
     },
     "products": {
       "title": "Products",

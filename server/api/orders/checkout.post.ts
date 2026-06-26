@@ -104,6 +104,26 @@ export default defineEventHandler(async (event) => {
       parsedBody.metaData = finalMetaData
     }
 
+    // ==========================================
+    // 订阅升级校验 (Subscription Upgrade Check)
+    // ==========================================
+    // 如果商品是 subscription 类型且用户已登录，检查用户当前 TierLevel
+    // 只允许升级（新商品 level > 用户当前 TierLevel），不允许同级或降级重复购买
+    if (product.type === 'subscription' && userId) {
+      const productLevel = (productMetaData as any)?.level
+      if (productLevel !== undefined) {
+        const userRecord = await db.select({ TierLevel: users.TierLevel }).from(users).where(eq(users.id, userId)).limit(1)
+        const currentLevel = userRecord.length > 0 ? (userRecord[0].TierLevel || 0) : 0
+        if (Number(productLevel) <= Number(currentLevel)) {
+          throw createError({
+            statusCode: 409,
+            message: "You already have an active subscription at this tier. Please upgrade to a higher plan."
+          })
+        }
+      }
+    }
+    // ==========================================
+
     const totalAmount = product.price * productNum
 
     // ==========================================

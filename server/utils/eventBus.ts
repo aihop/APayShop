@@ -3,6 +3,75 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db/runtime'
 
 /**
+ * Low-level HTTP webhook sender with exponential backoff retry.
+ *
+ * Retry policy:
+ * - 4xx: no retry (client error, fix the payload/URL)
+ * - 5xx / network error: retry up to 3 times with backoff (1s → 2s → 4s)
+ * - Returns { ok: true, status } on success, { ok: false, status? } on failure
+ */
+export async function sendHttpWebhook(
+  url: string,
+  body: object,
+  options?: { headers?: Record<string, string>; retries?: number; timeout?: number }
+): Promise<{ ok: boolean; status?: number }> {
+  const maxRetries = options?.retries ?? 3
+  const timeout = options?.timeout ?? 8000
+  const bodyStr = JSON.stringify(body)
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+        body: bodyStr,
+        signal: AbortSignal.timeout(timeout),
+      })
+
+      if (response.ok) {
+        console.log(`[EventBus] HTTP 200 POST ${url}`)
+        return { ok: true, status: response.status }
+      }
+
+      // 4xx: client error, not worth retrying
+      if (response.status >= 400 && response.status < 500) {
+        console.warn(`[EventBus] 4xx POST ${url} (${response.status}), not retrying`)
+        return { ok: false, status: response.status }
+      }
+
+      // 5xx: retry
+      console.warn(`[EventBus] 5xx POST ${url} (${response.status}), attempt ${attempt + 1}/${maxRetries}`)
+      if (attempt < maxRetries) {
+        await sleep(Math.min(1000 * Math.pow(2, attempt), 10000))
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn(`[EventBus] Timeout POST ${url}, attempt ${attempt + 1}/${maxRetries}`)
+      } else {
+        console.warn(`[EventBus] Error POST ${url} (${err.message}), attempt ${attempt + 1}/${maxRetries}`)
+      }
+      if (attempt < maxRetries) {
+        await sleep(Math.min(1000 * Math.pow(2, attempt), 10000))
+      }
+    }
+  }
+
+  console.error(`[EventBus] All ${maxRetries} retries exhausted for POST ${url}`)
+  return { ok: false }
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+// ---------------------------------------------------------------------------
+// Legacy: dispatch event to DB-configured webhooks (order.paid, user.registered)
+// ---------------------------------------------------------------------------
+
+/**
  * Dispatch an event to all active webhooks subscribed to it
  * @param eventName The name of the event (e.g., 'order.paid')
  * @param payload The data to send with the event
@@ -45,11 +114,15 @@ export async function dispatchEvent(eventName: string, payload: any) {
     // We don't await Promise.all here because we don't want webhook failures to block the main thread
     subscribers.forEach(async (webhook: any) => {
       try {
-        const body = JSON.stringify({
+        const rawPayload = {
           event: eventName,
           timestamp,
           data: payload
-        })
+        }
+        const body = JSON.stringify(rawPayload)
+
+        console.log(`[EventBus] Dispatching ${eventName} to ${webhook.name} (${webhook.url})`)
+        console.log('[EventBus] Payload:', JSON.stringify(rawPayload, null, 2))
 
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
@@ -61,6 +134,8 @@ export async function dispatchEvent(eventName: string, payload: any) {
         if (webhook.token) {
           headers['Authorization'] = `Bearer ${webhook.token}`
         }
+
+        console.log('[EventBus] Headers:', JSON.stringify(headers, null, 2))
 
         const response = await fetch(webhook.url, {
           method: 'POST',

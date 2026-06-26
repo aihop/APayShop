@@ -17,7 +17,7 @@ let cachedGatewayUrl: string | null = null
 let lastGatewayUrlRead = 0
 const SETTINGS_CACHE_TTL = 5000 // 5 秒
 
-async function getAIGatewayUrl(): Promise<string> {
+export async function getAIGatewayUrl(): Promise<string> {
   const now = Date.now()
   if (cachedGatewayUrl && now - lastGatewayUrlRead < SETTINGS_CACHE_TTL) {
     return cachedGatewayUrl
@@ -25,9 +25,10 @@ async function getAIGatewayUrl(): Promise<string> {
   try {
     const result = await db.select().from(settings).where(eq(settings.key, 'ai_gateway_url')).limit(1)
     if (result.length > 0 && result[0].value) {
-      cachedGatewayUrl = result[0].value.replace(/\/+$/, '')
+      const url = result[0].value.replace(/\/+$/, '')
+      cachedGatewayUrl = url
       lastGatewayUrlRead = now
-      return cachedGatewayUrl
+      return url
     }
   } catch (e) {
     console.error('[Proxy] Failed to read ai_gateway_url from settings:', e)
@@ -39,11 +40,13 @@ async function getAIGatewayUrl(): Promise<string> {
   return fallback
 }
 
+
+
 // 从 DB settings 读取 integration_token，用于上游认证
 let cachedToken: string | null = null
 let lastTokenRead = 0
 
-async function getIntegrationToken(): Promise<string | null> {
+export async function getIntegrationToken(): Promise<string | null> {
   const now = Date.now()
   if (cachedToken !== null && now - lastTokenRead < SETTINGS_CACHE_TTL) {
     return cachedToken
@@ -98,6 +101,15 @@ const assertTargetAllowed = (targetUrl: URL, allowedOrigins?: Iterable<string>, 
 }
 
 export const getConfiguredGatewayOrigins = () => [(cachedGatewayUrl || process.env.AI_GATEWAY_URL || 'https://api.ainode.run').replace(/\/+$/, '')]
+
+/**
+ * Get the full webhook events URL for ainode.
+ * Returns the complete URL (e.g. https://api.ainode.run/api/webhooks/events).
+ */
+export async function getWebhookSubscriptionUrl(): Promise<string> {
+  const base = await getAIGatewayUrl()
+  return `${base}/api/webhooks/events`
+}
 
 export async function proxyExternalRequest(event: H3Event, options: ProxyExternalRequestOptions = {}) {
   const {

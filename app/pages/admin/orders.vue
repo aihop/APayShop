@@ -20,7 +20,7 @@
             <span
               class="text-sm font-mono text-gray-900 dark:text-white cursor-pointer hover:text-primary-400"
               :title="row.original.id"
-              @click="copyToClipboard(row.original.id, 'Order ID')"
+              @click="copyToClipboard(row.original.id, t('admin.orders.modal.order_id'))"
             >
               {{ row.original.id }}
             </span>
@@ -45,8 +45,8 @@
                 />
                 <span
                   class="font-mono truncate cursor-pointer hover:text-primary-400"
-                  :title="'Trade No: ' + row.original.tradeNo"
-                  @click="copyToClipboard(row.original.tradeNo, 'Trade No')"
+                  :title="$t('admin.orders.modal.trade_no') + ': ' + row.original.tradeNo"
+                  @click="copyToClipboard(row.original.tradeNo, t('admin.orders.modal.trade_no'))"
                 >
                   {{ row.original.tradeNo }}
                 </span>
@@ -86,7 +86,7 @@
               <span
                 v-else
                 class="text-sm font-medium text-gray-900 dark:text-white truncate"
-              >{{ row.original.productName || 'Unknown' }}</span>
+              >{{ row.original.productName || $t('admin.orders.unknown_product') }}</span>
 
               <div class="flex items-center gap-2 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                 <span
@@ -130,7 +130,7 @@
                 <span
                   v-else
                   class="text-xs text-gray-600"
-                >No Visitor ID</span>
+                >{{ $t('admin.orders.no_visitor_id') }}</span>
               </div>
             </template>
           </div>
@@ -144,7 +144,7 @@
                   :color="getPayStatusColor(String(row.original.payStatus || 'pending'))"
                   variant="subtle"
                   class="capitalize whitespace-nowrap text-[10px] px-1.5 py-0"
-                  :title="`Payment: ${row.original.payStatus || 'pending'}`"
+                  :title="$t('admin.orders.payment_label') + ': ' + (row.original.payStatus || 'pending')"
                 >
                   {{ $t('admin.orders.pay_status_' + (row.original.payStatus || 'pending')) }}
                 </UBadge>
@@ -152,7 +152,7 @@
                   :color="getStatusColor(String(row.original.status || 'none'))"
                   variant="subtle"
                   class="capitalize whitespace-nowrap text-[10px] px-1.5 py-0"
-                  :title="`Fulfillment: ${row.original.status || 'none'}`"
+                  :title="$t('admin.orders.fulfillment_label') + ': ' + (row.original.status || 'none')"
                 >
                   {{ $t('admin.orders.status_' + (row.original.status || 'none')) }}
                 </UBadge>
@@ -185,7 +185,7 @@
     <FullScreenModal
       v-model="isModalOpen"
       maxWidth="sm:max-w-3xl"
-      title="Order Details"
+      :title="$t('admin.orders.modal.title')"
     >
       <div
         v-if="selectedOrder"
@@ -193,11 +193,11 @@
       >
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Order ID</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.order_id') }}</p>
             <p class="text-gray-900 dark:text-white font-mono">{{ selectedOrder.id }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Payment Status</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.payment_status') }}</p>
             <UBadge
               :color="getPayStatusColor(selectedOrder.payStatus)"
               variant="subtle"
@@ -207,7 +207,7 @@
             </UBadge>
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Fulfillment Status</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.fulfillment_status') }}</p>
             <UBadge
               :color="getStatusColor(selectedOrder.status)"
               variant="subtle"
@@ -217,20 +217,20 @@
             </UBadge>
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Contact Email</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.contact_email') }}</p>
             <p class="text-gray-900 dark:text-white">{{ selectedOrder.contactEmail }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.amount') }}</p>
             <p class="text-gray-900 dark:text-white">${{ Number(selectedOrder.amount).toFixed(2) }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Payment Method</p>
-            <p class="text-gray-900 dark:text-white">{{ selectedOrder.payMethod || 'N/A' }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.payment_method') }}</p>
+            <p class="text-gray-900 dark:text-white">{{ selectedOrder.payMethod || $t('admin.orders.na') }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Trade No</p>
-            <p class="text-gray-900 dark:text-white font-mono">{{ selectedOrder.tradeNo || 'N/A' }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.trade_no') }}</p>
+            <p class="text-gray-900 dark:text-white font-mono">{{ selectedOrder.tradeNo || $t('admin.orders.na') }}</p>
           </div>
         </div>
 
@@ -238,28 +238,28 @@
           v-if="selectedOrder.metaData"
           class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-[#1a1a1c]"
         >
-          <h3 class="text-gray-900 dark:text-white font-medium mb-2">Order Meta Data (User Input)</h3>
+          <h3 class="text-gray-900 dark:text-white font-medium mb-2">{{ $t('admin.orders.modal.meta_data') }}</h3>
           <pre class="text-xs text-gray-700 dark:text-gray-300 overflow-auto whitespace-pre-wrap">{{ formatMetaData(selectedOrder.metaData) }}</pre>
         </div>
 
         <div class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-[#1a1a1c]">
-          <h3 class="text-gray-900 dark:text-white font-medium mb-4">Fulfillment & Status</h3>
+          <h3 class="text-gray-900 dark:text-white font-medium mb-4">{{ $t('admin.orders.modal.fulfillment_title') }}</h3>
           <div class="space-y-4">
-            <UFormField label="Update Fulfillment Status">
+            <UFormField :label="$t('admin.orders.modal.update_fulfillment')">
               <USelect
                 v-model="selectedOrder.status"
                 class="min-w-[150px]"
                 :items="['none', 'processing', 'active', 'delivered', 'expired', 'failed', 'completed']"
               />
             </UFormField>
-            <UFormField label="Update Payment Status">
+            <UFormField :label="$t('admin.orders.modal.update_payment')">
               <USelect
                 v-model="selectedOrder.payStatus"
                 class="min-w-[150px]"
                 :items="['pending', 'paid', 'failed', 'refunded']"
               />
             </UFormField>
-            <UFormField label="Delivery Info (Note/Link/Key)">
+            <UFormField :label="$t('admin.orders.modal.delivery_info')">
               <UTextarea
                 v-model="selectedOrder.deliveryInfo"
                 :rows="3"
@@ -270,7 +270,7 @@
               color="primary"
               :loading="isSaving"
               @click="saveOrder"
-            >Update Order</UButton>
+            >{{ $t('admin.orders.modal.update_order') }}</UButton>
           </div>
         </div>
       </div>
@@ -280,7 +280,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-
+import { definePageMeta, useToast, useFetch, useRouter, useI18n } from '#imports'
 import { formatRelativeTime } from '~/utils/formatTime'
 
 const { t } = useI18n()
@@ -292,7 +292,7 @@ const toast = useToast()
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.orders.id') },
   { accessorKey: 'productName', header: t('admin.dashboard.product') },
-  { accessorKey: 'user', header: 'User' },
+  { accessorKey: 'user', header: t('admin.orders.user') },
   {
     accessorKey: 'actions',
     header: t('admin.common.actions'),
@@ -349,20 +349,21 @@ const saveOrder = async () => {
       method: 'PUT',
       body: {
         status: selectedOrder.value.status,
+        payStatus: selectedOrder.value.payStatus,
         deliveryInfo: selectedOrder.value.deliveryInfo,
       },
     })
     toast.add({
-      title: 'Success',
-      description: 'Order updated',
+      title: t('admin.orders.toast.success'),
+      description: t('admin.orders.toast.order_updated'),
       color: 'success',
     })
     await refresh()
     isModalOpen.value = false
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to update order',
+      title: t('admin.orders.toast.error'),
+      description: e.data?.message || t('admin.orders.toast.update_failed'),
       color: 'error',
     })
   } finally {
@@ -410,8 +411,8 @@ const copyVisitorId = (id: string) => {
   if (!id) return
   navigator.clipboard.writeText(id)
   toast.add({
-    title: 'Copied',
-    description: 'Visitor ID copied to clipboard',
+    title: t('admin.orders.toast.copied'),
+    description: t('admin.orders.toast.visitor_id_copied'),
     color: 'success',
   })
 }
@@ -420,8 +421,8 @@ const copyToClipboard = (text: string, label: string) => {
   if (!text) return
   navigator.clipboard.writeText(text)
   toast.add({
-    title: 'Copied',
-    description: `${label} copied to clipboard`,
+    title: t('admin.orders.toast.copied'),
+    description: t('admin.orders.toast.copied_to_clipboard', { label }),
     color: 'success',
   })
 }
