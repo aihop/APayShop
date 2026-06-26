@@ -10,6 +10,33 @@
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Webhook Configuration</h2>
     </div>
     <div class="p-6 space-y-6">
+
+      <!-- AI Gateway -->
+      <div class="pb-4 border-b border-gray-200 dark:border-gray-800/60">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">AI Gateway</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Upstream backend that powers the gateway API layer.</p>
+      </div>
+
+      <UFormField
+        label="AI Gateway URL"
+        description="The base URL of the upstream ainode gateway backend. All proxy requests will be forwarded here."
+      >
+        <UInput
+          v-model="form.ai_gateway_url"
+          placeholder="https://api.ainode.run"
+          icon="ph:cloud-arrow-up"
+          size="md"
+          class="w-full"
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
+        />
+      </UFormField>
+
+      <!-- Webhook -->
+      <div class="pt-2 pb-4 border-b border-gray-200 dark:border-gray-800/60">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">Webhook</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Send event notifications to external services.</p>
+      </div>
+
       <UFormField
         label="Webhook URL"
         description="The URL to receive event notifications (e.g., user registration, successful payment)."

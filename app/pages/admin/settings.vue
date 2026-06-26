@@ -239,7 +239,7 @@ const tabs = [
   { id: 'localization', label: 'Localization', icon: 'ph:translate-fill' },
   { id: 'seo', label: 'SEO', icon: 'ph:magnifying-glass-fill' },
   { id: 'checkout', label: 'Checkout', icon: 'ph:shopping-cart-fill' },
-  { id: 'webhook', label: 'Webhook', icon: 'ph:plugs-fill' },
+  { id: 'webhook', label: 'Integration', icon: 'ph:shuffle-fill' },
   { id: 'company', label: 'Company Details', icon: 'ph:buildings-fill' },
 ]
 

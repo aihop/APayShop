@@ -52,17 +52,25 @@ export const useExternalApi = (globalOptions: ExternalApiOptions = {}) => {
     if (globalOptions.proxy) {
       targetUrl = globalOptions.proxyEndpoint || '/api/proxy/external'
       
-      // Merge baseURL if provided and the url isn't already an absolute URL
-      if (globalOptions.baseURL && !url.startsWith('http')) {
-        const base = globalOptions.baseURL.replace(/\/+$/, '')
-        const path = url.startsWith('/') ? url : `/${url}`
-        url = `${base}${path}`
-      }
-      
-      // Pass the original target URL as a query parameter
-      fetchOptions.query = {
-        ...fetchOptions.query,
-        target: url
+      // 如果没有传 baseURL，走相对路径模式（由服务端从 DB 读取 base URL 拼接）
+      if (!globalOptions.baseURL && !url.startsWith('http')) {
+        // Send the relative path directly, server will prepend the base URL from DB
+        fetchOptions.query = {
+          ...fetchOptions.query,
+          path: url.startsWith('/') ? url : `/${url}`
+        }
+      } else {
+        // Legacy: baseURL provided, construct full URL as target
+        if (globalOptions.baseURL && !url.startsWith('http')) {
+          const base = globalOptions.baseURL.replace(/\/+$/, '')
+          const path = url.startsWith('/') ? url : `/${url}`
+          url = `${base}${path}`
+        }
+        
+        fetchOptions.query = {
+          ...fetchOptions.query,
+          target: url
+        }
       }
     }
 
