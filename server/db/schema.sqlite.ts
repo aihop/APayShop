@@ -22,7 +22,7 @@ export const users = sqliteTable('users', {
   TierLevel: integer('tier_level', { mode: 'number' }).default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
   status: integer('status').default(1), // 1: 正常, 0: 禁用
   
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 // ==========================================
@@ -33,7 +33,7 @@ export const admins = sqliteTable('admins', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const oauthAccounts = sqliteTable('oauth_accounts', {
@@ -41,7 +41,7 @@ export const oauthAccounts = sqliteTable('oauth_accounts', {
   userId: integer('user_id').notNull().references(() => users.id),
   provider: text('provider').notNull(), // 'google', 'github', etc.
   providerAccountId: text('provider_account_id').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const products = sqliteTable('products', {
@@ -59,7 +59,7 @@ export const products = sqliteTable('products', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   metaData: text('meta_data', { mode: 'json' }), // EAV Model: flexible JSON for custom attributes (e.g. size, color, version)
   sortOrder: integer('sort_order').notNull().default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const cards = sqliteTable('cards', {
@@ -68,7 +68,7 @@ export const cards = sqliteTable('cards', {
   cardNumber: text('card_number').notNull(),
   isUsed: integer('is_used', { mode: 'boolean' }).notNull().default(false),
   orderId: text('order_id'), // Will reference orders.id when used
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const paymentMethods = sqliteTable('payment_methods', {
@@ -81,7 +81,7 @@ export const paymentMethods = sqliteTable('payment_methods', {
   info: text('info'), // HTML for payment info
   create: text('create'), // JS for payment initiation
   callback: text('callback'), // HTML for callback info
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const orders = sqliteTable('orders', {
@@ -97,7 +97,7 @@ export const orders = sqliteTable('orders', {
   metaData: text('meta_data', { mode: 'json' }), // Flexible JSON for custom order data
   visitorId: text('visitor_id'), // To track anonymous users
   subscriptionId: text('subscription_id'), // Link to parent subscription if this is a recurring payment
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   paidAt: integer('paid_at', { mode: 'timestamp' }),
   payStatus: text('pay_status').notNull().default('pending') // pending, paid, failed, refunded
 })
@@ -127,8 +127,8 @@ export const subscriptions = sqliteTable('subscriptions', {
   cancelAtPeriodEnd: integer('cancel_at_period_end', { mode: 'boolean' }).default(false),
   
   metaData: text('meta_data', { mode: 'json' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`)
 })
 
 export const settings = sqliteTable('settings', {
@@ -155,7 +155,7 @@ export const failures = sqliteTable('failures', {
   contactEmail: text('contact_email'),
   rawResponse: text('raw_response'), // Full error response from gateway
   visitorId: text('visitor_id'), // To track anonymous users
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const webhooks = sqliteTable('webhooks', {
@@ -165,7 +165,7 @@ export const webhooks = sqliteTable('webhooks', {
   events: text('events', { mode: 'json' }).$type<string[]>(), // Array of events, e.g., ['order.paid', 'order.created']
   secret: text('secret'), // Secret for signing payload to verify authenticity
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const logs = sqliteTable('logs', {
@@ -180,8 +180,8 @@ export const logs = sqliteTable('logs', {
 export const visitorProfiles = sqliteTable('visitor_profiles', {
   visitorId: text('visitor_id').primaryKey(),
   userId: integer('user_id').references(() => users.id),
-  firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   landingPath: text('landing_path'),
   firstPath: text('first_path'),
   lastPath: text('last_path'),
@@ -208,8 +208,8 @@ export const visitorProfiles = sqliteTable('visitor_profiles', {
   browser: text('browser'),
   os: text('os'),
   userAgent: text('user_agent'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const visitorEvents = sqliteTable('visitor_events', {
@@ -237,7 +237,7 @@ export const visitorEvents = sqliteTable('visitor_events', {
   browser: text('browser'),
   os: text('os'),
   userAgent: text('user_agent'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 export const posts = sqliteTable('posts', {
@@ -253,6 +253,6 @@ export const posts = sqliteTable('posts', {
   views: integer('views').notNull().default(0), // View count
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   metaData: text('meta_data', { mode: 'json' }), // For SEO tags, view counts, or other flexible data
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`)
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`)
 })

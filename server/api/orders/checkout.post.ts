@@ -174,9 +174,9 @@ export default defineEventHandler(async (event) => {
     const day = String(date.getDate()).padStart(2, '0')
     const dateStr = `${year}${month}${day}`
     
-    // 取时间戳的后 6 位，加上 2 位的随机 hex (共 8 位随机字符)
+    // 取时间戳的后 6 位，加上 8 位的随机 hex (共 14 位随机字符)
     const timeSuffix = String(Date.now()).slice(-6)
-    const randomHex = crypto.randomBytes(1).toString('hex').toUpperCase()
+    const randomHex = crypto.randomBytes(4).toString('hex').toUpperCase()
     
     const orderId = `${productTypePrefix}${dateStr}${timeSuffix}${randomHex}`
     

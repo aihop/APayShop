@@ -94,7 +94,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     Accept: (incomingHeaders.accept as string) || 'application/json',
     'Content-Type': (incomingHeaders['content-type'] as string) || 'application/json',
     'User-Agent': userAgent,
-    Authorization: `Bearer ${process.env.AI_GATEWAY_SECRET_TOKEN || 'admin-secret-key'}`,
+    Authorization: `Bearer ${process.env.NUXT_SESSION_PASSWORD}`,
   }
 
   if (userId) {

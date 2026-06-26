@@ -5,7 +5,7 @@
       <div class="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl"></div>
 
       <div
-        v-if="orderStatus === 'pending'"
+        v-if="payStatus === 'pending'"
         class="relative z-10"
       >
         <UIcon
@@ -27,7 +27,7 @@
       </div>
 
       <div
-        v-else-if="orderStatus === 'paid'"
+        v-else-if="payStatus === 'paid'"
         class="relative z-10"
       >
         <div class="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">

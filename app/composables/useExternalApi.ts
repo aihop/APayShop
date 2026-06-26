@@ -70,14 +70,6 @@ export const useExternalApi = (globalOptions: ExternalApiOptions = {}) => {
       headers: {
         ...globalOptions.headers
       },
-      // 1. Request Interceptor
-      onRequest({ options }: any) {
-        // You can automatically attach auth tokens here if needed
-        // const { user } = useCustomerAuth()
-        // if (user.value?.token) options.headers.Authorization = `Bearer ${user.value.token}`
-      },
-      
-      // 2. Error Interceptor
       onResponseError({ response }: any) {
         // Attempt to extract a meaningful error message from the external service
         const message = response._data?.message || response._data?.error || response.statusText || 'External Service Error'
