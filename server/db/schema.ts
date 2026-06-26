@@ -35,7 +35,6 @@ export const {
   orders,
   settings,
   themeSettings,
-  apiKeys,
   failures,
   webhooks,
   logs,

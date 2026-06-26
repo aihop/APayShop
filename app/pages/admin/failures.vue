@@ -2,8 +2,8 @@
   <div>
     <div class="flex justify-between items-end mb-10">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Failed Transactions</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">View rejected card payments and transaction failures.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.failures.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.failures.subtitle') }}</p>
       </div>
     </div>
 
@@ -35,7 +35,7 @@
         </template>
 
         <template #cardBin-cell="{ row }">
-          <span class="font-mono text-gray-300">{{ row.original.cardBin || 'N/A' }}</span>
+          <span class="font-mono text-gray-300">{{ row.original.cardBin || $t('admin.failures.n/a') }}</span>
         </template>
 
         <template #amount-cell="{ row }">
@@ -52,7 +52,7 @@
             variant="subtle"
             class="capitalize"
           >
-            {{ row.original.payMethod || 'Unknown' }}
+            {{ row.original.payMethod || $t('admin.failures.unknown') }}
           </UBadge>
         </template>
 
@@ -79,7 +79,7 @@
       <template #content>
         <div class="p-6">
           <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Failure Details</h3>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t('admin.failures.details') }}</h3>
             <UButton
               color="neutral"
               variant="ghost"
@@ -95,37 +95,37 @@
           >
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <span class="block text-xs text-gray-500 mb-1">ID</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.id') }}</span>
                 <span class="text-gray-900 dark:text-white">{{ selectedFailure.id }}</span>
               </div>
               <div>
-                <span class="block text-xs text-gray-500 mb-1">Order ID</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.orderId') }}</span>
                 <span class="text-gray-900 dark:text-white font-mono text-sm">{{ selectedFailure.orderId }}</span>
               </div>
               <div>
-                <span class="block text-xs text-gray-500 mb-1">Amount</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.amount') }}</span>
                 <span class="text-gray-900 dark:text-white">${{ Number(selectedFailure.amount || 0).toFixed(2) }}</span>
               </div>
               <div>
-                <span class="block text-xs text-gray-500 mb-1">Card BIN</span>
-                <span class="text-gray-900 dark:text-white font-mono">{{ selectedFailure.cardBin || 'N/A' }}</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.cardBin') }}</span>
+                <span class="text-gray-900 dark:text-white font-mono">{{ selectedFailure.cardBin || $t('admin.failures.n/a') }}</span>
               </div>
               <div>
-                <span class="block text-xs text-gray-500 mb-1">Customer Email</span>
-                <span class="text-gray-900 dark:text-white">{{ selectedFailure.contactEmail || 'N/A' }}</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.customerEmail') }}</span>
+                <span class="text-gray-900 dark:text-white">{{ selectedFailure.contactEmail || $t('admin.failures.n/a') }}</span>
               </div>
               <div>
-                <span class="block text-xs text-gray-500 mb-1">Payment Method</span>
-                <span class="text-gray-900 dark:text-white capitalize">{{ selectedFailure.payMethod || 'Unknown' }}</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.paymentMethod') }}</span>
+                <span class="text-gray-900 dark:text-white capitalize">{{ selectedFailure.payMethod || $t('admin.failures.unknown') }}</span>
               </div>
               <div>
-                <span class="block text-xs text-gray-500 mb-1">Time</span>
+                <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.failures.time') }}</span>
                 <span class="text-gray-900 dark:text-white">{{ new Date(selectedFailure.createdAt).toLocaleString() }}</span>
               </div>
             </div>
 
             <div class="mt-6">
-              <span class="block text-xs text-gray-500 mb-2">Failure Reason</span>
+              <span class="block text-xs text-gray-500 mb-2">{{ $t('admin.failures.failureReason') }}</span>
               <div class="p-3 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400">
                 {{ selectedFailure.reason }}
               </div>
@@ -135,7 +135,7 @@
               v-if="selectedFailure.rawResponse"
               class="mt-4"
             >
-              <span class="block text-xs text-gray-500 mb-2">Raw Gateway Response</span>
+              <span class="block text-xs text-gray-500 mb-2">{{ $t('admin.failures.rawGatewayResponse') }}</span>
               <div class="p-3 bg-black border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
                 <pre class="text-xs text-gray-500 dark:text-gray-400 m-0">{{ formatJson(selectedFailure.rawResponse) }}</pre>
               </div>
@@ -149,20 +149,22 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-definePageMeta({ title: 'Payment Failures' })
+import { useI18n } from '#imports'
+definePageMeta({ title: 'admin.failures.title' })
 
+const { t } = useI18n()
 const toast = useToast()
 
 const columns = [
-  { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'orderId', header: 'Order ID' },
-  { accessorKey: 'visitorId', header: 'Visitor' },
-  { accessorKey: 'cardBin', header: 'Card BIN' },
-  { accessorKey: 'reason', header: 'Reason' },
-  { accessorKey: 'amount', header: 'Amount' },
-  { accessorKey: 'payMethod', header: 'Method' },
-  { accessorKey: 'createdAt', header: 'Date' },
-  { accessorKey: 'actions', header: 'Actions' },
+  { accessorKey: 'id', header: () => t('admin.failures.id') },
+  { accessorKey: 'orderId', header: () => t('admin.failures.orderId') },
+  { accessorKey: 'visitorId', header: () => t('admin.failures.visitor') },
+  { accessorKey: 'cardBin', header: () => t('admin.failures.cardBin') },
+  { accessorKey: 'reason', header: () => t('admin.failures.reason') },
+  { accessorKey: 'amount', header: () => t('admin.failures.amount') },
+  { accessorKey: 'payMethod', header: () => t('admin.failures.method') },
+  { accessorKey: 'createdAt', header: () => t('admin.failures.date') },
+  { accessorKey: 'actions', header: () => t('admin.failures.actions') },
 ]
 
 const { data: failuresData, pending } = await useFetch<any>(
@@ -185,8 +187,8 @@ const copyVisitorId = (id: string) => {
   if (!id) return
   navigator.clipboard.writeText(id)
   toast.add({
-    title: 'Copied',
-    description: 'Visitor ID copied to clipboard',
+    title: t('admin.failures.copied'),
+    description: t('admin.failures.copiedDescription'),
     color: 'success',
   })
 }

@@ -65,6 +65,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
   const session = await getUserSession(event).catch(() => null)
   const userId = (session?.user as any)?.id
   const adminId = (session?.admin as any)?.id
+  const adminUsername = (session?.admin as any)?.username
   const incomingHeaders = event.node.req.headers
   const xAuth = (incomingHeaders['x-auth'] as string) || getCookie(event, 'x-auth')
 
@@ -102,6 +103,10 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
 
   if (adminId) {
     forwardHeaders['X-Internal-Admin-Id'] = String(adminId)
+  }
+
+  if (adminUsername) {
+    forwardHeaders['X-Internal-Admin-Username'] = String(adminUsername)
   }
 
   if (xAuth) {

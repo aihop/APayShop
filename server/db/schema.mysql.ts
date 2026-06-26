@@ -2,7 +2,7 @@ import { mysqlTable, text, int, real, uniqueIndex, boolean, timestamp, json, big
 import { sql } from 'drizzle-orm'
 
 // ==========================================
-// DataPaaS Gateway / API Core Tables
+// AINode Gateway / API Core Tables
 // Merged from PROMPT.md (schema.sql)
 // ==========================================
 
@@ -56,7 +56,7 @@ export const products = mysqlTable('products', {
   price: real('price').notNull(),
   description: text('description'),
   content: text('content'), // Detailed HTML or Markdown content
-  type: text('type').notNull(), // 'key', 'file', 'subscription', 'service', 'dynamic_api'
+  type: text('type').notNull(), // 'key', 'file', 'subscription', 'service', 'topup'
   imageUrl: text('image_url'), // Cover image
   views: int('views').notNull().default(0), // View count
   imageUrls: json('image_urls').$type<string[]>(), // JSON array of multiple image URLs
@@ -148,26 +148,6 @@ export const themeSettings = mysqlTable('theme_settings', {
   themeName: text('theme_name').primaryKey(),
   config: text('config').notNull(),
   updatedAt: timestamp('updated_at').defaultNow(),
-})
-
-// Table for selling dynamic API quotas and serving as API Gateway credentials
-export const apiKeys = mysqlTable('api_keys', {
-  id: int('id').autoincrement().primaryKey(),
-  name: varchar('name', { length: 50 }).notNull(), // Add name field to align with model-api
-  keyString: varchar('key_string', { length: 64 }).notNull().unique(), // VARCHAR(64) UNIQUE NOT NULL
-  userId: int('user_id').references(() => users.id),
-  status: int('status').default(1), // 1: 正常, 0: 禁用 (For AI Gateway)
-  tierLevel: int('tier_level').notNull().default(0), // 优先级/层级 (For AI Gateway load balancing)
-  
-  // eCommerce / Quota fields (Optional for manually created gateway keys)
-  orderId: text('order_id').references(() => orders.id),
-  productId: int('product_id').references(() => products.id), // Nullable now, as user can create without a product
-  quotaLimit: bigint('quota_limit', { mode: 'number' }).notNull().default(0), // BIGINT
-  quotaUsed: bigint('quota_used', { mode: 'number' }).notNull().default(0),   // BIGINT
-  allowedModels: json('allowed_models').$type<string[]>(), // JSON array of allowed model codes
-  isActive: boolean('is_active').notNull().default(true), // Legacy compat
-
-  createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
 export const failures = mysqlTable('failures', {

@@ -14,17 +14,17 @@
               name="heroicons:sparkles"
               class="w-4 h-4"
             />
-            AI-Powered Short Drama Content Platform
+            {{ $t('site.core.home.badge') }}
           </div>
 
           <h1 class="text-5xl md:text-7xl font-bold tracking-tight text-white relative">
             <div class="absolute -inset-4 bg-purple-500/20 blur-3xl -z-10 rounded-full"></div>
-            Redefining Short Drama <br />
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-400">with AI Technology</span>
+            {{ $t('site.core.home.title1') }} <br />
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-400">{{ $t('site.core.home.title2') }}</span>
           </h1>
 
           <p class="text-gray-400 max-w-2xl text-lg leading-relaxed">
-            Leveraging cutting-edge artificial intelligence technology to create creative and emotionally resonant short drama works, bringing audiences a brand new audiovisual experience.
+            {{ $t('site.core.home.subtitle') }}
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 pt-4">
@@ -40,7 +40,7 @@
                     class="w-5 h-5"
                   />
                 </template>
-                Explore Products
+                {{ $t('site.core.home.exploreProducts') }}
               </UButton>
             </NuxtLink>
             <UButton
@@ -49,7 +49,7 @@
               size="xl"
               class="rounded-full px-8 ring-1 ring-gray-700 hover:ring-purple-500 transition-all"
             >
-              Learn More
+              {{ $t('site.core.home.learnMore') }}
               <template #trailing>
                 <Icon
                   name="ph:arrow-right"
@@ -85,8 +85,8 @@
                 />
               </UButton>
               <div class="text-left">
-                <h3 class="font-bold text-white">Watch Our Showreel</h3>
-                <p class="text-sm text-gray-300">Explore our AI short drama collection</p>
+                <h3 class="font-bold text-white">{{ $t('site.core.home.watchShowreel') }}</h3>
+                <p class="text-sm text-gray-300">{{ $t('site.core.home.showreelDesc') }}</p>
               </div>
             </div>
           </div>
@@ -101,8 +101,8 @@
             class="text-center mb-16"
             v-motion-fade-visible-once
           >
-            <h2 class="text-3xl font-bold mb-4">Latest Releases</h2>
-            <p class="text-gray-400">Discover our newest AI-generated content</p>
+            <h2 class="text-3xl font-bold mb-4">{{ $t('site.core.home.latestReleases') }}</h2>
+            <p class="text-gray-400">{{ $t('site.core.home.latestReleasesDesc') }}</p>
           </div>
 
           <div
@@ -149,7 +149,7 @@
                     <h3 class="text-lg font-bold text-white group-hover:text-purple-400 transition-colors line-clamp-1">{{ product.name }}</h3>
                     <span class="text-purple-400 font-medium whitespace-nowrap ml-2">${{ Number(product.price).toFixed(2) }}</span>
                   </div>
-                  <p class="text-gray-400 text-sm line-clamp-2 mt-auto">{{ product.description || "No description available." }}</p>
+                  <p class="text-gray-400 text-sm line-clamp-2 mt-auto">{{ product.description || $t('site.core.home.noDescription') }}</p>
                 </div>
               </div>
             </NuxtLink>
@@ -159,7 +159,7 @@
             v-else
             class="text-center py-20 text-gray-500"
           >
-            No products available at the moment.
+            {{ $t('site.core.home.noProducts') }}
           </div>
 
           <div
@@ -173,7 +173,7 @@
                 size="lg"
                 class="rounded-full px-8 ring-1 ring-gray-700 hover:ring-purple-500 hover:text-purple-400 transition-all"
               >
-                View All Products
+                {{ $t('site.core.home.viewAll') }}
                 <template #trailing>
                   <Icon
                     name="ph:arrow-right"
@@ -193,8 +193,8 @@
             class="text-center mb-16 relative z-10"
             v-motion-fade-visible-once
           >
-            <h2 class="text-3xl font-bold mb-4">Why Choose {{ getSetting('site_name') || 'Your Site' }}?</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">Experience the next generation of digital entertainment powered by advanced artificial intelligence.</p>
+            <h2 class="text-3xl font-bold mb-4">{{ $t('site.core.home.whyChoose', { siteName: getSetting('site_name') || 'APayShop' }) }}</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">{{ $t('site.core.home.whyChooseDesc') }}</p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
@@ -208,8 +208,8 @@
                   class="w-7 h-7 text-purple-400"
                 />
               </div>
-              <h3 class="text-xl font-bold text-white mb-3">AI-Driven Creativity</h3>
-              <p class="text-gray-400 leading-relaxed">Unique storylines and visuals generated through state-of-the-art AI algorithms, ensuring fresh and engaging content.</p>
+              <h3 class="text-xl font-bold text-white mb-3">{{ $t('site.core.home.feature1Title') }}</h3>
+              <p class="text-gray-400 leading-relaxed">{{ $t('site.core.home.feature1Desc') }}</p>
             </div>
 
             <div
@@ -223,8 +223,8 @@
                   class="w-7 h-7 text-blue-400"
                 />
               </div>
-              <h3 class="text-xl font-bold text-white mb-3">Instant Delivery</h3>
-              <p class="text-gray-400 leading-relaxed">Get immediate access to your purchased content. No waiting times, just seamless digital entertainment.</p>
+              <h3 class="text-xl font-bold text-white mb-3">{{ $t('site.core.home.feature2Title') }}</h3>
+              <p class="text-gray-400 leading-relaxed">{{ $t('site.core.home.feature2Desc') }}</p>
             </div>
 
             <div
@@ -238,8 +238,8 @@
                   class="w-7 h-7 text-pink-400"
                 />
               </div>
-              <h3 class="text-xl font-bold text-white mb-3">Anywhere Access</h3>
-              <p class="text-gray-400 leading-relaxed">Enjoy our short dramas on any device. Fully responsive and optimized for mobile, tablet, and desktop viewing.</p>
+              <h3 class="text-xl font-bold text-white mb-3">{{ $t('site.core.home.feature3Title') }}</h3>
+              <p class="text-gray-400 leading-relaxed">{{ $t('site.core.home.feature3Desc') }}</p>
             </div>
           </div>
         </div>
@@ -251,15 +251,15 @@
         >
           <div class="absolute inset-0 bg-[url('https://res.cloudinary.com/djp1xxy6f/image/upload/v1711626002/grid_y6fxgw.svg')] bg-center opacity-20"></div>
           <div class="relative z-10">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Experience the Future?</h2>
-            <p class="text-gray-300 mb-8 max-w-2xl mx-auto">Join thousands of users who have already discovered the magic of AI-generated short dramas. Start your journey today.</p>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">{{ $t('site.core.home.ctaTitle') }}</h2>
+            <p class="text-gray-300 mb-8 max-w-2xl mx-auto">{{ $t('site.core.home.ctaDesc') }}</p>
             <NuxtLink to="/products">
               <UButton
                 color="primary"
                 size="xl"
                 class="rounded-full px-10 font-bold bg-white text-purple-900 hover:bg-gray-100 shadow-[0_0_30px_rgba(255,255,255,0.3)]"
               >
-                Browse Catalog
+                {{ $t('site.core.home.browseCatalog') }}
               </UButton>
             </NuxtLink>
           </div>
@@ -275,6 +275,16 @@ import { useLocalizedProduct } from '~/composables/useLocalizedProduct'
 
 const { getSetting } = useSettings()
 const { getLocalizedProduct } = useLocalizedProduct()
+
+useHead({
+  title: computed(() => `${getSetting('site_name') || 'APayShop'} - AI-Powered Short Drama Content Platform`),
+  meta: [
+    {
+      name: 'description',
+      content: 'Leveraging cutting-edge artificial intelligence technology to create creative and emotionally resonant short drama works, bringing audiences a brand new audiovisual experience.',
+    },
+  ],
+})
 
 const { data: productsData, status } = await useFetch<any>('/api/products', {
   key: 'homepage-products',

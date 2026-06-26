@@ -7,24 +7,6 @@ CREATE TABLE `admins` (
 	CONSTRAINT `admins_username_unique` UNIQUE(`username`)
 );
 --> statement-breakpoint
-CREATE TABLE `api_keys` (
-	`id` int AUTO_INCREMENT NOT NULL,
-	`name` varchar(50) NOT NULL,
-	`key_string` varchar(64) NOT NULL,
-	`user_id` int,
-	`status` int DEFAULT 1,
-	`tier_level` int NOT NULL DEFAULT 0,
-	`order_id` text,
-	`product_id` int,
-	`quota_limit` bigint NOT NULL DEFAULT 0,
-	`quota_used` bigint NOT NULL DEFAULT 0,
-	`allowed_models` json,
-	`is_active` boolean NOT NULL DEFAULT true,
-	`created_at` timestamp NOT NULL DEFAULT (now()),
-	CONSTRAINT `api_keys_id` PRIMARY KEY(`id`),
-	CONSTRAINT `api_keys_key_string_unique` UNIQUE(`key_string`)
-);
---> statement-breakpoint
 CREATE TABLE `cards` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`product_id` int NOT NULL,
@@ -269,9 +251,6 @@ CREATE TABLE `webhooks` (
 	CONSTRAINT `webhooks_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-ALTER TABLE `api_keys` ADD CONSTRAINT `api_keys_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE `api_keys` ADD CONSTRAINT `api_keys_order_id_orders_id_fk` FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE `api_keys` ADD CONSTRAINT `api_keys_product_id_products_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `cards` ADD CONSTRAINT `cards_product_id_products_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `oauth_accounts` ADD CONSTRAINT `oauth_accounts_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `orders` ADD CONSTRAINT `orders_product_id_products_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -137,13 +137,17 @@ const handleLogin = async () => {
   errorMsg.value = ''
 
   try {
-    const res: any = await $fetch('/api/admin/login', {
+    await $fetch('/api/admin/login', {
       method: 'POST',
       body: form,
     })
 
-    // Redirect to dashboard
-    router.push('/admin')
+    const redirectTarget =
+      typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')
+        ? route.query.redirect
+        : '/admin'
+
+    router.push(redirectTarget)
   } catch (e: any) {
     errorMsg.value = e.data?.message || 'Invalid credentials'
   } finally {

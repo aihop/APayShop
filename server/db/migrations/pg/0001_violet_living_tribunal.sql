@@ -64,7 +64,6 @@ CREATE TABLE "visitor_profiles" (
 ALTER TABLE "payment_methods" DROP CONSTRAINT "payment_methods_code_unique";--> statement-breakpoint
 ALTER TABLE "users" ALTER COLUMN "cash_balance" SET DEFAULT 0;--> statement-breakpoint
 ALTER TABLE "users" ALTER COLUMN "grant_balance" SET DEFAULT 0;--> statement-breakpoint
-ALTER TABLE "api_keys" ADD COLUMN "tier_level" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "visitor_events" ADD CONSTRAINT "visitor_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "visitor_events" ADD CONSTRAINT "visitor_events_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "visitor_events" ADD CONSTRAINT "visitor_events_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -31,8 +31,19 @@
 </template>
 
 <script setup lang="ts">
+const themeAdminLocaleEnModules = import.meta.glob('../../../themes/**/locales/admin/en.ts', {
+  eager: true,
+  import: 'default',
+}) as Record<string, Record<string, any>>
+
+const themeAdminLocaleZhModules = import.meta.glob('../../../themes/**/locales/admin/zh.ts', {
+  eager: true,
+  import: 'default',
+}) as Record<string, Record<string, any>>
+
 const route = useRoute()
 const { activeTheme, findExtensionPage, resolveExtensionComponent } = useAdminExtensions()
+const { mergeLocaleMessage } = useI18n()
 
 const currentPath = computed(() => route.path)
 const currentPage = computed(() => findExtensionPage(currentPath.value))
@@ -42,6 +53,32 @@ const title = computed(() => currentPage.value?.title || 'Theme Extension')
 const description = computed(
   () => currentPage.value?.description || `No extension page is registered for ${activeTheme.value}.`
 )
+
+watchEffect(() => {
+  const theme = activeTheme.value
+  if (!theme || !mergeLocaleMessage) {
+    return
+  }
+
+  const en = themeAdminLocaleEnModules[`../../../themes/${theme}/locales/admin/en.ts`]
+  const zh = themeAdminLocaleZhModules[`../../../themes/${theme}/locales/admin/zh.ts`]
+
+  if (en) {
+    mergeLocaleMessage('en', {
+      [theme]: {
+        admin: en,
+      },
+    })
+  }
+
+  if (zh) {
+    mergeLocaleMessage('zh', {
+      [theme]: {
+        admin: zh,
+      },
+    })
+  }
+})
 
 useHead(() => ({
   title: `${title.value} - Admin`,

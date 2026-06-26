@@ -57,17 +57,17 @@
             v-else
             v-model="translationForms[currentTabLocale].name"
             class="text-white w-full"
-            :placeholder="`Translated name in ${currentTabLocale}`"
+            :placeholder="$t('admin.products.form.name_translated', { locale: currentTabLocale })"
           />
         </UFormField>
         <UFormField
-          label="Slug (Optional)"
+          :label="$t('admin.products.form.slug')"
           v-if="currentTabLocale === defaultLocale"
         >
           <UInput
             v-model="form.slug"
             class="text-white w-full"
-            placeholder="Auto-generated if left empty"
+            :placeholder="$t('admin.products.form.slug_placeholder')"
           />
         </UFormField>
       </div>
@@ -77,17 +77,10 @@
         v-if="currentTabLocale === defaultLocale"
       >
         <div class="flex flex-col gap-2">
-          <UFormField label="Type">
+          <UFormField :label="$t('admin.products.form.type')">
             <USelect
               v-model="form.type"
-              :items="[
-                  { label: 'Basic (No extra data)', value: 'basic' },
-                  { label: 'Subscription (Recurring)', value: 'subscription' },
-                  { label: 'Service (Manual fulfillment)', value: 'service' },
-                  { label: 'Key (One item per code)', value: 'key' },
-                  { label: 'File (Download link)', value: 'file' },
-                  { label: 'Dynamic API (Quota)', value: 'dynamic_api' }
-                ]"
+              :items="typeOptions"
               option-attribute="label"
               value-attribute="value"
               class="w-full"
@@ -109,13 +102,13 @@
       </div>
 
       <div
-        v-if="(form.type === 'subscription' || form.type === 'dynamic_api') && currentTabLocale === defaultLocale"
+        v-if="(form.type === 'subscription' || form.type === 'topup') && currentTabLocale === defaultLocale"
         class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
       >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <h3 class="text-white font-medium">{{ form.type === 'subscription' ? 'Subscription Settings' : 'Display Settings' }}</h3>
-            <UTooltip text="Check this to display the product on the frontend Pricing Page and Homepage">
+            <h3 class="text-white font-medium">{{ form.type === 'subscription' ? $t('admin.products.form.subscription_settings') : $t('admin.products.form.topup_display_settings') }}</h3>
+            <UTooltip :text="$t('admin.products.form.pricing_tooltip')">
               <UIcon
                 name="ph:info"
                 class="w-4 h-4 text-gray-500 hover:text-gray-300 cursor-help"
@@ -124,7 +117,7 @@
           </div>
           <UCheckbox
             v-model="form.metaData.is_pricing_plan"
-            label="Show as Pricing Plan on Frontend"
+            :label="$t('admin.products.form.show_as_pricing')"
             class="shrink-0"
           />
         </div>
@@ -132,23 +125,17 @@
           class="grid grid-cols-2 gap-4"
           v-if="form.type === 'subscription'"
         >
-          <UFormField label="Interval Unit">
+          <UFormField :label="$t('admin.products.form.interval_unit')">
             <USelect
               v-model="form.metaData.interval"
-              :items="[
-                  { label: 'Day', value: 'day' },
-                  { label: 'Week', value: 'week' },
-                  { label: 'Month', value: 'month' },
-                  { label: 'Year', value: 'year' },
-                  { label: 'Lifetime', value: 'lifetime' }
-                ]"
+              :items="intervalOptions"
               option-attribute="label"
               value-attribute="value"
               class="w-full"
             />
           </UFormField>
           <UFormField
-            label="Interval Count"
+            :label="$t('admin.products.form.interval_count')"
             v-if="form.metaData.interval !== 'lifetime'"
           >
             <UInput
@@ -156,7 +143,7 @@
               type="number"
               min="1"
               class="text-white w-full"
-              placeholder="e.g., 1"
+              :placeholder="$t('admin.products.form.interval_placeholder')"
             />
           </UFormField>
         </div>
@@ -173,10 +160,10 @@
               name="ph:plugs-connected"
               class="text-green-400"
             />
-            Gateway Plan IDs
+            {{ $t('admin.products.form.gateway_plan_ids') }}
           </h3>
         </div>
-        <p class="text-xs text-gray-400 mb-4">Map this product to external subscription plan IDs (e.g. PayPal plan_id, Stripe price_id).</p>
+        <p class="text-xs text-gray-400 mb-4">{{ $t('admin.products.form.gateway_description') }}</p>
         <div class="space-y-3">
           <div
             v-for="(item, index) in planIdsList"
@@ -186,12 +173,12 @@
             <USelect
               v-model="item.gateway"
               :items="availableGateways"
-              placeholder="Select Gateway"
+              :placeholder="$t('admin.products.form.select_gateway')"
               class="w-1/3"
             />
             <UInput
               v-model="item.id"
-              placeholder="Plan/Price ID (e.g. P-12345)"
+              :placeholder="$t('admin.products.form.plan_id_placeholder')"
               class="flex-1 text-white"
             />
             <UButton
@@ -209,7 +196,7 @@
             class="w-full border-dashed"
             @click="addPlanId"
           >
-            Add Gateway Mapping
+            {{ $t('admin.products.form.add_gateway_mapping') }}
           </UButton>
         </div>
       </div>
@@ -224,7 +211,7 @@
               name="ph:list-dashes"
               class="text-blue-400"
             />
-            Service Settings {{ currentTabLocale !== defaultLocale ? `(${currentTabLocale} Labels)` : '' }}
+            {{ $t('admin.products.form.service_settings') }}{{ currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '' }}
           </h3>
           <UButton
             v-if="currentTabLocale === defaultLocale"
@@ -234,7 +221,7 @@
             :icon="isServiceSchemaVisualMode ? 'ph:code' : 'ph:eye'"
             @click="toggleServiceSchemaMode"
           >
-            {{ isServiceSchemaVisualMode ? 'Edit Raw JSON' : 'Visual Builder' }}
+            {{ isServiceSchemaVisualMode ? $t('admin.products.form.edit_raw_json') : $t('admin.products.form.visual_builder') }}
           </UButton>
         </div>
 
@@ -243,7 +230,7 @@
           v-if="currentTabLocale === defaultLocale"
           class="grid grid-cols-1 gap-4"
         >
-          <UFormField label="Required User Info Form Schema">
+          <UFormField :label="$t('admin.products.form.form_schema')">
             <div class="w-full space-y-3">
               <!-- Visual Builder Mode -->
               <template v-if="isServiceSchemaVisualMode">
@@ -268,27 +255,21 @@
                       <div class="w-40">
                         <UInput
                           v-model="element.name"
-                          placeholder="Field Name (e.g. server_ip)"
+                          :placeholder="$t('admin.products.form.field_name_placeholder')"
                           class="text-white"
                         />
                       </div>
 
                       <UInput
                         v-model="element.label"
-                        placeholder="Display Label"
+                        :placeholder="$t('admin.products.form.field_label_placeholder')"
                         class="text-white flex-1"
                       />
 
                       <div class="w-32">
                         <USelect
                           v-model="element.type"
-                          :items="[
-                              { label: 'Text', value: 'text' },
-                              { label: 'Number', value: 'number' },
-                              { label: 'Email', value: 'email' },
-                              { label: 'Textarea', value: 'textarea' },
-                              { label: 'Date', value: 'date' }
-                            ]"
+                          :items="schemaFieldTypeOptions"
                           option-attribute="label"
                           value-attribute="value"
                           class="w-full"
@@ -298,7 +279,7 @@
                       <div class="flex items-center gap-3 ml-2">
                         <UCheckbox
                           v-model="element.required"
-                          label="Required"
+                          :label="$t('admin.products.form.field_required')"
                           :ui="{ label: 'text-sm' }"
                         />
 
@@ -319,7 +300,7 @@
                   v-else
                   class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-800 rounded-lg text-center"
                 >
-                  No form fields defined.
+                  {{ $t('admin.products.form.no_fields') }}
                 </div>
 
                 <UButton
@@ -330,7 +311,7 @@
                   class="w-full justify-center border-dashed"
                   @click="addServiceSchemaField"
                 >
-                  Add Form Field
+                  {{ $t('admin.products.form.add_field') }}
                 </UButton>
               </template>
 
@@ -340,10 +321,10 @@
                   v-model="serviceFormSchemaStr"
                   :rows="10"
                   class="font-mono text-sm text-white w-full"
-                  placeholder='[\n  {\n    "name": "field_name",\n    "label": "Display Label",\n    "type": "text",\n    "required": true\n  }\n]'
+                  :placeholder="$t('admin.products.form.schema_json_placeholder')"
                 />
                 <p class="text-xs text-gray-500 mt-2">
-                  Must be a valid JSON array of objects containing 'name', 'label', 'type', and 'required'.
+                  {{ $t('admin.products.form.schema_json_help') }}
                 </p>
               </template>
             </div>
@@ -355,11 +336,11 @@
         v-if="form.type === 'file'"
         class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
       >
-        <h3 class="text-white font-medium mb-4">File Download Settings</h3>
+        <h3 class="text-white font-medium mb-4">{{ $t('admin.products.form.file_settings') }}</h3>
 
         <div class="grid grid-cols-1 gap-4">
           <UFormField
-            label="Download URL"
+            :label="$t('admin.products.form.download_url')"
             v-if="currentTabLocale === defaultLocale"
           >
             <UInput
@@ -367,137 +348,81 @@
               class="text-white w-full"
               placeholder="https://..."
             />
-            <p class="text-xs text-gray-500 mt-1">The secure link where users can download the file after purchase (e.g., Google Drive, AWS S3, or your own server).</p>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.download_url_help') }}</p>
           </UFormField>
 
-          <UFormField :label="`Download Instructions / Password (Optional)` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
+          <UFormField :label="$t('admin.products.form.download_instructions') + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
             <UTextarea
               v-if="currentTabLocale === defaultLocale"
               v-model="form.metaData.download_instruction"
               :rows="2"
               class="text-white w-full"
-              placeholder="e.g., Unzip password is: 123456"
+              :placeholder="$t('admin.products.form.download_placeholder')"
             />
             <UTextarea
               v-else
               v-model="translationForms[currentTabLocale].download_instruction"
               :rows="2"
               class="text-white w-full"
-              :placeholder="`Translated instruction in ${currentTabLocale}`"
+              :placeholder="$t('admin.products.form.download_translated', { locale: currentTabLocale })"
             />
           </UFormField>
         </div>
       </div>
 
       <div
-        v-if="form.type === 'dynamic_api' && currentTabLocale === defaultLocale"
+        v-if="form.type === 'topup' && currentTabLocale === defaultLocale"
         class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
       >
-        <h3 class="text-white font-medium mb-4">Dynamic API Settings</h3>
+        <h3 class="text-white font-medium mb-4">{{ $t('admin.products.form.topup_settings') }}</h3>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
-          <UFormField label="Quota Limit">
+          <UFormField :label="$t('admin.products.form.recharge_amount')">
             <UInput
-              v-model.number="form.metaData.quota"
+              v-model.number="form.metaData.recharge_amount"
               type="number"
+              step="0.01"
               class="text-white w-full"
-              placeholder="e.g., 100000"
+              :placeholder="$t('admin.products.form.recharge_placeholder')"
             />
-            <p class="text-xs text-gray-500 mt-1">Number of Credits / Tokens / Requests</p>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.recharge_help') }}</p>
           </UFormField>
 
-          <UFormField label="Valid Days (Optional)">
-            <UInput
-              v-model.number="form.metaData.valid_days"
-              type="number"
-              class="text-white w-full"
-              placeholder="e.g., 30"
+          <UFormField :label="$t('admin.products.form.balance_type')">
+            <USelect
+              v-model="form.metaData.balance_type"
+              :items="balanceTypeOptions"
+              option-attribute="label"
+              value-attribute="value"
+              class="w-full"
             />
-            <p class="text-xs text-gray-500 mt-1">Days until the key expires. Leave empty for no expiration.</p>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.balance_help') }}</p>
           </UFormField>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <UFormField label="Allowed Scopes (Optional)">
-            <div class="w-full flex flex-col gap-2">
-              <UInput
-                v-model="newScopeInput"
-                class="text-white w-full"
-                placeholder="Type scope and press enter..."
-                @keydown.enter.prevent="addScope"
-              >
-                <template #trailing>
-                  <UButton
-                    color="neutral"
-                    variant="link"
-                    icon="ph:plus"
-                    :padded="false"
-                    @click="addScope"
-                  />
-                </template>
-              </UInput>
-              <div
-                v-if="form.metaData.allowed_scopes && form.metaData.allowed_scopes.length > 0"
-                class="flex flex-wrap gap-2 mt-1"
-              >
-                <UBadge
-                  v-for="(scope, index) in form.metaData.allowed_scopes"
-                  :key="index"
-                  color="neutral"
-                  variant="solid"
-                  class="bg-gray-800 text-gray-200"
-                >
-                  {{ scope }}
-                  <UButton
-                    color="neutral"
-                    variant="link"
-                    icon="ph:x"
-                    size="xs"
-                    :padded="false"
-                    class="ml-1 text-gray-400 hover:text-white"
-                    @click="removeScope(index)"
-                  />
-                </UBadge>
-              </div>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">Define permissions, models, or endpoints.</p>
-          </UFormField>
-
-          <UFormField label="API Endpoint (Base URL for user)">
+        <div class="grid grid-cols-2 gap-4">
+          <UFormField :label="$t('admin.products.form.success_message')">
             <UInput
-              v-model="form.metaData.api_endpoint"
+              v-model="form.metaData.delivery_message"
               class="text-white w-full"
-              placeholder="https://api.example.com/v1"
+              :placeholder="$t('admin.products.form.success_placeholder')"
             />
-            <p class="text-xs text-gray-500 mt-1">The base URL displayed to the user after purchase.</p>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.success_help') }}</p>
           </UFormField>
-        </div>
 
-        <div class="pt-4 border-t border-gray-800">
-          <h4 class="text-sm font-medium text-gray-300 mb-3">Backend Sync (Webhook)</h4>
-          <p class="text-xs text-gray-500 mb-4">Automatically push the generated API Key and Quota to your external service when an order is paid.</p>
-          <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Sync Webhook URL">
-              <UInput
-                v-model="form.metaData.sync_webhook_url"
-                class="text-white w-full"
-                placeholder="https://your-service.com/api/sync-key"
-              />
-            </UFormField>
-            <UFormField label="Sync Secret (For HMAC signature)">
-              <UInput
-                v-model="form.metaData.sync_secret"
-                type="password"
-                class="text-white w-full"
-                placeholder="Optional secret key"
-              />
-            </UFormField>
-          </div>
+          <UFormField :label="$t('admin.products.form.display_unit')">
+            <UInput
+              v-model="form.metaData.display_unit"
+              class="text-white w-full"
+              :placeholder="$t('admin.products.form.display_placeholder')"
+            />
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.display_help') }}</p>
+          </UFormField>
         </div>
       </div>
 
       <div
-        v-if="form.type === 'subscription' || form.type === 'dynamic_api' && form.metaData.is_pricing_plan"
+        v-if="(form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan"
         class="p-4 border border-purple-500/30 rounded-lg bg-[#2a1a3a]/30 mt-4"
       >
         <div class="flex items-center justify-between mb-4">
@@ -506,7 +431,7 @@
               name="ph:star-fill"
               class="text-purple-400"
             />
-            Pricing Plan Features
+            {{ $t('admin.products.form.features_title') }}
           </h3>
           <UButton
             size="xs"
@@ -515,12 +440,12 @@
             :icon="isFeaturesVisualMode ? 'ph:code' : 'ph:eye'"
             @click="toggleFeaturesMode"
           >
-            {{ isFeaturesVisualMode ? 'Edit Raw JSON' : 'Visual Builder' }}
+            {{ isFeaturesVisualMode ? $t('admin.products.form.edit_raw_json') : $t('admin.products.form.visual_builder') }}
           </UButton>
         </div>
 
         <div class="grid grid-cols-1 gap-4">
-          <UFormField :label="`Features (${currentTabLocale})`">
+          <UFormField :label="$t('admin.products.form.features_label', { locale: currentTabLocale })">
             <div class="w-full space-y-3">
               <!-- Visual Builder Mode -->
               <template v-if="isFeaturesVisualMode">
@@ -545,7 +470,7 @@
                       <div class="w-48">
                         <UInput
                           v-model="element.icon"
-                          placeholder="Icon (e.g. ph:check)"
+                          :placeholder="$t('admin.products.form.feature_icon_placeholder')"
                           class="text-white"
                         >
                           <template #leading>
@@ -559,14 +484,14 @@
 
                       <UInput
                         v-model="element.name"
-                        placeholder="Feature description"
+                        :placeholder="$t('admin.products.form.feature_desc_placeholder')"
                         class="text-white flex-1"
                       />
 
                       <div class="flex items-center gap-3 ml-2">
                         <UCheckbox
                           v-model="element.included"
-                          label="Included"
+                          :label="$t('admin.products.form.feature_included')"
                           :ui="{ label: 'text-sm' }"
                         />
 
@@ -587,7 +512,7 @@
                   v-else
                   class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-800 rounded-lg text-center"
                 >
-                  No features defined for this language.
+                  {{ $t('admin.products.form.no_features') }}
                 </div>
 
                 <UButton
@@ -598,7 +523,7 @@
                   class="w-full justify-center border-dashed"
                   @click="addFeature"
                 >
-                  Add Feature Row
+                  {{ $t('admin.products.form.add_feature') }}
                 </UButton>
               </template>
 
@@ -608,10 +533,10 @@
                   v-model="currentFeaturesJson"
                   :rows="10"
                   class="font-mono text-sm text-white w-full"
-                  placeholder='[\n  {\n    "name": "Feature name",\n    "icon": "ph:check",\n    "included": true\n  }\n]'
+                  :placeholder="$t('admin.products.form.features_json_placeholder')"
                 />
                 <p class="text-xs text-gray-500 mt-2">
-                  Must be a valid JSON array of objects containing 'name', 'icon', and 'included' properties.
+                  {{ $t('admin.products.form.features_json_help') }}
                 </p>
               </template>
             </div>
@@ -619,33 +544,28 @@
         </div>
 
         <div class="grid grid-cols-2 gap-4 mt-4">
-          <UFormField :label="`Plan Badge (${currentTabLocale}) (Optional)`">
+          <UFormField :label="$t('admin.products.form.plan_badge', { locale: currentTabLocale })">
             <UInput
               v-if="currentTabLocale === defaultLocale"
               v-model="form.metaData.plan_badge"
               class="text-white w-full"
-              placeholder="e.g., Most Popular"
+              :placeholder="$t('admin.products.form.plan_badge_placeholder')"
             />
             <UInput
               v-else
               v-model="translationForms[currentTabLocale].plan_badge"
               class="text-white w-full"
-              :placeholder="`Translated badge in ${currentTabLocale}`"
+              :placeholder="$t('admin.products.form.badge_translated', { locale: currentTabLocale })"
             />
           </UFormField>
           <UFormField
-            label="Highlight Color"
+            :label="$t('admin.products.form.highlight_color')"
             v-if="currentTabLocale === defaultLocale"
           >
             <USelect
               v-model="form.metaData.plan_color"
               class="min-w-[200px]"
-              :items="[
-                  { label: 'Default (Gray)', value: 'gray' },
-                  { label: 'Purple (Primary)', value: 'purple' },
-                  { label: 'Blue', value: 'blue' },
-                  { label: 'Emerald', value: 'emerald' }
-                ]"
+              :items="highlightColorOptions"
               option-attribute="label"
               value-attribute="value"
             />
@@ -654,7 +574,7 @@
       </div>
 
       <UFormField
-        label="Images"
+        :label="$t('admin.products.form.images')"
         v-if="currentTabLocale === defaultLocale"
       >
         <div class="flex flex-col gap-4 w-full">
@@ -662,7 +582,7 @@
             <UInput
               v-model="newImageUrl"
               class="text-white flex-1"
-              placeholder="https://... or upload local images"
+              :placeholder="$t('admin.products.form.image_url_placeholder')"
               @keyup.enter.prevent="addImageUrl"
             />
             <UButton
@@ -671,7 +591,7 @@
               @click="addImageUrl"
               :disabled="!newImageUrl"
             >
-              Add URL
+              {{ $t('admin.products.form.add_url') }}
             </UButton>
             <UButton
               color="neutral"
@@ -680,7 +600,7 @@
               :loading="isUploading"
               @click="fileInput?.click()"
             >
-              Upload
+              {{ $t('admin.products.form.upload') }}
             </UButton>
             <input
               type="file"
@@ -728,7 +648,7 @@
         </div>
       </UFormField>
 
-      <UFormField :label="`Description (Short)` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
+      <UFormField :label="$t('admin.products.form.description') + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
         <UTextarea
           v-if="currentTabLocale === defaultLocale"
           v-model="form.description"
@@ -740,11 +660,11 @@
           v-model="translationForms[currentTabLocale].description"
           :rows="3"
           class="text-white w-full"
-          :placeholder="`Translated description in ${currentTabLocale}`"
+          :placeholder="$t('admin.products.form.description_translated', { locale: currentTabLocale })"
         />
       </UFormField>
 
-      <UFormField :label="`Detailed Content (HTML/Markdown)` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
+      <UFormField :label="$t('admin.products.form.content') + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
         <RichEditor
           v-if="currentTabLocale === defaultLocale"
           v-model="form.content"
@@ -813,6 +733,8 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:modelValue', 'saved'])
 
+const { t } = useI18n()
+
 const isOpen = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
@@ -845,14 +767,48 @@ const {
   handleFileUpload,
   addImageUrl,
   removeImage,
-  newScopeInput,
-  addScope,
-  removeScope,
   planIdsList,
   availableGateways,
   addPlanId,
   removePlanId,
 } = useAdminProductForm(emit)
+
+const typeOptions = computed(() => [
+  { label: t('admin.products.form.type_basic'), value: 'basic' },
+  { label: t('admin.products.form.type_subscription'), value: 'subscription' },
+  { label: t('admin.products.form.type_service'), value: 'service' },
+  { label: t('admin.products.form.type_key'), value: 'key' },
+  { label: t('admin.products.form.type_file'), value: 'file' },
+  { label: t('admin.products.form.type_topup'), value: 'topup' },
+])
+
+const intervalOptions = computed(() => [
+  { label: t('admin.products.form.interval_day'), value: 'day' },
+  { label: t('admin.products.form.interval_week'), value: 'week' },
+  { label: t('admin.products.form.interval_month'), value: 'month' },
+  { label: t('admin.products.form.interval_year'), value: 'year' },
+  { label: t('admin.products.form.interval_lifetime'), value: 'lifetime' },
+])
+
+const schemaFieldTypeOptions = computed(() => [
+  { label: t('admin.products.form.field_type_text'), value: 'text' },
+  { label: t('admin.products.form.field_type_number'), value: 'number' },
+  { label: t('admin.products.form.field_type_email'), value: 'email' },
+  { label: t('admin.products.form.field_type_textarea'), value: 'textarea' },
+  { label: t('admin.products.form.field_type_date'), value: 'date' },
+])
+
+const balanceTypeOptions = computed(() => [
+  { label: t('admin.products.form.balance_cash'), value: 'cash' },
+  { label: t('admin.products.form.balance_grant'), value: 'grant' },
+])
+
+const highlightColorOptions = computed(() => [
+  { label: t('admin.products.form.color_gray'), value: 'gray' },
+  { label: t('admin.products.form.color_purple'), value: 'purple' },
+  { label: t('admin.products.form.color_blue'), value: 'blue' },
+  { label: t('admin.products.form.color_emerald'), value: 'emerald' },
+])
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isPreviewModalOpen = ref(false)
@@ -878,9 +834,7 @@ watch(
   () => props.modelValue,
   (newVal) => {
     if (newVal) {
-      // Force tab to default locale
       currentTabLocale.value = defaultLocale.value
-      // Initialize form
       initForm(props.product)
     }
   }

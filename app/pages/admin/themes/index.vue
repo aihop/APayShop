@@ -145,15 +145,15 @@ const isActivating = ref('')
 
 const { data: themes } = await useFetch<any[]>('/api/admin/theme')
 
-const activateTheme = async (themeId: string) => {
-  isActivating.value = themeId
+const activateTheme = async (theme: string) => {
+  isActivating.value = theme
   try {
     // Artificial delay to make the UX smoother and feel like a real processing task
     await new Promise((resolve) => setTimeout(resolve, 800))
 
     const updatedSettings = {
       ...settings.value,
-      active_theme: themeId,
+      active_theme: theme,
     }
 
     await $fetch('/api/admin/settings', {
@@ -167,7 +167,7 @@ const activateTheme = async (themeId: string) => {
     toast.add({
       title: 'Theme Activated',
       description: `Successfully switched to ${
-        themes.value?.find((t: any) => t.id === themeId)?.name || themeId
+        themes.value?.find((t: any) => t.id === theme)?.name || theme
       }. Please rebuild the system to apply changes globally.`,
       color: 'success',
     })

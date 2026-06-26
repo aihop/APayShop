@@ -1,5 +1,5 @@
 import { db } from '../../db/runtime'
-import { orders, apiKeys } from '../../db/schema'
+import { orders } from '../../db/schema'
 import { eq, and } from 'drizzle-orm'
 import { ORDER_STATUS } from '../../utils/constants'
 import { logger } from '../../utils/logger'
@@ -41,11 +41,6 @@ export default defineEventHandler(async (event) => {
             await db.update(orders)
               .set({ status: ORDER_STATUS.EXPIRED })
               .where(eq(orders.id, order.id))
-            
-            // 如果这个订单关联了 API Key（针对动态 API 额度业务），需要同时把 Key 禁用
-            await db.update(apiKeys)
-              .set({ status: 0 }) // 0 表示禁用
-              .where(eq(apiKeys.orderId, order.id))
             
             await logger.info(`[Cron] Subscription ${order.id} expired.`)
             expiredCount++

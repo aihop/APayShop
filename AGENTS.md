@@ -5,6 +5,8 @@
 > `2026-05-30`: 新增 Section 9 Git 提交流程约束。
 > `2026-05-30`: 补充后台日志/列表时间字段的跨环境归一化约定，见 Section 6.A。
 > `2026-05-30`: 修正 SQLite `logs.created_at` 默认值与历史数据迁移方式，见 Section 6.A。
+> `2026-06-26`: 将旧充值商品语义重构为 `topup`，用于外部账户余额充值而非本地 API Key 发放，见 Section 4。
+> `2026-06-26`: 移除本地 API Key 资产模型与相关迁移定义，APayShop 不再维护本地 API Key 资产表，见 Section 3 与 Section 6.G。
 
 ## 1. 项目定位与核心架构
 
@@ -65,7 +67,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 2. **`users`**: C端买家。
 3. **`products`**: 核心商品表。包含 `type`、`slug`、`metaData` (JSON 扩展字段)、`views` (浏览量) 等。
 4. **`orders`**: 订单表。包含 `status` (none, processing, active, delivered, expired, failed, completed)。
-5. **`cards` / `api_keys`**: 虚拟资产表（卡密 / API额度）。
+5. **`cards`**: 虚拟资产表（卡密）。
 6. **`payment_methods`**: 支付插件配置。
 7. **`posts`**: 博客与系统文章。
 8. **`logs`**: 系统操作与事件日志。
@@ -81,7 +83,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 - **`file`**: 提供固定资源链接下载。
 - **`subscription`**: 订单转为 `active`，记录周期。
 - **`service`**: 根据 `metaData.form_schema` 收集动态表单，转入 `processing` 等待人工处理。
-- **`dynamic_api`**: 自动生成唯一的 `sk_...` 密钥并分配额度。
+- **`topup`**: 充值型商品。支付成功后通过统一事件/Webhook 向外部系统入账，适合 Credits / 余额充值场景。
 
 ---
 
@@ -153,7 +155,8 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
   </script>
   ```
 - **后台扩展入口接入规则**: 如果新增模板后台扩展页，除了 `theme.admin.json` 和主题组件本身，还要同步确认默认后台侧栏与 `app/components/RouteSearch.vue` 是否已通过统一注册逻辑自动接入；禁止再新增一套分散硬编码菜单。
-- **模板后台直连 Golang 管理接口模式**: 主题后台扩展页如果需要直接调用 `model-api` 的管理接口，优先复用 `useExternalApi({ proxy: true, baseURL: AI_GATEWAY_URL })` 并在 `onMounted` 中发起请求，模式参照 `app/themes/aihop/pages/user/dashboard.vue` 的 `fetchGatewayStats`。统一经由 `server/api/proxy/external.ts` 转发，由服务端注入 `Authorization`，且该代理现在同时允许 `session.user` 与 `session.admin` 场景；适合 `/admin/extensions/*` 页面直接对接 Go 后台管理 API，例如 `models.vue`、`channels.vue` 这类 CRUD 页面直接对接 `/api/admin/models`、`/api/admin/channels`。
+- **主题后台扩展页国际化规则**: 主题后台扩展页的文案不要继续混塞在前台 `locales/en.ts`、`zh.ts` 中；优先放到 `app/themes/[theme]/locales/admin/en.ts` 与 `admin/zh.ts`，并由 `app/pages/admin/extensions/[...slug].vue` 统一 merge 到当前主题命名空间下，保持现有 `ainode.admin.*` 这类 key 兼容。
+- **模板后台直连 Golang 管理接口模式**: 主题后台扩展页如果需要直接调用 `ainode` 的管理接口，优先复用 `useExternalApi({ proxy: true, baseURL: AI_GATEWAY_URL })` 并在 `onMounted` 中发起请求，模式参照 `app/themes/aihop/pages/user/dashboard.vue` 的 `fetchGatewayStats`。统一经由 `server/api/proxy/external.ts` 转发，由服务端注入 `Authorization`，且该代理现在同时允许 `session.user` 与 `session.admin` 场景；适合 `/admin/extensions/*` 页面直接对接 Go 后台管理 API，例如 `models.vue`、`channels.vue` 这类 CRUD 页面直接对接 `/api/admin/models`、`/api/admin/channels`。
 - **官网微信登录收口规则**: APayShop 官网主题（如 `minimal`）的微信登录应优先走 Shoply `go-fast` 的统一认证入口 `/auth/connect`、`/auth/connect/signin`、`/auth/connect/callback`，由通用网关再触发 `plugins/app/Wechat` 应用；APayShop 侧只保留前端入口、同源代理和回调承接，不再直接承载微信登录核心业务。
 - **官网 PC 扫码微信登录配置**: 如果官网需要支持 PC 端微信扫码登录，Shoply `plugins/app/Wechat` 应用除常规 `appId/appSecret` 外，还应额外配置开放平台网站应用的 `websiteAppId/websiteAppSecret`；微信内 H5 授权与官网 PC 扫码应分别使用各自凭证，不要混用。
 

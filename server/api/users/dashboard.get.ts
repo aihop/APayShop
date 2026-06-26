@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
   return {
     code: 0,
     data: {
+      createdAt: user.CreatedAt || user.createdAt || null,
       cashBalance: (Number(user.CashBalance || 0) + Number(user.GrantBalance || 0)) / 100000000,
       stats: {
         totalOrders,

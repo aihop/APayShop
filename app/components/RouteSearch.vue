@@ -12,7 +12,7 @@
           class="w-5 h-5"
         />
       </template>
-      <span class="hidden md:inline-block text-sm font-medium">Search Routes</span>
+      <span class="hidden md:inline-block text-sm font-medium">{{ $t('routeSearch.searchRoutes') }}</span>
       <template #trailing>
         <div class="hidden lg:flex items-center gap-1">
           <UKbd>⌘</UKbd>
@@ -27,7 +27,7 @@
           v-model="selected"
           :groups="groups"
           :autoselect="false"
-          placeholder="Search pages and settings..."
+          :placeholder="$t('routeSearch.placeholder')"
           class="h-80 bg-white dark:bg-[#121214] ring-1 ring-gray-200 dark:ring-gray-800"
         />
       </template>
@@ -55,16 +55,16 @@ defineShortcuts({
 
 const routes = computed(() => {
   const coreRoutes = [
-    { id: 'home', label: 'Home', icon: 'ph:house', to: '/' },
-    { id: 'products', label: 'Products', icon: 'ph:package', to: '/products' },
+    { id: 'home', label: t('site.nav.home'), icon: 'ph:house', to: '/' },
+    { id: 'products', label: t('site.nav.products'), icon: 'ph:package', to: '/products' },
     {
       id: 'pricing',
-      label: 'Pricing',
+      label: t('site.nav.pricing'),
       icon: 'ph:currency-circle-dollar',
       to: '/pricing',
     },
-    { id: 'about', label: 'About Us', icon: 'ph:info', to: '/about' },
-    { id: 'contact', label: 'Contact', icon: 'ph:envelope', to: '/contact' },
+    { id: 'about', label: t('site.nav.about'), icon: 'ph:info', to: '/about' },
+    { id: 'contact', label: t('site.nav.contact'), icon: 'ph:envelope', to: '/contact' },
     {
       id: 'admin-dashboard',
       label: t('admin.nav.dashboard'),
@@ -103,21 +103,15 @@ const routes = computed(() => {
     },
     {
       id: 'admin-cards',
-      label: 'Cards',
+      label: t('admin.nav.cards'),
       icon: 'ph:barcode',
       to: '/admin/cards',
     },
     {
       id: 'admin-subscriptions',
-      label: 'Subscriptions',
+      label: t('admin.nav.subscriptions'),
       icon: 'ph:calendar-check',
       to: '/admin/subscriptions',
-    },
-    {
-      id: 'admin-apikeys',
-      label: 'API Keys',
-      icon: 'ph:key',
-      to: '/admin/api-keys',
     },
     {
       id: 'admin-failures',
@@ -170,7 +164,7 @@ const routes = computed(() => {
 const groups = computed(() => [
   {
     id: 'routes',
-    label: 'Routes',
+    label: t('routeSearch.groupLabel'),
     items: routes.value,
   },
 ])

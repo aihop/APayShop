@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nuxt build",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
-    "dev": "nuxt dev --env-file=.env --port 5400",
+    "dev": "nuxt dev --host 127.0.0.1 --env-file=.env --port 5400",
     "generate": "nuxt generate",
     "preview": "nuxt preview --port 5400",
     "postinstall": "nuxt prepare",
@@ -50,6 +50,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@iconify-json/ph": "^1.2.2",
     "@nuxthub/core": "^0.10.7",
     "@nuxtjs/i18n": "^9.0.0",
     "@tailwindcss/typography": "^0.5.19",

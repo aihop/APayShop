@@ -313,20 +313,6 @@
                   {{ $t('admin.nav.failures') }}
                 </div>
               </NuxtLink>
-              <NuxtLink
-                v-if="hasApiKeysProducts"
-                to="/admin/api-keys"
-                :class="adminMobileNavItemClass"
-                @click="isMobileMenuOpen = false"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:key"
-                    class="w-5 h-5"
-                  />
-                  {{ $t('admin.nav.apiKeys') }}
-                </div>
-              </NuxtLink>
             </div>
 
             <div class="space-y-1 mt-4">
@@ -604,20 +590,6 @@
                   {{ $t('admin.nav.failures') }}
                 </div>
               </NuxtLink>
-              <NuxtLink
-                v-if="hasApiKeysProducts"
-                to="/admin/api-keys"
-                :class="adminDesktopNavItemClass"
-                :active-class="adminNavActiveClass"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:key"
-                    class="w-4 h-4"
-                  />
-                  {{ $t('admin.nav.apiKeys') }}
-                </div>
-              </NuxtLink>
             </nav>
           </div>
           <div v-if="extensionPages.length">
@@ -828,19 +800,14 @@ const isAdminRoute = computed(() => {
   return path.startsWith('/admin') && path !== '/admin/login'
 })
 
-const hasApiKeysProducts = ref(false)
 const hasKeyProducts = ref(false)
 const hasSubscriptionProducts = ref(false)
 
-// Optional: you could check if there are dynamic_api products
-// But to keep it simple, we'll just check if the apiKeys table has any entries
-// or if we have products of type 'dynamic_api'
 onMounted(async () => {
   if (isAdminRoute.value) {
     try {
       const res: any = await $fetch('/api/products/types')
       const types = res.data || []
-      hasApiKeysProducts.value = types.includes('dynamic_api')
       hasKeyProducts.value = types.includes('key')
       hasSubscriptionProducts.value = types.includes('subscription')
     } catch (e) {

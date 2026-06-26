@@ -1,4 +1,4 @@
-import { orders, products, cards, apiKeys, subscriptions } from "../db/schema"
+import { orders, products, cards, subscriptions } from "../db/schema"
 import { eq, and } from "drizzle-orm"
 import crypto from "crypto"
 import { db } from '../db/runtime'
@@ -9,6 +9,7 @@ export async function fulfillOrder(orderId: string) {
   const orderRes = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
   if (!orderRes.length) return false
   const order = orderRes[0]
+  const orderMeta = normalizeMetaData(order.metaData)
   
   // 2. Get Product
   const productRes = await db.select().from(products).where(eq(products.id, order.productId)).limit(1)
@@ -25,6 +26,7 @@ export async function fulfillOrder(orderId: string) {
       productMeta = typeof product.metaData === 'string' ? JSON.parse(product.metaData) : product.metaData
     } catch (e) {}
   }
+  productMeta = normalizeMetaData(productMeta)
 
   // 3. Process by Type
   switch (product.type) {
@@ -114,64 +116,14 @@ export async function fulfillOrder(orderId: string) {
       deliveryInfo = "Service order received. Our team will contact you shortly."
       break
     }
-    case 'dynamic_api': {
-      // Generate an API key
-      const keyString = 'sk_' + crypto.randomBytes(16).toString('hex')
-      const quotaLimit = parseInt((productMeta as any).quota) || 0
-      
-      await db.insert(apiKeys).values({
-        keyString,
-        userId: order.userId || null,
-        orderId: order.id,
-        productId: product.id,
-        quotaLimit: quotaLimit,
-        quotaUsed: 0,
-        isActive: true,
-        createdAt: new Date()
-      })
-      
-      // Push to external sync webhook if configured
-      const syncUrl = (productMeta as any).sync_webhook_url
-      if (syncUrl) {
-        try {
-          console.log(`[Fulfillment] Syncing dynamic_api key to ${syncUrl}`)
-          const payload = JSON.stringify({
-            orderId: order.id,
-            key: keyString,
-            quota: quotaLimit,
-            timestamp: Date.now()
-          })
-          
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json'
-          }
-          
-          const syncSecret = (productMeta as any).sync_secret
-          if (syncSecret) {
-            headers['X-APayShop-Signature'] = crypto.createHmac('sha256', syncSecret).update(payload).digest('hex')
-          }
-          
-          const syncRes = await fetch(syncUrl, {
-            method: 'POST',
-            headers,
-            body: payload,
-            signal: AbortSignal.timeout(5000)
-          })
-          
-          if (!syncRes.ok) {
-            console.error(`[Fulfillment] Sync API failed with status ${syncRes.status}`)
-            // You might want to set newStatus to 'processing' here if sync is strictly required
-            // newStatus = "processing"
-          } else {
-            console.log(`[Fulfillment] Sync API successful`)
-          }
-        } catch (syncErr: any) {
-          console.error(`[Fulfillment] Sync API error:`, syncErr.message)
-          // newStatus = "processing"
-        }
-      }
-
-      deliveryInfo = keyString
+    case 'topup': {
+      const rechargeAmount = firstPositiveNumber(
+        (productMeta as any).recharge_amount,
+        order.amount,
+      )
+      const unit = String((productMeta as any).display_unit || 'credits').trim()
+      deliveryInfo = (productMeta as any).delivery_message
+        || `Top-up payment confirmed. ${rechargeAmount} ${unit} will be credited to your account.`
       break
     }
     default: {
@@ -185,5 +137,118 @@ export async function fulfillOrder(orderId: string) {
     deliveryInfo
   }).where(eq(orders.id, orderId))
   
-  return { ...order, status: newStatus, deliveryInfo }
+  return {
+    ...order,
+    metaData: orderMeta,
+    status: newStatus,
+    deliveryInfo,
+    product: {
+      id: product.id,
+      slug: product.slug || '',
+      name: product.name,
+      type: product.type,
+      price: product.price,
+      metaData: productMeta,
+    },
+    integration: buildOrderIntegration({
+      orderId: order.id,
+      orderAmount: order.amount,
+      productName: product.name,
+      productType: product.type,
+      orderMeta,
+      productMeta,
+    }),
+  }
+}
+
+function normalizeMetaData(value: any) {
+  if (!value) return {}
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return {}
+    }
+  }
+  if (typeof value === 'object') {
+    return value
+  }
+  return {}
+}
+
+function buildOrderIntegration(input: {
+  orderId: string
+  orderAmount: number
+  productName: string
+  productType: string
+  orderMeta: Record<string, any>
+  productMeta: Record<string, any>
+}) {
+  const productTx = normalizeMetaData(input.productMeta?.integration)?.transaction || {}
+  const orderTx = normalizeMetaData(input.orderMeta?.integration)?.transaction || {}
+  const txConfig = {
+    ...productTx,
+    ...orderTx,
+  }
+
+  const hasPlanIds = Array.isArray(input.productMeta?.plan_ids) && input.productMeta.plan_ids.length > 0
+  const explicitEnabled = typeof txConfig.enabled === 'boolean' ? txConfig.enabled : undefined
+
+  let type = String(txConfig.type || '').trim().toLowerCase()
+  let balanceType = String(
+    txConfig.balance_type
+      || input.orderMeta?.balance_type
+      || input.productMeta?.balance_type
+      || '',
+  ).trim().toLowerCase()
+
+  if (!type && (hasPlanIds || input.productType === 'subscription')) {
+    type = 'grant_issue'
+  } else if (!type && (input.productType === 'topup' || balanceType)) {
+    type = 'topup'
+  }
+
+  if (!balanceType) {
+    if (type === 'grant_issue' || hasPlanIds || input.productType === 'subscription') {
+      balanceType = 'grant'
+    } else if (type === 'topup' || input.productType === 'topup') {
+      balanceType = 'cash'
+    }
+  }
+
+  const amount = firstPositiveNumber(
+    txConfig.amount,
+    input.orderMeta?.recharge_amount,
+    input.productMeta?.recharge_amount,
+    input.orderAmount,
+  )
+
+  const enabled = explicitEnabled ?? Boolean(type && balanceType && amount > 0)
+
+  return {
+    transaction: {
+      enabled,
+      type,
+      balance_type: balanceType,
+      direction: String(txConfig.direction || 'credit').trim().toLowerCase(),
+      amount,
+      source_id: String(txConfig.source_id || input.orderId),
+      remark: String(txConfig.remark || `${input.productName} order paid`).trim(),
+      metadata: {
+        order_id: input.orderId,
+        product_type: input.productType,
+        plan_ids: hasPlanIds ? input.productMeta.plan_ids : undefined,
+      },
+    },
+  }
+}
+
+function firstPositiveNumber(...values: any[]) {
+  for (const value of values) {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+  return 0
 }

@@ -85,7 +85,7 @@
               :disabled="loading"
               :loading="loading"
             >
-              Buy It Now
+              {{ $t('site.core.product.buyItNow') }}
             </UButton>
           </template>
         </PaymentModal>
@@ -96,7 +96,7 @@
     <div class="mt-24 border-t border-gray-800 pt-16">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
         <div class="md:col-span-2">
-          <h2 class="text-2xl font-bold mb-6">Description</h2>
+          <h2 class="text-2xl font-bold mb-6">{{ $t('site.core.product.description') }}</h2>
           <div class="bg-[#121214] border border-gray-800 rounded-2xl p-8">
             <div class="prose prose-invert max-w-none">
               <p
@@ -106,7 +106,7 @@
               <p
                 v-else-if="!product.content"
                 class="text-gray-500 italic text-center py-8"
-              >No description provided yet.</p>
+              >{{ $t('site.core.product.noDescription') }}</p>
               <div
                 v-if="product.content"
                 class="mt-6 pt-6 border-t border-gray-800"
@@ -118,17 +118,17 @@
 
         <div>
           <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-            Reviews
+            {{ $t('site.core.product.reviews') }}
             <span class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">0</span>
           </h2>
           <div class="bg-[#121214] border border-gray-800 rounded-2xl p-8 flex flex-col items-center text-center">
-            <p class="text-gray-500 mb-6">No reviews yet. Be the first to share your thoughts!</p>
+            <p class="text-gray-500 mb-6">{{ $t('site.core.product.noReviews') }}</p>
             <UButton
               color="neutral"
               variant="solid"
               class="rounded-full rounded-lg px-6 bg-white text-black hover:bg-gray-200"
             >
-              Write a Review
+              {{ $t('site.core.product.writeReview') }}
               <template #trailing>
                 <Icon name="ph:arrow-right" />
               </template>
@@ -151,7 +151,7 @@
     v-else
     class="text-center py-32"
   >
-    <h2 class="text-2xl font-bold text-gray-400">Product not found</h2>
+    <h2 class="text-2xl font-bold text-gray-400">{{ $t('site.core.product.notFound') }}</h2>
   </div>
 </template>
 
@@ -165,6 +165,13 @@ const route = useRoute()
 const quantity = ref(1)
 
 const { getLocalizedProduct } = useLocalizedProduct()
+
+useHead({
+  title: computed(() => product.value?.name ? `${product.value.name} - Buy Now` : 'Product Details'),
+  meta: [
+    { name: 'description', content: computed(() => product.value?.description || 'View product details and purchase.') },
+  ],
+})
 
 const { data: productData, pending } = await useFetch(
   `/api/products/${route.params.slug[1]}`,

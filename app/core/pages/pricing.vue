@@ -11,11 +11,11 @@
         <div class="relative z-10 text-center mb-16">
           <h1 class="text-4xl md:text-5xl font-sans font-bold mb-4">
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
-              Simple, Transparent Pricing
+              {{ $t('site.core.pricing.title') }}
             </span>
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto mt-6">
-            Choose the perfect plan for your needs. No hidden fees, cancel anytime.
+            {{ $t('site.core.pricing.subtitle') }}
           </p>
         </div>
       </div>
@@ -40,8 +40,8 @@
             name="ph:package-light"
             class="w-16 h-16 text-gray-700 mx-auto mb-4"
           />
-          <h3 class="text-xl font-medium text-white mb-2">No Plans Available</h3>
-          <p class="text-gray-400">There are currently no active subscription plans.</p>
+          <h3 class="text-xl font-medium text-white mb-2">{{ $t('site.core.pricing.noPlans') }}</h3>
+          <p class="text-gray-400">{{ $t('site.core.pricing.noPlansDesc') }}</p>
         </div>
 
         <div
@@ -69,16 +69,16 @@
                 v-if="index === 1"
                 class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(168,85,247,0.4)]"
               >
-                Most Popular
+                {{ $t('site.core.pricing.mostPopular') }}
               </div>
 
               <div class="mb-8">
                 <h3 class="text-2xl font-bold text-white mb-4">{{ plan.name }}</h3>
                 <div class="flex items-baseline gap-1 mb-4">
                   <span class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">${{ plan.price.toFixed(2) }}</span>
-                  <span class="text-gray-500 font-medium">/ forever</span>
+                  <span class="text-gray-500 font-medium">{{ $t('site.core.pricing.forever') }}</span>
                 </div>
-                <p class="text-gray-400 text-sm min-h-[40px]">{{ plan.description || 'Access to premium features' }}</p>
+                <p class="text-gray-400 text-sm min-h-[40px]">{{ plan.description || $t('site.core.pricing.defaultDesc') }}</p>
               </div>
 
               <div class="space-y-4 flex-grow mb-10">
@@ -106,7 +106,7 @@
                 :class="index === 1 ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 border-none shadow-[0_0_20px_rgba(168,85,247,0.3)]' : 'border-gray-700 hover:border-purple-500 hover:bg-purple-500/10 text-gray-300 hover:text-white'"
                 @click="router.push(`/products/${plan.slug || plan.id}`)"
               >
-                Get Started
+                {{ $t('site.core.pricing.getStarted') }}
               </UButton>
             </div>
           </div>
@@ -114,7 +114,7 @@
 
         <!-- FAQ Section (Optional enhancement) -->
         <div class="mt-32 max-w-3xl mx-auto">
-          <h2 class="text-3xl font-bold text-center text-white mb-12">Frequently Asked Questions</h2>
+          <h2 class="text-3xl font-bold text-center text-white mb-12">{{ $t('site.core.pricing.faqTitle') }}</h2>
           <div class="space-y-6">
             <div class="bg-[#121214] border border-gray-800 rounded-2xl p-6">
               <h4 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
@@ -122,9 +122,9 @@
                   name="ph:question-fill"
                   class="text-purple-500"
                 />
-                Is this a one-time payment?
+                {{ $t('site.core.pricing.q1') }}
               </h4>
-              <p class="text-gray-400 text-sm leading-relaxed ml-7">Yes, currently all our plans are lifetime access with a single one-time payment. No recurring monthly or annual subscription fees.</p>
+              <p class="text-gray-400 text-sm leading-relaxed ml-7">{{ $t('site.core.pricing.a1') }}</p>
             </div>
             <div class="bg-[#121214] border border-gray-800 rounded-2xl p-6">
               <h4 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
@@ -132,9 +132,9 @@
                   name="ph:question-fill"
                   class="text-purple-500"
                 />
-                Can I upgrade my plan later?
+                {{ $t('site.core.pricing.q2') }}
               </h4>
-              <p class="text-gray-400 text-sm leading-relaxed ml-7">Absolutely! You can upgrade to a higher tier plan at any time by simply paying the difference between your current plan and the new one.</p>
+              <p class="text-gray-400 text-sm leading-relaxed ml-7">{{ $t('site.core.pricing.a2') }}</p>
             </div>
           </div>
         </div>
@@ -145,6 +145,16 @@
 
 <script setup lang="ts">
 const router = useRouter()
+
+useHead({
+  title: 'Simple, Transparent Pricing',
+  meta: [
+    {
+      name: 'description',
+      content: 'Choose the perfect plan for your needs. No hidden fees, cancel anytime.',
+    },
+  ],
+})
 const { data: plansData, pending } = await useFetch<any>('/api/products', {
   query: { limit: 100 }
 })

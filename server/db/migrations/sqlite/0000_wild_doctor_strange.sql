@@ -6,25 +6,6 @@ CREATE TABLE `admins` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `admins_username_unique` ON `admins` (`username`);--> statement-breakpoint
-CREATE TABLE `api_keys` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`name` text(50) NOT NULL,
-	`key_string` text(64) NOT NULL,
-	`user_id` integer,
-	`status` integer DEFAULT 1,
-	`order_id` text,
-	`product_id` integer,
-	`quota_limit` integer DEFAULT 0 NOT NULL,
-	`quota_used` integer DEFAULT 0 NOT NULL,
-	`allowed_models` text,
-	`is_active` integer DEFAULT true NOT NULL,
-	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `api_keys_key_string_unique` ON `api_keys` (`key_string`);--> statement-breakpoint
 CREATE TABLE `cards` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`product_id` integer NOT NULL,

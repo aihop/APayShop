@@ -2,15 +2,15 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Card Management</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Manage license keys and activation codes for products</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.cards.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.cards.subtitle') }}</p>
       </div>
       <UButton
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
         @click="openModal"
-      >Import Cards</UButton>
+      >{{ $t('admin.cards.import') }}</UButton>
     </div>
 
     <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
@@ -27,7 +27,7 @@
               variant="subtle"
               size="sm"
             >
-              {{ row.original.isUsed ? 'Used' : 'Available' }}
+              {{ row.original.isUsed ? $t('admin.cards.status_used') : $t('admin.cards.status_available') }}
             </UBadge>
           </template>
 
@@ -68,8 +68,11 @@
       <!-- Pagination Footer -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
         <span class="text-sm text-gray-500 dark:text-gray-400">
-          Showing {{ Math.min((page - 1) * pageSize + 1, totalItems) }} to
-          {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
+          {{ $t('admin.cards.showing', {
+            from: Math.min((page - 1) * pageSize + 1, totalItems),
+            to: Math.min(page * pageSize, totalItems),
+            total: totalItems
+          }) }}
         </span>
         <UPagination
           v-model="page"
@@ -93,7 +96,7 @@
         >
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import Cards</h3>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.cards.importTitle') }}</h3>
               <UButton
                 color="gray"
                 variant="ghost"
@@ -110,7 +113,7 @@
             class="space-y-6"
           >
             <UFormField
-              label="Product"
+              :label="$t('admin.cards.form_product')"
               name="productId"
               required
             >
@@ -118,20 +121,20 @@
                 v-model="state.productId"
                 :items="keyProducts"
                 value-key="id"
-                placeholder="Select a product"
+                :placeholder="$t('admin.cards.form_product_placeholder')"
                 class="w-full"
               />
             </UFormField>
 
             <UFormField
-              label="Card Data"
+              :label="$t('admin.cards.form_cardData')"
               name="cardData"
               required
-              help="Enter one card per line. Duplicate cards will be imported."
+              :help="$t('admin.cards.form_cardData_help')"
             >
               <UTextarea
                 v-model="state.cardData"
-                placeholder="CARD-KEY-1&#10;CARD-KEY-2&#10;CARD-KEY-3"
+                :placeholder="$t('admin.cards.form_cardData_placeholder')"
                 :rows="8"
                 class="font-mono text-sm"
               />
@@ -143,7 +146,7 @@
                 variant="ghost"
                 @click="isModalOpen = false"
               >
-                Cancel
+                {{ $t('admin.cards.cancel') }}
               </UButton>
               <UButton
                 type="submit"
@@ -152,7 +155,7 @@
                 :loading="isSaving"
                 :disabled="!state.productId || !state.cardData.trim()"
               >
-                Import {{ parsedCardCount }} Cards
+                {{ $t('admin.cards.import_button', { count: parsedCardCount }) }}
               </UButton>
             </div>
           </UForm>
@@ -163,22 +166,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 definePageMeta({ title: 'Cards Management' })
 
+const { t } = useI18n()
 const toast = useToast()
 
-const columns = [
-  { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'productName', header: 'Product' },
-  { accessorKey: 'cardNumber', header: 'Card Number' },
-  { accessorKey: 'status', header: 'Status' },
-  { accessorKey: 'orderId', header: 'Order ID' },
-  { accessorKey: 'createdAt', header: 'Added At' },
+const columns = computed(() => [
+  { accessorKey: 'id', header: t('admin.cards.col_id') },
+  { accessorKey: 'productName', header: t('admin.cards.col_product') },
+  { accessorKey: 'cardNumber', header: t('admin.cards.col_cardNumber') },
+  { accessorKey: 'status', header: t('admin.cards.col_status') },
+  { accessorKey: 'orderId', header: t('admin.cards.col_orderId') },
+  { accessorKey: 'createdAt', header: t('admin.cards.col_createdAt') },
   {
     accessorKey: 'actions',
-    header: 'Actions',
+    header: t('admin.cards.col_actions'),
     meta: {
       class: {
         th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
@@ -186,7 +190,7 @@ const columns = [
       },
     },
   },
-]
+])
 
 // Pagination
 const { page, pageSize, onPageChange } = usePagination(15)
@@ -247,8 +251,8 @@ const onSubmit = async () => {
 
   if (cardNumbers.length === 0) {
     toast.add({
-      title: 'Error',
-      description: 'No valid cards to import',
+      title: t('admin.common.error'),
+      description: t('admin.cards.toast_no_valid_cards'),
       color: 'error',
     })
     return
@@ -265,8 +269,8 @@ const onSubmit = async () => {
     })
 
     toast.add({
-      title: 'Success',
-      description: `Successfully imported ${cardNumbers.length} cards`,
+      title: t('admin.common.success'),
+      description: t('admin.cards.toast_import_success', { count: cardNumbers.length }),
       color: 'success',
     })
 
@@ -274,8 +278,8 @@ const onSubmit = async () => {
     refresh()
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to import cards',
+      title: t('admin.common.error'),
+      description: t('admin.cards.toast_import_error'),
       color: 'error',
     })
   } finally {
@@ -286,8 +290,8 @@ const onSubmit = async () => {
 const deleteCard = async (id: number) => {
   const { confirm } = useConfirm()
   const isConfirmed = await confirm({
-    title: 'Delete Card',
-    description: 'Are you sure you want to delete this card?',
+    title: t('admin.cards.delete_title'),
+    description: t('admin.cards.delete_confirm'),
   })
 
   if (!isConfirmed) return
@@ -297,15 +301,15 @@ const deleteCard = async (id: number) => {
       method: 'DELETE',
     })
     toast.add({
-      title: 'Success',
-      description: 'Card deleted successfully',
+      title: t('admin.common.success'),
+      description: t('admin.cards.toast_delete_success'),
       color: 'success',
     })
     refresh()
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to delete card',
+      title: t('admin.common.error'),
+      description: t('admin.cards.toast_delete_error'),
       color: 'error',
     })
   }

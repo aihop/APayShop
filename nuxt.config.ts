@@ -113,7 +113,6 @@ export default defineNuxtConfig({
       'admin/subscriptions': false,
       'admin/posts': false,
       'admin/logs': false,
-      'admin/api-keys': false,
       'admin/stats': false,
     }
   },
@@ -170,6 +169,15 @@ export default defineNuxtConfig({
           }
         }
       }
+    },
+    server: {
+      allowedHosts: true,
+      // hmr: {
+      //   host: 'iqingpu.cn', 
+      //   protocol: 'wss', 
+      //   clientPort: 443 
+      // }
+      hmr: false
     }
   },
   runtimeConfig: {

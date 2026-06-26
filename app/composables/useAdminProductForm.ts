@@ -48,8 +48,8 @@ export const useAdminProductForm = (emit: any) => {
         if (!trans.download_instruction && form.metaData?.download_instruction) trans.download_instruction = form.metaData.download_instruction
       }
       
-      // 同步 Features (对于 Subscription 或 Dynamic API 类型的产品)
-      if ((form.type === 'subscription' || form.type === 'dynamic_api') && (!translationFeaturesLists[targetLocale] || translationFeaturesLists[targetLocale].length === 0)) {
+      // 同步 Features (对于 Subscription 或 Top-up 类型的产品)
+      if ((form.type === 'subscription' || form.type === 'topup') && (!translationFeaturesLists[targetLocale] || translationFeaturesLists[targetLocale].length === 0)) {
         translationFeaturesLists[targetLocale] = featuresList.value.map(f => ({ ...f, id: Date.now().toString() + Math.random().toString(36).substr(2, 9) }))
       }
       
@@ -98,29 +98,6 @@ export const useAdminProductForm = (emit: any) => {
   // ==========================================
   // 3. 特殊产品类型扩展字段 (Extended Fields)
   // ==========================================
-
-  // Dynamic API 类型：Allowed Scopes
-  const newScopeInput = ref('')
-  
-  const addScope = () => {
-    const val = newScopeInput.value.trim()
-    if (!val) return
-    
-    if (!form.metaData.allowed_scopes) {
-      form.metaData.allowed_scopes = []
-    }
-    
-    if (!form.metaData.allowed_scopes.includes(val)) {
-      form.metaData.allowed_scopes.push(val)
-    }
-    newScopeInput.value = ''
-  }
-  
-  const removeScope = (index: number) => {
-    if (form.metaData.allowed_scopes && Array.isArray(form.metaData.allowed_scopes)) {
-      form.metaData.allowed_scopes.splice(index, 1)
-    }
-  }
 
   // Subscription 类型：Gateway Plan IDs 映射
   const planIdsList = ref<{gateway: string, id: string}[]>([])
@@ -317,13 +294,10 @@ export const useAdminProductForm = (emit: any) => {
         try { form.metaData = JSON.parse(form.metaData) } catch (e) { form.metaData = {} }
       }
 
-      // 确保 allowed_scopes 是数组
-      if (form.type === 'dynamic_api') {
-        if (!form.metaData.allowed_scopes) {
-          form.metaData.allowed_scopes = []
-        } else if (typeof form.metaData.allowed_scopes === 'string') {
-          // 兼容之前的逗号分隔字符串
-          form.metaData.allowed_scopes = form.metaData.allowed_scopes.split(',').map((s: string) => s.trim()).filter(Boolean)
+      if (form.type === 'topup') {
+        if (!form.metaData.balance_type) form.metaData.balance_type = 'cash'
+        if (form.metaData.recharge_amount === undefined || form.metaData.recharge_amount === null || form.metaData.recharge_amount === '') {
+          form.metaData.recharge_amount = form.price
         }
       }
 
@@ -441,19 +415,8 @@ export const useAdminProductForm = (emit: any) => {
       }
     }
 
-    // 处理 Subscription Features 和 Plan IDs
-    if (form.type === 'subscription' || form.type === 'dynamic_api') {
-      // 收集 Plan IDs 为键值对对象
-      const planIdsObj: Record<string, string> = {}
-      planIdsList.value.forEach(item => {
-        const key = item.gateway.trim()
-        const val = item.id.trim()
-        if (key && val) {
-          planIdsObj[key] = val
-        }
-      })
-      form.metaData.plan_ids = planIdsObj
-
+    // 处理 Subscription / Top-up 的展示 Features
+    if (form.type === 'subscription' || form.type === 'topup') {
       if (form.metaData.is_pricing_plan) {
         try {
           const cleanFeatures = featuresList.value.map(f => ({
@@ -465,6 +428,33 @@ export const useAdminProductForm = (emit: any) => {
           return false
         }
       }
+    }
+
+    if (form.type === 'subscription') {
+      const planIdsObj: Record<string, string> = {}
+      planIdsList.value.forEach(item => {
+        const key = item.gateway.trim()
+        const val = item.id.trim()
+        if (key && val) {
+          planIdsObj[key] = val
+        }
+      })
+      form.metaData.plan_ids = planIdsObj
+    } else {
+      delete form.metaData.plan_ids
+    }
+
+    if (form.type === 'topup') {
+      if (!form.metaData.balance_type) form.metaData.balance_type = 'cash'
+      if (form.metaData.recharge_amount === undefined || form.metaData.recharge_amount === null || form.metaData.recharge_amount === '') {
+        form.metaData.recharge_amount = form.price
+      }
+      delete form.metaData.allowed_scopes
+      delete form.metaData.api_endpoint
+      delete form.metaData.sync_webhook_url
+      delete form.metaData.sync_secret
+      delete form.metaData.quota
+      delete form.metaData.valid_days
     }
 
     // 组装多语言数据
@@ -490,7 +480,7 @@ export const useAdminProductForm = (emit: any) => {
         form.metaData.translations[loc].form_schema_labels = trans.form_schema_labels
       }
 
-      if ((form.type === 'subscription' || form.type === 'dynamic_api') && form.metaData.is_pricing_plan) {
+      if ((form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan) {
         try {
           const transFeatures = translationFeaturesLists[loc] || []
           form.metaData.translations[loc].plan_features = transFeatures.map(f => ({
@@ -612,9 +602,6 @@ export const useAdminProductForm = (emit: any) => {
     handleFileUpload,
     addImageUrl,
     removeImage,
-    newScopeInput,
-    addScope,
-    removeScope,
     planIdsList,
     availableGateways,
     addPlanId,

@@ -1,8 +1,8 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 // ==========================================
-// DataPaaS Gateway / API Core Tables
+// AINode Gateway / API Core Tables
 // Merged from PROMPT.md (schema.sql)
 // ==========================================
 
@@ -51,7 +51,7 @@ export const products = sqliteTable('products', {
   price: real('price').notNull(),
   description: text('description'),
   content: text('content'), // Detailed HTML or Markdown content
-  type: text('type').notNull(), // 'basic','key', 'file', 'subscription', 'service', 'dynamic_api'
+  type: text('type').notNull(), // 'basic','key', 'file', 'subscription', 'service', 'topup'
   imageUrl: text('image_url'), // Cover image
   views: integer('views').notNull().default(0), // View count
   imageUrls: text('image_urls', { mode: 'json' }).$type<string[]>(), // JSON array of multiple image URLs
@@ -143,25 +143,6 @@ export const themeSettings = sqliteTable('theme_settings', {
   themeName: text('theme_name').primaryKey(),
   config: text('config').notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch() * 1000)`),
-})
-
-// Table for selling dynamic API quotas and serving as API Gateway credentials
-export const apiKeys = sqliteTable('api_keys', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name', { length: 50 }), // Add name field to align with model-api
-  keyString: text('key_string', { length: 64 }).notNull().unique(),
-  userId: integer('user_id').references(() => users.id),
-  status: integer('status').default(1), // 1: 正常, 0: 禁用
-  
-  // eCommerce / Quota fields
-  orderId: text('order_id').references(() => orders.id),
-  productId: integer('product_id').references(() => products.id),
-  quotaLimit: integer('quota_limit', { mode: 'number' }).notNull().default(0), // BIGINT
-  quotaUsed: integer('quota_used', { mode: 'number' }).notNull().default(0),   // BIGINT
-  allowedModels: text('allowed_models', { mode: 'json' }).$type<string[]>(), // JSON array of allowed model codes
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 })
 
 export const failures = sqliteTable('failures', {

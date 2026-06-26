@@ -85,6 +85,16 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 const { localePath } = useLocaleRouter()
 
+useHead({
+  title: 'Payment - APayShop',
+  meta: [
+    {
+      name: 'description',
+      content: 'Payment processing and order status page.',
+    },
+  ],
+})
+
 const route = useRoute()
 const orderId = route.params['slug']?.[1] as string
 

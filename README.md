@@ -28,7 +28,7 @@ Official website: https://apayshop.com/
   - **File**: Secure download links for digital assets.
   - **Subscription**: Recurring billing management.
   - **Service**: Dynamic JSON-driven forms to collect user requirements during checkout.
-  - **Dynamic API**: Automatically generate `sk_...` API keys, assign quotas, and optionally push to your external business servers via Webhooks.
+  - **Top-up**: Recharge balances or credits in external systems after successful payment, ideal for API Credits and wallet-style products.
 - 🔌 **Serverless Payment Webhooks**: Payment gateway callbacks are stored as pure JavaScript strings in the database and executed dynamically in a Node.js sandbox. True hot-pluggable payments.
 - 👥 **Dual-Track Checkout**: Users can checkout smoothly as a guest via email. If they register later (Local/Google/GitHub OAuth), their past guest orders will automatically link to their new account.
 - 🤖 **AI Theme Builder**: Built-in AI generation interface in the admin panel to converse and generate new template code directly to your file system.
@@ -118,7 +118,7 @@ It provides dense, efficient data management for:
 - Orders & Manual Fulfillment
 - Products & Dynamic MetaData configurations (e.g., API Quotas, Service JSON forms)
 - Card / Key Inventory
-- API Key Quota tracking
+- Subscription & Top-up product operations
 - System Settings & Rebuilds
 
 ---

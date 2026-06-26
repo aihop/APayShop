@@ -11,11 +11,11 @@
         <div class="relative z-10 text-center mb-16">
           <h1 class="text-4xl md:text-5xl font-sans font-bold mb-4">
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
-              About Us
+              {{ $t('site.core.about.title') }}
             </span>
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto mt-6">
-            Discover the story, vision, and mission of {{ getSetting('company_name') || 'Your Company' }}
+            {{ $t('site.core.about.subtitle', { companyName: getSetting('company_name') || $t('site.core.about.companyName') }) }}
           </p>
         </div>
       </div>
@@ -26,7 +26,7 @@
         <!-- Brand Story & Values Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
           <div>
-            <h2 class="text-3xl font-sans font-bold text-white mb-6">{{ getSetting('company_name') || 'Your Company' }}</h2>
+            <h2 class="text-3xl font-sans font-bold text-white mb-6">{{ getSetting('company_name') || $t('site.core.about.companyName') }}</h2>
             <p class="text-gray-300 leading-relaxed mb-8">
               Leveraging cutting-edge artificial intelligence technology to create creative and emotionally resonant short drama works, bringing audiences a brand new audiovisual experience.
             </p>
@@ -40,8 +40,8 @@
                   />
                 </div>
                 <div>
-                  <h3 class="text-white font-medium mb-1">Our Mission</h3>
-                  <p class="text-gray-400 text-sm leading-relaxed">Revolutionizing short drama creation with AI technology, bringing new content experiences to global audiences</p>
+                  <h3 class="text-white font-medium mb-1">{{ $t('site.core.about.mission') }}</h3>
+                  <p class="text-gray-400 text-sm leading-relaxed">{{ $t('site.core.about.missionDesc') }}</p>
                 </div>
               </div>
 
@@ -53,8 +53,8 @@
                   />
                 </div>
                 <div>
-                  <h3 class="text-white font-medium mb-1">Our Vision</h3>
-                  <p class="text-gray-400 text-sm leading-relaxed">To become the world's leading AI short drama content creation platform</p>
+                  <h3 class="text-white font-medium mb-1">{{ $t('site.core.about.vision') }}</h3>
+                  <p class="text-gray-400 text-sm leading-relaxed">{{ $t('site.core.about.visionDesc') }}</p>
                 </div>
               </div>
 
@@ -66,8 +66,8 @@
                   />
                 </div>
                 <div>
-                  <h3 class="text-white font-medium mb-1">Our Values</h3>
-                  <p class="text-gray-400 text-sm leading-relaxed">Innovation, Quality, User-First, Continuous Evolution</p>
+                  <h3 class="text-white font-medium mb-1">{{ $t('site.core.about.values') }}</h3>
+                  <p class="text-gray-400 text-sm leading-relaxed">{{ $t('site.core.about.valuesDesc') }}</p>
                 </div>
               </div>
             </div>
@@ -92,8 +92,8 @@
                   />
                 </div>
                 <div>
-                  <p class="text-white font-semibold">Industry Leader</p>
-                  <p class="text-gray-400 text-sm">AI Short Drama Innovation</p>
+                  <p class="text-white font-semibold">{{ $t('site.core.about.industryLeader') }}</p>
+                  <p class="text-gray-400 text-sm">{{ $t('site.core.about.industryLeaderDesc') }}</p>
                 </div>
               </div>
             </div>
@@ -103,8 +103,8 @@
         <!-- Company Info -->
         <div class="bg-[#121214] border border-gray-800/50 rounded-3xl p-8 md:p-12 relative z-10">
           <div class="text-center mb-10">
-            <h2 class="text-3xl font-bold text-white mb-4">Company Details</h2>
-            <p class="text-gray-400">Everything you need to know about our organization</p>
+            <h2 class="text-3xl font-bold text-white mb-4">{{ $t('site.core.about.companyDetails') }}</h2>
+            <p class="text-gray-400">{{ $t('site.core.about.companyDetailsDesc') }}</p>
           </div>
 
           <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -115,7 +115,7 @@
                   class="w-6 h-6 text-gray-300"
                 />
               </div>
-              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Company</h4>
+              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{{ $t('site.core.about.company') }}</h4>
               <p class="text-white font-medium">{{ getSetting('company_name') }}</p>
             </div>
 
@@ -126,8 +126,8 @@
                   class="w-6 h-6 text-gray-300"
                 />
               </div>
-              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Location</h4>
-              <p class="text-white font-medium">{{ getSetting('company_address') || 'Global Remote' }}</p>
+              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{{ $t('site.core.about.location') }}</h4>
+              <p class="text-white font-medium">{{ getSetting('company_address') || $t('site.core.about.globalRemote') }}</p>
             </div>
 
             <div class="text-center">
@@ -137,7 +137,7 @@
                   class="w-6 h-6 text-gray-300"
                 />
               </div>
-              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Support</h4>
+              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{{ $t('site.core.about.support') }}</h4>
               <p class="text-white font-medium">{{ getSetting('support_email') }}</p>
             </div>
 
@@ -148,8 +148,8 @@
                   class="w-6 h-6 text-gray-300"
                 />
               </div>
-              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Phone</h4>
-              <p class="text-white font-medium">{{ getSetting('company_phone') || 'Available via Email' }}</p>
+              <h4 class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{{ $t('site.core.about.phone') }}</h4>
+              <p class="text-white font-medium">{{ getSetting('company_phone') || $t('site.core.about.availableViaEmail') }}</p>
             </div>
           </div>
         </div>
