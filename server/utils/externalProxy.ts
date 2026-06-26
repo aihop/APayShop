@@ -15,11 +15,11 @@ interface ProxyExternalRequestOptions {
 // 从 DB settings 读取 AI Gateway URL，带内存缓存
 let cachedGatewayUrl: string | null = null
 let lastGatewayUrlRead = 0
-const GATEWAY_URL_CACHE_TTL = 5000 // 5 秒
+const SETTINGS_CACHE_TTL = 5000 // 5 秒
 
 async function getAIGatewayUrl(): Promise<string> {
   const now = Date.now()
-  if (cachedGatewayUrl && now - lastGatewayUrlRead < GATEWAY_URL_CACHE_TTL) {
+  if (cachedGatewayUrl && now - lastGatewayUrlRead < SETTINGS_CACHE_TTL) {
     return cachedGatewayUrl
   }
   try {
@@ -37,6 +37,30 @@ async function getAIGatewayUrl(): Promise<string> {
   cachedGatewayUrl = fallback
   lastGatewayUrlRead = now
   return fallback
+}
+
+// 从 DB settings 读取 integration_token，用于上游认证
+let cachedToken: string | null = null
+let lastTokenRead = 0
+
+async function getIntegrationToken(): Promise<string | null> {
+  const now = Date.now()
+  if (cachedToken !== null && now - lastTokenRead < SETTINGS_CACHE_TTL) {
+    return cachedToken
+  }
+  try {
+    const result = await db.select().from(settings).where(eq(settings.key, 'integration_token')).limit(1)
+    if (result.length > 0 && result[0].value) {
+      cachedToken = result[0].value
+      lastTokenRead = now
+      return cachedToken
+    }
+  } catch (e) {
+    console.error('[Proxy] Failed to read integration_token from settings:', e)
+  }
+  cachedToken = null
+  lastTokenRead = now
+  return null
 }
 
 const normalizeTargetUrl = (targetUrl: string) => {
@@ -131,14 +155,18 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     body = await readBody(event).catch(() => undefined)
   }
 
+  // 优先使用 integration_token，降级到系统 NUXT_SESSION_PASSWORD
+  const integrationToken = await getIntegrationToken()
+  const authToken = integrationToken || process.env.NUXT_SESSION_PASSWORD || ''
+
   const forwardHeaders: Record<string, string> = {
     Accept: (incomingHeaders.accept as string) || 'application/json',
     'Content-Type': (incomingHeaders['content-type'] as string) || 'application/json',
     'User-Agent': userAgent,
-    Authorization: `Bearer ${process.env.NUXT_SESSION_PASSWORD}`,
+    Authorization: `Bearer ${authToken}`,
   }
 
-  console.log(`[${proxyLabel} Debug] target=${targetUrl.toString()} auth=Bearer ${process.env.NUXT_SESSION_PASSWORD ? 'set(' + process.env.NUXT_SESSION_PASSWORD.slice(0, 8) + '...)' : 'EMPTY!'}`)
+  console.log(`[${proxyLabel} Debug] target=${targetUrl.toString()} auth=${authToken ? 'Bearer ' + authToken.slice(0, 8) + '...' : 'none'} (source: ${integrationToken ? 'integration_token' : 'NUXT_SESSION_PASSWORD'})`)
 
   if (userId) {
     forwardHeaders['X-Internal-User-Id'] = String(userId)

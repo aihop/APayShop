@@ -7,7 +7,7 @@
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Search Engine Optimization (SEO)</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.seo.title') }}</h2>
     </div>
 
     <!-- Language Tabs -->
@@ -40,8 +40,8 @@
     <div class="p-6 space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
         <UFormField
-          label="Site Title (SEO)"
-          :description="`Global meta title for search engines (${activeLocale})`"
+          :label="$t('admin.settings.seo.site_title')"
+          :description="$t('admin.settings.seo.site_title_desc', { locale: activeLocale })"
         >
           <UInput
             v-model="form[getTitleKey(activeLocale)]"
@@ -54,8 +54,8 @@
         </UFormField>
 
         <UFormField
-          label="Site Description (SEO)"
-          :description="`Global meta description for search engines (${activeLocale})`"
+          :label="$t('admin.settings.seo.site_description')"
+          :description="$t('admin.settings.seo.site_description_desc', { locale: activeLocale })"
         >
           <UTextarea
             v-model="form[getDescriptionKey(activeLocale)]"

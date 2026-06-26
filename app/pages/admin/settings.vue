@@ -7,9 +7,9 @@
             name="ph:gear-six-fill"
             class="w-8 h-8 text-purple-500"
           />
-          System Settings
+          {{ $t('admin.settings.page.title') }}
         </h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Configure global site information, AI models, and theme preferences.</p>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.settings.page.subtitle') }}</p>
       </div>
       <div class="flex items-center gap-3">
         <UButton
@@ -25,7 +25,7 @@
               class="w-5 h-5"
             />
           </template>
-          Save Changes
+          {{ $t('admin.settings.page.save_changes') }}
         </UButton>
       </div>
     </div>
@@ -40,7 +40,7 @@
             type="button"
             @click="activeTab = tab.id"
             :class="[
-              'flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2',
+              'shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2',
               activeTab === tab.id
                 ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
@@ -50,7 +50,7 @@
               :name="tab.icon"
               class="w-5 h-5"
             />
-            {{ tab.label }}
+            {{ $t(tab.labelKey) }}
           </button>
         </nav>
       </div>
@@ -75,7 +75,7 @@
                 :name="tab.icon"
                 class="w-5 h-5"
               />
-              {{ tab.label }}
+              {{ $t(tab.labelKey) }}
             </div>
           </button>
         </nav>
@@ -97,9 +97,9 @@
           >
             <div class="flex items-start justify-between gap-6">
               <div>
-                <h2 class="text-lg font-bold text-gray-900 dark:text-white">站点图标</h2>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.settings.general.favicon_title') }}</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  用于浏览器标签页与收藏夹展示。建议使用 .ico 或 32×32 PNG。
+                  {{ $t('admin.settings.general.favicon_desc') }}
                 </p>
               </div>
               <div
@@ -115,10 +115,10 @@
             </div>
 
             <div class="mt-5">
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Favicon URL</div>
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $t('admin.settings.general.favicon_url') }}</div>
               <UInput
                 v-model="dynamicForm.site_favicon"
-                placeholder="例如：https://gopanel.cn/favicon.ico"
+                placeholder="https://gopanel.cn/favicon.ico"
                 size="lg"
               />
               <div class="mt-3 flex flex-col sm:flex-row gap-3">
@@ -129,7 +129,7 @@
                   :loading="isUploadingFavicon"
                   @click="triggerFaviconPick"
                 >
-                  上传图标
+                  {{ $t('admin.settings.general.upload_favicon') }}
                 </UButton>
                 <UButton
                   v-if="dynamicForm.site_favicon"
@@ -139,7 +139,7 @@
                   class="rounded-xl border-gray-200 dark:border-gray-700 text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 justify-center"
                   @click="dynamicForm.site_favicon = ''"
                 >
-                  清空
+                  {{ $t('admin.settings.general.clear_favicon') }}
                 </UButton>
                 <input
                   ref="faviconInput"
@@ -150,7 +150,7 @@
                 >
               </div>
               <div class="text-xs text-gray-500 mt-2">
-                留空则使用默认图标。保存后可刷新前台页面验证效果。
+                {{ $t('admin.settings.general.favicon_hint') }}
               </div>
             </div>
           </div>
@@ -166,8 +166,8 @@
             v-if="activeTab === 'checkout'"
             :form="dynamicForm"
           />
-          <AdminSettingsWebhookTab
-            v-if="activeTab === 'webhook'"
+          <AdminSettingsIntegrationTab
+            v-if="activeTab === 'integration'"
             :form="dynamicForm"
           />
           <AdminSettingsCompanyTab
@@ -189,7 +189,7 @@
                   class="w-6 h-6"
                 />
               </template>
-              <span class="font-medium text-lg">Save</span>
+              <span class="font-medium text-lg">{{ $t('admin.settings.page.save') }}</span>
             </UButton>
           </div>
 
@@ -208,7 +208,7 @@
                   class="w-5 h-5"
                 />
               </template>
-              Save All Settings
+              {{ $t('admin.settings.page.save_all') }}
             </UButton>
           </div>
         </form>
@@ -222,10 +222,12 @@ import {
   definePageMeta,
   useToast,
   useFetch,
-  useCookie,
   useRouter,
+  useI18n,
 } from '#imports'
-const { fetchSettings, getSetting } = useSettings()
+const { fetchSettings } = useSettings()
+
+const { t } = useI18n()
 
 definePageMeta({ title: 'System Settings' })
 
@@ -235,12 +237,12 @@ const router = useRouter()
 const activeTab = ref('general')
 
 const tabs = [
-  { id: 'general', label: 'General Info', icon: 'ph:browser-fill' },
-  { id: 'localization', label: 'Localization', icon: 'ph:translate-fill' },
-  { id: 'seo', label: 'SEO', icon: 'ph:magnifying-glass-fill' },
-  { id: 'checkout', label: 'Checkout', icon: 'ph:shopping-cart-fill' },
-  { id: 'webhook', label: 'Integration', icon: 'ph:shuffle-fill' },
-  { id: 'company', label: 'Company Details', icon: 'ph:buildings-fill' },
+  { id: 'general', labelKey: 'admin.settings.page.nav_general', icon: 'ph:browser-fill' },
+  { id: 'localization', labelKey: 'admin.settings.page.nav_localization', icon: 'ph:translate-fill' },
+  { id: 'seo', labelKey: 'admin.settings.page.nav_seo', icon: 'ph:magnifying-glass-fill' },
+  { id: 'checkout', labelKey: 'admin.settings.page.nav_checkout', icon: 'ph:shopping-cart-fill' },
+  { id: 'integration', labelKey: 'admin.settings.page.nav_integration', icon: 'ph:shuffle-fill' },
+  { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
 ]
 
 const {
@@ -265,7 +267,7 @@ const form = reactive({
   company_phone: '',
   company_address: '',
   webhook_url: '',
-  webhook_secret: '',
+  integration_token: '',
 })
 
 // Dynamically handle form properties initialized from API
@@ -304,9 +306,8 @@ watchEffect(() => {
 const triggerRebuild = async () => {
   const { confirm } = useConfirm()
   const isConfirmed = await confirm({
-    title: 'Rebuild System',
-    description:
-      'Are you sure you want to rebuild and restart the system? This will cause a brief downtime of about 30-60 seconds.',
+    title: t('admin.settings.integration.confirm_rebuild_title'),
+    description: t('admin.settings.integration.confirm_rebuild_desc'),
   })
 
   if (!isConfirmed) return
@@ -318,18 +319,18 @@ const triggerRebuild = async () => {
     })
 
     toast.add({
-      title: 'Rebuild Initiated',
+      title: t('admin.settings.integration.toast_rebuild_initiated'),
       description:
         res.message ||
-        'System is rebuilding in the background. Please refresh the page in a minute.',
+        t('admin.settings.integration.toast_rebuild_desc'),
       color: 'success',
       duration: 10000,
     })
   } catch (e: any) {
     toast.add({
-      title: 'Rebuild Failed',
+      title: t('admin.settings.integration.toast_rebuild_failed'),
       description:
-        e.data?.message || e.message || 'Failed to initiate rebuild script',
+        e.data?.message || e.message || t('admin.settings.integration.toast_rebuild_failed_desc'),
       color: 'error',
     })
   } finally {
@@ -345,8 +346,8 @@ const saveSettings = async () => {
       body: dynamicForm,
     })
     toast.add({
-      title: 'Success',
-      description: 'Settings saved successfully',
+      title: t('admin.settings.general.toast_success'),
+      description: t('admin.settings.general.toast_settings_saved'),
       color: 'success',
     })
     await refresh()
@@ -355,8 +356,8 @@ const saveSettings = async () => {
     await fetchSettings()
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to save settings',
+      title: t('admin.settings.general.toast_error'),
+      description: e.data?.message || t('admin.settings.general.toast_save_failed'),
       color: 'error',
     })
   } finally {
@@ -384,15 +385,15 @@ const handleFaviconSelected = async (e: Event) => {
     })
     dynamicForm.site_favicon = res.url
     toast.add({
-      title: 'Success',
-      description: 'Favicon uploaded successfully',
+      title: t('admin.settings.general.toast_success'),
+      description: t('admin.settings.general.toast_favicon_uploaded'),
       color: 'success',
     })
   } catch (err: any) {
     toast.add({
-      title: 'Error',
+      title: t('admin.settings.general.toast_error'),
       description:
-        err?.data?.message || err?.message || 'Failed to upload favicon',
+        err?.data?.message || err?.message || t('admin.settings.general.toast_favicon_failed'),
       color: 'error',
     })
   } finally {

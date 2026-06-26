@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   const page = parseInt(query.page as string) || 1
   const limit = parseInt(query.limit as string) || 15
   const offset = (page - 1) * limit
+  const tab = (query.tab as string) || 'pending'
 
   // 1. Get user balance (divide by 10^8 since it's stored as BIGINT)
   const userRecord: any = await db.select().from(users as any).where(eq(users.id as any, userId)).limit(1)
@@ -37,23 +38,34 @@ export default defineEventHandler(async (event) => {
 
   const monthlySpend = recentOrders.reduce((sum: number, order: any) => sum + Number(order.amount), 0)
 
-  // 3. Get Order records
+  const wallet = {
+    available: availableBalance,
+    frozen: 0,
+    monthlySpend: monthlySpend
+  }
+
+  // 3. Determine payStatus filter based on tab
+  const payStatusFilter = tab === 'pending' ? eq(orders.payStatus as any, 'pending') : and(
+    eq(orders.payStatus as any, 'paid'),
+    ne(orders.payStatus as any, 'refunded')
+  )
+
+  // 4. Get Order records
   const records = await db.select().from(orders as any)
     .where(and(
       eq(orders.userId as any, userId),
-      eq(orders.payStatus as any, 'paid'),
-      ne(orders.payStatus as any, 'refunded')
+      payStatusFilter
     ))
     .orderBy(desc(orders.createdAt as any))
     .limit(limit)
     .offset(offset)
 
-  // 4. Manually fetch product details for these orders
+  // 5. Manually fetch product details for these orders
   const productIds = [...new Set(records.map((r: any) => r.productId))]
-  const productsList = productIds.length > 0 
+  const productsList = productIds.length > 0
     ? await db.select({ id: products.id as any, name: products.name as any, type: products.type as any }).from(products as any).where(inArray(products.id as any, productIds))
     : []
-  
+
   const productMap = new Map(productsList.map((p: any) => [p.id, p]))
 
   // Format records for frontend
@@ -69,24 +81,20 @@ export default defineEventHandler(async (event) => {
       type: displayType,
       target: product?.name || 'Unknown Product',
       amount: Number(order.amount),
-      status: order.payStatus // 'paid', 'pending', 'failed'
+      status: order.payStatus,
+      payMethod: order.payMethod || null
     }
   })
 
   // Count total for pagination
   const allUserOrders = await db.select({ id: orders.id as any }).from(orders as any).where(and(
     eq(orders.userId as any, userId),
-    eq(orders.payStatus as any, 'paid'),
-    ne(orders.payStatus as any, 'refunded')
+    payStatusFilter
   ))
   const total = allUserOrders.length
 
   return {
-    wallet: {
-      available: availableBalance,
-      frozen: 0, // Not implemented in DB yet
-      monthlySpend: monthlySpend
-    },
+    wallet,
     records: {
       list: formattedRecords,
       total: total

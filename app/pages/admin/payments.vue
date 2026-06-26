@@ -2,15 +2,15 @@
   <div>
     <div class="flex justify-between items-end mb-10">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Payment Methods</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Configure gateways and payment options.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.payments.page.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.payments.page.subtitle') }}</p>
       </div>
       <UButton
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
         @click="openModal()"
-      >Add Method</UButton>
+      >{{ $t('admin.payments.page.add_method') }}</UButton>
     </div>
 
     <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
@@ -31,19 +31,19 @@
               color="warning"
               variant="subtle"
               size="xs"
-            >Unconfigured</UBadge>
+            >{{ $t('admin.payments.badge.unconfigured') }}</UBadge>
             <UBadge
               v-else-if="row.original.hasLocalFiles"
               color="success"
               variant="subtle"
               size="xs"
-            >Local Plugin</UBadge>
+            >{{ $t('admin.payments.badge.local_plugin') }}</UBadge>
             <UBadge
               v-else
               color="info"
               variant="subtle"
               size="xs"
-            >DB Only</UBadge>
+            >{{ $t('admin.payments.badge.db_only') }}</UBadge>
           </div>
         </template>
 
@@ -53,7 +53,7 @@
               color="neutral"
               variant="ghost"
               :icon="row.original.isLocalOnly ? 'ph:plug-bold' : 'ph:pencil-simple'"
-              :label="row.original.isLocalOnly ? 'Configure' : ''"
+              :label="row.original.isLocalOnly ? $t('admin.payments.table.configure') : ''"
               @click="openModal(row.original)"
             />
             <UButton
@@ -72,21 +72,21 @@
     <FullScreenModal
       v-model="isModalOpen"
       maxWidth="sm:max-w-6xl"
-      :title="form.id ? 'Edit Payment Method' : 'New Payment Method'"
+      :title="form.id ? $t('admin.payments.modal.edit_title') : $t('admin.payments.modal.new_title')"
     >
       <form
         @submit.prevent="saveMethod"
         class="space-y-4"
       >
         <div class="grid grid-cols-2 gap-4">
-          <UFormField label="Name (e.g. Stripe)">
+          <UFormField :label="$t('admin.payments.modal.name_label')">
             <UInput
               v-model="form.name"
               required
               class="w-full"
             />
           </UFormField>
-          <UFormField label="Code (e.g. stripe)">
+          <UFormField :label="$t('admin.payments.modal.code_label')">
             <UInput
               v-model="form.code"
               required
@@ -96,47 +96,47 @@
           </UFormField>
         </div>
 
-        <UFormField label="Icon URL (Optional)">
+        <UFormField :label="$t('admin.payments.modal.icon_label')">
           <UInput
             v-model="form.iconUrl"
             class="w-full"
           />
         </UFormField>
 
-        <UFormField label="Payment Info HTML (Optional)">
+        <UFormField :label="$t('admin.payments.modal.info_label')">
           <UTextarea
             v-model="form.info"
             class="h-full w-full font-mono text-sm"
             :rows="8"
           />
           <template #help>
-            <span class="text-xs text-gray-500">HTML injected into the checkout modal.</span>
+            <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.info_help') }}</span>
           </template>
         </UFormField>
 
-        <UFormField label="Create Script (JS)">
+        <UFormField :label="$t('admin.payments.modal.create_label')">
           <UTextarea
             v-model="form.create"
             :rows="12"
             class="font-mono text-sm w-full"
           />
           <template #help>
-            <span class="text-xs text-gray-500">Node.js sandbox script executed when user initiates payment.</span>
+            <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.create_help') }}</span>
           </template>
         </UFormField>
 
-        <UFormField label="Callback Script (JS)">
+        <UFormField :label="$t('admin.payments.modal.callback_label')">
           <UTextarea
             v-model="form.callback"
             :rows="12"
             class="font-mono text-sm w-full"
           />
           <template #help>
-            <span class="text-xs text-gray-500">Node.js sandbox script executed when a webhook is received.</span>
+            <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.callback_help') }}</span>
           </template>
         </UFormField>
 
-        <UFormField label="Configuration (JSON format)">
+        <UFormField :label="$t('admin.payments.modal.config_label')">
           <UTextarea
             v-model="form.configJson"
             :rows="12"
@@ -146,13 +146,13 @@
           <p
             v-if="hasJsonError"
             class="text-xs text-red-500 mt-1"
-          >Invalid JSON format</p>
+          >{{ $t('admin.payments.modal.config_invalid') }}</p>
         </UFormField>
 
         <UFormField>
           <UCheckbox
             v-model="form.isActive"
-            label="Enable this payment method"
+            :label="$t('admin.payments.modal.enable_label')"
           />
         </UFormField>
 
@@ -161,13 +161,13 @@
             color="neutral"
             variant="ghost"
             @click="isModalOpen = false"
-          >Cancel</UButton>
+          >{{ $t('admin.payments.modal.cancel') }}</UButton>
           <UButton
             color="primary"
             class="bg-purple-600 hover:bg-purple-500 text-white"
             type="submit"
             :loading="isSaving"
-          >Save</UButton>
+          >{{ $t('admin.payments.modal.save') }}</UButton>
         </div>
       </form>
     </FullScreenModal>
@@ -180,19 +180,19 @@ import {
   definePageMeta,
   useToast,
   useFetch,
-  useCookie,
-  useRouter,
+  useI18n,
 } from '#imports'
 
 definePageMeta({ title: 'Payment Methods' })
 
+const { t } = useI18n()
 const toast = useToast()
 
 const columns = [
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'code', header: 'Code' },
-  { accessorKey: 'isActive', header: 'Status' },
-  { accessorKey: 'actions', header: 'Actions' },
+  { accessorKey: 'name', header: t('admin.payments.table.name') },
+  { accessorKey: 'code', header: t('admin.payments.table.code') },
+  { accessorKey: 'isActive', header: t('admin.payments.table.status') },
+  { accessorKey: 'actions', header: t('admin.payments.table.actions') },
 ]
 
 const {
@@ -261,8 +261,8 @@ const saveMethod = async () => {
     if (form.configJson) JSON.parse(form.configJson)
   } catch (e) {
     toast.add({
-      title: 'Error',
-      description: 'Invalid JSON in configuration',
+      title: t('admin.payments.toast.error'),
+      description: t('admin.payments.toast.invalid_json'),
       color: 'error',
     })
     return
@@ -283,14 +283,14 @@ const saveMethod = async () => {
     isModalOpen.value = false
     await refresh()
     toast.add({
-      title: 'Success',
-      description: 'Payment method saved successfully',
+      title: t('admin.payments.toast.success'),
+      description: t('admin.payments.toast.saved'),
       color: 'success',
     })
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to save payment method',
+      title: t('admin.payments.toast.error'),
+      description: e.data?.message || t('admin.payments.toast.save_failed'),
       color: 'error',
     })
   } finally {
@@ -305,15 +305,15 @@ const toggleActive = async (row: any) => {
       body: { isActive: row.isActive },
     })
     toast.add({
-      title: 'Success',
-      description: 'Status updated successfully',
+      title: t('admin.payments.toast.success'),
+      description: t('admin.payments.toast.status_updated'),
       color: 'success',
     })
   } catch (e: any) {
     row.isActive = !row.isActive // revert on fail
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to update status',
+      title: t('admin.payments.toast.error'),
+      description: e.data?.message || t('admin.payments.toast.status_failed'),
       color: 'error',
     })
   }
@@ -322,8 +322,8 @@ const toggleActive = async (row: any) => {
 const deleteMethod = async (id: number) => {
   const { confirm } = useConfirm()
   const isConfirmed = await confirm({
-    title: 'Delete Payment Method',
-    description: 'Are you sure? This might affect existing orders.'
+    title: t('admin.payments.confirm.delete_title'),
+    description: t('admin.payments.confirm.delete_desc'),
   })
 
   if (!isConfirmed) return
@@ -334,14 +334,14 @@ const deleteMethod = async (id: number) => {
     })
     await refresh()
     toast.add({
-      title: 'Success',
-      description: 'Payment method deleted successfully',
+      title: t('admin.payments.toast.success'),
+      description: t('admin.payments.toast.deleted'),
       color: 'success',
     })
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to delete method',
+      title: t('admin.payments.toast.error'),
+      description: e.data?.message || t('admin.payments.toast.delete_failed'),
       color: 'error',
     })
   }

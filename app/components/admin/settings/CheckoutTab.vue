@@ -9,13 +9,13 @@
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Checkout & Store Policies</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.checkout.title') }}</h2>
     </div>
     <div class="p-6 space-y-6">
       <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#09090b] rounded-xl border border-gray-200 dark:border-gray-800">
         <div class="flex flex-col gap-1">
-          <span class="font-medium text-gray-900 dark:text-white">Allow Guest Checkout</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">If disabled, unauthenticated users will be redirected to the login page when attempting to purchase.</span>
+          <span class="font-medium text-gray-900 dark:text-white">{{ $t('admin.settings.checkout.allow_guest_checkout') }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ $t('admin.settings.checkout.guest_checkout_desc') }}</span>
         </div>
         <USwitch v-model="form.allow_guest_checkout" />
       </div>

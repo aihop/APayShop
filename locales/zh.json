@@ -286,6 +286,110 @@
       "success": "资料更新成功",
       "passwordMismatch": "新密码两次输入不一致"
     },
+    "settings": {
+      "page": {
+        "title": "系统设置",
+        "subtitle": "配置全局站点信息、AI 模型和主题偏好。",
+        "save_changes": "保存更改",
+        "save_all": "保存所有设置",
+        "save": "保存",
+        "meta_title": "系统设置",
+        "nav_general": "基本信息",
+        "nav_localization": "本地化",
+        "nav_seo": "SEO",
+        "nav_checkout": "结账",
+        "nav_integration": "集成",
+        "nav_company": "公司详情"
+      },
+      "general": {
+        "title": "基本信息",
+        "site_name": "站点名称",
+        "site_name_desc": "用于页面标题和导航栏",
+        "site_url": "站点地址",
+        "site_url_desc": "您网站的主域名 URL",
+        "site_logo": "站点标志 / 图标",
+        "site_logo_desc": "站点标志或 SVG 图标的 URL",
+        "upload": "上传",
+        "contact_email": "联系邮箱",
+        "contact_email_desc": "面向客户的全局支持邮箱",
+        "site_notice": "站点公告",
+        "site_notice_desc": "在站点顶部显示公告",
+        "footer_copyright": "页脚版权",
+        "footer_copyright_desc": "在站点页脚显示的版权文本",
+        "toast_success": "成功",
+        "toast_logo_uploaded": "标志上传成功",
+        "toast_error": "失败",
+        "toast_upload_failed": "上传标志失败",
+        "favicon_title": "站点图标",
+        "favicon_desc": "用于浏览器标签页与收藏夹展示。建议使用 .ico 或 32\u00d732 PNG。",
+        "favicon_url": "Favicon URL",
+        "upload_favicon": "上传图标",
+        "clear_favicon": "清空",
+        "favicon_hint": "留空则使用默认图标。保存后可刷新前台页面验证效果。",
+        "toast_settings_saved": "设置保存成功",
+        "toast_save_failed": "保存设置失败",
+        "toast_favicon_uploaded": "图标上传成功",
+        "toast_favicon_failed": "上传图标失败"
+      },
+      "localization": {
+        "title": "本地化与货币",
+        "default_locale": "默认语言",
+        "default_locale_desc": "您商店的主要语言",
+        "settlement_currency": "结算货币",
+        "settlement_currency_desc": "定价和交易的主要货币",
+        "supported_languages": "支持的语言",
+        "supported_languages_desc": "选择您要支持的所有语言，用户可以在前台切换语言。"
+      },
+      "seo": {
+        "title": "搜索引擎优化 (SEO)",
+        "site_title": "站点标题 (SEO)",
+        "site_title_desc": "搜索引擎的全局元标题 ({locale})",
+        "site_description": "站点描述 (SEO)",
+        "site_description_desc": "搜索引擎的全局元描述 ({locale})"
+      },
+      "checkout": {
+        "title": "结账与商店政策",
+        "allow_guest_checkout": "允许游客结账",
+        "guest_checkout_desc": "如果禁用，未登录用户在尝试购买时将被重定向到登录页面。"
+      },
+      "integration": {
+        "title": "集成配置",
+        "shared_auth_token": "共享认证令牌",
+        "shared_auth_token_desc": "用于验证出站请求的通用令牌。如果未设置，将回退为系统 NUXT_SESSION_PASSWORD。",
+        "token": "集成令牌",
+        "token_desc": "作为发送 Webhook 事件和代理请求到 AI 网关时的 Bearer 令牌。留空则使用系统级别密钥。",
+        "ai_gateway": "AI 网关",
+        "ai_gateway_desc": "驱动网关 API 层的上游后端。",
+        "ai_gateway_url": "AI 网关地址",
+        "ai_gateway_url_desc": "上游 ainode 网关后端的 Base URL。所有代理请求将被转发到这里。",
+        "webhook": "Webhook",
+        "webhook_desc": "向外部服务发送事件通知。",
+        "webhook_url": "Webhook 地址",
+        "webhook_url_desc": "用于接收事件通知的 URL（例如用户注册、支付成功）。",
+        "confirm_rebuild_title": "重建系统",
+        "confirm_rebuild_desc": "确定要重建并重启系统吗？这将导致约 30-60 秒的短暂停机。",
+        "toast_rebuild_initiated": "重建开始",
+        "toast_rebuild_desc": "系统正在后台重建，请稍后刷新页面。",
+        "toast_rebuild_failed": "重建失败",
+        "toast_rebuild_failed_desc": "启动重建脚本失败"
+      },
+      "company": {
+        "title": "公司信息",
+        "company_name": "公司名称",
+        "company_phone": "公司电话",
+        "company_address": "公司地址",
+        "social_title": "社交与消息",
+        "wechat": "微信",
+        "wechat_id": "微信 ID",
+        "whatsapp": "WhatsApp",
+        "whatsapp_number": "号码或链接",
+        "telegram": "Telegram",
+        "telegram_username": "用户名或链接",
+        "qr_code": "二维码",
+        "toast_qr_success": "二维码上传成功",
+        "toast_qr_failed": "二维码上传失败"
+      }
+    },
     "common": {
       "success": "成功",
       "error": "失败",
@@ -374,6 +478,129 @@
       "title": "文章管理",
       "subtitle": "管理您的博客文章和公告",
       "createPost": "创建文章"
+    },
+    "themes": {
+      "page": {
+        "title": "主题管理",
+        "subtitle": "管理您的商店外观和布局。",
+        "ai_builder": "AI 主题构建器",
+        "meta_title": "主题管理"
+      },
+      "active_theme": {
+        "title": "当前主题配置",
+        "desc": "自定义当前激活主题的布局、颜色和功能",
+        "configure": "配置当前主题",
+        "not_needed": "无需主题 \u2014 使用系统默认渲染"
+      },
+      "card": {
+        "active": "已激活",
+        "activate": "激活",
+        "activating": "激活中...",
+        "currently_active": "当前已激活"
+      },
+      "toast": {
+        "activated": "主题已激活",
+        "activated_desc": "已成功切换到 {name}。请重建系统以全局应用更改。",
+        "failed": "激活失败",
+        "failed_desc": "激活主题失败"
+      }
+    },
+    "logs": {
+      "page": {
+        "title": "系统日志",
+        "subtitle": "查看和管理应用事件日志",
+        "meta_title": "系统日志",
+        "clear_all": "清空所有日志"
+      },
+      "table": {
+        "id": "ID",
+        "level": "级别",
+        "source": "来源",
+        "message": "消息",
+        "timestamp": "时间",
+        "actions": "操作"
+      },
+      "pagination": {
+        "showing": "显示",
+        "to": "至",
+        "of": "/",
+        "entries": "条"
+      },
+      "detail": {
+        "title": "日志详情",
+        "message": "消息",
+        "technical_details": "技术详情",
+        "source": "来源",
+        "time": "时间"
+      },
+      "confirm": {
+        "delete_title": "删除日志",
+        "delete_desc": "确定要删除此日志条目吗？",
+        "clear_title": "清空所有日志",
+        "clear_desc": "警告：确定要永久删除所有系统日志吗？此操作不可撤销。"
+      },
+      "toast": {
+        "success": "成功",
+        "deleted": "日志已删除",
+        "cleared": "所有日志已清空",
+        "error": "失败",
+        "delete_failed": "删除日志失败",
+        "clear_failed": "清空日志失败"
+      },
+      "system_fallback": "系统"
+    },
+    "payments": {
+      "page": {
+        "title": "支付方式",
+        "subtitle": "配置支付网关和支付选项。",
+        "add_method": "添加方式",
+        "meta_title": "支付方式"
+      },
+      "table": {
+        "name": "名称",
+        "code": "编码",
+        "status": "状态",
+        "actions": "操作",
+        "configure": "配置"
+      },
+      "badge": {
+        "unconfigured": "未配置",
+        "local_plugin": "本地插件",
+        "db_only": "仅数据库"
+      },
+      "modal": {
+        "edit_title": "编辑支付方式",
+        "new_title": "新增支付方式",
+        "name_label": "名称（如 Stripe）",
+        "code_label": "编码（如 stripe）",
+        "icon_label": "图标 URL（可选）",
+        "info_label": "支付信息 HTML（可选）",
+        "info_help": "注入到结账弹窗中的 HTML。",
+        "create_label": "创建脚本（JS）",
+        "create_help": "用户发起支付时执行的 Node.js 沙盒脚本。",
+        "callback_label": "回调脚本（JS）",
+        "callback_help": "收到 Webhook 时执行的 Node.js 沙盒脚本。",
+        "config_label": "配置（JSON 格式）",
+        "config_invalid": "JSON 格式无效",
+        "enable_label": "启用此支付方式",
+        "cancel": "取消",
+        "save": "保存"
+      },
+      "confirm": {
+        "delete_title": "删除支付方式",
+        "delete_desc": "确定吗？这可能会影响现有订单。"
+      },
+      "toast": {
+        "success": "成功",
+        "error": "失败",
+        "saved": "支付方式保存成功",
+        "save_failed": "保存支付方式失败",
+        "status_updated": "状态更新成功",
+        "status_failed": "状态更新失败",
+        "deleted": "支付方式已删除",
+        "delete_failed": "删除支付方式失败",
+        "invalid_json": "配置中的 JSON 无效"
+      }
     }
   },
   "site": {

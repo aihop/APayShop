@@ -1,6 +1,5 @@
 import { webhooks, settings } from '../db/schema'
 import { eq } from 'drizzle-orm'
-import crypto from 'crypto'
 import { db } from '../db/runtime'
 
 /**
@@ -21,16 +20,16 @@ export async function dispatchEvent(eventName: string, payload: any) {
 
     // Check for global webhook in settings
     const globalWebhookUrlSetting = await db.select().from(settings).where(eq(settings.key, 'webhook_url')).limit(1)
-    const globalWebhookSecretSetting = await db.select().from(settings).where(eq(settings.key, 'webhook_secret')).limit(1)
+    const integrationTokenSetting = await db.select().from(settings).where(eq(settings.key, 'integration_token')).limit(1)
 
     const globalWebhookUrl = globalWebhookUrlSetting[0]?.value
-    const globalWebhookSecret = globalWebhookSecretSetting[0]?.value
+    const integrationToken = integrationTokenSetting[0]?.value
 
     if (globalWebhookUrl) {
       subscribers.push({
         name: 'Global Webhook',
         url: globalWebhookUrl,
-        secret: globalWebhookSecret,
+        token: integrationToken,
         events: ['*'] // Global webhook receives all events
       })
     }
@@ -58,13 +57,9 @@ export async function dispatchEvent(eventName: string, payload: any) {
           'X-APayShop-Timestamp': timestamp
         }
 
-        // If secret is configured, compute HMAC signature for verification
-        if (webhook.secret) {
-          const signature = crypto
-            .createHmac('sha256', webhook.secret)
-            .update(`${timestamp}.${body}`)
-            .digest('hex')
-          headers['X-APayShop-Signature'] = signature
+        // If integration token is configured, use it as Bearer auth
+        if (webhook.token) {
+          headers['Authorization'] = `Bearer ${webhook.token}`
         }
 
         const response = await fetch(webhook.url, {

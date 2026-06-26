@@ -7,11 +7,11 @@
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Company Information</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.company.title') }}</h2>
     </div>
     <div class="p-6 space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField label="Company Name">
+        <UFormField :label="$t('admin.settings.company.company_name')">
           <UInput
             v-model="form.company_name"
             placeholder="Your Company Ltd."
@@ -21,7 +21,7 @@
           />
         </UFormField>
 
-        <UFormField label="Company Phone">
+        <UFormField :label="$t('admin.settings.company.company_phone')">
           <UInput
             v-model="form.company_phone"
             placeholder="+1 (555) 123-4567"
@@ -32,7 +32,7 @@
         </UFormField>
       </div>
 
-      <UFormField label="Company Address">
+      <UFormField :label="$t('admin.settings.company.company_address')">
         <UTextarea
           v-model="form.company_address"
           :rows="3"
@@ -43,7 +43,7 @@
       </UFormField>
 
       <div class="pt-2 border-t border-gray-200 dark:border-gray-800/60">
-        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-6">Social & Messaging</h3>
+        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-6">{{ $t('admin.settings.company.social_title') }}</h3>
         <div class="space-y-6">
           <!-- WeChat -->
           <div class="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-gray-800/40 rounded-xl p-5">
@@ -54,10 +54,10 @@
                   class="w-5 h-5"
                 />
               </div>
-              <h4 class="text-base font-medium text-gray-900 dark:text-white">WeChat</h4>
+              <h4 class="text-base font-medium text-gray-900 dark:text-white">{{ $t('admin.settings.company.wechat') }}</h4>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <UFormField label="WeChat ID">
+              <UFormField :label="$t('admin.settings.company.wechat_id')">
                 <UInput
                   v-model="form.wechat"
                   placeholder="Enter WeChat ID"
@@ -67,7 +67,7 @@
                   :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                 />
               </UFormField>
-              <UFormField label="QR Code">
+              <UFormField :label="$t('admin.settings.company.qr_code')">
                 <div class="flex items-center gap-2 w-full">
                   <UInput
                     v-model="form.wechat_qr"
@@ -105,10 +105,10 @@
                   class="w-5 h-5"
                 />
               </div>
-              <h4 class="text-base font-medium text-gray-900 dark:text-white">WhatsApp</h4>
+              <h4 class="text-base font-medium text-gray-900 dark:text-white">{{ $t('admin.settings.company.whatsapp') }}</h4>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <UFormField label="Number or Link">
+              <UFormField :label="$t('admin.settings.company.whatsapp_number')">
                 <UInput
                   v-model="form.whatsapp"
                   placeholder="Enter WhatsApp Number or Link"
@@ -118,7 +118,7 @@
                   :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                 />
               </UFormField>
-              <UFormField label="QR Code">
+              <UFormField :label="$t('admin.settings.company.qr_code')">
                 <div class="flex items-center gap-2 w-full">
                   <UInput
                     v-model="form.whatsapp_qr"
@@ -156,10 +156,10 @@
                   class="w-5 h-5"
                 />
               </div>
-              <h4 class="text-base font-medium text-gray-900 dark:text-white">Telegram</h4>
+              <h4 class="text-base font-medium text-gray-900 dark:text-white">{{ $t('admin.settings.company.telegram') }}</h4>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <UFormField label="Username or Link">
+              <UFormField :label="$t('admin.settings.company.telegram_username')">
                 <UInput
                   v-model="form.telegram"
                   placeholder="Enter @username or Link"
@@ -169,7 +169,7 @@
                   :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
                 />
               </UFormField>
-              <UFormField label="QR Code">
+              <UFormField :label="$t('admin.settings.company.qr_code')">
                 <div class="flex items-center gap-2 w-full">
                   <UInput
                     v-model="form.telegram_qr"
@@ -243,15 +243,15 @@ const uploadQr = async (event: Event, field: string, inputRef: any) => {
     if (res && res.url) {
       props.form[field] = res.url
       toast.add({
-        title: 'Success',
-        description: 'QR Code uploaded successfully',
+        title: $t('admin.common.success'),
+        description: $t('admin.settings.company.toast_qr_success'),
         color: 'success',
       })
     }
   } catch (error: any) {
     toast.add({
-      title: 'Error',
-      description: error.data?.message || 'Failed to upload QR code',
+      title: $t('admin.common.error'),
+      description: error.data?.message || $t('admin.settings.company.toast_qr_failed'),
       color: 'error',
     })
   } finally {

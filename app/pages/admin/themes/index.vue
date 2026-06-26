@@ -2,8 +2,8 @@
   <div class="space-y-8">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Themes</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Manage your storefront appearance and layout.</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.themes.page.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.themes.page.subtitle') }}</p>
       </div>
       <UButton
         to="/admin/themes/builder"
@@ -12,7 +12,7 @@
         icon="i-heroicons-sparkles"
         class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg"
       >
-        AI Theme Builder
+        {{ $t('admin.themes.page.ai_builder') }}
       </UButton>
     </div>
 
@@ -29,8 +29,8 @@
           />
         </div>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Active Theme Configuration</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Customize layout, colors, and features for your currently active theme</p>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.themes.active_theme.title') }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.themes.active_theme.desc') }}</p>
         </div>
       </div>
       <UButton
@@ -41,7 +41,7 @@
         class="shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_25px_rgba(147,51,234,0.5)] transition-all"
         size="lg"
       >
-        Configure Active Theme
+        {{ $t('admin.themes.active_theme.configure') }}
         <template #trailing>
           <UIcon name="ph:sliders-horizontal" />
         </template>
@@ -52,7 +52,7 @@
         variant="subtle"
         class="text-gray-500 dark:text-gray-400"
       >
-        No theme needed — using system default rendering
+        {{ $t('admin.themes.active_theme.not_needed') }}
       </UBadge>
     </div>
 
@@ -83,7 +83,7 @@
             v-if="getSetting('active_theme') === theme.id"
             class="absolute top-3 right-3 bg-purple-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5"
           >
-            <UIcon name="ph:check-circle-fill" /> Active
+            <UIcon name="ph:check-circle-fill" /> {{ $t('admin.themes.card.active') }}
           </div>
         </div>
 
@@ -102,7 +102,7 @@
               :loading="isActivating === theme.id"
               :disabled="!!isActivating && isActivating !== theme.id"
             >
-              {{ isActivating === theme.id ? 'Activating...' : 'Activate' }}
+              {{ isActivating === theme.id ? $t('admin.themes.card.activating') : $t('admin.themes.card.activate') }}
             </UButton>
             <UButton
               v-else
@@ -113,7 +113,7 @@
               icon="ph:check-circle-fill"
               disabled
             >
-              Currently Active
+              {{ $t('admin.themes.card.currently_active') }}
             </UButton>
 
             <UButton
@@ -133,9 +133,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useToast, useCookie, definePageMeta } from '#imports'
+import { useToast, definePageMeta, useI18n } from '#imports'
 
 definePageMeta({ title: 'Themes' })
+
+const { t } = useI18n()
 
 const { settings, getSetting, fetchSettings } = useSettings()
 
@@ -164,11 +166,11 @@ const activateTheme = async (theme: string) => {
     // Force refresh settings to update the UI reactively
     await fetchSettings(true)
 
+    const themeName = themes.value?.find((t: any) => t.id === theme)?.name || theme
+
     toast.add({
-      title: 'Theme Activated',
-      description: `Successfully switched to ${
-        themes.value?.find((t: any) => t.id === theme)?.name || theme
-      }. Please rebuild the system to apply changes globally.`,
+      title: t('admin.themes.toast.activated'),
+      description: t('admin.themes.toast.activated_desc', { name: themeName }),
       color: 'success',
     })
 
@@ -196,8 +198,8 @@ const activateTheme = async (theme: string) => {
     }, 100)
   } catch (e: any) {
     toast.add({
-      title: 'Activation Failed',
-      description: e.data?.message || e.message || 'Failed to activate theme',
+      title: t('admin.themes.toast.failed'),
+      description: e.data?.message || e.message || t('admin.themes.toast.failed_desc'),
       color: 'error',
     })
   } finally {

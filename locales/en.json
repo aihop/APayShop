@@ -287,6 +287,110 @@
       "success": "Profile updated successfully",
       "passwordMismatch": "New passwords do not match"
     },
+    "settings": {
+      "page": {
+        "title": "System Settings",
+        "subtitle": "Configure global site information, AI models, and theme preferences.",
+        "save_changes": "Save Changes",
+        "save_all": "Save All Settings",
+        "save": "Save",
+        "meta_title": "System Settings",
+        "nav_general": "General Info",
+        "nav_localization": "Localization",
+        "nav_seo": "SEO",
+        "nav_checkout": "Checkout",
+        "nav_integration": "Integration",
+        "nav_company": "Company Details"
+      },
+      "general": {
+        "title": "General Information",
+        "site_name": "Site Name",
+        "site_name_desc": "Used in headers and page titles",
+        "site_url": "Site URL",
+        "site_url_desc": "The primary domain URL of your site",
+        "site_logo": "Site Logo / Icon",
+        "site_logo_desc": "URL to the site logo or SVG icon",
+        "upload": "Upload",
+        "contact_email": "Contact Email",
+        "contact_email_desc": "Global support email for customers",
+        "site_notice": "Site Notice",
+        "site_notice_desc": "Display an announcement at the top of the site",
+        "footer_copyright": "Footer Copyright",
+        "footer_copyright_desc": "Copyright text displayed in the site footer",
+        "toast_success": "Success",
+        "toast_logo_uploaded": "Logo uploaded successfully",
+        "toast_error": "Error",
+        "toast_upload_failed": "Failed to upload logo",
+        "favicon_title": "Site Icon",
+        "favicon_desc": "Used for browser tabs and bookmarks. Recommended: .ico or 32\u00d732 PNG.",
+        "favicon_url": "Favicon URL",
+        "upload_favicon": "Upload Icon",
+        "clear_favicon": "Clear",
+        "favicon_hint": "Leave empty to use the default icon. Refresh the frontend page after saving to verify.",
+        "toast_settings_saved": "Settings saved successfully",
+        "toast_save_failed": "Failed to save settings",
+        "toast_favicon_uploaded": "Favicon uploaded successfully",
+        "toast_favicon_failed": "Failed to upload favicon"
+      },
+      "localization": {
+        "title": "Localization & Currency",
+        "default_locale": "Default Locale",
+        "default_locale_desc": "The primary language for your storefront",
+        "settlement_currency": "Settlement Currency",
+        "settlement_currency_desc": "The primary currency for pricing and transactions",
+        "supported_languages": "Supported Languages",
+        "supported_languages_desc": "Select all languages you want to support. Users can switch between these on the storefront."
+      },
+      "seo": {
+        "title": "Search Engine Optimization (SEO)",
+        "site_title": "Site Title (SEO)",
+        "site_title_desc": "Global meta title for search engines ({locale})",
+        "site_description": "Site Description (SEO)",
+        "site_description_desc": "Global meta description for search engines ({locale})"
+      },
+      "checkout": {
+        "title": "Checkout & Store Policies",
+        "allow_guest_checkout": "Allow Guest Checkout",
+        "guest_checkout_desc": "If disabled, unauthenticated users will be redirected to the login page when attempting to purchase."
+      },
+      "integration": {
+        "title": "Integration Configuration",
+        "shared_auth_token": "Shared Auth Token",
+        "shared_auth_token_desc": "A universal token used to authenticate outbound requests. Falls back to the system NUXT_SESSION_PASSWORD if not set.",
+        "token": "Integration Token",
+        "token_desc": "Used as Bearer token when sending webhook events and proxying requests to the AI Gateway. Leave empty to use the system-level secret.",
+        "ai_gateway": "AI Gateway",
+        "ai_gateway_desc": "Upstream backend that powers the gateway API layer.",
+        "ai_gateway_url": "AI Gateway URL",
+        "ai_gateway_url_desc": "The base URL of the upstream ainode gateway backend. All proxy requests will be forwarded here.",
+        "webhook": "Webhook",
+        "webhook_desc": "Send event notifications to external services.",
+        "webhook_url": "Webhook URL",
+        "webhook_url_desc": "The URL to receive event notifications (e.g., user registration, successful payment).",
+        "confirm_rebuild_title": "Rebuild System",
+        "confirm_rebuild_desc": "Are you sure you want to rebuild and restart the system? This will cause a brief downtime of about 30-60 seconds.",
+        "toast_rebuild_initiated": "Rebuild Initiated",
+        "toast_rebuild_desc": "System is rebuilding in the background. Please refresh the page in a minute.",
+        "toast_rebuild_failed": "Rebuild Failed",
+        "toast_rebuild_failed_desc": "Failed to initiate rebuild script"
+      },
+      "company": {
+        "title": "Company Information",
+        "company_name": "Company Name",
+        "company_phone": "Company Phone",
+        "company_address": "Company Address",
+        "social_title": "Social & Messaging",
+        "wechat": "WeChat",
+        "wechat_id": "WeChat ID",
+        "whatsapp": "WhatsApp",
+        "whatsapp_number": "Number or Link",
+        "telegram": "Telegram",
+        "telegram_username": "Username or Link",
+        "qr_code": "QR Code",
+        "toast_qr_success": "QR Code uploaded successfully",
+        "toast_qr_failed": "Failed to upload QR code"
+      }
+    },
     "common": {
       "success": "Success",
       "error": "Error",
@@ -375,6 +479,129 @@
       "title": "Posts & Articles",
       "subtitle": "Manage your blog posts and announcements",
       "createPost": "Create Post"
+    },
+    "themes": {
+      "page": {
+        "title": "Themes",
+        "subtitle": "Manage your storefront appearance and layout.",
+        "ai_builder": "AI Theme Builder",
+        "meta_title": "Themes"
+      },
+      "active_theme": {
+        "title": "Active Theme Configuration",
+        "desc": "Customize layout, colors, and features for your currently active theme",
+        "configure": "Configure Active Theme",
+        "not_needed": "No theme needed \u2014 using system default rendering"
+      },
+      "card": {
+        "active": "Active",
+        "activate": "Activate",
+        "activating": "Activating...",
+        "currently_active": "Currently Active"
+      },
+      "toast": {
+        "activated": "Theme Activated",
+        "activated_desc": "Successfully switched to {name}. Please rebuild the system to apply changes globally.",
+        "failed": "Activation Failed",
+        "failed_desc": "Failed to activate theme"
+      }
+    },
+    "logs": {
+      "page": {
+        "title": "System Logs",
+        "subtitle": "View and manage application event logs",
+        "meta_title": "System Logs",
+        "clear_all": "Clear All Logs"
+      },
+      "table": {
+        "id": "ID",
+        "level": "Level",
+        "source": "Source",
+        "message": "Message",
+        "timestamp": "Timestamp",
+        "actions": "Actions"
+      },
+      "pagination": {
+        "showing": "Showing",
+        "to": "to",
+        "of": "of",
+        "entries": "entries"
+      },
+      "detail": {
+        "title": "Log Details",
+        "message": "Message",
+        "technical_details": "Technical Details",
+        "source": "Source",
+        "time": "Time"
+      },
+      "confirm": {
+        "delete_title": "Delete Log",
+        "delete_desc": "Are you sure you want to delete this log entry?",
+        "clear_title": "Clear All Logs",
+        "clear_desc": "WARNING: Are you sure you want to permanently delete ALL system logs? This action cannot be undone."
+      },
+      "toast": {
+        "success": "Success",
+        "deleted": "Log deleted successfully",
+        "cleared": "All logs have been cleared",
+        "error": "Error",
+        "delete_failed": "Failed to delete log",
+        "clear_failed": "Failed to clear logs"
+      },
+      "system_fallback": "system"
+    },
+    "payments": {
+      "page": {
+        "title": "Payment Methods",
+        "subtitle": "Configure gateways and payment options.",
+        "add_method": "Add Method",
+        "meta_title": "Payment Methods"
+      },
+      "table": {
+        "name": "Name",
+        "code": "Code",
+        "status": "Status",
+        "actions": "Actions",
+        "configure": "Configure"
+      },
+      "badge": {
+        "unconfigured": "Unconfigured",
+        "local_plugin": "Local Plugin",
+        "db_only": "DB Only"
+      },
+      "modal": {
+        "edit_title": "Edit Payment Method",
+        "new_title": "New Payment Method",
+        "name_label": "Name (e.g. Stripe)",
+        "code_label": "Code (e.g. stripe)",
+        "icon_label": "Icon URL (Optional)",
+        "info_label": "Payment Info HTML (Optional)",
+        "info_help": "HTML injected into the checkout modal.",
+        "create_label": "Create Script (JS)",
+        "create_help": "Node.js sandbox script executed when user initiates payment.",
+        "callback_label": "Callback Script (JS)",
+        "callback_help": "Node.js sandbox script executed when a webhook is received.",
+        "config_label": "Configuration (JSON format)",
+        "config_invalid": "Invalid JSON format",
+        "enable_label": "Enable this payment method",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "confirm": {
+        "delete_title": "Delete Payment Method",
+        "delete_desc": "Are you sure? This might affect existing orders."
+      },
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "saved": "Payment method saved successfully",
+        "save_failed": "Failed to save payment method",
+        "status_updated": "Status updated successfully",
+        "status_failed": "Failed to update status",
+        "deleted": "Payment method deleted successfully",
+        "delete_failed": "Failed to delete method",
+        "invalid_json": "Invalid JSON in configuration"
+      }
     }
   },
   "site": {

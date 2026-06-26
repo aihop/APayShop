@@ -7,13 +7,13 @@
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Localization & Currency</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.localization.title') }}</h2>
     </div>
     <div class="p-6 space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          label="Default Locale"
-          description="The primary language for your storefront"
+          :label="$t('admin.settings.localization.default_locale')"
+          :description="$t('admin.settings.localization.default_locale_desc')"
         >
           <USelectMenu
             v-model="form.default_locale"
@@ -30,8 +30,8 @@
         </UFormField>
 
         <UFormField
-          label="Settlement Currency"
-          description="The primary currency for pricing and transactions"
+          :label="$t('admin.settings.localization.settlement_currency')"
+          :description="$t('admin.settings.localization.settlement_currency_desc')"
         >
           <USelectMenu
             v-model="form.currency"
@@ -50,11 +50,11 @@
       </div>
 
       <USeparator
-        label="Supported Languages"
+        :label="$t('admin.settings.localization.supported_languages')"
         class="py-4"
       />
 
-      <UFormField description="Select all languages you want to support. Users can switch between these on the storefront.">
+      <UFormField :description="$t('admin.settings.localization.supported_languages_desc')">
         <div class="locales-grid-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
           <div
             v-for="locale in availableLocales"

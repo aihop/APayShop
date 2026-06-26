@@ -7,13 +7,13 @@
           class="w-5 h-5"
         />
       </div>
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">General Information</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.general.title') }}</h2>
     </div>
     <div class="p-6 space-y-6">
 
       <UFormField
-        label="Site Name"
-        description="Used in headers and page titles"
+        :label="$t('admin.settings.general.site_name')"
+        :description="$t('admin.settings.general.site_name_desc')"
       >
         <UInput
           v-model="form.site_name"
@@ -26,8 +26,8 @@
       </UFormField>
 
       <UFormField
-        label="Site URL"
-        description="The primary domain URL of your site"
+        :label="$t('admin.settings.general.site_url')"
+        :description="$t('admin.settings.general.site_url_desc')"
       >
         <UInput
           v-model="form.site_url"
@@ -40,8 +40,8 @@
       </UFormField>
 
       <UFormField
-        label="Site Logo / Icon"
-        description="URL to the site logo or SVG icon"
+        :label="$t('admin.settings.general.site_logo')"
+        :description="$t('admin.settings.general.site_logo_desc')"
       >
         <div class="flex items-center gap-3 w-full">
           <UTextarea
@@ -66,14 +66,14 @@
             :loading="isUploadingLogo"
             @click="() => logoInputRef?.click()"
           >
-            Upload
+            {{ $t('admin.settings.general.upload') }}
           </UButton>
         </div>
       </UFormField>
 
       <UFormField
-        label="Contact Email"
-        description="Global support email for customers"
+        :label="$t('admin.settings.general.contact_email')"
+        :description="$t('admin.settings.general.contact_email_desc')"
       >
         <UInput
           v-model="form.support_email"
@@ -87,8 +87,8 @@
       </UFormField>
 
       <UFormField
-        label="Site Notice"
-        description="Display an announcement at the top of the site"
+        :label="$t('admin.settings.general.site_notice')"
+        :description="$t('admin.settings.general.site_notice_desc')"
       >
         <UTextarea
           v-model="form.site_notice"
@@ -100,8 +100,8 @@
       </UFormField>
 
       <UFormField
-        label="Footer Copyright"
-        description="Copyright text displayed in the site footer"
+        :label="$t('admin.settings.general.footer_copyright')"
+        :description="$t('admin.settings.general.footer_copyright_desc')"
       >
         <UInput
           v-model="form.footer_copyright"
@@ -147,15 +147,15 @@ const uploadLogo = async (event: Event) => {
     if (res && res.url) {
       props.form.site_logo = res.url
       toast.add({
-        title: 'Success',
-        description: 'Logo uploaded successfully',
+        title: $t('admin.settings.general.toast_success'),
+        description: $t('admin.settings.general.toast_logo_uploaded'),
         color: 'success',
       })
     }
   } catch (error: any) {
     toast.add({
-      title: 'Error',
-      description: error.data?.message || 'Failed to upload logo',
+      title: $t('admin.settings.general.toast_error'),
+      description: error.data?.message || $t('admin.settings.general.toast_upload_failed'),
       color: 'error',
     })
   } finally {

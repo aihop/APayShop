@@ -2,8 +2,8 @@
   <div class="h-[calc(100vh-10rem)] flex flex-col">
     <div class="flex justify-between items-end mb-6 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">System Logs</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">View and manage application event logs</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.logs.page.title') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.logs.page.subtitle') }}</p>
       </div>
       <UButton
         color="error"
@@ -11,7 +11,7 @@
         icon="ph:trash-bold"
         @click="clearAllLogs"
         :loading="isClearing"
-      >Clear All Logs</UButton>
+      >{{ $t('admin.logs.page.clear_all') }}</UButton>
     </div>
 
     <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
@@ -35,7 +35,7 @@
 
           <template #source-cell="{ row }">
             <span class="text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
-              {{ row.original.source || 'system' }}
+              {{ row.original.source || $t('admin.logs.system_fallback') }}
             </span>
           </template>
 
@@ -83,8 +83,11 @@
       <!-- Pagination Footer -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
         <span class="text-sm text-gray-500 dark:text-gray-400">
-          Showing {{ logs.length > 0 ? (page - 1) * pageSize + 1 : 0 }} to
-          {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
+          {{ $t('admin.logs.pagination.showing') }} {{ logs.length > 0 ? (page - 1) * pageSize + 1 : 0 }}
+          {{ $t('admin.logs.pagination.to') }}
+          {{ Math.min(page * pageSize, totalItems) }}
+          {{ $t('admin.logs.pagination.of') }} {{ totalItems }}
+          {{ $t('admin.logs.pagination.entries') }}
         </span>
         <UPagination
           v-model="page"
@@ -109,7 +112,7 @@
                   name="ph:terminal-window"
                   class="w-5 h-5 text-gray-500 dark:text-gray-400"
                 />
-                Log Details
+                {{ $t('admin.logs.detail.title') }}
               </h3>
               <UButton
                 color="neutral"
@@ -123,14 +126,14 @@
 
           <div class="space-y-4">
             <div>
-              <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Message</div>
+              <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ $t('admin.logs.detail.message') }}</div>
               <div class="text-gray-900 dark:text-white text-sm bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-800">
                 {{ selectedLog?.message }}
               </div>
             </div>
 
             <div>
-              <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Technical Details</div>
+              <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ $t('admin.logs.detail.technical_details') }}</div>
               <div class="bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-800 overflow-y-auto max-h-96">
                 <pre class="text-xs font-mono text-gray-500 dark:text-gray-300 whitespace-pre-wrap">{{ formatDetails(selectedLog?.details) }}</pre>
               </div>
@@ -138,11 +141,11 @@
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Source</div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog?.source || 'system' }}</div>
+                <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ $t('admin.logs.detail.source') }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog?.source || $t('admin.logs.system_fallback') }}</div>
               </div>
               <div>
-                <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Time</div>
+                <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ $t('admin.logs.detail.time') }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog ? formatCreatedAt(selectedLog.createdAt) : '' }}</div>
               </div>
             </div>
@@ -155,20 +158,22 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { definePageMeta, useI18n } from '#imports'
 
 definePageMeta({ title: 'System Logs' })
 
+const { t } = useI18n()
 const toast = useToast()
 
 const columns = [
-  { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'level', header: 'Level' },
-  { accessorKey: 'source', header: 'Source' },
-  { accessorKey: 'message', header: 'Message' },
-  { accessorKey: 'createdAt', header: 'Timestamp' },
+  { accessorKey: 'id', header: t('admin.logs.table.id') },
+  { accessorKey: 'level', header: t('admin.logs.table.level') },
+  { accessorKey: 'source', header: t('admin.logs.table.source') },
+  { accessorKey: 'message', header: t('admin.logs.table.message') },
+  { accessorKey: 'createdAt', header: t('admin.logs.table.timestamp') },
   {
     accessorKey: 'actions',
-    header: 'Actions',
+    header: t('admin.logs.table.actions'),
     meta: {
       class: {
         th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:from-transparent dark:before:to-[#121214]',
@@ -260,8 +265,8 @@ const viewDetails = (log: any) => {
 const deleteLog = async (id: number) => {
   const { confirm } = useConfirm()
   const isConfirmed = await confirm({
-    title: 'Delete Log',
-    description: 'Are you sure you want to delete this log entry?',
+    title: t('admin.logs.confirm.delete_title'),
+    description: t('admin.logs.confirm.delete_desc'),
   })
 
   if (!isConfirmed) return
@@ -271,15 +276,15 @@ const deleteLog = async (id: number) => {
       method: 'DELETE',
     })
     toast.add({
-      title: 'Success',
-      description: 'Log deleted successfully',
+      title: t('admin.logs.toast.success'),
+      description: t('admin.logs.toast.deleted'),
       color: 'success',
     })
     refresh()
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to delete log',
+      title: t('admin.logs.toast.error'),
+      description: e.data?.message || t('admin.logs.toast.delete_failed'),
       color: 'error',
     })
   }
@@ -288,9 +293,8 @@ const deleteLog = async (id: number) => {
 const clearAllLogs = async () => {
   const { confirm } = useConfirm()
   const isConfirmed = await confirm({
-    title: 'Clear All Logs',
-    description:
-      'WARNING: Are you sure you want to permanently delete ALL system logs? This action cannot be undone.',
+    title: t('admin.logs.confirm.clear_title'),
+    description: t('admin.logs.confirm.clear_desc'),
   })
 
   if (!isConfirmed) return
@@ -301,16 +305,16 @@ const clearAllLogs = async () => {
       method: 'DELETE',
     })
     toast.add({
-      title: 'Success',
-      description: 'All logs have been cleared',
+      title: t('admin.logs.toast.success'),
+      description: t('admin.logs.toast.cleared'),
       color: 'success',
     })
     page.value = 1
     refresh()
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to clear logs',
+      title: t('admin.logs.toast.error'),
+      description: e.data?.message || t('admin.logs.toast.clear_failed'),
       color: 'error',
     })
   } finally {
