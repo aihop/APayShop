@@ -702,7 +702,7 @@
     </template>
   </FullScreenModal>
   <!-- Image Preview Modal -->
-  <UModal v-model="isPreviewModalOpen">
+  <UModal v-model:open="isPreviewModalOpen">
     <template #content>
       <div class="relative bg-black/90 p-2 rounded-lg flex justify-center items-center">
         <UButton
