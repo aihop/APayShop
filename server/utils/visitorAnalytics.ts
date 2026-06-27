@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { getCookie, getHeader, getRequestURL, setCookie } from 'h3'
+import { getCookie, getHeader, getRequestIP, getRequestURL, setCookie } from 'h3'
 import { eq } from 'drizzle-orm'
 import { db } from '../db/runtime'
 import { visitorEvents, visitorProfiles } from '../db/schema'
@@ -73,11 +73,58 @@ const readRegion = (event: any) =>
     || getHeader(event, 'x-region')
   )
 
+const readIp = (event: any) => {
+  // Try proxy/CDN headers first (x-forwarded-for, cf-connecting-ip, etc.)
+  const ip = normalizeValue(
+    getHeader(event, 'x-forwarded-for')?.split(',')[0]
+    || getHeader(event, 'x-real-ip')
+    || getHeader(event, 'cf-connecting-ip')
+    || getHeader(event, 'x-vercel-forwarded-for')?.split(',')[0]
+    || getHeader(event, 'x-client-ip')
+  )
+
+  if (ip && !isLocalIp(ip)) return ip
+
+  // Fallback to raw socket IP, but only if it's a real (non-local) IP
+  const remoteIp = getRequestIP(event, { xForwardedFor: true })
+  return remoteIp && !isLocalIp(remoteIp) ? remoteIp : null
+}
+
 const readCity = (event: any) =>
   normalizeValue(
     getHeader(event, 'x-vercel-ip-city')
     || getHeader(event, 'x-city')
   )
+
+const isLocalIp = (ip: string | null) => {
+  if (!ip) return true
+  return ip === '127.0.0.1' || ip === '::1' || ip === 'localhost' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.16.')
+}
+
+let geoIpCache = new Map<string, { country: string; region: string; city: string } | null>()
+
+const resolveGeoFromIp = async (ip: string): Promise<{ country: string; region: string; city: string } | null> => {
+  if (isLocalIp(ip)) return null
+
+  const cached = geoIpCache.get(ip)
+  if (cached !== undefined) return cached
+
+  try {
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,countryCode,regionName,city`)
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.status !== 'success') {
+      geoIpCache.set(ip, null)
+      return null
+    }
+    const result = { country: data.countryCode || '', region: data.regionName || '', city: data.city || '' }
+    geoIpCache.set(ip, result)
+    return result
+  } catch {
+    geoIpCache.set(ip, null)
+    return null
+  }
+}
 
 const parseDeviceType = (userAgent: string) => {
   const ua = userAgent.toLowerCase()
@@ -187,6 +234,19 @@ export const ensureVisitorId = (event: any) => {
   return visitorId
 }
 
+const updateGeoAsync = (ip: string, visitorId: string, eventId: number) => {
+  if (!eventId) return
+  resolveGeoFromIp(ip).then(geo => {
+    if (!geo) return
+    db.update(visitorEvents)
+      .set({ country: geo.country || null, region: geo.region || null, city: geo.city || null })
+      .where(eq(visitorEvents.id, eventId))
+    db.update(visitorProfiles)
+      .set({ country: geo.country || null, region: geo.region || null, city: geo.city || null })
+      .where(eq(visitorProfiles.visitorId, visitorId))
+  }).catch(() => {})
+}
+
 export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInput) => {
   const visitorId = normalizeValue(input.visitorId) || (event ? ensureVisitorId(event) : null)
   if (!visitorId) return
@@ -198,6 +258,7 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
   const path = normalizePath(input.path || referrer, host)
   const attribution = classifySource(path, referrer, host)
   const createdAt = input.createdAt || new Date()
+  const ip = event ? readIp(event) : null
   const country = normalizeValue(input.country) || (event ? readCountry(event) : null)
   const region = normalizeValue(input.region) || (event ? readRegion(event) : null)
   const city = normalizeValue(input.city) || (event ? readCity(event) : null)
@@ -207,8 +268,9 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
   const browser = normalizeValue(input.browser) || (userAgent ? parseBrowser(userAgent) : null)
   const os = normalizeValue(input.os) || (userAgent ? parseOs(userAgent) : null)
 
-  await db.insert(visitorEvents).values({
+  const insertResult = await db.insert(visitorEvents).values({
     visitorId,
+    ip,
     userId: input.userId || null,
     orderId: input.orderId || null,
     productId: input.productId || null,
@@ -233,6 +295,7 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
     userAgent,
     createdAt,
   } as any)
+  const eventId = Number((insertResult as any)?.lastInsertRowid || 0)
 
   const existingProfiles = await db.select().from(visitorProfiles).where(eq(visitorProfiles.visitorId, visitorId)).limit(1)
   const profile = existingProfiles[0] as any
@@ -272,6 +335,11 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
       createdAt,
       updatedAt: createdAt,
     } as any)
+
+    // Fire-and-forget: resolve geo from IP when CDN headers are unavailable
+    if (ip && !country && !isLocalIp(ip)) {
+      updateGeoAsync(ip, visitorId, eventId)
+    }
     return
   }
 
@@ -302,4 +370,9 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
   }
 
   await db.update(visitorProfiles).set(updates as any).where(eq(visitorProfiles.visitorId, visitorId))
+
+  // Fire-and-forget: resolve geo from IP when CDN headers are unavailable
+  if (ip && !country && !isLocalIp(ip)) {
+    updateGeoAsync(ip, visitorId, eventId)
+  }
 }

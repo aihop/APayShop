@@ -53,6 +53,8 @@ export default defineEventHandler(async (event) => {
   const tz = await getConfiguredTimezone()
   const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query, tz)
 
+  const host = getRequestHost(event)
+
   const events = await db.select({
     id: visitorEvents.id,
     visitorId: visitorEvents.visitorId,
@@ -80,6 +82,14 @@ export default defineEventHandler(async (event) => {
     .from(visitorEvents)
     .where(and(gte(visitorEvents.createdAt, rangeStart), lt(visitorEvents.createdAt, rangeEnd)))
     .orderBy(desc(visitorEvents.createdAt))
+
+  // Collect external visitor IDs — those whose referrer URL is not from the current site
+  const externalEventVisitorIds = new Set<string>()
+  for (const evt of events) {
+    if (evt.referrer && !evt.referrer.includes(host)) {
+      externalEventVisitorIds.add(evt.visitorId)
+    }
+  }
 
   const profiles = await db.select()
     .from(visitorProfiles)
@@ -123,6 +133,8 @@ export default defineEventHandler(async (event) => {
   const loginVisitors = new Set<string>()
   const registerVisitors = new Set<string>()
   const todayVisitors = new Set<string>()
+  const externalVisitors = new Set<string>()
+  const campaignVisitors = new Set<string>()
   const firstTouchSourceMap: Record<string, number> = {}
   const lastTouchSourceMap: Record<string, number> = {}
   const sourceCategoryMap: Record<string, number> = {}
@@ -149,6 +161,16 @@ export default defineEventHandler(async (event) => {
     }
     countryMap[profile.country || 'Unknown'] = (countryMap[profile.country || 'Unknown'] || 0) + 1
     deviceMap[profile.deviceType || 'Unknown'] = (deviceMap[profile.deviceType || 'Unknown'] || 0) + 1
+
+    // Count external source visitors (referrer URL not from current site)
+    if (externalEventVisitorIds.has(profile.visitorId)) {
+      externalVisitors.add(profile.visitorId)
+    }
+
+    // Count campaign visitors
+    if (profile.firstCampaign || profile.lastCampaign) {
+      campaignVisitors.add(profile.visitorId)
+    }
   }
 
   for (const item of events as any[]) {
@@ -243,6 +265,8 @@ export default defineEventHandler(async (event) => {
       authVisitors: authVisitors.size,
       loginVisitors: loginVisitors.size,
       registerVisitors: registerVisitors.size,
+      externalVisitors: externalVisitors.size,
+      campaignVisitors: campaignVisitors.size,
       conversionRate: pageViewVisitors.size > 0 ? Number(((paidVisitors.size / pageViewVisitors.size) * 100).toFixed(1)) : 0,
     },
     funnel: [

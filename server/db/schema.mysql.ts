@@ -231,6 +231,7 @@ export const visitorProfiles = mysqlTable('visitor_profiles', {
 export const visitorEvents = mysqlTable('visitor_events', {
   id: int('id').autoincrement().primaryKey(),
   visitorId: text('visitor_id').notNull(),
+  ip: text('ip'),
   userId: int('user_id').references(() => users.id),
   orderId: text('order_id').references(() => orders.id),
   productId: int('product_id').references(() => products.id),
@@ -253,6 +254,23 @@ export const visitorEvents = mysqlTable('visitor_events', {
   browser: text('browser'),
   os: text('os'),
   userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').notNull().defaultNow()
+})
+
+export const accessLogs = mysqlTable('access_logs', {
+  id: int('id').autoincrement().primaryKey(),
+  path: text('path').notNull(),
+  method: text('method').notNull(),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  referrer: text('referrer'),
+  country: text('country'),
+  region: text('region'),
+  city: text('city'),
+  statusCode: int('status_code'),
+  duration: real('duration'),
+  visitorId: text('visitor_id'),
+  userId: int('user_id').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 

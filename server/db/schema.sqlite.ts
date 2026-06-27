@@ -226,6 +226,7 @@ export const visitorProfiles = sqliteTable('visitor_profiles', {
 export const visitorEvents = sqliteTable('visitor_events', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   visitorId: text('visitor_id').notNull(),
+  ip: text('ip'),
   userId: integer('user_id').references(() => users.id),
   orderId: text('order_id').references(() => orders.id),
   productId: integer('product_id').references(() => products.id),
@@ -248,6 +249,23 @@ export const visitorEvents = sqliteTable('visitor_events', {
   browser: text('browser'),
   os: text('os'),
   userAgent: text('user_agent'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const accessLogs = sqliteTable('access_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  path: text('path').notNull(),
+  method: text('method').notNull(), // HTTP method: GET, POST, etc.
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  referrer: text('referrer'),
+  country: text('country'),
+  region: text('region'),
+  city: text('city'),
+  statusCode: integer('status_code'), // HTTP response status code
+  duration: real('duration'), // Response time in milliseconds
+  visitorId: text('visitor_id'),
+  userId: integer('user_id').references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 

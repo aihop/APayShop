@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, lt } from 'drizzle-orm'
+import { and, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../../db/schema'
 import { clampStatsPage, clampStatsPageSize, parseStatsRange } from '../../../utils/adminStats'
@@ -11,16 +11,66 @@ export default defineEventHandler(async (event) => {
   const page = clampStatsPage(query.page, 1)
   const pageSize = clampStatsPageSize(query.pageSize, 20)
   const offset = (page - 1) * pageSize
+  const eventType = query.type as string | undefined
+  const sourceType = query.sourceType as string | undefined
+  const host = getRequestHost(event)
+
+  // If eventType is set, first find matching visitorIds
+  let matchingVisitorIds: string[] | null = null
+  if (eventType) {
+    const rows = await db
+      .select({ visitorId: visitorEvents.visitorId })
+      .from(visitorEvents)
+      .where(
+        and(
+          gte(visitorEvents.createdAt, rangeStart),
+          lt(visitorEvents.createdAt, rangeEnd),
+          eq(visitorEvents.eventName, eventType)
+        )
+      )
+      .groupBy(visitorEvents.visitorId)
+    matchingVisitorIds = rows.map((r: any) => r.visitorId)
+  } else if (sourceType === 'external') {
+    // Find visitors whose referrer URL is not from the current site
+    const rows = await db
+      .select({ visitorId: visitorEvents.visitorId })
+      .from(visitorEvents)
+      .where(
+        and(
+          gte(visitorEvents.createdAt, rangeStart),
+          lt(visitorEvents.createdAt, rangeEnd),
+          sql`${visitorEvents.referrer} IS NOT NULL AND ${visitorEvents.referrer} != '' AND ${visitorEvents.referrer} NOT LIKE '%${sql.raw(host)}%'`
+        )
+      )
+      .groupBy(visitorEvents.visitorId)
+    matchingVisitorIds = rows.map((r: any) => r.visitorId)
+  }
+
+  // Build profile filter
+  const profileConditions = [
+    gte(visitorProfiles.lastSeenAt, rangeStart),
+    lt(visitorProfiles.lastSeenAt, rangeEnd),
+  ]
+  if (matchingVisitorIds !== null) {
+    profileConditions.push(inArray(visitorProfiles.visitorId, matchingVisitorIds.length > 0 ? matchingVisitorIds : ['__none__']))
+  }
+  if (sourceType === 'campaign') {
+    profileConditions.push(
+      sql`(${visitorProfiles.firstCampaign} IS NOT NULL OR ${visitorProfiles.lastCampaign} IS NOT NULL)`
+    )
+  }
+
+  const profileFilter = and(...profileConditions)
 
   const [{ value: totalItems }] = await db
     .select({ value: count() })
     .from(visitorProfiles)
-    .where(and(gte(visitorProfiles.lastSeenAt, rangeStart), lt(visitorProfiles.lastSeenAt, rangeEnd)))
+    .where(profileFilter)
 
   const profiles = await db
     .select()
     .from(visitorProfiles)
-    .where(and(gte(visitorProfiles.lastSeenAt, rangeStart), lt(visitorProfiles.lastSeenAt, rangeEnd)))
+    .where(profileFilter)
     .orderBy(desc(visitorProfiles.lastSeenAt))
     .limit(pageSize)
     .offset(offset)

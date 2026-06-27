@@ -53,6 +53,7 @@ export const {
   logs,
   visitorProfiles,
   visitorEvents,
+  accessLogs,
   posts,
   subscriptions
 } = activeSchema

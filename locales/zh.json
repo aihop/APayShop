@@ -18,6 +18,7 @@
       "blogs": "博客",
       "cards": "虚拟卡片",
       "logs": "日志",
+      "accessLogs": "访问日志",
       "subscriptions": "订阅服务",
       "docs": "文档"
     },
@@ -79,19 +80,23 @@
       "eventTab": "事件列表",
       "pageViews": "页面浏览",
       "uniqueVisitors": "独立访客",
-      "todayVisitors": "今日访客",
+      "todayVisitors": "今日IP",
       "productVisitors": "产品访客",
       "checkoutVisitors": "发起结账访客",
       "paidVisitors": "付费访客",
       "authVisitors": "登录/注册访客",
+      "externalVisitors": "外部来源访客",
+      "campaignVisitors": "投流访客",
       "conversionRate": "转化率",
       "pageViewsTip": "所选时间范围内的总页面浏览量",
       "uniqueVisitorsTip": "基于 visitor_id 去重后的访客数",
-      "todayVisitorsTip": "当前自然日内活跃的访客数",
+      "todayVisitorsTip": "当前自然日内活跃的独立IP数",
       "productVisitorsTip": "浏览过产品详情页的访客数",
       "checkoutVisitorsTip": "发起过结账的访客数",
       "paidVisitorsTip": "完成支付的访客数",
       "authVisitorsTip": "发生注册或登录的访客数",
+      "externalVisitorsTip": "来自搜索引擎、社交媒体或站外引荐的访客",
+      "campaignVisitorsTip": "通过投放活动进入的访客",
       "conversionRateTip": "付费访客 / 独立访客",
       "visitor": "访客",
       "firstSource": "首访来源",
@@ -115,7 +120,16 @@
       "search": "搜索引擎",
       "social": "社交媒体",
       "referral": "站外引荐",
-      "campaign": "投放活动"
+      "campaign": "投放活动",
+      "pageViewsModalTitle": "页面访问列表",
+      "uniqueVisitorsModalTitle": "独立访客列表",
+      "todayIpModalTitle": "今日IP列表",
+      "productVisitorsModalTitle": "产品访客列表",
+      "checkoutVisitorsModalTitle": "结账访客列表",
+      "paidVisitorsModalTitle": "付费访客列表",
+      "authVisitorsModalTitle": "登录注册访客列表",
+      "externalVisitorsModalTitle": "外部来源访客列表",
+      "campaignVisitorsModalTitle": "投流访客列表"
     },
     "orders": {
       "title": "订单管理",
@@ -659,6 +673,26 @@
         "clear_failed": "清空日志失败"
       },
       "system_fallback": "系统"
+    },
+    "accessLogs": {
+      "page": {
+        "title": "访问日志",
+        "subtitle": "全量 HTTP 请求日志，包含 IP、方法、状态码和响应耗时。"
+      },
+      "table": {
+        "path": "路径",
+        "method": "方法",
+        "status": "状态",
+        "duration": "耗时",
+        "visitor": "访客",
+        "time": "时间"
+      },
+      "filter": {
+        "search": "搜索路径、IP 或访客...",
+        "allMethods": "全部方法",
+        "allStatus": "全部状态",
+        "refresh": "刷新"
+      }
     },
     "payments": {
       "page": {

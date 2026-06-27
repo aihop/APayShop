@@ -18,6 +18,7 @@
       "blogs": "Blogs",
       "cards": "Virtual Cards",
       "logs": "Logs",
+      "accessLogs": "Access Logs",
       "subscriptions": "Subscriptions",
       "docs": "Docs"
     },
@@ -79,19 +80,23 @@
       "eventTab": "Events",
       "pageViews": "Page Views",
       "uniqueVisitors": "Unique Visitors",
-      "todayVisitors": "Today Visitors",
+      "todayVisitors": "Today IPs",
       "productVisitors": "Product Visitors",
       "checkoutVisitors": "Checkout Visitors",
       "paidVisitors": "Paid Visitors",
       "authVisitors": "Auth Visitors",
+      "externalVisitors": "External Visitors",
+      "campaignVisitors": "Campaign Visitors",
       "conversionRate": "Conversion Rate",
       "pageViewsTip": "Total tracked page views in the selected period",
       "uniqueVisitorsTip": "Unique visitor_id count on page views",
-      "todayVisitorsTip": "Visitors active in the current day",
+      "todayVisitorsTip": "Unique IPs active in the current day",
       "productVisitorsTip": "Visitors who viewed product detail pages",
       "checkoutVisitorsTip": "Visitors who started checkout",
       "paidVisitorsTip": "Visitors with successful payment",
       "authVisitorsTip": "Visitors who registered or logged in",
+      "externalVisitorsTip": "Visitors from search engines, social media or external referrals",
+      "campaignVisitorsTip": "Visitors from marketing campaigns",
       "conversionRateTip": "Paid visitors / unique visitors",
       "visitor": "Visitor",
       "firstSource": "First Touch",
@@ -115,7 +120,16 @@
       "search": "Search Engines",
       "social": "Social",
       "referral": "External Referrals",
-      "campaign": "Campaigns"
+      "campaign": "Campaigns",
+      "pageViewsModalTitle": "Page View List",
+      "uniqueVisitorsModalTitle": "Unique Visitor List",
+      "todayIpModalTitle": "Today IP List",
+      "productVisitorsModalTitle": "Product Visitor List",
+      "checkoutVisitorsModalTitle": "Checkout Visitor List",
+      "paidVisitorsModalTitle": "Paid Visitor List",
+      "authVisitorsModalTitle": "Auth Visitor List",
+      "externalVisitorsModalTitle": "External Visitor List",
+      "campaignVisitorsModalTitle": "Campaign Visitor List"
     },
     "orders": {
       "title": "Orders",
@@ -660,6 +674,26 @@
         "clear_failed": "Failed to clear logs"
       },
       "system_fallback": "system"
+    },
+    "accessLogs": {
+      "page": {
+        "title": "Access Logs",
+        "subtitle": "Full HTTP request log with IP, method, status, and timing details."
+      },
+      "table": {
+        "path": "Path",
+        "method": "Method",
+        "status": "Status",
+        "duration": "Duration",
+        "visitor": "Visitor",
+        "time": "Time"
+      },
+      "filter": {
+        "search": "Search path, IP or visitor...",
+        "allMethods": "All Methods",
+        "allStatus": "All Status",
+        "refresh": "Refresh"
+      }
     },
     "payments": {
       "page": {

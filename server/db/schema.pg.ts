@@ -231,6 +231,7 @@ export const visitorProfiles = pgTable('visitor_profiles', {
 export const visitorEvents = pgTable('visitor_events', {
   id: serial('id').primaryKey(),
   visitorId: text('visitor_id').notNull(),
+  ip: text('ip'),
   userId: integer('user_id').references(() => users.id),
   orderId: text('order_id').references(() => orders.id),
   productId: integer('product_id').references(() => products.id),
@@ -253,6 +254,23 @@ export const visitorEvents = pgTable('visitor_events', {
   browser: text('browser'),
   os: text('os'),
   userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+})
+
+export const accessLogs = pgTable('access_logs', {
+  id: serial('id').primaryKey(),
+  path: text('path').notNull(),
+  method: text('method').notNull(),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  referrer: text('referrer'),
+  country: text('country'),
+  region: text('region'),
+  city: text('city'),
+  statusCode: integer('status_code'),
+  duration: real('duration'),
+  visitorId: text('visitor_id'),
+  userId: integer('user_id').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 

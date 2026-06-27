@@ -32,7 +32,9 @@
       <div
         v-for="card in overviewCards"
         :key="card.label"
-        class="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-gray-200 dark:border-gray-800/50"
+        class="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-gray-200 dark:border-gray-800/50 transition-all"
+        :class="card.clickable ? 'cursor-pointer hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5' : ''"
+        @click="card.clickable && openModal(card.modalKey)"
       >
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ card.label }}</span>
@@ -238,166 +240,116 @@
         </div>
       </div>
     </div>
-
-    <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
-      <div class="flex items-center justify-between mb-5">
-        <div>
-          <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.details') }}</h2>
-          <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.detailsSubtitle') }}</p>
-        </div>
-      </div>
-
-      <UTabs
-        v-model="activeDetailsTab"
-        :items="detailsTabs"
-        class="mb-4"
-      />
-
-      <div
-        v-if="activeDetailsTab === 'visitors'"
-        class="rounded-2xl border border-gray-200 dark:border-gray-800/50 overflow-hidden"
-      >
-        <div class="overflow-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
-                <th class="py-3 px-4">{{ t('admin.stats.visitor') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.firstSource') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.lastSource') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.region') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.device') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.landing') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.pageViews') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.checkout') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.paid') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in visitorRows"
-                :key="item.visitorId"
-                class="border-b border-gray-100 dark:border-gray-900/80"
-              >
-                <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
-                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.firstTouch) }}</td>
-                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.lastTouch) }}</td>
-                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.country }}</td>
-                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.deviceType }}</td>
-                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-52 truncate">{{ item.landingPath }}</td>
-                <td class="py-3 pr-4 text-gray-900 dark:text-white">{{ formatNumber(item.pageViews) }}</td>
-                <td class="py-3 pr-4 text-amber-600 dark:text-amber-300">{{ formatNumber(item.checkouts) }}</td>
-                <td class="py-3 pr-4 text-emerald-600 dark:text-emerald-300">{{ formatNumber(item.paid) }}</td>
-              </tr>
-              <tr v-if="!visitorsPending && visitorRows.length === 0">
-                <td
-                  colspan="9"
-                  class="px-4 py-10 text-center text-gray-500"
-                >
-                  -
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center bg-white dark:bg-[#121214]">
-          <div class="text-sm text-gray-500 dark:text-gray-400">
-            {{ $t('admin.common.showing') }}
-            <span class="text-gray-900 dark:text-white">{{ visitorTotalItems > 0 ? (visitorsPage - 1) * visitorsPageCount + 1 : 0 }}</span>
-            {{ $t('admin.common.to') }}
-            <span class="text-gray-900 dark:text-white">{{ Math.min(visitorsPage * visitorsPageCount, visitorTotalItems) }}</span>
-            {{ $t('admin.common.of') }}
-            <span class="text-gray-900 dark:text-white">{{ visitorTotalItems }}</span>
-            {{ $t('admin.common.results') }}
-          </div>
-          <UPagination
-            v-model="visitorsPage"
-            :total="visitorTotalItems"
-            :page-count="visitorsPageCount"
-            :disabled="visitorsPending"
-            @update:page="(val) => onVisitorsPageChange(val)"
-          />
-        </div>
-      </div>
-
-      <div
-        v-else
-        class="rounded-2xl border border-gray-200 dark:border-gray-800/50 overflow-hidden"
-      >
-        <div class="overflow-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
-                <th class="py-3 px-4">{{ t('admin.stats.event') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.visitor') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.source') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.region') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.path') }}</th>
-                <th class="py-3 pr-4">{{ t('admin.stats.time') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in eventRows"
-                :key="item.id"
-                class="border-b border-gray-100 dark:border-gray-900/80"
-              >
-                <td class="py-3 px-4">
-                  <UBadge
-                    :color="eventColor(item.eventName)"
-                    variant="subtle"
-                  >
-                    {{ eventLabel(item.eventName, item.eventAction) }}
-                  </UBadge>
-                </td>
-                <td class="py-3 pr-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
-                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.source) }}</td>
-                <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.country }} / {{ item.deviceType }}</td>
-                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-72 truncate">{{ item.path || '-' }}</td>
-                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ format(item.createdAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</td>
-              </tr>
-              <tr v-if="!eventsPending && eventRows.length === 0">
-                <td
-                  colspan="6"
-                  class="px-4 py-10 text-center text-gray-500"
-                >
-                  -
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center bg-white dark:bg-[#121214]">
-          <div class="text-sm text-gray-500 dark:text-gray-400">
-            {{ $t('admin.common.showing') }}
-            <span class="text-gray-900 dark:text-white">{{ eventTotalItems > 0 ? (eventsPage - 1) * eventsPageCount + 1 : 0 }}</span>
-            {{ $t('admin.common.to') }}
-            <span class="text-gray-900 dark:text-white">{{ Math.min(eventsPage * eventsPageCount, eventTotalItems) }}</span>
-            {{ $t('admin.common.of') }}
-            <span class="text-gray-900 dark:text-white">{{ eventTotalItems }}</span>
-            {{ $t('admin.common.results') }}
-          </div>
-          <UPagination
-            v-model="eventsPage"
-            :total="eventTotalItems"
-            :page-count="eventsPageCount"
-            :disabled="eventsPending"
-            @update:page="(val) => onEventsPageChange(val)"
-          />
-        </div>
-      </div>
-    </div>
   </div>
+
+  <!-- Visitor List Modal -->
+  <FullScreenModal v-model="isModalOpen" :title="modalTitle">
+    <div class="overflow-auto">
+      <!-- Visitors table (visitorId-based) -->
+      <table v-if="modalSource === 'visitors'" class="min-w-full text-sm">
+        <thead class="sticky top-0 bg-white dark:bg-[#121214]">
+          <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
+            <th class="py-3 px-4 whitespace-nowrap">{{ t('admin.stats.visitor') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.firstSource') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.lastSource') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.region') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.device') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.landing') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.pageViews') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.checkout') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.paid') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in modalRows"
+            :key="item.visitorId"
+            class="border-b border-gray-100 dark:border-gray-900/80"
+          >
+            <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ formatSourceLabel(item.firstTouch) }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ formatSourceLabel(item.lastTouch) }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.country }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.deviceType }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-40 truncate">{{ item.landingPath }}</td>
+            <td class="py-3 pr-4 text-gray-900 dark:text-white">{{ formatNumber(item.pageViews) }}</td>
+            <td class="py-3 pr-4 text-amber-600 dark:text-amber-300">{{ formatNumber(item.checkouts) }}</td>
+            <td class="py-3 pr-4 text-emerald-600 dark:text-emerald-300">{{ formatNumber(item.paid) }}</td>
+          </tr>
+          <tr v-if="!modalPending && modalRows.length === 0">
+            <td colspan="9" class="px-4 py-10 text-center text-gray-500">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- IP table (events endpoint) -->
+      <table v-else class="min-w-full text-sm">
+        <thead class="sticky top-0 bg-white dark:bg-[#121214]">
+          <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
+            <th class="py-3 px-4 whitespace-nowrap">IP</th>
+            <th class="py-3 pr-4 whitespace-nowrap">Visitor</th>
+            <th class="py-3 pr-4 whitespace-nowrap">Visits</th>
+            <th class="py-3 pr-4 whitespace-nowrap">Registered</th>
+            <th class="py-3 pr-4 whitespace-nowrap">Country</th>
+            <th class="py-3 pr-4 whitespace-nowrap">Device</th>
+            <th class="py-3 pr-4 whitespace-nowrap">First Seen</th>
+            <th class="py-3 pr-4 whitespace-nowrap">Last Seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in modalRows"
+            :key="item.ip"
+            class="border-b border-gray-100 dark:border-gray-900/80"
+          >
+            <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ item.ip }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+            <td class="py-3 pr-4 text-gray-900 dark:text-white">{{ formatNumber(item.visitCount) }}</td>
+            <td class="py-3 pr-4">
+              <UBadge :color="item.isRegistered ? 'success' : 'neutral'" variant="subtle" size="xs">{{ item.isRegistered ? 'Yes' : 'No' }}</UBadge>
+            </td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.country }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.deviceType }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDateTime(item.firstSeenAt) }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDateTime(item.lastSeenAt) }}</td>
+          </tr>
+          <tr v-if="!modalPending && modalRows.length === 0">
+            <td colspan="8" class="px-4 py-10 text-center text-gray-500">-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <template #footer>
+      <div class="flex items-center justify-between w-full">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          {{ $t('admin.common.showing') }}
+          <span class="text-gray-900 dark:text-white">{{ modalTotalItems > 0 ? (modalPage - 1) * modalPageSize + 1 : 0 }}</span>
+          {{ $t('admin.common.to') }}
+          <span class="text-gray-900 dark:text-white">{{ Math.min(modalPage * modalPageSize, modalTotalItems) }}</span>
+          {{ $t('admin.common.of') }}
+          <span class="text-gray-900 dark:text-white">{{ modalTotalItems }}</span>
+          {{ $t('admin.common.results') }}
+        </div>
+        <UPagination
+          v-model="modalPage"
+          :total="modalTotalItems"
+          :page-count="modalPageSize"
+          :disabled="modalPending"
+          @update:page="(val) => onModalPageChange(val)"
+        />
+      </div>
+    </template>
+  </FullScreenModal>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ title: 'Visitor Stats' })
 
 const { t, locale } = useI18n()
-const { format } = useFormatTime()
+const { formatDateTime } = useFormatTime()
 const router = useRouter()
-const preset = ref('7d')
+const preset = ref('today')
 const rangeDays = computed(() => {
   if (preset.value === 'today' || preset.value === 'yesterday') {
     return 1
@@ -433,53 +385,122 @@ const externalSources = computed(() => data.value?.sources?.external || [])
 const firstTouchSources = computed(() => data.value?.sources?.firstTouch || [])
 const lastTouchSources = computed(() => data.value?.sources?.lastTouch || [])
 const funnel = computed(() => data.value?.funnel || [])
-const activeDetailsTab = ref('visitors')
-const detailsTabs = computed(() => [
-  { label: t('admin.stats.visitorTab'), value: 'visitors', icon: 'ph:users' },
-  {
-    label: t('admin.stats.eventTab'),
-    value: 'events',
-    icon: 'ph:list-bullets',
-  },
-])
+
+// Modal state
+const isModalOpen = ref(false)
+const modalTitle = ref('')
+const modalSource = ref<'visitors' | 'events'>('visitors')
+const modalEventType = ref('')
+const modalSourceType = ref('')
+
+function openModal(key: string) {
+  modalSourceType.value = ''
+  modalEventType.value = ''
+
+  if (key === 'pageViews') {
+    modalTitle.value = t('admin.stats.pageViewsModalTitle')
+    modalSource.value = 'visitors'
+    modalEventType.value = 'page_view'
+  } else if (key === 'uniqueVisitors') {
+    modalTitle.value = t('admin.stats.uniqueVisitorsModalTitle')
+    modalSource.value = 'visitors'
+  } else if (key === 'todayIp') {
+    modalTitle.value = t('admin.stats.todayIpModalTitle')
+    modalSource.value = 'events'
+  } else if (key === 'productVisitors') {
+    modalTitle.value = t('admin.stats.productVisitorsModalTitle')
+    modalSource.value = 'visitors'
+    modalEventType.value = 'product_view'
+  } else if (key === 'checkoutVisitors') {
+    modalTitle.value = t('admin.stats.checkoutVisitorsModalTitle')
+    modalSource.value = 'visitors'
+    modalEventType.value = 'begin_checkout'
+  } else if (key === 'paidVisitors') {
+    modalTitle.value = t('admin.stats.paidVisitorsModalTitle')
+    modalSource.value = 'visitors'
+    modalEventType.value = 'order_paid'
+  } else if (key === 'authVisitors') {
+    modalTitle.value = t('admin.stats.authVisitorsModalTitle')
+    modalSource.value = 'visitors'
+    modalEventType.value = 'auth'
+  } else if (key === 'externalVisitors') {
+    modalTitle.value = t('admin.stats.externalVisitorsModalTitle')
+    modalSource.value = 'visitors'
+    modalSourceType.value = 'external'
+  } else if (key === 'campaignVisitors') {
+    modalTitle.value = t('admin.stats.campaignVisitorsModalTitle')
+    modalSource.value = 'visitors'
+    modalSourceType.value = 'campaign'
+  }
+  isModalOpen.value = true
+}
+
 const {
-  page: visitorsPage,
-  pageSize: visitorsPageCount,
-  onPageChange: onVisitorsPageChange,
+  page: modalPage,
+  pageSize: modalPageSize,
+  onPageChange: onModalPageChange,
 } = usePagination(20)
-const {
-  page: eventsPage,
-  pageSize: eventsPageCount,
-  onPageChange: onEventsPageChange,
-} = usePagination(20)
+
+// Visitors endpoint (with optional type/sourceType filter)
 const visitorsUrl = computed(
-  () =>
-    `/api/admin/stats/visitors?preset=${preset.value}&days=${rangeDays.value}&page=${visitorsPage.value}&pageSize=${visitorsPageCount.value}`
+  () => {
+    let url = `/api/admin/stats/visitors?preset=${preset.value}&days=${rangeDays.value}&page=${modalPage.value}&pageSize=${modalPageSize.value}`
+    if (modalEventType.value) {
+      url += `&type=${modalEventType.value}`
+    }
+    if (modalSourceType.value) {
+      url += `&sourceType=${modalSourceType.value}`
+    }
+    return url
+  }
 )
+
+// Events endpoint (IP-based)
 const eventsUrl = computed(
   () =>
-    `/api/admin/stats/events?preset=${preset.value}&days=${rangeDays.value}&page=${eventsPage.value}&pageSize=${eventsPageCount.value}`
+    `/api/admin/stats/events?preset=${preset.value}&days=${rangeDays.value}&page=${modalPage.value}&pageSize=${modalPageSize.value}`
 )
+
 const {
   data: visitorsData,
   pending: visitorsPending,
   refresh: refreshVisitors,
   error: visitorsError,
-} = useFetch<any>(visitorsUrl)
+} = useFetch<any>(visitorsUrl, { immediate: true })
+
 const {
   data: eventsData,
   pending: eventsPending,
   refresh: refreshEvents,
   error: eventsError,
-} = useFetch<any>(eventsUrl)
+} = useFetch<any>(eventsUrl, { immediate: true })
+
 const visitorRows = computed(() => visitorsData.value?.items || [])
-const eventRows = computed(() => eventsData.value?.items || [])
 const visitorTotalItems = computed(() =>
   Number(visitorsData.value?.pagination?.totalItems || 0)
 )
+const eventRows = computed(() => eventsData.value?.items || [])
 const eventTotalItems = computed(() =>
   Number(eventsData.value?.pagination?.totalItems || 0)
 )
+
+const modalRows = computed(() =>
+  modalSource.value === 'events' ? eventRows.value : visitorRows.value
+)
+const modalTotalItems = computed(() =>
+  modalSource.value === 'events' ? eventTotalItems.value : visitorTotalItems.value
+)
+const modalPending = computed(() =>
+  modalSource.value === 'events' ? eventsPending.value : visitorsPending.value
+)
+
+// 401 guard
+watch([visitorsError, eventsError], ([vErr, eErr]: any[]) => {
+  const err = vErr || eErr
+  if (err?.statusCode === 401) {
+    router.push('/admin/login')
+  }
+})
 
 const maxPageViews = computed(() =>
   Math.max(...trend.value.map((item: any) => Number(item.pageViews || 0)), 1)
@@ -498,6 +519,8 @@ const overviewCards = computed(() => [
     icon: 'ph:chart-line-up',
     iconClass: 'text-cyan-400',
     tip: t('admin.stats.pageViewsTip'),
+    clickable: true,
+    modalKey: 'pageViews',
   },
   {
     label: t('admin.stats.uniqueVisitors'),
@@ -505,6 +528,8 @@ const overviewCards = computed(() => [
     icon: 'ph:users',
     iconClass: 'text-purple-400',
     tip: t('admin.stats.uniqueVisitorsTip'),
+    clickable: true,
+    modalKey: 'uniqueVisitors',
   },
   {
     label: t('admin.stats.todayVisitors'),
@@ -512,6 +537,8 @@ const overviewCards = computed(() => [
     icon: 'ph:clock-countdown',
     iconClass: 'text-amber-400',
     tip: t('admin.stats.todayVisitorsTip'),
+    clickable: true,
+    modalKey: 'todayIp',
   },
   {
     label: t('admin.stats.productVisitors'),
@@ -519,6 +546,8 @@ const overviewCards = computed(() => [
     icon: 'ph:package',
     iconClass: 'text-blue-400',
     tip: t('admin.stats.productVisitorsTip'),
+    clickable: true,
+    modalKey: 'productVisitors'
   },
   {
     label: t('admin.stats.checkoutVisitors'),
@@ -526,6 +555,8 @@ const overviewCards = computed(() => [
     icon: 'ph:shopping-cart-simple',
     iconClass: 'text-orange-400',
     tip: t('admin.stats.checkoutVisitorsTip'),
+    clickable: true,
+    modalKey: 'checkoutVisitors'
   },
   {
     label: t('admin.stats.paidVisitors'),
@@ -533,6 +564,8 @@ const overviewCards = computed(() => [
     icon: 'ph:credit-card',
     iconClass: 'text-emerald-400',
     tip: t('admin.stats.paidVisitorsTip'),
+    clickable: true,
+    modalKey: 'paidVisitors'
   },
   {
     label: t('admin.stats.authVisitors'),
@@ -540,6 +573,26 @@ const overviewCards = computed(() => [
     icon: 'ph:sign-in',
     iconClass: 'text-pink-400',
     tip: t('admin.stats.authVisitorsTip'),
+    clickable: true,
+    modalKey: 'authVisitors'
+  },
+  {
+    label: t('admin.stats.externalVisitors'),
+    value: formatNumber(overview.value.externalVisitors),
+    icon: 'ph:share-network',
+    iconClass: 'text-sky-400',
+    tip: t('admin.stats.externalVisitorsTip'),
+    clickable: true,
+    modalKey: 'externalVisitors'
+  },
+  {
+    label: t('admin.stats.campaignVisitors'),
+    value: formatNumber(overview.value.campaignVisitors),
+    icon: 'ph:megaphone',
+    iconClass: 'text-rose-400',
+    tip: t('admin.stats.campaignVisitorsTip'),
+    clickable: true,
+    modalKey: 'campaignVisitors'
   },
   {
     label: t('admin.stats.conversionRate'),
@@ -547,6 +600,8 @@ const overviewCards = computed(() => [
     icon: 'ph:funnel',
     iconClass: 'text-green-400',
     tip: t('admin.stats.conversionRateTip'),
+    clickable: false,
+    modalKey: ''
   },
 ])
 
@@ -568,15 +623,7 @@ function handleRefresh() {
 }
 
 watch(preset, () => {
-  visitorsPage.value = 1
-  eventsPage.value = 1
-})
-
-watch([visitorsError, eventsError], ([visitorError, eventError]: any[]) => {
-  const error = visitorError || eventError
-  if ((error as any)?.statusCode === 401) {
-    router.push('/admin/login')
-  }
+  modalPage.value = 1
 })
 
 function formatNumber(value: number | string | undefined) {
@@ -600,19 +647,6 @@ function shortVisitor(value: string) {
   return `${value.slice(0, 8)}...${value.slice(-4)}`
 }
 
-function eventLabel(eventName: string, eventAction?: string) {
-  if (eventName === 'auth') {
-    return eventAction === 'register'
-      ? t('admin.stats.register')
-      : t('admin.stats.login')
-  }
-  if (eventName === 'page_view') return t('admin.stats.pageView')
-  if (eventName === 'product_view') return t('admin.stats.productView')
-  if (eventName === 'begin_checkout') return t('admin.stats.beginCheckout')
-  if (eventName === 'order_paid') return t('admin.stats.orderPaid')
-  return eventName
-}
-
 function formatSourceLabel(value: string) {
   if (!value) return '-'
   const normalized = value.toLowerCase()
@@ -622,13 +656,5 @@ function formatSourceLabel(value: string) {
   if (normalized === 'referral') return t('admin.stats.referral')
   if (normalized === 'campaign') return t('admin.stats.campaign')
   return value
-}
-
-function eventColor(eventName: string) {
-  if (eventName === 'page_view') return 'info'
-  if (eventName === 'product_view') return 'primary'
-  if (eventName === 'begin_checkout') return 'warning'
-  if (eventName === 'order_paid') return 'success'
-  return 'neutral'
 }
 </script>
