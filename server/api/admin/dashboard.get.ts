@@ -2,6 +2,7 @@ import { orders } from "../../db/schema"
 import { sql } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS } from '../../utils/constants'
+import { getConfiguredTimezone, getStartOfDayUtc, getCurrentHour, getSqliteOffsetModifier, getMysqlOffsetStr } from '../../utils/timezone'
 
 export default defineEventHandler(async (event) => {
   const explicitDialect = process.env.DB_DIALECT?.replace(/"/g, '').toLowerCase()
@@ -20,20 +21,15 @@ export default defineEventHandler(async (event) => {
     explicitDialect === 'mysql'
     || connectionUrl.startsWith('mysql://')
 
-  // Get start of today
-  const startOfDay = new Date()
-  startOfDay.setHours(0, 0, 0, 0)
-  const startOfDayMs = startOfDay.getTime()
-  const startOfDayDate = new Date(startOfDayMs)
-  const startOfDayIso = startOfDayDate.toISOString()
-  const startOfDayMysql = startOfDayDate.toISOString().replace('T', ' ').substring(0, 19)
+  // 按管理员配置的时区计算"今天"的 UTC 边界
+  const tz = await getConfiguredTimezone()
+  const startOfDay = getStartOfDayUtc(tz)
+  const startOfDayMs = startOfDay.ms
+  const startOfDaySec = startOfDay.sec
+  const startOfDayIso = startOfDay.iso
+  const startOfDayMysql = startOfDay.mysql
 
   // 1. Get Summary Stats
-  // 注意：在之前的版本中，有的 createdAt 是按秒存的（10位），有的是按毫秒存的（13位）
-  // 1774777008 vs 1774776860215。为了兼容，我们使用比较宽松的逻辑，把 startOfDay 也转为秒来进行判断，
-  // SQLite 里可以直接判断：当 created_at 大于等于毫秒或者秒级时间戳。
-  const startOfDaySec = Math.floor(startOfDayMs / 1000)
-
   const statsResult = isPostgres
     ? await db.select({
         totalOrders: sql<number>`count(*)`,
@@ -58,33 +54,35 @@ export default defineEventHandler(async (event) => {
   const stats = statsResult[0] || { totalOrders: 0, totalRevenue: 0, todayOrders: 0, todayRevenue: 0 }
 
   // 2. Get Hourly Data for Today (only paid orders for revenue)
-  // 为了兼容秒级和毫秒级时间戳，我们可以在 SQL 里判断：如果是毫秒级（>1000000000000），就除以 1000。
+  const sqliteOffset = getSqliteOffsetModifier(tz)
+  const mysqlOffset = getMysqlOffsetStr(tz)
+
   const hourlyData = isPostgres
     ? await db.select({
-        hour: sql<string>`to_char(date_trunc('hour', ${orders.createdAt}), 'HH24')`,
+        hour: sql<string>`to_char(date_trunc('hour', ${orders.createdAt} AT TIME ZONE ${tz}), 'HH24')`,
         ordersCount: sql<number>`count(*)`,
         revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
       })
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayIso}::timestamptz`)
-        .groupBy(sql`date_trunc('hour', ${orders.createdAt})`)
+        .groupBy(sql`date_trunc('hour', ${orders.createdAt} AT TIME ZONE ${tz})`)
     : isMysql
     ? await db.select({
-        hour: sql<string>`DATE_FORMAT(${orders.createdAt}, '%H')`,
+        hour: sql<string>`DATE_FORMAT(CONVERT_TZ(${orders.createdAt}, '+00:00', ${mysqlOffset}), '%H')`,
         ordersCount: sql<number>`count(*)`,
         revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
       })
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayMysql}`)
-        .groupBy(sql`DATE_FORMAT(${orders.createdAt}, '%H')`)
+        .groupBy(sql`DATE_FORMAT(CONVERT_TZ(${orders.createdAt}, '+00:00', ${mysqlOffset}), '%H')`)
     : await db.select({
-        hour: sql<string>`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', 'localtime'))`,
+        hour: sql<string>`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', ${sqliteOffset}))`,
         ordersCount: sql<number>`count(*)`,
         revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
       })
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayMs} OR (${orders.createdAt} < 1000000000000 AND ${orders.createdAt} >= ${startOfDaySec})`)
-        .groupBy(sql`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', 'localtime'))`)
+        .groupBy(sql`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', ${sqliteOffset}))`)
 
   // Format hourly data into a map for easy lookup
   const hourlyMap = new Map()
@@ -96,7 +94,7 @@ export default defineEventHandler(async (event) => {
   })
 
   // Generate 24 hours data array
-  const currentHour = new Date().getHours()
+  const currentHour = getCurrentHour(tz)
   const labels = []
   const hourlyOrders = []
   const hourlyRevenue = []

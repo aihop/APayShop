@@ -2,10 +2,12 @@ import { and, count, desc, eq, gte, inArray, lt } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../../db/schema'
 import { clampStatsPage, clampStatsPageSize, parseStatsRange } from '../../../utils/adminStats'
+import { getConfiguredTimezone } from '../../../utils/timezone'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query)
+  const tz = await getConfiguredTimezone()
+  const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query, tz)
   const page = clampStatsPage(query.page, 1)
   const pageSize = clampStatsPageSize(query.pageSize, 20)
   const offset = (page - 1) * pageSize

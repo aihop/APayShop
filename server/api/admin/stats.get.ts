@@ -2,6 +2,7 @@ import { and, desc, gte, lt } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../db/schema'
 import { parseStatsRange } from '../../utils/adminStats'
+import { getConfiguredTimezone } from '../../utils/timezone'
 
 const toDate = (value: any) => {
   if (value instanceof Date) return value
@@ -10,9 +11,9 @@ const toDate = (value: any) => {
 
 const toDateKey = (value: any) => {
   const date = toDate(value)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
@@ -49,7 +50,8 @@ const buildTopList = (items: Record<string, number>, total: number) => {
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query)
+  const tz = await getConfiguredTimezone()
+  const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query, tz)
 
   const events = await db.select({
     id: visitorEvents.id,

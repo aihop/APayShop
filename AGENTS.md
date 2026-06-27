@@ -7,6 +7,7 @@
 > `2026-05-30`: 修正 SQLite `logs.created_at` 默认值与历史数据迁移方式，见 Section 6.A。
 > `2026-06-26`: 将旧充值商品语义重构为 `topup`，用于外部账户余额充值而非本地 API Key 发放，见 Section 4。
 > `2026-06-26`: 移除本地 API Key 资产模型与相关迁移定义，APayShop 不再维护本地 API Key 资产表，见 Section 3 与 Section 6.G。
+> `2026-06-27`: 新增时间与时区规范（Section 6.I）。数据库存 UTC 时间戳 → 后端 API 输出 UTC ISO → 前端按 settings.timezone 渲染。Dashboard 与 Stats 聚合查询改为读取配置时区计算今日边界与按小时分组，不再依赖服务器本地时间。新增 `server/utils/timezone.ts` 提供跨方言时区工具函数。
 
 ## 1. 项目定位与核心架构
 
@@ -185,6 +186,47 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 - **无测试不等于无验证** — 修改代码后，必须执行 `npm run dev` 启动开发服务器，手动验证关键链路（商品列表、下单、支付回调）正常。
 - **构建验证**: 修改后端逻辑后，运行 `npm run build` 确认无编译错误。
 - **未来引入测试时**，优先使用 `vitest` + `@vue/test-utils`（前端）和 `unjs/pragmatic`（后端），测试文件放在各模块同级 `__tests__/` 目录下。
+
+### I. 时间与时区规范 (UTC Storage + Frontend Display)
+
+> **核心原则**: 数据库一律存储 UTC 绝对时间（Unix 时间戳），后端 API 一律输出 UTC ISO 字符串（`.toISOString()`），前端通过 `useFormatTime()` 按 `settings.timezone` 配置渲染为本地时间显示。
+
+#### 存储层
+
+- SQLite: `integer` + `{ mode: 'timestamp' }` + `default(sql\`(unixepoch())\`)`，即 Unix 秒时间戳（天然 UTC）。
+- PostgreSQL: `TIMESTAMP WITH TIME ZONE`，Drizzle 的 `timestamp` 模式同理。
+- **绝对禁止**在数据库层存储带时区的字符串或本地时间。
+
+#### 后端 API 输出层
+
+- 所有列表/详情接口返回时间字段时，**必须**统一转为 ISO 字符串（`.toISOString()` 即 UTC），不得直接透传 SQLite `CURRENT_TIMESTAMP` 字符串或数据库原始值。
+- 典型范式（参照 `server/api/admin/logs/index.get.ts` 的 `normalizeCreatedAt`）：
+  ```typescript
+  // 将各种格式归一化为 UTC ISO 字符串
+  new Date(value).toISOString()  // → "2026-06-27T08:30:00.000Z"
+  ```
+
+#### 后端聚合查询（Dashboard / Stats 等按天/按小时统计）
+
+- **必须**读取 `settings.timezone` 配置来计算"今天"边界和按小时分组，**不得**使用服务器本地时间（`new Date().setHours(0,0,0,0)`）或数据库 `'localtime'` 修饰符。
+- 使用 `server/utils/timezone.ts` 中提供的工具函数：
+  - `getConfiguredTimezone()` — 读取配置时区
+  - `getStartOfDayUtc(tz)` — 获取目标时区"今天 00:00"的 UTC 毫秒/秒/ISO
+  - `getSqliteOffsetModifier(tz)` — SQLite 时区偏移修饰符（如 `'+480 minutes'`）
+  - `getCurrentHour(tz)` — 目标时区当前小时
+- 按方言分支处理：
+  - **SQLite**: `strftime('%H', datetime(ts, 'unixepoch', <offset>))` 替代 `'localtime'`
+  - **PostgreSQL**: `date_trunc('hour', ts AT TIME ZONE '<IANA>')` 替代裸 `date_trunc`
+  - **MySQL**: `CONVERT_TZ(ts, '+00:00', '<offset>')` 包裹时间列
+
+#### 前端渲染层
+
+- **推荐**: 使用 `useFormatTime()` composable（`app/composables/useFormatTime.ts`），自动读取配置时区并通过 `Intl.DateTimeFormat` 渲染。
+  ```typescript
+  const { formatDateTime, formatDate } = useFormatTime()
+  // {{ formatDateTime(row.createdAt) }}  → "2026/06/27 14:30:00"（按时区显示）
+  ```
+- **兜底**: 如果时区配置缺失或无效，回退为 `'Asia/Shanghai'` 或 `'UTC'`。
 
 ---
 

@@ -1,5 +1,5 @@
  
-export function formatRelativeTime(dateInput: string | number | Date, t: any): string {
+export function formatRelativeTime(dateInput: string | number | Date, t: any, tz?: string): string {
   if (!dateInput) return ''
   
   const date = new Date(dateInput)
@@ -24,9 +24,21 @@ export function formatRelativeTime(dateInput: string | number | Date, t: any): s
     return `${diffInHours} ${t('admin.common.hours')}`
   }
   
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+  // >24h: 按配置时区格式化日期
+  if (tz) {
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      }).format(date)
+    } catch {
+      // 非法时区回退到 UTC
+    }
+  }
+  
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
   
   return `${year}-${month}-${day}`
 }
