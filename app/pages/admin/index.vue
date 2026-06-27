@@ -209,14 +209,13 @@ import {
   definePageMeta,
   useI18n,
   useFetch,
-  useCookie,
   useRouter,
 } from '#imports'
 
 definePageMeta({ title: 'Dashboard' })
 
 const { t } = useI18n()
-const router = useRouter() // 顶层取;勿在下方 onResponseError 回调里调 useRouter()
+const router = useRouter() 
 const hoveredIndex = ref<number | null>(null)
 
 const { data: dashboardData } = await useFetch<any>('/api/admin/dashboard', {

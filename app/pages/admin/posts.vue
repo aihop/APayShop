@@ -85,7 +85,7 @@
 
           <template #createdAt-cell="{ row }">
             <span class="text-gray-500 dark:text-gray-400 text-sm">
-              {{ new Date(row.original.createdAt).toLocaleDateString() }}
+              {{ formatDate(row.original.createdAt) }}
             </span>
           </template>
 
@@ -352,6 +352,7 @@ import { useLocaleRouter } from '~/composables/useLocaleRouter'
 definePageMeta({ title: 'Posts Management' })
 
 const toast = useToast()
+const { formatDate } = useFormatTime()
 const { confirm } = useConfirm()
 const { settings } = useSettings()
 const { localePath } = useLocaleRouter()

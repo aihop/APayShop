@@ -138,7 +138,7 @@
         <template #actions-cell="{ row }">
           <div class="flex items-center justify-end gap-4">
             <div class="flex flex-col items-end">
-              <span class="text-xs text-gray-500 mb-1">{{ formatRelativeTime(String(row.original.createdAt || ''), t, tz) }}</span>
+              <span class="text-xs text-gray-500 mb-1">{{ formatDateTime(row.original.createdAt) }}</span>
               <div class="flex gap-1">
                 <UBadge
                   :color="getPayStatusColor(String(row.original.payStatus || 'pending'))"
@@ -281,11 +281,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { definePageMeta, useToast, useFetch, useRouter, useI18n } from '#imports'
-import { formatRelativeTime } from '~/utils/formatTime'
 
 const { t } = useI18n()
-const { getSetting } = useSettings()
-const tz = computed(() => getSetting('timezone', 'Asia/Shanghai') || 'Asia/Shanghai')
+const { formatDateTime } = useFormatTime()
 
 definePageMeta({ title: 'Orders Management' })
 

@@ -263,6 +263,7 @@ const form = reactive({
   supported_locales: 'en,zh',
   default_locale: 'en',
   currency: 'USD',
+  timezone: '',
   allow_guest_checkout: true,
   company_name: '',
   company_phone: '',

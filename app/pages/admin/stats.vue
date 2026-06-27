@@ -354,7 +354,7 @@
                 <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatSourceLabel(item.source) }}</td>
                 <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ item.country }} / {{ item.deviceType }}</td>
                 <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-72 truncate">{{ item.path || '-' }}</td>
-                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ formatDateTime(item.createdAt) }}</td>
+                <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ format(item.createdAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</td>
               </tr>
               <tr v-if="!eventsPending && eventRows.length === 0">
                 <td
@@ -395,6 +395,7 @@
 definePageMeta({ title: 'Visitor Stats' })
 
 const { t, locale } = useI18n()
+const { format } = useFormatTime()
 const router = useRouter()
 const preset = ref('7d')
 const rangeDays = computed(() => {
@@ -597,16 +598,6 @@ function shortVisitor(value: string) {
   if (!value) return '-'
   if (value.length <= 14) return value
   return `${value.slice(0, 8)}...${value.slice(-4)}`
-}
-
-function formatDateTime(value: string | Date) {
-  if (!value) return '-'
-  return new Intl.DateTimeFormat(locale.value === 'zh' ? 'zh-CN' : 'en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
 }
 
 function eventLabel(eventName: string, eventAction?: string) {

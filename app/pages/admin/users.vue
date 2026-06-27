@@ -22,7 +22,7 @@
           class="min-w-full"
         >
           <template #createdAt-cell="{ row }">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.createdAt) }}</span>
           </template>
 
           <template #actions-cell="{ row }">
@@ -126,6 +126,7 @@
 import { ref, reactive, computed } from 'vue'
 
 const { t } = useI18n()
+const { formatDateTime } = useFormatTime()
 
 definePageMeta({ title: 'Users Management' })
 

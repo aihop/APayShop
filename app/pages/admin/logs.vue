@@ -54,7 +54,7 @@
 
           <template #createdAt-cell="{ row }">
             <span class="text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
-              {{ formatCreatedAt(row.original.createdAt) }}
+              {{ formatDateTime(row.original.createdAt) }}
             </span>
           </template>
 
@@ -146,7 +146,7 @@
               </div>
               <div>
                 <div class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ $t('admin.logs.detail.time') }}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog ? formatCreatedAt(selectedLog.createdAt) : '' }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">{{ selectedLog ? formatDateTime(selectedLog.createdAt) : '' }}</div>
               </div>
             </div>
           </div>
@@ -161,8 +161,8 @@ import { ref, computed } from 'vue'
 import { definePageMeta, useI18n } from '#imports'
 
 definePageMeta({ title: 'System Logs' })
-
 const { t } = useI18n()
+const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
 
@@ -212,39 +212,6 @@ const getLevelColor = (level?: string): 'error' | 'warning' | 'neutral' | 'prima
     default:
       return 'primary'
   }
-}
-
-const formatCreatedAt = (value: unknown) => {
-  if (!value) return '-'
-
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? '-' : value.toLocaleString()
-  }
-
-  if (typeof value === 'number') {
-    const timestamp = value < 1e12 ? value * 1000 : value
-    const date = new Date(timestamp)
-    return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString()
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) return '-'
-
-    if (/^\d+$/.test(trimmed)) {
-      const numeric = Number(trimmed)
-      const date = new Date(trimmed.length <= 10 ? numeric * 1000 : numeric)
-      return Number.isNaN(date.getTime()) ? trimmed : date.toLocaleString()
-    }
-
-    const sqliteTimestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
-      ? `${trimmed.replace(' ', 'T')}Z`
-      : trimmed
-    const date = new Date(sqliteTimestamp)
-    return Number.isNaN(date.getTime()) ? trimmed : date.toLocaleString()
-  }
-
-  return '-'
 }
 
 const formatDetails = (details: unknown) => {

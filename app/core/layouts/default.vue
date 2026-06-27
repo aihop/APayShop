@@ -300,19 +300,6 @@
                   {{ $t('admin.nav.subscriptions') }}
                 </div>
               </NuxtLink>
-              <NuxtLink
-                to="/admin/failures"
-                :class="adminMobileNavItemClass"
-                @click="isMobileMenuOpen = false"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:warning-circle"
-                    class="w-5 h-5"
-                  />
-                  {{ $t('admin.nav.failures') }}
-                </div>
-              </NuxtLink>
             </div>
 
             <div class="space-y-1 mt-4">
@@ -575,19 +562,6 @@
                     class="w-4 h-4"
                   />
                   {{ $t('admin.nav.subscriptions') }}
-                </div>
-              </NuxtLink>
-              <NuxtLink
-                to="/admin/failures"
-                :class="adminDesktopNavItemClass"
-                :active-class="adminNavActiveClass"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:warning-circle"
-                    class="w-4 h-4"
-                  />
-                  {{ $t('admin.nav.failures') }}
                 </div>
               </NuxtLink>
             </nav>

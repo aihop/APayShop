@@ -83,7 +83,7 @@
                       name="ph:calendar-blank"
                       class="w-4 h-4"
                     />
-                    {{ new Date(order.createdAt).toLocaleDateString() }}
+                    {{ formatDate(order.createdAt) }}
                   </span>
                   <span class="flex items-center gap-1">
                     <UIcon
@@ -226,6 +226,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 const { getSetting } = useSettings()
+const { formatDate } = useFormatTime()
 
 useHead({
   title: `My Orders - ${getSetting('site_name')}`,

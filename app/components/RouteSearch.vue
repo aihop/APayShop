@@ -114,12 +114,6 @@ const routes = computed(() => {
       to: '/admin/subscriptions',
     },
     {
-      id: 'admin-failures',
-      label: t('admin.nav.failures'),
-      icon: 'ph:warning-circle',
-      to: '/admin/failures',
-    },
-    {
       id: 'admin-payments',
       label: t('admin.nav.payments'),
       icon: 'ph:credit-card',

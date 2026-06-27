@@ -49,6 +49,29 @@
         </UFormField>
       </div>
 
+      <!-- Timezone -->
+      <UFormField
+        :label="$t('admin.settings.localization.timezone')"
+        :description="$t('admin.settings.localization.timezone_desc')"
+      >
+        <USelectMenu
+          v-model="form.timezone"
+          :items="timezoneOptions"
+          value-key="value"
+          placeholder="Select timezone"
+          icon="ph:clock"
+          size="md"
+          class="w-full max-w-lg"
+          :search-input="{ placeholder: 'Search timezone...' }"
+          create-item
+          :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
+        >
+          <template #item-leading="{ item }">
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono w-16 shrink-0">{{ item.offset }}</span>
+          </template>
+        </USelectMenu>
+      </UFormField>
+
       <USeparator
         :label="$t('admin.settings.localization.supported_languages')"
         class="py-4"
@@ -88,9 +111,21 @@
 import { computed, ref, watch } from 'vue'
 import { useSortable } from '@vueuse/integrations/useSortable'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   form: any
 }>()
+
+// Auto-detect browser timezone as default
+const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+watch(() => props.form.timezone, (val) => {
+  if (!val) {
+    props.form.timezone = detectedTimezone
+  }
+}, { immediate: true })
+
+// ---- Locales ----
 
 const baseLocales = [
   { code: 'en', label: 'English' },
@@ -104,7 +139,7 @@ const baseLocales = [
   { code: 'ru', label: 'Русский' },
   { code: 'pt', label: 'Português' },
   { code: 'ar', label: 'العربية' },
-  { code: 'hi', label: 'हिन्दी' }, // Hindi
+  { code: 'hi', label: 'हिन्दी' },
 ]
 
 const availableLocales = ref([...baseLocales])
@@ -135,7 +170,6 @@ const toggleLocale = (code: string, checked: boolean) => {
     current = current.filter((c) => c !== code)
   }
 
-  // Ensure at least the default locale is selected
   const defaultLocale = props.form.default_locale || 'en'
   if (
     current.length === 0 ||
@@ -146,7 +180,6 @@ const toggleLocale = (code: string, checked: boolean) => {
     }
   }
 
-  // Preserve the visual order of availableLocales
   const visualOrderSelected = availableLocales.value
     .filter((l) => current.includes(l.code))
     .map((l) => l.code)
@@ -194,6 +227,8 @@ useSortable('.locales-grid-container', availableLocales, {
   },
 })
 
+// ---- Currencies ----
+
 const availableCurrencies = [
   { code: 'USD', label: 'US Dollar ($)' },
   { code: 'EUR', label: 'Euro (€)' },
@@ -205,4 +240,78 @@ const availableCurrencies = [
   { code: 'SGD', label: 'Singapore Dollar (S$)' },
   { code: 'HKD', label: 'Hong Kong Dollar (HK$)' },
 ]
+
+// ---- Timezones ----
+
+interface TimezoneItem {
+  value: string
+  labelKey: string
+  offset: string
+}
+
+const tzData: TimezoneItem[] = [
+  { value: 'UTC', labelKey: 'admin.settings.localization.timezone_zones.UTC', offset: 'UTC' },
+  { value: 'America/New_York', labelKey: 'admin.settings.localization.timezone_zones.America_New_York', offset: '-05:00' },
+  { value: 'America/Chicago', labelKey: 'admin.settings.localization.timezone_zones.America_Chicago', offset: '-06:00' },
+  { value: 'America/Denver', labelKey: 'admin.settings.localization.timezone_zones.America_Denver', offset: '-07:00' },
+  { value: 'America/Los_Angeles', labelKey: 'admin.settings.localization.timezone_zones.America_Los_Angeles', offset: '-08:00' },
+  { value: 'America/Anchorage', labelKey: 'admin.settings.localization.timezone_zones.America_Anchorage', offset: '-09:00' },
+  { value: 'America/Phoenix', labelKey: 'admin.settings.localization.timezone_zones.America_Phoenix', offset: '-07:00' },
+  { value: 'America/Toronto', labelKey: 'admin.settings.localization.timezone_zones.America_Toronto', offset: '-05:00' },
+  { value: 'America/Vancouver', labelKey: 'admin.settings.localization.timezone_zones.America_Vancouver', offset: '-08:00' },
+  { value: 'America/Sao_Paulo', labelKey: 'admin.settings.localization.timezone_zones.America_Sao_Paulo', offset: '-03:00' },
+  { value: 'America/Argentina/Buenos_Aires', labelKey: 'admin.settings.localization.timezone_zones.America_Argentina_Buenos_Aires', offset: '-03:00' },
+  { value: 'America/Mexico_City', labelKey: 'admin.settings.localization.timezone_zones.America_Mexico_City', offset: '-06:00' },
+  { value: 'America/Halifax', labelKey: 'admin.settings.localization.timezone_zones.America_Halifax', offset: '-04:00' },
+  { value: 'America/St_Johns', labelKey: 'admin.settings.localization.timezone_zones.America_St_Johns', offset: '-03:30' },
+  { value: 'Europe/London', labelKey: 'admin.settings.localization.timezone_zones.Europe_London', offset: '+00:00' },
+  { value: 'Europe/Paris', labelKey: 'admin.settings.localization.timezone_zones.Europe_Paris', offset: '+01:00' },
+  { value: 'Europe/Berlin', labelKey: 'admin.settings.localization.timezone_zones.Europe_Berlin', offset: '+01:00' },
+  { value: 'Europe/Madrid', labelKey: 'admin.settings.localization.timezone_zones.Europe_Madrid', offset: '+01:00' },
+  { value: 'Europe/Rome', labelKey: 'admin.settings.localization.timezone_zones.Europe_Rome', offset: '+01:00' },
+  { value: 'Europe/Amsterdam', labelKey: 'admin.settings.localization.timezone_zones.Europe_Amsterdam', offset: '+01:00' },
+  { value: 'Europe/Stockholm', labelKey: 'admin.settings.localization.timezone_zones.Europe_Stockholm', offset: '+01:00' },
+  { value: 'Europe/Zurich', labelKey: 'admin.settings.localization.timezone_zones.Europe_Zurich', offset: '+01:00' },
+  { value: 'Europe/Prague', labelKey: 'admin.settings.localization.timezone_zones.Europe_Prague', offset: '+01:00' },
+  { value: 'Europe/Warsaw', labelKey: 'admin.settings.localization.timezone_zones.Europe_Warsaw', offset: '+01:00' },
+  { value: 'Europe/Moscow', labelKey: 'admin.settings.localization.timezone_zones.Europe_Moscow', offset: '+03:00' },
+  { value: 'Europe/Istanbul', labelKey: 'admin.settings.localization.timezone_zones.Europe_Istanbul', offset: '+03:00' },
+  { value: 'Europe/Helsinki', labelKey: 'admin.settings.localization.timezone_zones.Europe_Helsinki', offset: '+02:00' },
+  { value: 'Europe/Athens', labelKey: 'admin.settings.localization.timezone_zones.Europe_Athens', offset: '+02:00' },
+  { value: 'Asia/Shanghai', labelKey: 'admin.settings.localization.timezone_zones.Asia_Shanghai', offset: '+08:00' },
+  { value: 'Asia/Tokyo', labelKey: 'admin.settings.localization.timezone_zones.Asia_Tokyo', offset: '+09:00' },
+  { value: 'Asia/Seoul', labelKey: 'admin.settings.localization.timezone_zones.Asia_Seoul', offset: '+09:00' },
+  { value: 'Asia/Singapore', labelKey: 'admin.settings.localization.timezone_zones.Asia_Singapore', offset: '+08:00' },
+  { value: 'Asia/Hong_Kong', labelKey: 'admin.settings.localization.timezone_zones.Asia_Hong_Kong', offset: '+08:00' },
+  { value: 'Asia/Taipei', labelKey: 'admin.settings.localization.timezone_zones.Asia_Taipei', offset: '+08:00' },
+  { value: 'Asia/Kolkata', labelKey: 'admin.settings.localization.timezone_zones.Asia_Kolkata', offset: '+05:30' },
+  { value: 'Asia/Dubai', labelKey: 'admin.settings.localization.timezone_zones.Asia_Dubai', offset: '+04:00' },
+  { value: 'Asia/Bangkok', labelKey: 'admin.settings.localization.timezone_zones.Asia_Bangkok', offset: '+07:00' },
+  { value: 'Asia/Jakarta', labelKey: 'admin.settings.localization.timezone_zones.Asia_Jakarta', offset: '+07:00' },
+  { value: 'Asia/Manila', labelKey: 'admin.settings.localization.timezone_zones.Asia_Manila', offset: '+08:00' },
+  { value: 'Asia/Kuala_Lumpur', labelKey: 'admin.settings.localization.timezone_zones.Asia_Kuala_Lumpur', offset: '+08:00' },
+  { value: 'Asia/Tashkent', labelKey: 'admin.settings.localization.timezone_zones.Asia_Tashkent', offset: '+05:00' },
+  { value: 'Asia/Karachi', labelKey: 'admin.settings.localization.timezone_zones.Asia_Karachi', offset: '+05:00' },
+  { value: 'Asia/Dhaka', labelKey: 'admin.settings.localization.timezone_zones.Asia_Dhaka', offset: '+06:00' },
+  { value: 'Australia/Sydney', labelKey: 'admin.settings.localization.timezone_zones.Australia_Sydney', offset: '+10:00' },
+  { value: 'Australia/Melbourne', labelKey: 'admin.settings.localization.timezone_zones.Australia_Melbourne', offset: '+10:00' },
+  { value: 'Australia/Perth', labelKey: 'admin.settings.localization.timezone_zones.Australia_Perth', offset: '+08:00' },
+  { value: 'Australia/Brisbane', labelKey: 'admin.settings.localization.timezone_zones.Australia_Brisbane', offset: '+10:00' },
+  { value: 'Australia/Adelaide', labelKey: 'admin.settings.localization.timezone_zones.Australia_Adelaide', offset: '+09:30' },
+  { value: 'Pacific/Auckland', labelKey: 'admin.settings.localization.timezone_zones.Pacific_Auckland', offset: '+12:00' },
+  { value: 'Pacific/Fiji', labelKey: 'admin.settings.localization.timezone_zones.Pacific_Fiji', offset: '+12:00' },
+  { value: 'Pacific/Honolulu', labelKey: 'admin.settings.localization.timezone_zones.Pacific_Honolulu', offset: '-10:00' },
+  { value: 'Pacific/Guam', labelKey: 'admin.settings.localization.timezone_zones.Pacific_Guam', offset: '+10:00' },
+  { value: 'Africa/Cairo', labelKey: 'admin.settings.localization.timezone_zones.Africa_Cairo', offset: '+02:00' },
+  { value: 'Africa/Johannesburg', labelKey: 'admin.settings.localization.timezone_zones.Africa_Johannesburg', offset: '+02:00' },
+  { value: 'Africa/Lagos', labelKey: 'admin.settings.localization.timezone_zones.Africa_Lagos', offset: '+01:00' },
+  { value: 'Africa/Nairobi', labelKey: 'admin.settings.localization.timezone_zones.Africa_Nairobi', offset: '+03:00' },
+]
+
+const timezoneOptions = computed(() =>
+  tzData.map(item => ({
+    ...item,
+    label: t(item.labelKey),
+  }))
+)
 </script>

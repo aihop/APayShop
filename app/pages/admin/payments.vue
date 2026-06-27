@@ -1,11 +1,12 @@
 <template>
   <div>
-    <div class="flex justify-between items-end mb-10">
+    <div class="flex justify-between items-end mb-6">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.payments.page.title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.payments.page.subtitle') }}</p>
       </div>
       <UButton
+        v-if="activeTab === 'methods'"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -13,169 +14,319 @@
       >{{ $t('admin.payments.page.add_method') }}</UButton>
     </div>
 
-    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
-      <UTable
-        :columns="columns"
-        :data="methods || []"
-        :loading="pending"
-      >
-        <template #isActive-cell="{ row }">
-          <div class="flex items-center gap-2">
-            <USwitch
-              :model-value="Boolean(row.original.isActive)"
-              :disabled="row.original.isLocalOnly"
-              @update:model-value="val => { if(!row.original.isLocalOnly) { row.original.isActive = val; toggleActive(row.original) } }"
-            />
-            <UBadge
-              v-if="row.original.isLocalOnly"
-              color="warning"
-              variant="subtle"
-              size="xs"
-            >{{ $t('admin.payments.badge.unconfigured') }}</UBadge>
-            <UBadge
-              v-else-if="row.original.hasLocalFiles"
-              color="success"
-              variant="subtle"
-              size="xs"
-            >{{ $t('admin.payments.badge.local_plugin') }}</UBadge>
-            <UBadge
-              v-else
-              color="info"
-              variant="subtle"
-              size="xs"
-            >{{ $t('admin.payments.badge.db_only') }}</UBadge>
-          </div>
-        </template>
+    <UTabs
+      v-model="activeTab"
+      :items="tabItems"
+      class="mb-6"
+    />
 
-        <template #actions-cell="{ row }">
-          <div class="flex items-center gap-2">
+    <!-- Methods Tab -->
+    <div v-if="activeTab === 'methods'">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
+        <UTable
+          :columns="columns"
+          :data="methods || []"
+          :loading="pending"
+        >
+          <template #isActive-cell="{ row }">
+            <div class="flex items-center gap-2">
+              <USwitch
+                :model-value="Boolean(row.original.isActive)"
+                :disabled="row.original.isLocalOnly"
+                @update:model-value="val => { if(!row.original.isLocalOnly) { row.original.isActive = val; toggleActive(row.original) } }"
+              />
+              <UBadge
+                v-if="row.original.isLocalOnly"
+                color="warning"
+                variant="subtle"
+                size="xs"
+              >{{ $t('admin.payments.badge.unconfigured') }}</UBadge>
+              <UBadge
+                v-else-if="row.original.hasLocalFiles"
+                color="success"
+                variant="subtle"
+                size="xs"
+              >{{ $t('admin.payments.badge.local_plugin') }}</UBadge>
+              <UBadge
+                v-else
+                color="info"
+                variant="subtle"
+                size="xs"
+              >{{ $t('admin.payments.badge.db_only') }}</UBadge>
+            </div>
+          </template>
+
+          <template #actions-cell="{ row }">
+            <div class="flex items-center gap-2">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                :icon="row.original.isLocalOnly ? 'ph:plug-bold' : 'ph:pencil-simple'"
+                :label="row.original.isLocalOnly ? $t('admin.payments.table.configure') : ''"
+                @click="openModal(row.original)"
+              />
+              <UButton
+                v-if="!row.original.isLocalOnly"
+                color="error"
+                variant="ghost"
+                icon="ph:trash"
+                @click="deleteMethod(Number(row.original.id))"
+              />
+            </div>
+          </template>
+        </UTable>
+      </div>
+
+      <!-- Payment Method Modal -->
+      <FullScreenModal
+        v-model="isModalOpen"
+        maxWidth="sm:max-w-6xl"
+        :title="form.id ? $t('admin.payments.modal.edit_title') : $t('admin.payments.modal.new_title')"
+      >
+        <form
+          @submit.prevent="saveMethod"
+          class="space-y-4"
+        >
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField :label="$t('admin.payments.modal.name_label')">
+              <UInput
+                v-model="form.name"
+                required
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField :label="$t('admin.payments.modal.code_label')">
+              <UInput
+                v-model="form.code"
+                required
+                class="w-full"
+                :disabled="!!form.id"
+              />
+            </UFormField>
+          </div>
+
+          <UFormField :label="$t('admin.payments.modal.icon_label')">
+            <UInput
+              v-model="form.iconUrl"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField :label="$t('admin.payments.modal.info_label')">
+            <UTextarea
+              v-model="form.info"
+              class="h-full w-full font-mono text-sm"
+              :rows="8"
+            />
+            <template #help>
+              <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.info_help') }}</span>
+            </template>
+          </UFormField>
+
+          <UFormField :label="$t('admin.payments.modal.create_label')">
+            <UTextarea
+              v-model="form.create"
+              :rows="12"
+              class="font-mono text-sm w-full"
+            />
+            <template #help>
+              <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.create_help') }}</span>
+            </template>
+          </UFormField>
+
+          <UFormField :label="$t('admin.payments.modal.callback_label')">
+            <UTextarea
+              v-model="form.callback"
+              :rows="12"
+              class="font-mono text-sm w-full"
+            />
+            <template #help>
+              <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.callback_help') }}</span>
+            </template>
+          </UFormField>
+
+          <UFormField :label="$t('admin.payments.modal.config_label')">
+            <UTextarea
+              v-model="form.configJson"
+              :rows="12"
+              class="font-mono text-sm w-full"
+              @input="onJsonChange"
+            />
+            <p
+              v-if="hasJsonError"
+              class="text-xs text-red-500 mt-1"
+            >{{ $t('admin.payments.modal.config_invalid') }}</p>
+          </UFormField>
+
+          <UFormField>
+            <UCheckbox
+              v-model="form.isActive"
+              :label="$t('admin.payments.modal.enable_label')"
+            />
+          </UFormField>
+
+          <div class="flex justify-end gap-3 mt-8">
             <UButton
               color="neutral"
               variant="ghost"
-              :icon="row.original.isLocalOnly ? 'ph:plug-bold' : 'ph:pencil-simple'"
-              :label="row.original.isLocalOnly ? $t('admin.payments.table.configure') : ''"
-              @click="openModal(row.original)"
-            />
+              @click="isModalOpen = false"
+            >{{ $t('admin.payments.modal.cancel') }}</UButton>
             <UButton
-              v-if="!row.original.isLocalOnly"
-              color="error"
-              variant="ghost"
-              icon="ph:trash"
-              @click="deleteMethod(Number(row.original.id))"
-            />
+              color="primary"
+              class="bg-purple-600 hover:bg-purple-500 text-white"
+              type="submit"
+              :loading="isSaving"
+            >{{ $t('admin.payments.modal.save') }}</UButton>
           </div>
-        </template>
-      </UTable>
+        </form>
+      </FullScreenModal>
     </div>
 
-    <!-- Payment Method Modal -->
-    <FullScreenModal
-      v-model="isModalOpen"
-      maxWidth="sm:max-w-6xl"
-      :title="form.id ? $t('admin.payments.modal.edit_title') : $t('admin.payments.modal.new_title')"
-    >
-      <form
-        @submit.prevent="saveMethod"
-        class="space-y-4"
+    <!-- Failures Tab -->
+    <div v-if="activeTab === 'failures'">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
+        <UTable
+          :columns="failuresColumns"
+          :data="failures || []"
+          :loading="failuresPending"
+        >
+          <template #id-cell="{ row }">
+            <span class="text-xs text-gray-400 font-mono">{{ String(row.original.id || '') }}</span>
+          </template>
+          <template #visitorId-cell="{ row }">
+            <span
+              v-if="row.original.visitorId"
+              class="text-xs text-gray-500 font-mono cursor-pointer hover:text-primary-400 transition-colors"
+              :title="String(row.original.visitorId)"
+              @click="copyVisitorId(String(row.original.visitorId))"
+            >
+              {{ String(row.original.visitorId).substring(0, 8) }}...
+            </span>
+            <span
+              v-else
+              class="text-xs text-gray-600"
+            >-</span>
+          </template>
+          <template #orderId-cell="{ row }">
+            <span class="text-xs text-gray-400 font-mono">{{ String(row.original.orderId || '').substring(0, 8) }}...</span>
+          </template>
+
+          <template #cardBin-cell="{ row }">
+            <span class="font-mono text-gray-300">{{ row.original.cardBin || $t('admin.payments.failures.n/a') }}</span>
+          </template>
+
+          <template #amount-cell="{ row }">
+            ${{ Number(row.original.amount || 0).toFixed(2) }}
+          </template>
+
+          <template #reason-cell="{ row }">
+            <span class="text-red-400 text-sm">{{ row.original.reason }}</span>
+          </template>
+
+          <template #payMethod-cell="{ row }">
+            <UBadge
+              color="neutral"
+              variant="subtle"
+              class="capitalize"
+            >
+              {{ row.original.payMethod || $t('admin.payments.failures.unknown') }}
+            </UBadge>
+          </template>
+
+          <template #createdAt-cell="{ row }">
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
+          </template>
+
+          <template #actions-cell="{ row }">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="ph:eye"
+              @click="viewDetails(row.original)"
+            />
+          </template>
+        </UTable>
+      </div>
+
+      <!-- Details Modal -->
+      <UModal
+        v-model:open="isFailuresModalOpen"
+        :ui="{ content: 'bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800 sm:max-w-2xl' }"
       >
-        <div class="grid grid-cols-2 gap-4">
-          <UFormField :label="$t('admin.payments.modal.name_label')">
-            <UInput
-              v-model="form.name"
-              required
-              class="w-full"
-            />
-          </UFormField>
-          <UFormField :label="$t('admin.payments.modal.code_label')">
-            <UInput
-              v-model="form.code"
-              required
-              class="w-full"
-              :disabled="!!form.id"
-            />
-          </UFormField>
-        </div>
+        <template #content>
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t('admin.payments.failures.details') }}</h3>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="ph:x"
+                class="-my-1"
+                @click="isFailuresModalOpen = false"
+              />
+            </div>
 
-        <UFormField :label="$t('admin.payments.modal.icon_label')">
-          <UInput
-            v-model="form.iconUrl"
-            class="w-full"
-          />
-        </UFormField>
+            <div
+              v-if="selectedFailure"
+              class="space-y-4"
+            >
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.id') }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ selectedFailure.id }}</span>
+                </div>
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.orderId') }}</span>
+                  <span class="text-gray-900 dark:text-white font-mono text-sm">{{ selectedFailure.orderId }}</span>
+                </div>
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.amount') }}</span>
+                  <span class="text-gray-900 dark:text-white">${{ Number(selectedFailure.amount || 0).toFixed(2) }}</span>
+                </div>
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.cardBin') }}</span>
+                  <span class="text-gray-900 dark:text-white font-mono">{{ selectedFailure.cardBin || $t('admin.payments.failures.n/a') }}</span>
+                </div>
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.customerEmail') }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ selectedFailure.contactEmail || $t('admin.payments.failures.n/a') }}</span>
+                </div>
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.paymentMethod') }}</span>
+                  <span class="text-gray-900 dark:text-white capitalize">{{ selectedFailure.payMethod || $t('admin.payments.failures.unknown') }}</span>
+                </div>
+                <div>
+                  <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.time') }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ new Date(selectedFailure.createdAt).toLocaleString() }}</span>
+                </div>
+              </div>
 
-        <UFormField :label="$t('admin.payments.modal.info_label')">
-          <UTextarea
-            v-model="form.info"
-            class="h-full w-full font-mono text-sm"
-            :rows="8"
-          />
-          <template #help>
-            <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.info_help') }}</span>
-          </template>
-        </UFormField>
+              <div class="mt-6">
+                <span class="block text-xs text-gray-500 mb-2">{{ $t('admin.payments.failures.failureReason') }}</span>
+                <div class="p-3 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400">
+                  {{ selectedFailure.reason }}
+                </div>
+              </div>
 
-        <UFormField :label="$t('admin.payments.modal.create_label')">
-          <UTextarea
-            v-model="form.create"
-            :rows="12"
-            class="font-mono text-sm w-full"
-          />
-          <template #help>
-            <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.create_help') }}</span>
-          </template>
-        </UFormField>
-
-        <UFormField :label="$t('admin.payments.modal.callback_label')">
-          <UTextarea
-            v-model="form.callback"
-            :rows="12"
-            class="font-mono text-sm w-full"
-          />
-          <template #help>
-            <span class="text-xs text-gray-500">{{ $t('admin.payments.modal.callback_help') }}</span>
-          </template>
-        </UFormField>
-
-        <UFormField :label="$t('admin.payments.modal.config_label')">
-          <UTextarea
-            v-model="form.configJson"
-            :rows="12"
-            class="font-mono text-sm w-full"
-            @input="onJsonChange"
-          />
-          <p
-            v-if="hasJsonError"
-            class="text-xs text-red-500 mt-1"
-          >{{ $t('admin.payments.modal.config_invalid') }}</p>
-        </UFormField>
-
-        <UFormField>
-          <UCheckbox
-            v-model="form.isActive"
-            :label="$t('admin.payments.modal.enable_label')"
-          />
-        </UFormField>
-
-        <div class="flex justify-end gap-3 mt-8">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            @click="isModalOpen = false"
-          >{{ $t('admin.payments.modal.cancel') }}</UButton>
-          <UButton
-            color="primary"
-            class="bg-purple-600 hover:bg-purple-500 text-white"
-            type="submit"
-            :loading="isSaving"
-          >{{ $t('admin.payments.modal.save') }}</UButton>
-        </div>
-      </form>
-    </FullScreenModal>
+              <div
+                v-if="selectedFailure.rawResponse"
+                class="mt-4"
+              >
+                <span class="block text-xs text-gray-500 mb-2">{{ $t('admin.payments.failures.rawGatewayResponse') }}</span>
+                <div class="p-3 bg-black border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
+                  <pre class="text-xs text-gray-500 dark:text-gray-400 m-0">{{ formatJson(selectedFailure.rawResponse) }}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </UModal>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import {
   definePageMeta,
   useToast,
@@ -188,6 +339,14 @@ definePageMeta({ title: 'Payment Methods' })
 const { t } = useI18n()
 const toast = useToast()
 const { confirm } = useConfirm()
+const activeTab = ref('methods')
+
+const tabItems = computed(() => [
+  { label: t('admin.payments.page.tabs.methods'), value: 'methods', icon: 'ph:credit-card' },
+  { label: t('admin.payments.page.tabs.failures'), value: 'failures', icon: 'ph:warning-circle' },
+])
+
+// ---- Methods Tab ----
 
 const columns = [
   { accessorKey: 'name', header: t('admin.payments.table.name') },
@@ -344,6 +503,67 @@ const deleteMethod = async (id: number) => {
       description: e.data?.message || t('admin.payments.toast.delete_failed'),
       color: 'error',
     })
+  }
+}
+
+// ---- Failures Tab ----
+
+const failuresColumns = [
+  { accessorKey: 'id', header: () => t('admin.payments.failures.id') },
+  { accessorKey: 'orderId', header: () => t('admin.payments.failures.orderId') },
+  { accessorKey: 'visitorId', header: () => t('admin.payments.failures.visitor') },
+  { accessorKey: 'cardBin', header: () => t('admin.payments.failures.cardBin') },
+  { accessorKey: 'reason', header: () => t('admin.payments.failures.reason') },
+  { accessorKey: 'amount', header: () => t('admin.payments.failures.amount') },
+  { accessorKey: 'payMethod', header: () => t('admin.payments.failures.method') },
+  { accessorKey: 'createdAt', header: () => t('admin.payments.failures.date') },
+  { accessorKey: 'actions', header: () => t('admin.payments.failures.actions') },
+]
+
+const failures = ref<any[]>([])
+const failuresPending = ref(false)
+const isFailuresModalOpen = ref(false)
+const selectedFailure = ref<any>(null)
+
+const fetchFailures = async () => {
+  failuresPending.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/failures')
+    failures.value = Array.isArray(res) ? res : []
+  } catch {
+    failures.value = []
+  } finally {
+    failuresPending.value = false
+  }
+}
+
+// Load failures data when switching to failures tab
+watch(activeTab, (tab) => {
+  if (tab === 'failures' && failures.value.length === 0) {
+    fetchFailures()
+  }
+})
+
+const copyVisitorId = (id: string) => {
+  if (!id) return
+  navigator.clipboard.writeText(id)
+  toast.add({
+    title: t('admin.payments.failures.copied'),
+    description: t('admin.payments.failures.copiedDescription'),
+    color: 'success',
+  })
+}
+
+const viewDetails = (record: any) => {
+  selectedFailure.value = record
+  isFailuresModalOpen.value = true
+}
+
+const formatJson = (str: string) => {
+  try {
+    return JSON.stringify(JSON.parse(str), null, 2)
+  } catch {
+    return str
   }
 }
 </script>

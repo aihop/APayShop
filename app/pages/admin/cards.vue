@@ -46,7 +46,7 @@
 
           <template #createdAt-cell="{ row }">
             <span class="text-gray-500 dark:text-gray-400 text-sm">
-              {{ new Date(row.original.createdAt).toLocaleString() }}
+              {{ formatDateTime(row.original.createdAt) }}
             </span>
           </template>
 
@@ -171,6 +171,7 @@ import { ref, computed } from 'vue'
 definePageMeta({ title: 'Cards Management' })
 
 const { t } = useI18n()
+const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
 

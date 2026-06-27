@@ -76,9 +76,9 @@
 
           <template #dates-cell="{ row }">
             <div class="flex flex-col text-xs text-gray-400 gap-1">
-              <span>Start: {{ new Date(row.original.currentPeriodStart || row.original.createdAt).toLocaleDateString() }}</span>
+              <span>Start: {{ formatDate(row.original.currentPeriodStart || row.original.createdAt) }}</span>
               <span v-if="row.original.currentPeriodEnd">
-                Exp: {{ new Date(row.original.currentPeriodEnd).toLocaleDateString() }}
+                Exp: {{ formatDate(row.original.currentPeriodEnd) }}
               </span>
             </div>
           </template>
@@ -108,6 +108,7 @@ import { ref, computed } from 'vue'
 definePageMeta({ title: 'Subscriptions Management' })
 
 const { t } = useI18n()
+const { formatDate } = useFormatTime()
 
 const columns = [
   { accessorKey: 'orderId', header: t('admin.orders.orderId') },

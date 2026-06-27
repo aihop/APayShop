@@ -36,7 +36,7 @@
                   name="ph:calendar-blank"
                   class="w-4 h-4"
                 />
-                {{ new Date(order.createdAt).toLocaleString() }}
+                {{ formatDateTime(order.createdAt) }}
               </p>
             </div>
             <div class="flex items-center gap-3">
@@ -164,7 +164,7 @@
               </div>
               <div class="flex justify-between items-center py-3">
                 <span class="text-gray-400">{{ $t('site.payment.paidAt') }}</span>
-                <span class="text-white">{{ order.paidAt ? new Date(order.paidAt).toLocaleString() : 'N/A' }}</span>
+                <span class="text-white">{{ order.paidAt ? formatDateTime(order.paidAt) : 'N/A' }}</span>
               </div>
             </div>
           </div>
@@ -294,8 +294,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+const { formatDateTime } = useFormatTime()
 const route = useRoute()
-const router = useRouter() // 必须在 setup 顶层取;不能在下面 onResponseError 回调里调 useRouter()
+const router = useRouter() 
 const orderId = route.params['slug']?.[2] as string
 
 const { getSetting } = useSettings()
