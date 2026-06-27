@@ -295,6 +295,7 @@
 import { computed } from 'vue'
 
 const route = useRoute()
+const router = useRouter() // 必须在 setup 顶层取;不能在下面 onResponseError 回调里调 useRouter()
 const orderId = route.params['slug']?.[2] as string
 
 const { getSetting } = useSettings()
@@ -311,7 +312,7 @@ const { data: order, status } = await useFetch<any>(`/api/orders/detail`, {
   },
   onResponseError({ response }: any) {
     if (response.status === 401) {
-      useRouter().push('/login')
+      router.push('/login')
     }
   },
 })

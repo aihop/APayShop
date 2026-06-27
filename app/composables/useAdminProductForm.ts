@@ -116,8 +116,11 @@ export const useAdminProductForm = (emit: any) => {
     }
   }
 
-  // 立即获取网关列表
-  fetchGateways()
+  // 立即获取网关列表(仅客户端:SSR 阶段 $fetch 不会带 admin 会话 cookie,
+  // 会被 server/middleware/auth.ts 拦成 401 Admin access required)
+  if (import.meta.client) {
+    fetchGateways()
+  }
 
   const addPlanId = () => {
     planIdsList.value.push({ gateway: '', id: '' })
