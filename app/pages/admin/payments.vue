@@ -234,7 +234,7 @@
           </template>
 
           <template #createdAt-cell="{ row }">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{ new Date(String(row.original.createdAt || '')).toLocaleString() }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.createdAt) }}</span>
           </template>
 
           <template #actions-cell="{ row }">
@@ -297,7 +297,7 @@
                 </div>
                 <div>
                   <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.time') }}</span>
-                  <span class="text-gray-900 dark:text-white">{{ new Date(selectedFailure.createdAt).toLocaleString() }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ formatDateTime(selectedFailure.createdAt) }}</span>
                 </div>
               </div>
 
@@ -337,6 +337,7 @@ import {
 definePageMeta({ title: 'Payment Methods' })
 
 const { t } = useI18n()
+const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
 const activeTab = ref('methods')
