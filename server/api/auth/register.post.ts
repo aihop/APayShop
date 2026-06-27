@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { dispatchEvent } from "../../utils/eventBus"
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
+import { sendEmail } from "../../utils/email"
 
 export default defineEventHandler(async (event) => {
 
@@ -72,6 +73,16 @@ export default defineEventHandler(async (event) => {
     eventName: 'auth',
     eventAction: 'register',
   })
+
+  // Send welcome/verification email (non-blocking)
+  sendEmail({
+    to: user.email,
+    templateCode: 'welcome',
+    variables: {
+      nickname: user.nickname || user.email.split('@')[0],
+      site_name: 'APayShop',
+    },
+  }).catch((err) => console.error('[Register] Failed to send welcome email:', err))
 
   return {
     success: true,

@@ -170,6 +170,10 @@
             v-if="activeTab === 'integration'"
             :form="dynamicForm"
           />
+          <AdminSettingsEmailTab
+            v-if="activeTab === 'email'"
+            :form="dynamicForm"
+          />
           <AdminSettingsCompanyTab
             v-if="activeTab === 'company'"
             :form="dynamicForm"
@@ -243,6 +247,7 @@ const tabs = [
   { id: 'seo', labelKey: 'admin.settings.page.nav_seo', icon: 'ph:magnifying-glass-fill' },
   { id: 'checkout', labelKey: 'admin.settings.page.nav_checkout', icon: 'ph:shopping-cart-fill' },
   { id: 'integration', labelKey: 'admin.settings.page.nav_integration', icon: 'ph:shuffle-fill' },
+  { id: 'email', labelKey: 'admin.settings.page.nav_email', icon: 'ph:envelope-fill' },
   { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
 ]
 

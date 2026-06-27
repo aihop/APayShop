@@ -1,0 +1,8 @@
+{
+  "name": "Postmark",
+  "fields": [
+    { "key": "serverToken", "label": "Server Token", "type": "password" },
+    { "key": "from", "label": "From Email", "type": "text", "placeholder": "noreply@yourdomain.com" },
+    { "key": "messageStream", "label": "Message Stream (optional)", "type": "text", "placeholder": "outbound" }
+  ]
+}

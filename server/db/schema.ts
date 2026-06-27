@@ -44,6 +44,7 @@ export const {
   products,
   cards,
   paymentMethods,
+  emailProviders,
   orders,
   settings,
   themeSettings,

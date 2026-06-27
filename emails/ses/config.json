@@ -1,0 +1,10 @@
+{
+  "name": "AWS SES",
+  "fields": [
+    { "key": "accessKeyId", "label": "Access Key ID", "type": "text" },
+    { "key": "secretAccessKey", "label": "Secret Access Key", "type": "password" },
+    { "key": "region", "label": "Region", "type": "text", "placeholder": "us-east-1" },
+    { "key": "from", "label": "From Email (verified)", "type": "text", "placeholder": "noreply@yourdomain.com" },
+    { "key": "sessionToken", "label": "Session Token (optional)", "type": "password" }
+  ]
+}

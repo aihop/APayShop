@@ -85,6 +85,16 @@ export const paymentMethods = sqliteTable('payment_methods', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
+export const emailProviders = sqliteTable('email_providers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  code: text('code').notNull(), // e.g., 'resend', 'bird', 'smtp'
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  configJson: text('config_json'), // JSON object for API keys, from address, etc.
+  sendScript: text('send_script'), // JS sandbox script for sending email
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
 export const orders = sqliteTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),

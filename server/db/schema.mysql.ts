@@ -90,6 +90,16 @@ export const paymentMethods = mysqlTable('payment_methods', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
+export const emailProviders = mysqlTable('email_providers', {
+  id: int('id').autoincrement().primaryKey(),
+  name: text('name').notNull(),
+  code: text('code').notNull(), // e.g., 'resend', 'bird', 'smtp'
+  isActive: boolean('is_active').notNull().default(false),
+  configJson: text('config_json'), // JSON object for API keys, from address, etc.
+  sendScript: text('send_script'), // JS sandbox script for sending email
+  createdAt: timestamp('created_at').notNull().defaultNow()
+})
+
 export const orders = mysqlTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),

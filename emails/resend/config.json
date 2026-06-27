@@ -1,0 +1,7 @@
+{
+  "name": "Resend",
+  "fields": [
+    { "key": "apiKey", "label": "API Key", "type": "password" },
+    { "key": "from", "label": "From Address", "type": "text", "placeholder": "noreply@yourdomain.com" }
+  ]
+}

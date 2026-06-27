@@ -1,0 +1,8 @@
+{
+  "name": "SendGrid",
+  "fields": [
+    { "key": "apiKey", "label": "API Key", "type": "password" },
+    { "key": "from", "label": "From Email", "type": "text", "placeholder": "noreply@yourdomain.com" },
+    { "key": "fromName", "label": "From Name (optional)", "type": "text" }
+  ]
+}
