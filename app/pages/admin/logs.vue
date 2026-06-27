@@ -164,6 +164,7 @@ definePageMeta({ title: 'System Logs' })
 
 const { t } = useI18n()
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const columns = [
   { accessorKey: 'id', header: t('admin.logs.table.id') },
@@ -263,7 +264,6 @@ const viewDetails = (log: any) => {
 }
 
 const deleteLog = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: t('admin.logs.confirm.delete_title'),
     description: t('admin.logs.confirm.delete_desc'),
@@ -291,7 +291,6 @@ const deleteLog = async (id: number) => {
 }
 
 const clearAllLogs = async () => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: t('admin.logs.confirm.clear_title'),
     description: t('admin.logs.confirm.clear_desc'),

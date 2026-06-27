@@ -187,6 +187,7 @@ definePageMeta({ title: 'Payment Methods' })
 
 const { t } = useI18n()
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const columns = [
   { accessorKey: 'name', header: t('admin.payments.table.name') },
@@ -320,7 +321,6 @@ const toggleActive = async (row: any) => {
 }
 
 const deleteMethod = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: t('admin.payments.confirm.delete_title'),
     description: t('admin.payments.confirm.delete_desc'),

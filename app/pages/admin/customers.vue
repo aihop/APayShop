@@ -208,6 +208,7 @@ definePageMeta({ title: 'Customers & Users' })
 
 const { t } = useI18n()
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const activeTab = ref('customers')
 
@@ -357,7 +358,6 @@ const saveUser = async () => {
 }
 
 const deleteUser = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: 'Delete User',
     description: 'Are you sure you want to delete this user?',

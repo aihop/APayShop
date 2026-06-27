@@ -149,6 +149,7 @@ const { t } = useI18n()
 definePageMeta({ title: 'Products Management' })
 
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const columns = computed(() => [
   { accessorKey: 'drag', header: '' },
@@ -243,7 +244,6 @@ const openModal = (product?: any) => {
 }
 
 const deleteProduct = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: 'Delete Product',
     description: 'Are you sure you want to delete this product?',

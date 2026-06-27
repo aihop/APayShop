@@ -783,6 +783,9 @@ const switchLocale = async (newLocale: 'en' | 'zh') => {
   if (typeof document !== 'undefined') {
     document.cookie = `i18n_redirected=${newLocale}; path=/; max-age=31536000`
   }
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('locale', newLocale)
+  }
 
   // If it's an admin route, we don't use URL prefixes for i18n
   if (isAdminRoute.value) {

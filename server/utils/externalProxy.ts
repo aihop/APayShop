@@ -34,7 +34,7 @@ export async function getAIGatewayUrl(): Promise<string> {
     console.error('[Proxy] Failed to read ai_gateway_url from settings:', e)
   }
   // Fallback: 环境变量 → 硬编码默认值
-  const fallback = (process.env.AI_GATEWAY_URL || 'https://api.ainode.run').replace(/\/+$/, '')
+  const fallback = (process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '')
   cachedGatewayUrl = fallback
   lastGatewayUrlRead = now
   return fallback
@@ -100,11 +100,10 @@ const assertTargetAllowed = (targetUrl: URL, allowedOrigins?: Iterable<string>, 
   }
 }
 
-export const getConfiguredGatewayOrigins = () => [(cachedGatewayUrl || process.env.AI_GATEWAY_URL || 'https://api.ainode.run').replace(/\/+$/, '')]
+export const getConfiguredGatewayOrigins = () => [(cachedGatewayUrl || process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '')]
 
 /**
  * Get the full webhook events URL for ainode.
- * Returns the complete URL (e.g. https://api.ainode.run/api/webhooks/events).
  */
 export async function getWebhookSubscriptionUrl(): Promise<string> {
   const base = await getAIGatewayUrl()

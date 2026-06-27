@@ -172,6 +172,7 @@ definePageMeta({ title: 'Cards Management' })
 
 const { t } = useI18n()
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.cards.col_id') },
@@ -288,7 +289,6 @@ const onSubmit = async () => {
 }
 
 const deleteCard = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: t('admin.cards.delete_title'),
     description: t('admin.cards.delete_confirm'),

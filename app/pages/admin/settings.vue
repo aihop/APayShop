@@ -232,6 +232,7 @@ const { t } = useI18n()
 definePageMeta({ title: 'System Settings' })
 
 const toast = useToast()
+const { confirm } = useConfirm()
 const router = useRouter()
 
 const activeTab = ref('general')
@@ -304,7 +305,6 @@ watchEffect(() => {
 })
 
 const triggerRebuild = async () => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: t('admin.settings.integration.confirm_rebuild_title'),
     description: t('admin.settings.integration.confirm_rebuild_desc'),

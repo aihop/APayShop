@@ -352,6 +352,7 @@ import { useLocaleRouter } from '~/composables/useLocaleRouter'
 definePageMeta({ title: 'Posts Management' })
 
 const toast = useToast()
+const { confirm } = useConfirm()
 const { settings } = useSettings()
 const { localePath } = useLocaleRouter()
 
@@ -606,7 +607,6 @@ const onSubmit = async () => {
 }
 
 const deletePost = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: 'Delete Post',
     description: 'Are you sure you want to delete this post?',

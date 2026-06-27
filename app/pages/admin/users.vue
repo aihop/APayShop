@@ -130,6 +130,7 @@ const { t } = useI18n()
 definePageMeta({ title: 'Users Management' })
 
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const columns = computed(() => [
   { accessorKey: 'id', header: 'ID' },
@@ -222,7 +223,6 @@ const saveUser = async () => {
 }
 
 const deleteUser = async (id: number) => {
-  const { confirm } = useConfirm()
   const isConfirmed = await confirm({
     title: 'Delete Admin User',
     description: 'Are you sure you want to delete this admin user?',

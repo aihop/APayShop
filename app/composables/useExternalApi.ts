@@ -80,7 +80,7 @@ export const useExternalApi = (globalOptions: ExternalApiOptions = {}) => {
       },
       onResponseError({ response }: any) {
         // Attempt to extract a meaningful error message from the external service
-        const message = response._data?.message || response._data?.error || response.statusText || 'External Service Error'
+        const message = response._data?.msg || response._data?.message || response._data?.error || response.statusText || 'External Service Error'
         
         // Show a unified error toast
         if (import.meta.client) {

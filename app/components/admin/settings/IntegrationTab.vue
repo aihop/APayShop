@@ -44,7 +44,6 @@
       >
         <UInput
           v-model="form.ai_gateway_url"
-          placeholder="https://api.ainode.run"
           icon="ph:cloud-arrow-up"
           size="md"
           class="w-full"
