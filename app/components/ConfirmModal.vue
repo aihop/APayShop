@@ -1,9 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" :ui="{ content: 'bg-[#121214] border border-gray-800' }">
+  <UModal v-model:open="isOpen" :ui="{ overlay: 'bg-black/30', content: 'bg-white dark:bg-[#1c1c1f] border border-gray-200 dark:border-gray-700/60' }">
     <template #content>
       <div class="p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-white">{{ title }}</h3>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ title }}</h3>
           <UButton
             color="neutral"
             variant="ghost"
@@ -13,7 +13,7 @@
           />
         </div>
         
-        <p class="text-gray-400 mb-6">
+        <p class="text-gray-500 dark:text-gray-400 mb-6">
           {{ description }}
         </p>
 

@@ -4,14 +4,14 @@
       :items="dropdownItems"
       :popper="{ placement: 'bottom-end', offsetDistance: 8 }"
       :ui="{ 
-        content: 'bg-[#121214]/95 backdrop-blur-xl border border-gray-800/60 shadow-2xl rounded-xl overflow-hidden min-w-[160px]',
-        item: 'px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-300 hover:text-white hover:bg-gray-800/50',
+        content: 'bg-white dark:bg-[#121214]/95 backdrop-blur-xl border border-gray-200 dark:border-gray-800/60 shadow-2xl rounded-xl overflow-hidden min-w-[160px]',
+        item: 'px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50',
       }"
     >
       <UButton
         color="neutral"
         variant="ghost"
-        class="text-gray-400 hover:text-white hover:bg-gray-800/40 transition-all duration-300 rounded-lg px-3 py-2 flex items-center gap-2 border border-transparent hover:border-gray-700/50"
+        class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-all duration-300 rounded-lg px-3 py-2 flex items-center gap-2 border border-transparent hover:border-gray-300 dark:hover:border-gray-700/50"
       >
         <UIcon
           name="ph:translate-duotone"
@@ -32,10 +32,10 @@
     </UDropdownMenu>
     <template #fallback>
       <div class="px-3 py-2 flex items-center gap-2 rounded-lg border border-transparent">
-        <USkeleton class="h-4 w-4 rounded-full bg-gray-800/50" />
+        <USkeleton class="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-800/50" />
         <USkeleton
           v-if="showText"
-          class="h-4 w-16 bg-gray-800/50 rounded"
+          class="h-4 w-16 bg-gray-200 dark:bg-gray-800/50 rounded"
         />
       </div>
     </template>
