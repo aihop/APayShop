@@ -206,7 +206,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
   const fetchInit: RequestInit = {
     method,
     headers: forwardHeaders,
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(60000), // 60s：Stats/Dashboard 等聚合接口需要较长查询时间
   }
 
   if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
@@ -219,9 +219,15 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
 
     if (!response.ok) {
       console.error(`[${proxyLabel} Error] ${response.status}`, targetUrl.toString(), text.slice(0, 500))
+      // 透传上游错误体，让前端能看到 provider 的具体错误信息
+      let upstreamError = text
+      try {
+        const parsed = JSON.parse(text)
+        upstreamError = parsed.error?.message || parsed.msg || parsed.message || text
+      } catch {}
       throw createError({
-        statusCode: 502,
-        statusMessage: `Bad Gateway: upstream responded ${response.status}`,
+        statusCode: response.status,
+        statusMessage: upstreamError.slice(0, 200),
       })
     }
 

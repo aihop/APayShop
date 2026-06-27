@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const page = parseInt(query.page as string) || 1
-  const limit = parseInt(query.limit as string) || 15
+  const limit = parseInt(query.pageSize as string) || 15
   const offset = (page - 1) * limit
   const tab = (query.tab as string) || 'pending'
 
