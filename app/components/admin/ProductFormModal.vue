@@ -7,7 +7,7 @@
     <!-- Language Tabs -->
     <div
       v-if="supportedLocales.length > 1"
-      class="border-b border-gray-800/60 bg-[#121214] mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6"
+      class="border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-[#121214] mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6"
     >
       <nav class="flex space-x-2 overflow-x-auto hide-scrollbar pb-2">
         <button
@@ -24,7 +24,7 @@
               ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
               : locale !== defaultLocale && !form.name
                 ? 'text-gray-600 cursor-not-allowed border border-transparent'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
           ]"
           :disabled="locale !== defaultLocale && !form.name"
         >
@@ -51,12 +51,12 @@
             v-if="currentTabLocale === defaultLocale"
             v-model="form.name"
             required
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
           />
           <UInput
             v-else
             v-model="translationForms[currentTabLocale].name"
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
             :placeholder="$t('admin.products.form.name_translated', { locale: currentTabLocale })"
           />
         </UFormField>
@@ -66,7 +66,7 @@
         >
           <UInput
             v-model="form.slug"
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
             :placeholder="$t('admin.products.form.slug_placeholder')"
           />
         </UFormField>
@@ -96,18 +96,18 @@
             type="number"
             step="0.01"
             required
-            class="text-white w-full"
+            class="text-gray-900 dark:text-white w-full"
           />
         </UFormField>
       </div>
 
       <div
         v-if="(form.type === 'subscription' || form.type === 'topup') && currentTabLocale === defaultLocale"
-        class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
+        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c]"
       >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <h3 class="text-white font-medium">{{ form.type === 'subscription' ? $t('admin.products.form.subscription_settings') : $t('admin.products.form.topup_display_settings') }}</h3>
+            <h3 class="text-gray-900 dark:text-white font-medium">{{ form.type === 'subscription' ? $t('admin.products.form.subscription_settings') : $t('admin.products.form.topup_display_settings') }}</h3>
             <UTooltip :text="$t('admin.products.form.pricing_tooltip')">
               <UIcon
                 name="ph:info"
@@ -142,9 +142,34 @@
               v-model.number="form.metaData.interval_count"
               type="number"
               min="1"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.interval_placeholder')"
             />
+          </UFormField>
+        </div>
+        <div
+          class="grid grid-cols-2 gap-4"
+          v-if="form.type === 'topup'"
+        >
+          <UFormField :label="$t('admin.products.form.recharge_amount')">
+            <UInput
+              v-model.number="form.metaData.recharge_amount"
+              type="number"
+              step="0.01"
+              class="text-gray-900 dark:text-white w-full"
+              :placeholder="$t('admin.products.form.recharge_placeholder')"
+            />
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.recharge_help') }}</p>
+          </UFormField>
+          <UFormField :label="$t('admin.products.form.balance_type')">
+            <USelect
+              v-model="form.metaData.balance_type"
+              :items="balanceTypeOptions"
+              option-attribute="label"
+              value-attribute="value"
+              class="w-full"
+            />
+            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.balance_help') }}</p>
           </UFormField>
         </div>
       </div>
@@ -152,10 +177,10 @@
       <!-- Gateway Plan IDs (仅限默认语言) -->
       <div
         v-if="form.type === 'subscription' && currentTabLocale === defaultLocale"
-        class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c] mt-4"
+        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c] mt-4"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-white font-medium flex items-center gap-2">
+          <h3 class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
             <UIcon
               name="ph:plugs-connected"
               class="text-green-400"
@@ -179,7 +204,7 @@
             <UInput
               v-model="item.id"
               :placeholder="$t('admin.products.form.plan_id_placeholder')"
-              class="flex-1 text-white"
+              class="flex-1 text-gray-900 dark:text-white"
             />
             <UButton
               color="error"
@@ -203,10 +228,10 @@
 
       <div
         v-if="form.type === 'service'"
-        class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
+        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c]"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-white font-medium flex items-center gap-2">
+          <h3 class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
             <UIcon
               name="ph:list-dashes"
               class="text-blue-400"
@@ -239,12 +264,12 @@
                   v-model="serviceFormSchemaList"
                   item-key="id"
                   handle=".drag-handle"
-                  ghost-class="opacity-50 bg-gray-800"
+                  ghost-class="opacity-50 bg-gray-200 dark:bg-gray-800"
                   animation="200"
                   class="space-y-2"
                 >
                   <template #item="{ element, index }">
-                    <div class="flex items-center gap-3 p-3 bg-[#1e1e20] border border-gray-800 rounded-lg group">
+                    <div class="flex items-center gap-3 p-3 bg-gray-100 dark:bg-[#1e1e20] border border-gray-200 dark:border-gray-800 rounded-lg group">
                       <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300">
                         <UIcon
                           name="ph:dots-six-vertical"
@@ -256,14 +281,14 @@
                         <UInput
                           v-model="element.name"
                           :placeholder="$t('admin.products.form.field_name_placeholder')"
-                          class="text-white"
+                          class="text-gray-900 dark:text-white"
                         />
                       </div>
 
                       <UInput
                         v-model="element.label"
                         :placeholder="$t('admin.products.form.field_label_placeholder')"
-                        class="text-white flex-1"
+                        class="text-gray-900 dark:text-white flex-1"
                       />
 
                       <div class="w-32">
@@ -298,7 +323,7 @@
 
                 <div
                   v-else
-                  class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-800 rounded-lg text-center"
+                  class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-300 dark:border-gray-800 rounded-lg text-center"
                 >
                   {{ $t('admin.products.form.no_fields') }}
                 </div>
@@ -320,7 +345,7 @@
                 <UTextarea
                   v-model="serviceFormSchemaStr"
                   :rows="10"
-                  class="font-mono text-sm text-white w-full"
+                  class="font-mono text-sm text-gray-900 dark:text-white w-full"
                   :placeholder="$t('admin.products.form.schema_json_placeholder')"
                 />
                 <p class="text-xs text-gray-500 mt-2">
@@ -334,9 +359,9 @@
 
       <div
         v-if="form.type === 'file'"
-        class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
+        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c]"
       >
-        <h3 class="text-white font-medium mb-4">{{ $t('admin.products.form.file_settings') }}</h3>
+        <h3 class="text-gray-900 dark:text-white font-medium mb-4">{{ $t('admin.products.form.file_settings') }}</h3>
 
         <div class="grid grid-cols-1 gap-4">
           <UFormField
@@ -345,25 +370,26 @@
           >
             <UInput
               v-model="form.metaData.download_url"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               placeholder="https://..."
             />
             <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.download_url_help') }}</p>
           </UFormField>
 
-          <UFormField :label="$t('admin.products.form.download_instructions') + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
+          <UFormField
+            :label="$t('admin.products.form.download_instructions') + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
             <UTextarea
               v-if="currentTabLocale === defaultLocale"
               v-model="form.metaData.download_instruction"
               :rows="2"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.download_placeholder')"
             />
             <UTextarea
               v-else
               v-model="translationForms[currentTabLocale].download_instruction"
               :rows="2"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.download_translated', { locale: currentTabLocale })"
             />
           </UFormField>
@@ -372,39 +398,15 @@
 
       <div
         v-if="form.type === 'topup' && currentTabLocale === defaultLocale"
-        class="p-4 border border-gray-800 rounded-lg bg-[#1a1a1c]"
+        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c]"
       >
-        <h3 class="text-white font-medium mb-4">{{ $t('admin.products.form.topup_settings') }}</h3>
-
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <UFormField :label="$t('admin.products.form.recharge_amount')">
-            <UInput
-              v-model.number="form.metaData.recharge_amount"
-              type="number"
-              step="0.01"
-              class="text-white w-full"
-              :placeholder="$t('admin.products.form.recharge_placeholder')"
-            />
-            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.recharge_help') }}</p>
-          </UFormField>
-
-          <UFormField :label="$t('admin.products.form.balance_type')">
-            <USelect
-              v-model="form.metaData.balance_type"
-              :items="balanceTypeOptions"
-              option-attribute="label"
-              value-attribute="value"
-              class="w-full"
-            />
-            <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.balance_help') }}</p>
-          </UFormField>
-        </div>
+        <h3 class="text-gray-900 dark:text-white font-medium mb-4">{{ $t('admin.products.form.topup_settings') }}</h3>
 
         <div class="grid grid-cols-2 gap-4">
           <UFormField :label="$t('admin.products.form.success_message')">
             <UInput
               v-model="form.metaData.delivery_message"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.success_placeholder')"
             />
             <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.success_help') }}</p>
@@ -413,7 +415,7 @@
           <UFormField :label="$t('admin.products.form.display_unit')">
             <UInput
               v-model="form.metaData.display_unit"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.display_placeholder')"
             />
             <p class="text-xs text-gray-500 mt-1">{{ $t('admin.products.form.display_help') }}</p>
@@ -423,15 +425,15 @@
 
       <div
         v-if="(form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan"
-        class="p-4 border border-purple-500/30 rounded-lg bg-[#2a1a3a]/30 mt-4"
+        class="p-4 border border-purple-500/30 rounded-lg bg-purple-50/80 dark:bg-[#2a1a3a]/30 mt-4"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-white font-medium flex items-center gap-2">
-            <UIcon
-              name="ph:star-fill"
-              class="text-purple-400"
-            />
-            {{ $t('admin.products.form.features_title') }}
+          <h3 class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
+              <UIcon
+                name="ph:star-fill"
+                class="text-purple-400"
+              />
+              {{ $t('admin.products.form.features_title') }}
           </h3>
           <UButton
             size="xs"
@@ -454,12 +456,12 @@
                   v-model="currentFeaturesList"
                   item-key="id"
                   handle=".drag-handle"
-                  ghost-class="opacity-50 bg-gray-800"
+                  ghost-class="opacity-50 bg-gray-200 dark:bg-gray-800"
                   animation="200"
                   class="space-y-2"
                 >
                   <template #item="{ element, index }">
-                    <div class="flex items-center gap-3 p-3 bg-[#1e1e20] border border-gray-800 rounded-lg group">
+                    <div class="flex items-center gap-3 p-3 bg-gray-100 dark:bg-[#1e1e20] border border-gray-200 dark:border-gray-800 rounded-lg group">
                       <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300">
                         <UIcon
                           name="ph:dots-six-vertical"
@@ -471,7 +473,7 @@
                         <UInput
                           v-model="element.icon"
                           :placeholder="$t('admin.products.form.feature_icon_placeholder')"
-                          class="text-white"
+                          class="text-gray-900 dark:text-white"
                         >
                           <template #leading>
                             <UIcon
@@ -485,7 +487,7 @@
                       <UInput
                         v-model="element.name"
                         :placeholder="$t('admin.products.form.feature_desc_placeholder')"
-                        class="text-white flex-1"
+                        class="text-gray-900 dark:text-white flex-1"
                       />
 
                       <div class="flex items-center gap-3 ml-2">
@@ -510,7 +512,7 @@
 
                 <div
                   v-else
-                  class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-800 rounded-lg text-center"
+                  class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-300 dark:border-gray-800 rounded-lg text-center"
                 >
                   {{ $t('admin.products.form.no_features') }}
                 </div>
@@ -532,7 +534,7 @@
                 <UTextarea
                   v-model="currentFeaturesJson"
                   :rows="10"
-                  class="font-mono text-sm text-white w-full"
+                  class="font-mono text-sm text-gray-900 dark:text-white w-full"
                   :placeholder="$t('admin.products.form.features_json_placeholder')"
                 />
                 <p class="text-xs text-gray-500 mt-2">
@@ -548,13 +550,13 @@
             <UInput
               v-if="currentTabLocale === defaultLocale"
               v-model="form.metaData.plan_badge"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.plan_badge_placeholder')"
             />
             <UInput
               v-else
               v-model="translationForms[currentTabLocale].plan_badge"
-              class="text-white w-full"
+              class="text-gray-900 dark:text-white w-full"
               :placeholder="$t('admin.products.form.badge_translated', { locale: currentTabLocale })"
             />
           </UFormField>
@@ -581,7 +583,7 @@
           <div class="flex gap-2 w-full">
             <UInput
               v-model="newImageUrl"
-              class="text-white flex-1"
+              class="text-gray-900 dark:text-white flex-1"
               :placeholder="$t('admin.products.form.image_url_placeholder')"
               @keyup.enter.prevent="addImageUrl"
             />
@@ -621,12 +623,12 @@
             animation="200"
           >
             <template #item="{ element, index }">
-              <div class="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-800 group cursor-move">
+              <div class="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group cursor-move">
                 <img
                   :src="element"
                   class="w-full h-full object-cover"
                 />
-                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div class="absolute inset-0 bg-gray-900/50 dark:bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <UButton
                     color="primary"
                     variant="ghost"
@@ -653,13 +655,13 @@
           v-if="currentTabLocale === defaultLocale"
           v-model="form.description"
           :rows="3"
-          class="text-white w-full"
+          class="text-gray-900 dark:text-white w-full"
         />
         <UTextarea
           v-else
           v-model="translationForms[currentTabLocale].description"
           :rows="3"
-          class="text-white w-full"
+          class="text-gray-900 dark:text-white w-full"
           :placeholder="$t('admin.products.form.description_translated', { locale: currentTabLocale })"
         />
       </UFormField>
@@ -704,12 +706,12 @@
   <!-- Image Preview Modal -->
   <UModal v-model:open="isPreviewModalOpen">
     <template #content>
-      <div class="relative bg-black/90 p-2 rounded-lg flex justify-center items-center">
+      <div class="relative bg-white dark:bg-black/90 p-2 rounded-lg flex justify-center items-center">
         <UButton
           color="neutral"
           variant="ghost"
           icon="ph:x"
-          class="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 rounded-full"
+          class="absolute top-4 right-4 z-10 bg-white/80 dark:bg-black/50 hover:bg-gray-100 dark:hover:bg-black/70 rounded-full"
           @click="isPreviewModalOpen = false"
         />
         <img

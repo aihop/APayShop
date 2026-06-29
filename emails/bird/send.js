@@ -1,21 +1,49 @@
 // ====== Bird (MessageBird) Email Send Script (Sandbox) ======
 // Sandbox exposes: { to, subject, html, config, fetch, crypto, console }
+//
+// Required config fields:
+//   apiKey      - Bird Access Key
+//   workspaceId - Workspace UUID
+//   channelId   - Email Channel UUID (get from Bird Dashboard → Manage Channels → Email → Channel ID)
+//   fromName    - Optional display name for the sender
 
-const res = await fetch('https://api.bird.com/v1/workspaces/' + config.workspaceId + '/messages', {
+const url = 'https://api.bird.com/workspaces/' + config.workspaceId + '/channels/' + config.channelId + '/messages'
+
+const payload = {
+  receiver: {
+    contacts: [
+      {
+        identifierKey: 'emailaddress',
+        identifierValue: to
+      }
+    ]
+  },
+  body: {
+    type: 'html',
+    html: {
+      html: html,
+      text: subject,
+      metadata: {
+        subject: subject
+      }
+    }
+  }
+}
+
+// Optional sender display name
+if (config.fromName) {
+  payload.body.html.metadata.emailFrom = {
+    displayName: config.fromName
+  }
+}
+
+const res = await fetch(url, {
   method: 'POST',
   headers: {
-    'Authorization': `Bird ${config.apiKey}`,
+    'Authorization': 'AccessKey ' + config.apiKey,
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({
-    originator: config.from || 'Your Company',
-    recipients: [{ to }],
-    subject: subject,
-    body: {
-      type: 'html',
-      html: html
-    }
-  })
+  body: JSON.stringify(payload)
 })
 
 if (res.ok) {

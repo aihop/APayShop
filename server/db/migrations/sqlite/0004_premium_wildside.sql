@@ -1,0 +1,1 @@
+ALTER TABLE `visitor_profiles` ADD `ip` text;

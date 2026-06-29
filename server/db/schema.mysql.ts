@@ -23,7 +23,11 @@ export const users = mysqlTable('users', {
   SubExpiresAt: timestamp('sub_expires_at'), // 订阅过期时间
   
   status: int('status').default(1), // 1: 正常, 0: 禁用
-  
+
+  emailVerifiedAt: timestamp('email_verified_at'), // 邮箱验证时间
+  emailVerifyToken: text('email_verify_token'), // 邮箱验证令牌
+  emailVerifyExpiresAt: timestamp('email_verify_expires_at'), // 令牌过期时间
+
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
@@ -196,6 +200,7 @@ export const logs = mysqlTable('logs', {
 export const visitorProfiles = mysqlTable('visitor_profiles', {
   visitorId: text('visitor_id').primaryKey(),
   userId: int('user_id').references(() => users.id),
+  ip: text('ip'),
   firstSeenAt: timestamp('first_seen_at').notNull().defaultNow(),
   lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
   landingPath: text('landing_path'),
@@ -289,4 +294,16 @@ export const posts = mysqlTable('posts', {
   metaData: json('meta_data'), // For SEO tags, view counts, or other flexible data
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
+})
+
+export const notifications = mysqlTable('notifications', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').references(() => users.id),
+  visitorId: text('visitor_id'),
+  type: text('type').notNull(), // order_paid, key_delivered, subscription_activated, etc.
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  data: json('data'), // { orderId, productId, slug, ... }
+  isRead: boolean('is_read').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow()
 })

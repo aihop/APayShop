@@ -2,6 +2,7 @@ import { users, oauthAccounts } from "../db/schema"
 import { eq, and } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { H3Event } from 'h3'
+import { ensureVisitorId, trackVisitorEvent } from "./visitorAnalytics"
 
 
 interface OAuthProfile {
@@ -31,6 +32,7 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
   let finalUserEmail = profile.email;
   let finalUserNickname = profile.name || profile.email.split('@')[0];
   let finalUserAvatar = profile.avatar || '';
+  let isNewRegistration = false;
 
   if (existingOAuth.length > 0) {
     // User is already registered with this provider, log them in
@@ -61,6 +63,8 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
       })
     } else {
       // 3. Completely new user. Create in users table AND oauth_accounts table
+      isNewRegistration = true
+
       const newUser = await db.insert(users).values({
         email: profile.email,
         nickname: finalUserNickname,
@@ -93,6 +97,14 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
   await db.update(users)
     .set({ lastLoginAt: new Date() })
     .where(eq(users.id, finalUserId))
+
+  // Track login/register event for visitor stats
+  trackVisitorEvent(event, {
+    visitorId: ensureVisitorId(event),
+    userId: finalUserId,
+    eventName: 'auth',
+    eventAction: isNewRegistration ? 'register' : 'login',
+  }).catch(() => {})
 
   // Redirect to home page or dashboard after successful login
   return sendRedirect(event, '/')

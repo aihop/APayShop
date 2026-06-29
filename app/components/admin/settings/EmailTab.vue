@@ -54,12 +54,22 @@
           />
         </UFormField>
 
-        <div class="pt-2 pb-4 border-b border-gray-200 dark:border-gray-800/60">
+        <div v-if="isCustomProvider" class="pt-2 pb-4 border-b border-gray-200 dark:border-gray-800/60">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">{{ $t('admin.settings.email.script_title') }}</h3>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.settings.email.script_desc') }}</p>
         </div>
 
-        <UFormField :label="$t('admin.settings.email.send_script')" :description="$t('admin.settings.email.send_script_desc')">
+        <UFormField :label="$t('admin.settings.email.default_template')" :description="$t('admin.settings.email.default_template_desc')">
+          <USelect
+            v-model="providerForm.defaultTemplateCode"
+            :items="defaultTemplateOptions"
+            size="md"
+            class="w-full"
+            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
+          />
+        </UFormField>
+
+        <UFormField v-if="isCustomProvider" :label="$t('admin.settings.email.send_script')" :description="$t('admin.settings.email.send_script_desc')">
           <UTextarea
             v-model="providerForm.sendScript"
             :rows="12"
@@ -93,12 +103,20 @@
           </div>
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.templates_title') }}</h2>
         </div>
-        <UButton type="button" size="sm" class="rounded-xl" @click="openNewTemplate">
-          <template #leading>
-            <UIcon name="ph:plus" class="w-4 h-4" />
-          </template>
-          {{ $t('admin.settings.email.add_template') }}
-        </UButton>
+        <div class="flex items-center gap-2">
+          <UButton type="button" size="sm" color="gray" variant="outline" class="rounded-xl" @click="loadDefaultTemplates">
+            <template #leading>
+              <UIcon name="ph:download-simple" class="w-4 h-4" />
+            </template>
+            Load Defaults
+          </UButton>
+          <UButton type="button" size="sm" class="rounded-xl" @click="openNewTemplate">
+            <template #leading>
+              <UIcon name="ph:plus" class="w-4 h-4" />
+            </template>
+            {{ $t('admin.settings.email.add_template') }}
+          </UButton>
+        </div>
       </div>
 
       <div v-if="templates.length === 0" class="p-12 text-center text-gray-500 dark:text-gray-400 text-sm">
@@ -281,7 +299,10 @@ const availableProviders = [
   { label: 'AWS SES', value: 'ses' },
   { label: 'Bird (MessageBird)', value: 'bird' },
   { label: 'SMTP (via smtp2go)', value: 'smtp' },
+  { label: t('admin.settings.email.custom_provider'), value: '__custom__' },
 ]
+
+const isCustomProvider = computed(() => providerForm.code === '__custom__')
 
 const providerForm = reactive({
   name: 'Resend',
@@ -289,6 +310,7 @@ const providerForm = reactive({
   isActive: false,
   configJson: '',
   sendScript: '',
+  defaultTemplateCode: '__none__',
 })
 
 const defaultResendScript = `// Sandbox: { to, subject, html, config, fetch, crypto, console }
@@ -311,20 +333,50 @@ if (res.ok) {
 }
 return { ok: false, error: await res.text() }`
 
-// Load existing provider from settings form
+// Load existing provider from settings form into providerForm
 watchEffect(() => {
-  if (props.form.email_provider_name) providerForm.name = props.form.email_provider_name
-  if (props.form.email_provider_code) providerForm.code = props.form.email_provider_code
-  if (props.form.email_provider_is_active !== undefined) {
-    providerForm.isActive = props.form.email_provider_is_active === true || props.form.email_provider_is_active === 'true'
+  const f = props.form
+  if (f.email_provider_name) providerForm.name = f.email_provider_name
+  if (f.email_provider_code) providerForm.code = f.email_provider_code
+  if (f.email_provider_is_active !== undefined) {
+    providerForm.isActive = f.email_provider_is_active === true || f.email_provider_is_active === 'true'
   }
-  if (props.form.email_provider_config_json) providerForm.configJson = props.form.email_provider_config_json
-  if (props.form.email_provider_send_script) providerForm.sendScript = props.form.email_provider_send_script
+  if (f.email_provider_config_json) providerForm.configJson = f.email_provider_config_json
+  if (f.email_provider_send_script) providerForm.sendScript = f.email_provider_send_script
+  providerForm.defaultTemplateCode = f.email_default_template || '__none__'
 })
+
+// Clear sendScript when switching to a built-in provider (local files handle it)
+watch(() => providerForm.code, (newCode) => {
+  if (newCode !== '__custom__') {
+    providerForm.sendScript = ''
+  }
+})
+
+// Sync providerForm values back to props.form so the main "Save Changes" has them too
+function syncProviderToForm() {
+  const f = props.form
+  f.email_provider_name = providerForm.name
+  f.email_provider_code = providerForm.code
+  f.email_provider_is_active = providerForm.isActive
+  f.email_provider_config_json = providerForm.configJson
+  f.email_provider_send_script = providerForm.sendScript
+  f.email_default_template = providerForm.defaultTemplateCode
+}
+
+// Also auto-sync on every provider form change so that main "Save Changes" always has the data
+watch(providerForm, () => {
+  syncProviderToForm()
+}, { deep: true })
 
 async function saveProvider() {
   isSavingProvider.value = true
   try {
+    // 1. Sync provider values + templates back to form so all data is captured
+    syncProviderToForm()
+    syncTemplatesToForm()
+
+    // 2. Save provider to email_providers table
     await $fetch('/api/admin/email/providers', {
       method: 'POST',
       body: {
@@ -335,6 +387,21 @@ async function saveProvider() {
         sendScript: providerForm.sendScript,
       },
     })
+
+    // 3. Save templates + email settings to settings table
+    await $fetch('/api/admin/settings', {
+      method: 'POST',
+      body: {
+        email_templates: props.form.email_templates,
+        email_provider_name: providerForm.name,
+        email_provider_code: providerForm.code,
+        email_provider_is_active: providerForm.isActive,
+        email_provider_config_json: providerForm.configJson,
+        email_provider_send_script: providerForm.sendScript,
+        email_default_template: providerForm.defaultTemplateCode,
+      },
+    })
+
     toast.add({
       title: t('admin.common.success'),
       description: t('admin.settings.email.toast_provider_saved'),
@@ -365,6 +432,11 @@ watchEffect(() => {
 const templateOptions = computed(() =>
   templates.value.map((t) => ({ label: `${t.name} (${t.code})`, value: t.code }))
 )
+
+const defaultTemplateOptions = computed(() => {
+  const options = templates.value.map((t) => ({ label: `${t.name} (${t.code})`, value: t.code }))
+  return [{ label: t('admin.settings.email.no_default_template'), value: '__none__' }, ...options]
+})
 
 const isTemplateModalOpen = ref(false)
 const editingTemplateIndex = ref(-1)
@@ -442,6 +514,46 @@ function syncTemplatesToForm() {
   props.form.email_templates = JSON.stringify(templates.value)
 }
 
+async function loadDefaultTemplates() {
+  try {
+    const result: any = await $fetch('/api/admin/email/default-templates')
+    const defaults: Array<{ code: string; name: string; subject: string; variables: string[]; html: string }>
+      = Array.isArray(result) ? result : []
+    if (defaults.length === 0) {
+      toast.add({ title: t('admin.common.info'), description: 'No default templates available', color: 'warning' })
+      return
+    }
+
+    // Merge: skip existing codes, add new ones
+    const existingCodes = new Set(templates.value.map((t) => t.code))
+    let addedCount = 0
+    for (const tpl of defaults) {
+      if (!existingCodes.has(tpl.code)) {
+        templates.value.push({ ...tpl })
+        existingCodes.add(tpl.code)
+        addedCount++
+      }
+    }
+
+    if (addedCount > 0) {
+      syncTemplatesToForm()
+      toast.add({
+        title: t('admin.common.success'),
+        description: `${addedCount} template(s) loaded`,
+        color: 'success',
+      })
+    } else {
+      toast.add({ title: t('admin.common.info'), description: 'All default templates already exist', color: 'warning' })
+    }
+  } catch (e: any) {
+    toast.add({
+      title: t('admin.common.error'),
+      description: e.data?.message || e.message || 'Failed to load default templates',
+      color: 'error',
+    })
+  }
+}
+
 // --- Test ---
 const testEmail = reactive({ to: '', templateCode: '' })
 const isSendingTest = ref(false)
@@ -460,6 +572,7 @@ async function sendTestEmail() {
       body: {
         to: testEmail.to,
         templateCode: testEmail.templateCode,
+        templates: props.form.email_templates,
       },
     })
     testResult.value = res

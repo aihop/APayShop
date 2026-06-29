@@ -304,6 +304,7 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
     await db.insert(visitorProfiles).values({
       visitorId,
       userId: input.userId || null,
+      ip,
       firstSeenAt: createdAt,
       lastSeenAt: createdAt,
       landingPath: path,
@@ -353,6 +354,7 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
     lastCampaign: attribution.campaign || profile.lastCampaign || null,
     lastContent: attribution.content || profile.lastContent || null,
     lastTerm: attribution.term || profile.lastTerm || null,
+    ip: ip || profile.ip || null,
     country: country || profile.country || null,
     region: region || profile.region || null,
     city: city || profile.city || null,

@@ -8,7 +8,7 @@ export default defineConfig({
     url: process.env.DATABASE_URL!,
   },
   schemaFilter: ["public"],
-  tablesFilter: ["users", "posts","admins","cards","failures","logs","install_events","oauth_accounts","orders","payment_methods","products","settings","theme_settings","webhooks","subscriptions","visitor_profiles","visitor_events","_hub_migrations"],
+  tablesFilter: ["users", "posts","admins","cards","payment_failures","logs","install_events","oauth_accounts","orders","payment_methods","products","settings","theme_settings","webhooks","subscriptions","visitor_profiles","visitor_events","notifications","_hub_migrations"],
   push: {
     force: true
   }

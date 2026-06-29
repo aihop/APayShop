@@ -22,7 +22,11 @@ export const users = sqliteTable('users', {
   SubExpiresAt: integer('sub_expires_at', { mode: 'timestamp' }), // 订阅过期时间
   TierLevel: integer('tier_level', { mode: 'number' }).default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
   status: integer('status').default(1), // 1: 正常, 0: 禁用
-  
+
+  emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }), // 邮箱验证时间
+  emailVerifyToken: text('email_verify_token'), // 邮箱验证令牌
+  emailVerifyExpiresAt: integer('email_verify_expires_at', { mode: 'timestamp' }), // 令牌过期时间
+
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
@@ -191,6 +195,7 @@ export const logs = sqliteTable('logs', {
 export const visitorProfiles = sqliteTable('visitor_profiles', {
   visitorId: text('visitor_id').primaryKey(),
   userId: integer('user_id').references(() => users.id),
+  ip: text('ip'),
   firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   landingPath: text('landing_path'),
@@ -284,4 +289,16 @@ export const posts = sqliteTable('posts', {
   metaData: text('meta_data', { mode: 'json' }), // For SEO tags, view counts, or other flexible data
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`)
+})
+
+export const notifications = sqliteTable('notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id),
+  visitorId: text('visitor_id'),
+  type: text('type').notNull(), // order_paid, key_delivered, subscription_activated, etc.
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  data: text('data', { mode: 'json' }), // { orderId, productId, slug, ... }
+  isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })

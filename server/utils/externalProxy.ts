@@ -34,7 +34,7 @@ export async function getAIGatewayUrl(): Promise<string> {
     console.error('[Proxy] Failed to read ai_gateway_url from settings:', e)
   }
   // Fallback: 环境变量 → 硬编码默认值
-  const fallback = (process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '')
+  const fallback = (process.env.AI_GATEWAY_URL || 'https://api.ainode.run').trim().replace(/\/+$/, '')
   cachedGatewayUrl = fallback
   lastGatewayUrlRead = now
   return fallback

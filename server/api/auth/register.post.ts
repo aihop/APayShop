@@ -74,15 +74,33 @@ export default defineEventHandler(async (event) => {
     eventAction: 'register',
   })
 
-  // Send welcome/verification email (non-blocking)
+  // Send email verification (non-blocking)
+  const acceptLanguage = getHeaders(event)['accept-language'] || 'en'
+  const locale = acceptLanguage.startsWith('zh') ? 'zh' : 'en'
+
+  // Generate email verification token (24h expiry)
+  const verifyToken = crypto.randomUUID()
+  const verifyExpiresAt = Math.floor(Date.now() / 1000) + 86400 // 24 hours
+  await db.update(users)
+    .set({
+      emailVerifyToken: verifyToken,
+      emailVerifyExpiresAt: new Date(verifyExpiresAt * 1000),
+    })
+    .where(eq(users.id, user.id))
+
+  const siteUrl = getRequestURL(event).origin
+  const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
   sendEmail({
     to: user.email,
-    templateCode: 'welcome',
+    templateCode: 'verify_email',
+    locale,
     variables: {
       nickname: user.nickname || user.email.split('@')[0],
       site_name: 'APayShop',
+      site_url: siteUrl,
+      verify_link: verifyLink,
     },
-  }).catch((err) => console.error('[Register] Failed to send welcome email:', err))
+  }).catch((err) => console.error('[Register] Failed to send verification email:', err))
 
   return {
     success: true,

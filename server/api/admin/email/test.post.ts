@@ -2,7 +2,7 @@ import { sendEmail } from '../../../utils/email'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { to, templateCode } = body
+  const { to, templateCode, locale, templates } = body
 
   if (!to || !templateCode) {
     throw createError({ statusCode: 400, message: 'to and templateCode are required' })
@@ -11,6 +11,8 @@ export default defineEventHandler(async (event) => {
   const result = await sendEmail({
     to,
     templateCode,
+    locale,
+    templates,
     variables: {
       nickname: 'Test User',
       site_name: 'APayShop',

@@ -9,6 +9,7 @@
 > `2026-06-26`: 移除本地 API Key 资产模型与相关迁移定义，APayShop 不再维护本地 API Key 资产表，见 Section 3 与 Section 6.G。
 > `2026-06-27`: 新增时间与时区规范（Section 6.I）。数据库存 UTC 时间戳 → 后端 API 输出 UTC ISO → 前端按 settings.timezone 渲染。Dashboard 与 Stats 聚合查询改为读取配置时区计算今日边界与按小时分组，不再依赖服务器本地时间。新增 `server/utils/timezone.ts` 提供跨方言时区工具函数。
 > `2026-06-27`: 新增 ainode Go 后端 JSON 序列化规范（Section 6.J）。sqlc 必须配置 `emit_json_tags` + `json_tags_case_style: camel`，所有 API 统一输出小驼峰字段名。
+> `2026-06-28`: 新增数据自动清理机制。后台统计页支持手动清理 `visitor_events` 表原始事件数据（默认保留 90 天），`visitor_profiles` 访客画像永久保留，见 Section 6.K。
 
 ## 1. 项目定位与核心架构
 
@@ -261,6 +262,33 @@ git push            # 4. 推送至远程
 ```
 
 > 先拉后推，绝不可颠倒。此规则也在 `.codewhale/instructions.md` 中记录，为 AI 的跨会话持久约束。
+
+---
+
+## 6.K 访客数据清理机制 (Data Cleanup)
+
+> `2026-06-28` 新增。
+
+### 设计原则
+
+- **双表分离**：`visitor_events`（原始事件明细，可清理）与 `visitor_profiles`（访客画像聚合，永久保留）分开管理。
+- **手动触发**：后台统计页提供清理按钮，由管理员按需执行，不自动定时执行。
+- **可配置天数**：默认保留 90 天，支持 1~365 天范围。
+
+### 清理范围
+
+| 表 | 是否清理 | 原因 |
+|---|---|---|
+| `visitor_events` | ✅ 可清理 | 原始事件明细，存储开销大，适用于短期分析 |
+| `visitor_profiles` | ❌ 永久保留 | 访客画像聚合数据，体积小，长期有价值 |
+
+### API
+
+- `POST /api/admin/stats/cleanup` — 接收 `{ days: number }`，删除 `days` 天之前的 `visitor_events`，返回 `{ deletedCount, keepDays, cutoff }`。
+
+### 前端入口
+
+后台 → 访客统计 → 底部「数据清理」卡片，输入保留天数后点击「清理旧事件」，弹出确认对话框后执行。
 
 ---
 

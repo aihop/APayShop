@@ -104,7 +104,6 @@ export default defineNuxtConfig({
       'admin/users': false,
       'admin/payments': false,
       'admin/profile': false,
-      'admin/failures': false,
       'admin/themes/index': false,
       'admin/themes/[theme]': false,
       'admin/themes/builder': false,

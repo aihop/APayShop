@@ -1,4 +1,4 @@
-import { and, desc, gte, lt } from 'drizzle-orm'
+import { and, desc, gte, lt, sql } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../db/schema'
 import { parseStatsRange } from '../../utils/adminStats'
@@ -217,11 +217,23 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // 已登录用户（session 未过期，userId 非空）计入 auth/login 统计
+    if (item.userId) {
+      authVisitors.add(item.visitorId)
+      loginVisitors.add(item.visitorId)
+      if (trendItem) {
+        trendItem.authVisitors.add(item.visitorId)
+      }
+    }
+
     if (item.eventName === 'auth') {
       authVisitors.add(item.visitorId)
       stats.auth += 1
       if (item.eventAction === 'login') loginVisitors.add(item.visitorId)
-      if (item.eventAction === 'register') registerVisitors.add(item.visitorId)
+      if (item.eventAction === 'register') {
+        registerVisitors.add(item.visitorId)
+        loginVisitors.add(item.visitorId) // 新注册用户也是登录态
+      }
       if (trendItem) {
         trendItem.authVisitors.add(item.visitorId)
       }
@@ -232,6 +244,22 @@ export default defineEventHandler(async (event) => {
     }
 
     visitorEventStats.set(item.visitorId, stats)
+  }
+
+  // Also count profiles with userId set (registered users who visited, regardless of session state)
+  const authProfiles = await db
+    .select({ visitorId: visitorProfiles.visitorId })
+    .from(visitorProfiles)
+    .where(
+      and(
+        gte(visitorProfiles.lastSeenAt, rangeStart),
+        lt(visitorProfiles.lastSeenAt, rangeEnd),
+        sql`${visitorProfiles.userId} IS NOT NULL`
+      )
+    )
+  for (const p of authProfiles) {
+    authVisitors.add(p.visitorId)
+    loginVisitors.add(p.visitorId)
   }
 
   const trend = dateKeys.map(dateKey => {

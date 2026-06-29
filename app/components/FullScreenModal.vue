@@ -31,10 +31,7 @@
 
         <!-- Scrollable Content -->
         <div class="flex-1 overflow-y-auto p-6 relative">
-          <div
-            class="mx-auto w-full"
-            :class="isFullscreen ? 'max-w-5xl' : ''"
-          >
+          <div class="w-full">
             <slot />
           </div>
         </div>
@@ -45,10 +42,7 @@
           class="p-6 border-t border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900/50 shrink-0"
           :class="!isFullscreen ? 'rounded-b-xl' : ''"
         >
-          <div
-            class="mx-auto flex justify-end gap-3 w-full"
-            :class="isFullscreen ? 'max-w-5xl' : ''"
-          >
+          <div class="mx-auto flex justify-end gap-3 w-full">
             <slot name="footer" />
           </div>
         </div>

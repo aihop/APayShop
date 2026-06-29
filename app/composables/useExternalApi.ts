@@ -1,5 +1,5 @@
 import { defu } from 'defu'
-import { useToast } from '#imports'
+import { useToast, useRoute } from '#imports'
 
 /**
  * useExternalApi
@@ -39,10 +39,17 @@ export interface ExternalApiOptions {
   headers?: Record<string, string>
   
   baseURL?: string
+
+  /**
+   * When a 401 response is received, redirect to this login URL.
+   * If not set, defaults to /auth/login for user pages or /admin/login for admin pages.
+   */
+  loginRedirect?: string
 }
 
 export const useExternalApi = (globalOptions: ExternalApiOptions = {}) => {
   const toast = useToast()
+  const route = useRoute()
 
   const fetchApi = async <T>(url: string, fetchOptions: any = {}) => {
     // Determine the actual URL to fetch
@@ -79,6 +86,15 @@ export const useExternalApi = (globalOptions: ExternalApiOptions = {}) => {
         ...globalOptions.headers
       },
       onResponseError({ response }: any) {
+        // 401 → Redirect to login page
+        if (response.status === 401 && import.meta.client) {
+          const loginUrl = globalOptions.loginRedirect ||
+            (route.path.startsWith('/admin/') ? '/admin/login' : '/auth/login')
+          const returnPath = encodeURIComponent(route.fullPath)
+          navigateTo(`${loginUrl}?redirect=${returnPath}`, { external: false })
+          return
+        }
+
         // Attempt to extract a meaningful error message from the external service
         const message = response._data?.msg || response._data?.message || response._data?.error || response.statusText || 'External Service Error'
         

@@ -10,7 +10,7 @@
     "preview": "nuxt preview --port 5400",
     "postinstall": "nuxt prepare",
     "deploy": "nuxi build --preset cloudflare-pages && wrangler pages deploy dist && npx wrangler d1 migrations apply apayshop --remote",
-    "migrate": "drizzle-kit migrate",
+    "migrate": "drizzle-kit push",
     "db:pg:gen": "drizzle-kit generate --config=drizzle.pg.config.ts",
     "db:pg:push": "drizzle-kit push --config=drizzle.pg.config.ts",
     "db:pg:migrate": "drizzle-kit migrate --config=drizzle.pg.config.ts",

@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
-import { visitorEvents, visitorProfiles } from '../../../db/schema'
+import { users, visitorEvents, visitorProfiles } from '../../../db/schema'
 import { clampStatsPage, clampStatsPageSize, parseStatsRange } from '../../../utils/adminStats'
 import { getConfiguredTimezone } from '../../../utils/timezone'
 
@@ -18,18 +18,51 @@ export default defineEventHandler(async (event) => {
   // If eventType is set, first find matching visitorIds
   let matchingVisitorIds: string[] | null = null
   if (eventType) {
-    const rows = await db
-      .select({ visitorId: visitorEvents.visitorId })
-      .from(visitorEvents)
-      .where(
-        and(
-          gte(visitorEvents.createdAt, rangeStart),
-          lt(visitorEvents.createdAt, rangeEnd),
-          eq(visitorEvents.eventName, eventType)
+    if (eventType === 'auth') {
+      // For 'auth' type: include both visitors who triggered an auth event in range
+      // AND visitors whose profile has userId set (registered users who visited)
+      const fromEvents = await db
+        .select({ visitorId: visitorEvents.visitorId })
+        .from(visitorEvents)
+        .where(
+          and(
+            gte(visitorEvents.createdAt, rangeStart),
+            lt(visitorEvents.createdAt, rangeEnd),
+            eq(visitorEvents.eventName, eventType)
+          )
         )
-      )
-      .groupBy(visitorEvents.visitorId)
-    matchingVisitorIds = rows.map((r: any) => r.visitorId)
+        .groupBy(visitorEvents.visitorId)
+
+      const fromProfiles = await db
+        .select({ visitorId: visitorProfiles.visitorId })
+        .from(visitorProfiles)
+        .where(
+          and(
+            gte(visitorProfiles.lastSeenAt, rangeStart),
+            lt(visitorProfiles.lastSeenAt, rangeEnd),
+            sql`${visitorProfiles.userId} IS NOT NULL`
+          )
+        )
+
+      const mergedIds = new Set([
+        ...fromEvents.map((r: any) => r.visitorId),
+        ...fromProfiles.map((r: any) => r.visitorId),
+      ])
+      matchingVisitorIds = Array.from(mergedIds)
+    } else {
+      const rows = await db
+        .select({ visitorId: visitorEvents.visitorId })
+        .from(visitorEvents)
+        .where(
+          and(
+            gte(visitorEvents.createdAt, rangeStart),
+            lt(visitorEvents.createdAt, rangeEnd),
+            eq(visitorEvents.eventName, eventType)
+          )
+        )
+        .groupBy(visitorEvents.visitorId)
+      matchingVisitorIds = rows.map((r: any) => r.visitorId)
+    }
   } else if (sourceType === 'external') {
     // Find visitors whose referrer URL is not from the current site
     const rows = await db
@@ -76,6 +109,19 @@ export default defineEventHandler(async (event) => {
     .offset(offset)
 
   const visitorIds = profiles.map((item: any) => item.visitorId).filter(Boolean)
+
+  // Fetch user info for registered visitors
+  const userIds = profiles.map((p: any) => p.userId).filter(Boolean)
+  const userMap = new Map<number, { email: string; nickname: string | null }>()
+  if (userIds.length > 0) {
+    const userRows = await db
+      .select({ id: users.id, email: users.email, nickname: users.nickname })
+      .from(users)
+      .where(inArray(users.id, userIds as number[]))
+    for (const u of userRows as any[]) {
+      userMap.set(u.id, { email: u.email, nickname: u.nickname })
+    }
+  }
 
   const events = visitorIds.length > 0
     ? await db
@@ -144,6 +190,8 @@ export default defineEventHandler(async (event) => {
       return {
         visitorId: profile.visitorId,
         userId: profile.userId,
+        user: profile.userId ? (userMap.get(profile.userId) || null) : null,
+        ip: profile.ip,
         firstTouch: profile.firstCampaign || profile.firstSource || profile.firstSourceType || 'direct',
         lastTouch: profile.lastCampaign || profile.lastSource || profile.lastSourceType || 'direct',
         country: profile.country || 'Unknown',

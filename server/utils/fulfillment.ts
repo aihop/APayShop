@@ -4,6 +4,7 @@ import crypto from "crypto"
 import { db } from '../db/runtime'
 import { sendHttpWebhook } from './eventBus'
 import { getWebhookSubscriptionUrl, getIntegrationToken } from './externalProxy'
+import { createNotification } from './notifications'
 
 
 export async function fulfillOrder(orderId: string) {
@@ -42,10 +43,26 @@ export async function fulfillOrder(orderId: string) {
         deliveryInfo = "Pending manual delivery (Out of stock)"
         newStatus = "processing" // Need manual intervention
       }
+      await createNotification({
+        userId: order.userId,
+        visitorId: order.visitorId,
+        type: 'key_delivered',
+        title: '卡密已发放',
+        message: `您购买的 ${product.name} 卡密已发放，请查看订单详情。`,
+        data: { orderId, productId: product.id, slug: product.slug },
+      })
       break
     }
     case 'file': {
       deliveryInfo = product.resource || "Download link will be provided soon."
+      await createNotification({
+        userId: order.userId,
+        visitorId: order.visitorId,
+        type: 'file_delivered',
+        title: '文件已就绪',
+        message: `您购买的 ${product.name} 已可下载，请查看订单详情获取下载链接。`,
+        data: { orderId, productId: product.id, slug: product.slug },
+      })
       break
     }
     case 'subscription': {
@@ -162,11 +179,28 @@ export async function fulfillOrder(orderId: string) {
         }
       }
 
+      await createNotification({
+        userId: order.userId,
+        visitorId: order.visitorId,
+        type: 'subscription_activated',
+        title: '订阅已激活',
+        message: `您已成功订阅 ${product.name}，有效期至 ${endDate.toISOString().split('T')[0]}。`,
+        data: { orderId, productId: product.id, subscriptionId: subId },
+      })
+
       break
     }
     case 'service': {
       newStatus = "processing"
       deliveryInfo = "Service order received. Our team will contact you shortly."
+      await createNotification({
+        userId: order.userId,
+        visitorId: order.visitorId,
+        type: 'service_processing',
+        title: '服务订单已接收',
+        message: `您购买的 ${product.name} 服务已接收，我们将尽快与您联系。`,
+        data: { orderId, productId: product.id },
+      })
       break
     }
     case 'topup': {
@@ -177,6 +211,14 @@ export async function fulfillOrder(orderId: string) {
       const unit = String((productMeta as any).display_unit || 'credits').trim()
       deliveryInfo = (productMeta as any).delivery_message
         || `Top-up payment confirmed. ${rechargeAmount} ${unit} will be credited to your account.`
+      await createNotification({
+        userId: order.userId,
+        visitorId: order.visitorId,
+        type: 'topup_credited',
+        title: '充值已到账',
+        message: `您已成功充值 ${rechargeAmount} ${unit}，余额已更新。`,
+        data: { orderId, productId: product.id },
+      })
       break
     }
     default: {

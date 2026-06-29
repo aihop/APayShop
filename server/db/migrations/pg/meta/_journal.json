@@ -15,6 +15,34 @@
       "when": 1775736189043,
       "tag": "0001_violet_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776000000000,
+      "tag": "0002_add_posts_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776000001000,
+      "tag": "0003_drop_posts_type_key_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776000002000,
+      "tag": "0004_add_posts_sort",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776000003000,
+      "tag": "0005_add_visitor_events_ip",
+      "breakpoints": true
     }
   ]
 }

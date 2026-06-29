@@ -529,7 +529,7 @@ const selectedFailure = ref<any>(null)
 const fetchFailures = async () => {
   failuresPending.value = true
   try {
-    const res = await $fetch<any>('/api/admin/failures')
+    const res = await $fetch<any>('/api/admin/payments/failures')
     failures.value = Array.isArray(res) ? res : []
   } catch {
     failures.value = []

@@ -242,22 +242,58 @@
     </div>
   </div>
 
+  <!-- Data Cleanup -->
+  <UCard class="mt-8">
+    <template #header>
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.dataCleanup.title') }}</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('admin.dataCleanup.description') }}</p>
+        </div>
+      </div>
+    </template>
+
+    <div class="flex items-center gap-3">
+      <UInput
+        v-model="cleanupDays"
+        type="number"
+        :min="1"
+        :max="365"
+        class="w-28"
+        :placeholder="t('admin.dataCleanup.keepDaysPlaceholder')"
+      />
+      <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.dataCleanup.keepDays') }}</span>
+      <UButton
+        color="error"
+        variant="outline"
+        :loading="isCleaningUp"
+        :disabled="isCleaningUp"
+        @click="confirmCleanup"
+      >
+        {{ isCleaningUp ? t('admin.dataCleanup.cleaningUp') : t('admin.dataCleanup.cleanupBtn') }}
+      </UButton>
+    </div>
+  </UCard>
+
   <!-- Visitor List Modal -->
-  <FullScreenModal v-model="isModalOpen" :title="modalTitle">
+  <FullScreenModal v-model="isModalOpen" :title="modalTitle" max-width="max-w-7xl">
     <div class="overflow-auto">
       <!-- Visitors table (visitorId-based) -->
       <table v-if="modalSource === 'visitors'" class="min-w-full text-sm">
         <thead class="sticky top-0 bg-white dark:bg-[#121214]">
           <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
             <th class="py-3 px-4 whitespace-nowrap">{{ t('admin.stats.visitor') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.registered') || 'Registered' }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap font-mono text-xs">{{ t('admin.stats.ip') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.firstSource') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.lastSource') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.region') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.device') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.landing') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.pageViews') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.checkout') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.paid') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.pageViews') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">Products</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.checkout') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.paid') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">Auth</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.lastSeen') || 'Last Seen' }}</th>
           </tr>
         </thead>
         <tbody>
@@ -267,14 +303,59 @@
             class="border-b border-gray-100 dark:border-gray-900/80"
           >
             <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+            <td class="py-3 pr-4">
+              <UBadge v-if="item.userId" color="success" variant="subtle" size="xs" class="whitespace-nowrap max-w-[160px] truncate" :title="item.user?.email || item.user?.nickname || ''">
+                {{ item.user?.nickname || item.user?.email || 'Yes' }}
+              </UBadge>
+              <UBadge v-else color="neutral" variant="subtle" size="xs">No</UBadge>
+            </td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{{ item.ip || 'Local' }}</td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ formatSourceLabel(item.firstTouch) }}</td>
-            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ formatSourceLabel(item.lastTouch) }}</td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.country }}</td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.deviceType }}</td>
-            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 max-w-40 truncate">{{ item.landingPath }}</td>
-            <td class="py-3 pr-4 text-gray-900 dark:text-white">{{ formatNumber(item.pageViews) }}</td>
-            <td class="py-3 pr-4 text-amber-600 dark:text-amber-300">{{ formatNumber(item.checkouts) }}</td>
-            <td class="py-3 pr-4 text-emerald-600 dark:text-emerald-300">{{ formatNumber(item.paid) }}</td>
+            <td class="py-3 pr-4 text-gray-900 dark:text-white text-right tabular-nums">{{ formatNumber(item.pageViews) }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 text-right tabular-nums">{{ formatNumber(item.productViews) }}</td>
+            <td class="py-3 pr-4 text-amber-600 dark:text-amber-300 text-right tabular-nums">{{ formatNumber(item.checkouts) }}</td>
+            <td class="py-3 pr-4 text-emerald-600 dark:text-emerald-300 text-right tabular-nums">{{ formatNumber(item.paid) }}</td>
+            <td class="py-3 pr-4 text-pink-600 dark:text-pink-300 text-right tabular-nums">{{ formatNumber(item.auth) }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.lastSeenAt) }}</td>
+          </tr>
+          <tr v-if="!modalPending && modalRows.length === 0">
+            <td colspan="12" class="px-4 py-10 text-center text-gray-500">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Page visits table (raw page_view events) -->
+      <table v-else-if="modalSource === 'pageVisits'" class="min-w-full text-sm">
+        <thead class="sticky top-0 bg-white dark:bg-[#121214]">
+          <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
+            <th class="py-3 px-4 whitespace-nowrap">{{ t('admin.stats.path') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.time') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.visitor') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap font-mono text-xs">{{ t('admin.stats.ip') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.referrer') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.device') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.browser') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.os') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.region') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in modalRows"
+            :key="item.id"
+            class="border-b border-gray-100 dark:border-gray-900/80"
+          >
+            <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs max-w-[200px] truncate" :title="item.path">{{ item.path }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.createdAt) }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{{ item.ip || 'Local' }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs max-w-[150px] truncate" :title="item.referrer">{{ item.referrer || '-' }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.deviceType || '-' }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs">{{ item.browser || '-' }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs">{{ item.os || '-' }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatRegionCity(item) }}</td>
           </tr>
           <tr v-if="!modalPending && modalRows.length === 0">
             <td colspan="9" class="px-4 py-10 text-center text-gray-500">-</td>
@@ -283,17 +364,20 @@
       </table>
 
       <!-- IP table (events endpoint) -->
-      <table v-else class="min-w-full text-sm">
+      <table v-else-if="modalSource === 'events'" class="min-w-full text-sm">
         <thead class="sticky top-0 bg-white dark:bg-[#121214]">
           <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
-            <th class="py-3 px-4 whitespace-nowrap">IP</th>
-            <th class="py-3 pr-4 whitespace-nowrap">Visitor</th>
-            <th class="py-3 pr-4 whitespace-nowrap">Visits</th>
-            <th class="py-3 pr-4 whitespace-nowrap">Registered</th>
-            <th class="py-3 pr-4 whitespace-nowrap">Country</th>
-            <th class="py-3 pr-4 whitespace-nowrap">Device</th>
-            <th class="py-3 pr-4 whitespace-nowrap">First Seen</th>
-            <th class="py-3 pr-4 whitespace-nowrap">Last Seen</th>
+            <th class="py-3 px-4 whitespace-nowrap">{{ t('admin.stats.ip') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.visitor') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.visits') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.registered') || 'Registered' }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.country') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.regionCity') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.device') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.browser') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.os') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.firstSeen') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.lastSeen') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -302,19 +386,22 @@
             :key="item.ip"
             class="border-b border-gray-100 dark:border-gray-900/80"
           >
-            <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ item.ip }}</td>
+            <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ item.ip || 'Local' }}</td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
-            <td class="py-3 pr-4 text-gray-900 dark:text-white">{{ formatNumber(item.visitCount) }}</td>
+            <td class="py-3 pr-4 text-gray-900 dark:text-white text-right tabular-nums">{{ formatNumber(item.visitCount) }}</td>
             <td class="py-3 pr-4">
               <UBadge :color="item.isRegistered ? 'success' : 'neutral'" variant="subtle" size="xs">{{ item.isRegistered ? 'Yes' : 'No' }}</UBadge>
             </td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.country }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatRegionCity(item) }}</td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.deviceType }}</td>
-            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDateTime(item.firstSeenAt) }}</td>
-            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDateTime(item.lastSeenAt) }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs">{{ item.browser || '-' }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs">{{ item.os || '-' }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.firstSeenAt) }}</td>
+            <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.lastSeenAt) }}</td>
           </tr>
           <tr v-if="!modalPending && modalRows.length === 0">
-            <td colspan="8" class="px-4 py-10 text-center text-gray-500">-</td>
+            <td colspan="11" class="px-4 py-10 text-center text-gray-500">-</td>
           </tr>
         </tbody>
       </table>
@@ -389,7 +476,7 @@ const funnel = computed(() => data.value?.funnel || [])
 // Modal state
 const isModalOpen = ref(false)
 const modalTitle = ref('')
-const modalSource = ref<'visitors' | 'events'>('visitors')
+const modalSource = ref<'visitors' | 'events' | 'pageVisits'>('visitors')
 const modalEventType = ref('')
 const modalSourceType = ref('')
 
@@ -401,6 +488,9 @@ function openModal(key: string) {
     modalTitle.value = t('admin.stats.pageViewsModalTitle')
     modalSource.value = 'visitors'
     modalEventType.value = 'page_view'
+  } else if (key === 'pageVisits') {
+    modalTitle.value = t('admin.stats.pageVisitsModalTitle')
+    modalSource.value = 'pageVisits'
   } else if (key === 'uniqueVisitors') {
     modalTitle.value = t('admin.stats.uniqueVisitorsModalTitle')
     modalSource.value = 'visitors'
@@ -461,6 +551,12 @@ const eventsUrl = computed(
     `/api/admin/stats/events?preset=${preset.value}&days=${rangeDays.value}&page=${modalPage.value}&pageSize=${modalPageSize.value}`
 )
 
+// Page visits endpoint (raw page_view events)
+const pageVisitsUrl = computed(
+  () =>
+    `/api/admin/stats/page-visits?preset=${preset.value}&days=${rangeDays.value}&page=${modalPage.value}&pageSize=${modalPageSize.value}`
+)
+
 const {
   data: visitorsData,
   pending: visitorsPending,
@@ -475,6 +571,13 @@ const {
   error: eventsError,
 } = useFetch<any>(eventsUrl, { immediate: true })
 
+const {
+  data: pageVisitsData,
+  pending: pageVisitsPending,
+  refresh: refreshPageVisits,
+  error: pageVisitsError,
+} = useFetch<any>(pageVisitsUrl, { immediate: true })
+
 const visitorRows = computed(() => visitorsData.value?.items || [])
 const visitorTotalItems = computed(() =>
   Number(visitorsData.value?.pagination?.totalItems || 0)
@@ -483,20 +586,30 @@ const eventRows = computed(() => eventsData.value?.items || [])
 const eventTotalItems = computed(() =>
   Number(eventsData.value?.pagination?.totalItems || 0)
 )
+const pageVisitRows = computed(() => pageVisitsData.value?.items || [])
+const pageVisitTotalItems = computed(() =>
+  Number(pageVisitsData.value?.pagination?.totalItems || 0)
+)
 
 const modalRows = computed(() =>
-  modalSource.value === 'events' ? eventRows.value : visitorRows.value
+  modalSource.value === 'events' ? eventRows.value
+    : modalSource.value === 'pageVisits' ? pageVisitRows.value
+    : visitorRows.value
 )
 const modalTotalItems = computed(() =>
-  modalSource.value === 'events' ? eventTotalItems.value : visitorTotalItems.value
+  modalSource.value === 'events' ? eventTotalItems.value
+    : modalSource.value === 'pageVisits' ? pageVisitTotalItems.value
+    : visitorTotalItems.value
 )
 const modalPending = computed(() =>
-  modalSource.value === 'events' ? eventsPending.value : visitorsPending.value
+  modalSource.value === 'events' ? eventsPending.value
+    : modalSource.value === 'pageVisits' ? pageVisitsPending.value
+    : visitorsPending.value
 )
 
 // 401 guard
-watch([visitorsError, eventsError], ([vErr, eErr]: any[]) => {
-  const err = vErr || eErr
+watch([visitorsError, eventsError, pageVisitsError], ([vErr, eErr, pErr]: any[]) => {
+  const err = vErr || eErr || pErr
   if (err?.statusCode === 401) {
     router.push('/admin/login')
   }
@@ -518,9 +631,9 @@ const overviewCards = computed(() => [
     value: formatNumber(overview.value.pageViews),
     icon: 'ph:chart-line-up',
     iconClass: 'text-cyan-400',
-    tip: t('admin.stats.pageViewsTip'),
+    tip: t('admin.stats.pageVisitsTip'),
     clickable: true,
-    modalKey: 'pageViews',
+    modalKey: 'pageVisits',
   },
   {
     label: t('admin.stats.uniqueVisitors'),
@@ -620,6 +733,7 @@ function handleRefresh() {
   refresh()
   refreshVisitors()
   refreshEvents()
+  refreshPageVisits()
 }
 
 watch(preset, () => {
@@ -656,5 +770,44 @@ function formatSourceLabel(value: string) {
   if (normalized === 'referral') return t('admin.stats.referral')
   if (normalized === 'campaign') return t('admin.stats.campaign')
   return value
+}
+
+function formatRegionCity(item: any) {
+  const parts = [item.region, item.city].filter(Boolean)
+  return parts.length > 0 ? parts.join(' / ') : '-'
+}
+
+// Data cleanup
+const cleanupDays = ref(90)
+const isCleaningUp = ref(false)
+
+const { confirm } = useConfirm()
+
+async function confirmCleanup() {
+  const confirmed = await confirm({
+    title: t('admin.dataCleanup.confirmTitle'),
+    description: t('admin.dataCleanup.confirmMessage', { days: cleanupDays.value }),
+  })
+  if (!confirmed) return
+
+  isCleaningUp.value = true
+  try {
+    const result: any = await $fetch('/api/admin/stats/cleanup', {
+      method: 'POST',
+      body: { days: cleanupDays.value },
+    })
+    useToast().add({
+      title: t('admin.dataCleanup.success', { count: result.deletedCount, days: cleanupDays.value }),
+      color: 'success',
+    })
+  } catch (e) {
+    useToast().add({
+      title: t('admin.dataCleanup.error'),
+      color: 'error',
+      description: String(e),
+    })
+  } finally {
+    isCleaningUp.value = false
+  }
 }
 </script>

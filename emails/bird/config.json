@@ -1,8 +1,9 @@
 {
   "name": "Bird (MessageBird)",
   "fields": [
-    { "key": "apiKey", "label": "API Key", "type": "password" },
+    { "key": "apiKey", "label": "API Key (Access Key)", "type": "password" },
     { "key": "workspaceId", "label": "Workspace ID", "type": "text" },
-    { "key": "from", "label": "From Name", "type": "text", "placeholder": "Your Company" }
+    { "key": "channelId", "label": "Email Channel ID", "type": "text" },
+    { "key": "fromName", "label": "Sender Display Name (optional)", "type": "text", "placeholder": "Support Team" }
   ]
 }

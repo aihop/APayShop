@@ -14,14 +14,11 @@ export default defineEventHandler(async (event) => {
 
   const timeFilter = and(gte(visitorEvents.createdAt, rangeStart), lt(visitorEvents.createdAt, rangeEnd))
 
-  const ipNotNull = sql`${visitorEvents.ip} IS NOT NULL`
-  const ipWhere = and(timeFilter, ipNotNull)
-
   // Count distinct IPs for pagination
   const [{ value: totalItems }] = await db
     .select({ value: sql<number>`COUNT(DISTINCT ${visitorEvents.ip})` })
     .from(visitorEvents)
-    .where(ipWhere)
+    .where(timeFilter)
 
   // Group by IP, aggregate visit info
   const items = await db
@@ -36,15 +33,22 @@ export default defineEventHandler(async (event) => {
       deviceType: sql<string | null>`MAX(${visitorEvents.deviceType})`,
       browser: sql<string | null>`MAX(${visitorEvents.browser})`,
       os: sql<string | null>`MAX(${visitorEvents.os})`,
-      firstSeenAt: sql<Date>`MIN(${visitorEvents.createdAt})`,
-      lastSeenAt: sql<Date>`MAX(${visitorEvents.createdAt})`,
+      firstSeenAt: sql<number>`MIN(${visitorEvents.createdAt})`,
+      lastSeenAt: sql<number>`MAX(${visitorEvents.createdAt})`,
     })
     .from(visitorEvents)
-    .where(ipWhere)
+    .where(timeFilter)
     .groupBy(visitorEvents.ip)
     .orderBy(desc(sql`MAX(${visitorEvents.createdAt})`))
     .limit(pageSize)
     .offset(offset)
+
+  // Normalize timestamps: SQLite MIN/MAX returns seconds, convert to ISO string
+  const toIso = (val: any): string => {
+    if (!val && val !== 0) return new Date(0).toISOString()
+    const ms = typeof val === 'number' && val < 1e12 ? val * 1000 : Number(val)
+    return new Date(ms).toISOString()
+  }
 
   return {
     range: {
@@ -71,8 +75,8 @@ export default defineEventHandler(async (event) => {
       deviceType: item.deviceType || 'Unknown',
       browser: item.browser || null,
       os: item.os || null,
-      firstSeenAt: item.firstSeenAt,
-      lastSeenAt: item.lastSeenAt,
+      firstSeenAt: toIso(item.firstSeenAt),
+      lastSeenAt: toIso(item.lastSeenAt),
     })),
   }
 })
