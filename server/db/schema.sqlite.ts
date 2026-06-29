@@ -183,6 +183,18 @@ export const webhooks = sqliteTable('webhooks', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
+// 事件自动化规则:某事件触发某动作 + 参数(config)。
+export const eventRules = sqliteTable('event_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  event: text('event').notNull(),
+  action: text('action').notNull(),
+  config: text('config', { mode: 'json' }).$type<Record<string, any>>(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  remark: text('remark'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+})
+
 export const logs = sqliteTable('logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   level: text('level').notNull().default('info'), // 'info', 'warn', 'error', 'debug'

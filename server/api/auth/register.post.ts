@@ -1,7 +1,7 @@
 import { users, orders } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
-import { dispatchEvent } from "../../utils/eventBus"
+import { emitEvent } from "../../utils/eventActions"
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { sendEmail } from "../../utils/email"
 
@@ -45,16 +45,14 @@ export default defineEventHandler(async (event) => {
     .where(eq(orders.contactEmail, user.email))
 
   // Dispatch event for user registration
-  try {
-    dispatchEvent('user.registered', {
-      id: user.id,
-      email: user.email,
-      nickname: user.nickname,
-      inviteCode: inviteCode
-    })
-  } catch (err) {
-    console.error('Failed to dispatch user.registered event', err)
-  }
+  // 外发 webhook + 执行后台配置的事件动作(如注册奖励)。不阻塞注册响应。
+  emitEvent('user.registered', {
+    id: user.id,
+    userId: user.id,
+    email: user.email,
+    nickname: user.nickname,
+    inviteCode: inviteCode,
+  }).catch((err) => console.error('user.registered event actions failed', err))
 
   // Set auth session
   await setUserSession(event, {

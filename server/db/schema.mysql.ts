@@ -188,6 +188,18 @@ export const webhooks = mysqlTable('webhooks', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
+// 事件自动化规则:某事件触发某动作 + 参数(config)。
+export const eventRules = mysqlTable('event_rules', {
+  id: int('id').autoincrement().primaryKey(),
+  event: text('event').notNull(),
+  action: text('action').notNull(),
+  config: json('config').$type<Record<string, any>>(),
+  enabled: boolean('enabled').notNull().default(true),
+  remark: text('remark'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
+
 export const logs = mysqlTable('logs', {
   id: int('id').autoincrement().primaryKey(),
   level: text('level').notNull().default('info'), // 'info', 'warn', 'error', 'debug'

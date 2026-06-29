@@ -179,6 +179,11 @@
             :form="dynamicForm"
           />
 
+          <!-- 事件自动化:自管理数据(独立于上方设置表单的保存按钮) -->
+          <AdminSettingsAutomationsTab
+            v-if="activeTab === 'automations'"
+          />
+
           <!-- Sticky Mobile Save Button -->
           <div class="fixed bottom-6 right-6 lg:hidden z-40">
             <UButton
@@ -249,6 +254,7 @@ const tabs = [
   { id: 'integration', labelKey: 'admin.settings.page.nav_integration', icon: 'ph:shuffle-fill' },
   { id: 'email', labelKey: 'admin.settings.page.nav_email', icon: 'ph:envelope-fill' },
   { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
+  { id: 'automations', labelKey: 'admin.settings.page.nav_automations', icon: 'ph:lightning-fill' },
 ]
 
 const {

@@ -20,7 +20,8 @@
       "logs": "日志",
       "accessLogs": "访问日志",
       "subscriptions": "订阅服务",
-      "docs": "文档"
+      "docs": "文档",
+      "automations": "事件自动化"
     },
     "header": {
       "search": "搜索",
@@ -368,7 +369,8 @@
         "nav_checkout": "结账",
         "nav_integration": "集成",
         "nav_email": "邮件",
-        "nav_company": "公司详情"
+        "nav_company": "公司详情",
+        "nav_automations": "事件自动化"
       },
       "general": {
         "title": "基本信息",

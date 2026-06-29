@@ -132,12 +132,6 @@ const routes = computed(() => {
       to: '/admin/logs',
     },
     {
-      id: 'admin-access-logs',
-      label: t('admin.nav.accessLogs'),
-      icon: 'ph:clipboard-text',
-      to: '/admin/access-logs',
-    },
-    {
       id: 'admin-themes',
       label: t('admin.nav.themes'),
       icon: 'i-heroicons-sparkles',

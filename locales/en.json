@@ -20,7 +20,8 @@
       "logs": "Logs",
       "accessLogs": "Access Logs",
       "subscriptions": "Subscriptions",
-      "docs": "Docs"
+      "docs": "Docs",
+      "automations": "Automations"
     },
     "header": {
       "search": "Search",
@@ -369,7 +370,8 @@
         "nav_checkout": "Checkout",
         "nav_integration": "Integration",
         "nav_email": "Email",
-        "nav_company": "Company Details"
+        "nav_company": "Company Details",
+        "nav_automations": "Automations"
       },
       "general": {
         "title": "General Information",

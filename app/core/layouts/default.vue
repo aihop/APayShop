@@ -368,19 +368,6 @@
                 </div>
               </NuxtLink>
               <NuxtLink
-                to="/admin/access-logs"
-                :class="adminMobileNavItemClass"
-                @click="isMobileMenuOpen = false"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:clipboard-text"
-                    class="w-5 h-5"
-                  />
-                  {{ $t('admin.nav.accessLogs') }}
-                </div>
-              </NuxtLink>
-              <NuxtLink
                 to="/admin/themes"
                 :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
@@ -639,19 +626,6 @@
                     class="w-4 h-4"
                   />
                   {{ $t('admin.nav.logs') }}
-                </div>
-              </NuxtLink>
-              <NuxtLink
-                to="/admin/access-logs"
-                :class="adminDesktopNavItemClass"
-                :active-class="adminNavActiveClass"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    name="ph:clipboard-text"
-                    class="w-4 h-4"
-                  />
-                  {{ $t('admin.nav.accessLogs') }}
                 </div>
               </NuxtLink>
               <NuxtLink

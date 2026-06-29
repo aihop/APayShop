@@ -188,6 +188,18 @@ export const webhooks = pgTable('webhooks', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 
+// 事件自动化规则:某事件(如 user.registered)触发某动作(如 grant_reward)+ 参数(config)。
+export const eventRules = pgTable('event_rules', {
+  id: serial('id').primaryKey(),
+  event: text('event').notNull(),          // e.g. 'user.registered'
+  action: text('action').notNull(),        // e.g. 'grant_reward'
+  config: jsonb('config').$type<Record<string, any>>(), // 动作参数,如 {balanceType,amount,remark}
+  enabled: boolean('enabled').notNull().default(true),
+  remark: text('remark'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
 export const logs = pgTable('logs', {
   id: serial('id').primaryKey(),
   level: text('level').notNull().default('info'), // 'info', 'warn', 'error', 'debug'

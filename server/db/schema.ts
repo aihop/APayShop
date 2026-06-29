@@ -50,6 +50,7 @@ export const {
   themeSettings,
   failures,
   webhooks,
+  eventRules,
   logs,
   visitorProfiles,
   visitorEvents,
