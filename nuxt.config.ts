@@ -53,6 +53,23 @@ export default defineNuxtConfig({
           }
         })
       }
+    },
+    'components:dirs'(dirs) {
+      const themesDir = path.resolve(__dirname, 'app/themes')
+      if (fs.existsSync(themesDir)) {
+        const themes = fs.readdirSync(themesDir)
+        themes.filter(theme => theme !== 'core').forEach(theme => {
+          const componentsDir = path.join(themesDir, theme, 'components')
+          if (fs.existsSync(componentsDir)) {
+            dirs.push({
+              path: componentsDir,
+              global: true,
+              pathPrefix: false,
+              extensions: ['vue']
+            })
+          }
+        })
+      }
     }
   },
   compatibilityDate: '2024-11-01',

@@ -7,7 +7,7 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL || process.env.MYSQL_URL || '',
   },
-  tablesFilter: ["users", "posts","admins","cards","payment_failures","logs","install_events","oauth_accounts","orders","payment_methods","products","settings","theme_settings","webhooks","subscriptions","visitor_profiles","visitor_events","notifications","_hub_migrations"],
+  tablesFilter: ["users", "posts","admins","cards","payment_failures","logs","install_events","oauth_accounts","orders","payment_methods","products","settings","theme_settings","webhooks","subscriptions","visitor_profiles","visitor_events","access_logs","notifications","_hub_migrations"],
   push: {
     force: true
   }

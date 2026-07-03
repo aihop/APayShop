@@ -43,6 +43,27 @@
       "when": 1776000003000,
       "tag": "0005_add_visitor_events_ip",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776000004000,
+      "tag": "0006_add_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776000005000,
+      "tag": "0007_add_access_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776000006000,
+      "tag": "0008_add_users_email_verify",
+      "breakpoints": true
     }
   ]
 }

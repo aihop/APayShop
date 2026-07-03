@@ -8,6 +8,27 @@
       "when": 1778634239177,
       "tag": "0000_thin_bucky",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778634240000,
+      "tag": "0001_add_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778634241000,
+      "tag": "0002_add_access_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778634242000,
+      "tag": "0003_add_users_email_verify",
+      "breakpoints": true
     }
   ]
 }

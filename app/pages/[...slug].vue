@@ -15,7 +15,7 @@
         v-else-if="activeComponent"
         :is="activeComponent"
         :key="(activeTheme || '_core_') + targetFile"
-      />
+      ></component>
       <div
         v-else
         key="page-404"
@@ -24,7 +24,7 @@
         <UIcon
           name="ph:file-dashed"
           class="w-24 h-24 text-gray-700 mb-6"
-        />
+        ></UIcon>
         <h1 class="text-4xl font-bold mb-4">404 - Page Not Found</h1>
         <p class="text-gray-400 mb-8">The page you are looking for does not exist in this template.</p>
         <UButton
