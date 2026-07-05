@@ -88,12 +88,10 @@ const { getSetting } = useSettings()
 // themes: 可选主题，可覆盖 core 的页面
 const coreModules = import.meta.glob('../core/pages/**/*.vue', {
   eager: true,
-  import: 'default',
 })
 
 const themeModules = import.meta.glob('../themes/**/pages/**/*.vue', {
   eager: true,
-  import: 'default',
 })
 
 // 合并：theme 同名文件会覆盖 core，实现主题页面替换系统默认页面的效果
@@ -174,10 +172,10 @@ const activeComponent = computed(() => {
   // 有主题时先查主题
   if (activeTheme.value) {
     const themePath = `../themes/${activeTheme.value}/pages/${file}`
-    if (themeModules[themePath]) return themeModules[themePath]
+    if (themeModules[themePath]) return (themeModules[themePath] as any).default
   }
   // fallback 到 core
-  return coreModules[`../core/pages/${file}`] || null
+  return (coreModules[`../core/pages/${file}`] as any)?.default || null
 })
 
 const isLoading = ref(false)
