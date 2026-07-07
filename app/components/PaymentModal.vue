@@ -7,74 +7,87 @@
 
   <UModal
     v-model:open="isOrderModalOpen"
-    :ui="{ content: 'bg-[#121214] border border-gray-800' }"
+    :ui="{ content: 'bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/10 rounded-[40px] shadow-2xl dark:shadow-[0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden' }"
   >
     <template #content>
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-xl font-bold">Payment Order</h3>
+      <div class="p-8 relative overflow-hidden group">
+        <div class="absolute -right-20 -top-20 w-64 h-64 bg-[#6d4cff]/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-1000 group-hover:bg-[#6d4cff]/10"></div>
+        
+        <div class="flex justify-between items-center mb-10 relative z-10">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-[#6d4cff]/10 flex items-center justify-center text-[#6d4cff] shadow-inner border border-[#6d4cff]/20 group-hover:rotate-12 transition-transform">
+              <UIcon name="ph:credit-card-duotone" class="w-6 h-6" ></UIcon>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Payment Workspace</h3>
+          </div>
           <UButton
             color="neutral"
             variant="ghost"
             icon="i-heroicons-x-mark-20-solid"
-            class="-my-1"
+            class="rounded-xl text-gray-400 dark:text-white/20 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
             @click="closeCheckoutModal"
           />
         </div>
 
-        <div class="bg-black/30 rounded-xl p-4 mb-6 border border-gray-800">
-          <div class="flex justify-between mb-2">
-            <span class="text-gray-400">Total Amount</span>
-            <span class="font-bold text-white">USD {{ amount.toFixed(2) }}</span>
+        <div class="bg-gray-50 dark:bg-black/40 rounded-[32px] p-8 mb-10 border border-gray-100 dark:border-white/5 shadow-inner relative z-10 group/summary">
+          <div class="flex justify-between items-end mb-6">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-2">Total Payable</p>
+              <p class="text-5xl font-bold text-gray-900 dark:text-white tracking-tighter   group-hover/summary:scale-105 transition-transform origin-left">USD {{ amount.toFixed(2) }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-2">Quantity</p>
+              <p class="text-xl font-bold text-gray-600 dark:text-white/60  ">x{{ quantity }}</p>
+            </div>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-400">Quantity</span>
-            <span class="text-white">x{{ quantity }}</span>
-          </div>
+          <div class="h-px bg-gray-200 dark:bg-white/5 w-full"></div>
+          <p class="mt-6 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-white/10 italic">Secure digital transaction enabled via encrypted gateway</p>
         </div>
 
         <!-- Payment Info Container -->
-        <div class="space-y-6">
+        <div class="space-y-8 relative z-10">
           <div
             id="payment-info-container"
-            class="min-h-[200px] flex flex-col justify-center"
+            class="min-h-[240px] flex flex-col justify-center"
           >
             <div
               v-if="isFetchingPaymentInfo"
-              class="flex justify-center py-8"
+              class="flex flex-col items-center justify-center py-12 gap-4"
             >
               <UIcon
                 name="ph:spinner-gap-bold"
-                class="w-8 h-8 animate-spin text-purple-500"
+                class="w-10 h-10 animate-spin text-[#6d4cff]"
               />
+              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/20">Initialising Gateway...</p>
             </div>
 
             <div
               v-else-if="!paymentInfoContent"
-              class="text-center py-8 text-gray-500 text-sm"
+              class="text-center py-16 px-10 rounded-[32px] border border-dashed border-gray-200 dark:border-white/10"
             >
-              No express payment methods available.
+              <UIcon name="ph:warning-circle-duotone" class="w-12 h-12 text-gray-300 dark:text-white/10 mx-auto mb-4" ></UIcon>
+              <p class="text-gray-400 dark:text-white/40 text-sm font-medium">No express payment methods available for this configuration.</p>
             </div>
 
             <!-- Payment Method Selector -->
             <div
               v-if="availablePaymentMethods.length > 1"
-              class="mb-6"
+              class="mb-10"
             >
-              <label class="block text-sm font-medium text-gray-400 mb-3">Select Payment Method</label>
-              <div class="grid grid-cols-2 gap-3">
+              <label class="block text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-5 ml-2">Select Method</label>
+              <div class="grid grid-cols-2 gap-4">
                 <button
                   v-for="method in availablePaymentMethods"
                   :key="method.code"
                   @click="switchPaymentMethod(method.code)"
                   :class="[
-                    'flex items-center justify-center p-3 rounded-xl border transition-all duration-200',
+                    'flex items-center justify-center p-5 rounded-[20px] border transition-all duration-300 font-bold text-xs uppercase tracking-widest shadow-inner',
                     selectedPaymentMethod === method.code 
-                      ? 'border-purple-500 bg-purple-500/10 text-white' 
-                      : 'border-gray-700 bg-black/20 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                      ? 'border-[#6d4cff] bg-[#6d4cff]/10 text-[#6d4cff] shadow-[0_10px_30px_rgba(109,76,255,0.2)]' 
+                      : 'border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 text-gray-400 dark:text-white/40 hover:border-[#6d4cff]/50 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5'
                   ]"
                 >
-                  <span class="font-medium">{{ method.name }}</span>
+                  <span>{{ method.name }}</span>
                 </button>
               </div>
             </div>
@@ -83,7 +96,7 @@
             <div
               v-if="paymentInfoContent && !isFetchingPaymentInfo"
               ref="htmlContainer"
-              class="payment-html-wrapper w-full"
+              class="payment-html-wrapper w-full rounded-[32px] overflow-hidden"
               v-html="paymentInfoContent"
             ></div>
           </div>

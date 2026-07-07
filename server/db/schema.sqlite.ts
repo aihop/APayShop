@@ -14,6 +14,7 @@ export const users = sqliteTable('users', {
   nickname: text('nickname'),
   avatarUrl: text('avatar_url'),
   lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
+  currentSessionId: text('current_session_id'), // 当前有效的会话 ID
   
   // 融合自 PROMPT.md 中转站用户属性
   CashBalance: integer('cash_balance', { mode: 'number' }).default(0), // 充值余额（永不过期），金额放大 10^8 倍存储
@@ -24,9 +25,18 @@ export const users = sqliteTable('users', {
   status: integer('status').default(1), // 1: 正常, 0: 禁用
 
   emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }), // 邮箱验证时间
-  emailVerifyToken: text('email_verify_token'), // 邮箱验证令牌
-  emailVerifyExpiresAt: integer('email_verify_expires_at', { mode: 'timestamp' }), // 令牌过期时间
 
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const usersTokens = sqliteTable('users_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  token: text('token').notNull().unique(),
+  name: text('name'), // Token 名称，方便管理
+  expiresAt: integer('expires_at', { mode: 'timestamp' }), // 过期时间
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }), // 最后使用时间
+  revoked: integer('revoked').notNull().default(0), // 是否已撤销（0 否，1 是）
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 

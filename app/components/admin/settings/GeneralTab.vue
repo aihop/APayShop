@@ -112,6 +112,29 @@
           :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
         />
       </UFormField>
+
+      <UFormField
+        :label="$t('admin.settings.general.disable_multi_device_login')"
+        :description="$t('admin.settings.general.disable_multi_device_login_desc')"
+      >
+        <div class="flex items-center gap-3">
+          <USwitch
+            v-model="form.disable_multi_device_login"
+          />
+          <span
+            v-if="form.disable_multi_device_login"
+            class="text-sm text-orange-600 dark:text-orange-400"
+          >
+            {{ $t('admin.settings.general.multi_device_login_warning') }}
+          </span>
+          <span
+            v-else
+            class="text-sm text-gray-500 dark:text-gray-400"
+          >
+            {{ $t('admin.settings.general.multi_device_login_allowed') }}
+          </span>
+        </div>
+      </UFormField>
     </div>
   </div>
 </template>

@@ -64,6 +64,13 @@
       "when": 1776000006000,
       "tag": "0008_add_users_email_verify",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783392984468,
+      "tag": "0009_sloppy_banshee",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { users } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
+import { isMultiDeviceLoginDisabled, generateSessionId } from "../../utils/auth"
 
 export default defineEventHandler(async (event) => {
 
@@ -42,6 +43,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // 检查是否禁止多设备登录
+  const isDisabled = await isMultiDeviceLoginDisabled()
+  let sessionId: string | undefined = undefined
+  if (isDisabled) {
+    // 生成新的会话 ID 并更新到用户表
+    sessionId = generateSessionId()
+    await db.update(users).set({ currentSessionId: sessionId }).where(eq(users.id, user.id))
+  }
+
   // Set auth session
   await setUserSession(event, {
     user: {
@@ -51,6 +61,7 @@ export default defineEventHandler(async (event) => {
       avatarUrl: user.avatarUrl
     },
     admin: null,
+    sessionId: sessionId // 存储会话 ID 用于验证
   })
 
   // Update last login

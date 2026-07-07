@@ -10,6 +10,7 @@
 > `2026-06-27`: 新增时间与时区规范（Section 6.I）。数据库存 UTC 时间戳 → 后端 API 输出 UTC ISO → 前端按 settings.timezone 渲染。Dashboard 与 Stats 聚合查询改为读取配置时区计算今日边界与按小时分组，不再依赖服务器本地时间。新增 `server/utils/timezone.ts` 提供跨方言时区工具函数。
 > `2026-06-27`: 新增 ainode Go 后端 JSON 序列化规范（Section 6.J）。sqlc 必须配置 `emit_json_tags` + `json_tags_case_style: camel`，所有 API 统一输出小驼峰字段名。
 > `2026-06-28`: 新增数据自动清理机制。后台统计页支持手动清理 `visitor_events` 表原始事件数据（默认保留 90 天），`visitor_profiles` 访客画像永久保留，见 Section 6.K。
+> `2026-07-06`: 新增 Qingpu 主题私有 PostgreSQL 租户授权 Key 模块约定，主题专属表与直连 PG 逻辑不得并入全局 `server/db/schema.*`，见 Section 6.L。
 
 ## 1. 项目定位与核心架构
 
@@ -240,6 +241,17 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 - **命名约定**: 所有 API 输出的 JSON 字段统一使用小驼峰（camelCase，如 `baseUrl`、`apiKey`、`supportsAsync`），**绝对禁止** 裸输出 Go 结构体的 PascalCase 字段名。
 - **sqlc 生成约束**: 每次修改 `schema.sql` 或 `query.sql` 后必须重新执行 `sqlc generate` 以同步 `models.go` 中的 json tag。手写 db 层 struct（如 `outbox_queries.go`）不得与 sqlc 自动生成的模型重复定义类型，应复用 `models.go` 中的类型或直接删除手写定义。
 - **前端对接**: 前端调用 `ainode` API 时，TypeScript 类型与解构字段必须对应小驼峰命名，不得混用 PascalCase。
+
+### L. 主题私有 PostgreSQL 模块边界 (Qingpu Tenant Keys)
+
+- **适用场景**: 当主题（例如 `qingpu`）需要维护自身的租户授权 Key、外部业务表或实验性 PG 表时，优先采用“主题私有服务端模块”方案，而不是污染全局 `server/db/schema.*`。
+- **目录约定**:
+  - 接口入口放在 `app/themes/[theme]/api/**`
+  - 主题私有 PG 客户端、查询封装、工具函数放在 `app/themes/[theme]/server/**`
+  - 建表 SQL 放在 `app/themes/[theme]/database/*.sql`
+- **禁止事项**: 严禁把仅供主题使用的外部表、租户表、授权表强行加入 `server/db/schema.ts`、`schema.pg.ts`、`schema.sqlite.ts`、`schema.mysql.ts`。
+- **密钥存储规则**: 主题私有授权 Key 表只保存 `api_key_hash` 与前缀/预览信息，原始明文 Key 仅允许在“创建 / 轮换”接口返回一次，不得持久化入库。
+- **订阅关联建议**: 主题私有授权 Key 可以保存 APayShop 核心订阅 `subscriptionId`，并额外保存 `subscriptionSnapshot` 快照，避免后续套餐名称、金额或周期变更时丢失签发时上下文。
 
 ---
 

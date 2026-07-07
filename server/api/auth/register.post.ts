@@ -1,9 +1,10 @@
-import { users, orders } from "../../db/schema"
+import { users, orders, usersTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { emitEvent } from "../../utils/eventActions"
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { sendEmail } from "../../utils/email"
+import { isMultiDeviceLoginDisabled, generateSessionId, EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
 
 export default defineEventHandler(async (event) => {
 
@@ -54,6 +55,15 @@ export default defineEventHandler(async (event) => {
     inviteCode: inviteCode,
   }).catch((err) => console.error('user.registered event actions failed', err))
 
+  // 检查是否禁止多设备登录
+  const isDisabled = await isMultiDeviceLoginDisabled()
+  let sessionId: string | undefined = undefined
+  if (isDisabled) {
+    // 生成新的会话 ID 并更新到用户表
+    sessionId = generateSessionId()
+    await db.update(users).set({ currentSessionId: sessionId }).where(eq(users.id, user.id))
+  }
+
   // Set auth session
   await setUserSession(event, {
     user: {
@@ -63,6 +73,7 @@ export default defineEventHandler(async (event) => {
       avatarUrl: user.avatarUrl
     },
     admin: null,
+    sessionId: sessionId // 存储会话 ID 用于验证
   })
 
   await trackVisitorEvent(event, {
@@ -76,15 +87,16 @@ export default defineEventHandler(async (event) => {
   const acceptLanguage = getHeaders(event)['accept-language'] || 'en'
   const locale = acceptLanguage.startsWith('zh') ? 'zh' : 'en'
 
-  // Generate email verification token (24h expiry)
+  // Generate email verification token (24h expiry)，存进通用的 users_tokens 表
+  // （name 标记为 EMAIL_VERIFY_TOKEN_NAME，中间件鉴权会排除这个 purpose，不会当成 API token）
   const verifyToken = crypto.randomUUID()
   const verifyExpiresAt = Math.floor(Date.now() / 1000) + 86400 // 24 hours
-  await db.update(users)
-    .set({
-      emailVerifyToken: verifyToken,
-      emailVerifyExpiresAt: new Date(verifyExpiresAt * 1000),
-    })
-    .where(eq(users.id, user.id))
+  await db.insert(usersTokens).values({
+    userId: user.id,
+    token: verifyToken,
+    name: EMAIL_VERIFY_TOKEN_NAME,
+    expiresAt: new Date(verifyExpiresAt * 1000),
+  })
 
   const siteUrl = getRequestURL(event).origin
   const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`

@@ -49,7 +49,7 @@ const props = withDefaults(
   {
     defaultIcon: () => ({
       name: 'material-symbols:shopping-bag-speed-outline',
-      class: 'text-white w-6 h-6',
+      class: 'text-gray-900 dark:text-white w-6 h-6',
     }),
   }
 )

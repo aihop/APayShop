@@ -276,6 +276,7 @@ const form = reactive({
   currency: 'USD',
   timezone: '',
   allow_guest_checkout: true,
+  disable_multi_device_login: false,
   company_name: '',
   company_phone: '',
   company_address: '',
@@ -304,8 +305,8 @@ watchEffect(() => {
   if (settings.value && Array.isArray(settings.value) && !isInitialized.value) {
     settings.value.forEach((s: any) => {
       // Allow dynamic keys (like zh_site_title) to be populated as well
-      if (s.key === 'allow_guest_checkout') {
-        dynamicForm.allow_guest_checkout =
+      if (s.key === 'allow_guest_checkout' || s.key === 'disable_multi_device_login') {
+        dynamicForm[s.key] =
           s.value === 'true' || s.value === true
       } else {
         // Initialize form with API data

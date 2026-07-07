@@ -14,6 +14,7 @@ export const users = mysqlTable('users', {
   nickname: text('nickname'),
   avatarUrl: text('avatar_url'),
   lastLoginAt: timestamp('last_login_at'),
+  currentSessionId: text('current_session_id'), // 当前有效的会话 ID
   
   CashBalance: bigint('cash_balance', { mode: 'bigint' }).default(sql`0`), // 充值余额（永不过期），金额放大 10^8 倍存储
   GrantBalance: bigint('grant_balance', { mode: 'bigint' }).default(sql`0`), // 订阅周期赠送余额（按周期清零），金额放大 10^8 倍存储
@@ -25,9 +26,18 @@ export const users = mysqlTable('users', {
   status: int('status').default(1), // 1: 正常, 0: 禁用
 
   emailVerifiedAt: timestamp('email_verified_at'), // 邮箱验证时间
-  emailVerifyToken: text('email_verify_token'), // 邮箱验证令牌
-  emailVerifyExpiresAt: timestamp('email_verify_expires_at'), // 令牌过期时间
 
+  createdAt: timestamp('created_at').notNull().defaultNow()
+})
+
+export const usersTokens = mysqlTable('users_tokens', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull().references(() => users.id),
+  token: text('token').notNull().unique(),
+  name: text('name'), // Token 名称，方便管理
+  expiresAt: timestamp('expires_at'), // 过期时间
+  lastUsedAt: timestamp('last_used_at'), // 最后使用时间
+  revoked: boolean('revoked').notNull().default(false), // 是否已撤销
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
