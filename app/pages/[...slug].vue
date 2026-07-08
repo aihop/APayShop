@@ -72,6 +72,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import * as themeBuild from '~/generated/theme-build'
 
 const route = useRoute()
 
@@ -83,19 +84,8 @@ if (cleanPath !== route.path) {
 
 const { getSetting } = useSettings()
 
-// ✅ 1. 关键：使用 eager: true 同步导入所有组件
-// core: 系统默认渲染层（原 default 主题）
-// themes: 可选主题，可覆盖 core 的页面
-const coreModules = import.meta.glob('../core/pages/**/*.vue', {
-  eager: true,
-})
-
-const themeModules = import.meta.glob('../themes/**/pages/**/*.vue', {
-  eager: true,
-})
-
 // 合并：theme 同名文件会覆盖 core，实现主题页面替换系统默认页面的效果
-const modules = { ...coreModules, ...themeModules }
+const modules = { ...themeBuild.corePageModules, ...themeBuild.themePageModules }
 
 // 自动提取所有可用的路由模板路径 (e.g. 'user/orders/index.vue', 'products/[slug].vue')
 const routeTemplates = Array.from(
@@ -106,7 +96,10 @@ const routeTemplates = Array.from(
   )
 )
 
-const activeTheme = computed(() => getSetting('active_theme') || '')
+const activeTheme = computed(() => {
+  const theme = getSetting('active_theme') || ''
+  return themeBuild.publishedOptionalThemeSet.has(theme) ? theme : ''
+})
 
 const pathSegments = computed(() => (route.params.slug as string[]) || [])
 
@@ -117,11 +110,11 @@ const getFilePath = (segments: string[], theme: string) => {
   const pathStr = segments.join('/')
 
   const existsInCore = (file: string) => {
-    return !!coreModules[`../core/pages/${file}`]
+    return !!themeBuild.corePageModules[`../core/pages/${file}`]
   }
 
   const existsInTheme = (file: string, t: string) => {
-    return !!themeModules[`../themes/${t}/pages/${file}`]
+    return !!themeBuild.themePageModules[`../themes/${t}/pages/${file}`]
   }
 
   // 1. 如果有设置主题，优先在主题中查找精确匹配
@@ -172,10 +165,10 @@ const activeComponent = computed(() => {
   // 有主题时先查主题
   if (activeTheme.value) {
     const themePath = `../themes/${activeTheme.value}/pages/${file}`
-    if (themeModules[themePath]) return (themeModules[themePath] as any).default
+    if (themeBuild.themePageModules[themePath]) return (themeBuild.themePageModules[themePath] as any).default
   }
   // fallback 到 core
-  return (coreModules[`../core/pages/${file}`] as any)?.default || null
+  return (themeBuild.corePageModules[`../core/pages/${file}`] as any)?.default || null
 })
 
 const isLoading = ref(false)

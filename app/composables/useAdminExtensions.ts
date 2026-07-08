@@ -1,3 +1,5 @@
+import * as themeBuild from '~/generated/theme-build'
+
 type AdminExtensionManifestPage = {
   key: string
   title: string
@@ -12,16 +14,6 @@ type AdminExtensionManifest = {
   name?: string
   pages?: AdminExtensionManifestPage[]
 }
-
-const manifestModules = import.meta.glob('../themes/**/theme.admin.json', {
-  eager: true,
-  import: 'default',
-}) as Record<string, AdminExtensionManifest>
-
-const extensionModules = import.meta.glob('../themes/**/admin/pages/**/*.vue', {
-  eager: true,
-  import: 'default',
-}) as Record<string, unknown>
 
 const normalizeRoute = (route: string, key: string) => {
   if (!route) {
@@ -50,11 +42,14 @@ const formatThemeName = (theme: string) =>
 export const useAdminExtensions = () => {
   const { getSetting } = useSettings()
 
-  const activeTheme = computed(() => getSetting('active_theme') || '')
+  const activeTheme = computed(() => {
+    const theme = getSetting('active_theme') || ''
+    return themeBuild.publishedOptionalThemeSet.has(theme) ? theme : ''
+  })
 
   const manifest = computed<AdminExtensionManifest>(() => {
     if (!activeTheme.value) return {}
-    return manifestModules[`../themes/${activeTheme.value}/theme.admin.json`] || {}
+    return (themeBuild.themeAdminManifestModules[`../themes/${activeTheme.value}/theme.admin.json`] || {}) as AdminExtensionManifest
   })
 
   const themeSectionTitle = computed(() => {
@@ -70,7 +65,7 @@ export const useAdminExtensions = () => {
         const component = normalizeComponent(page.component, page.key)
         const componentPath = `../themes/${activeTheme.value}/admin/pages/${component}`
 
-        if (!extensionModules[componentPath]) {
+        if (!themeBuild.themeAdminPageModules[componentPath]) {
           return null
         }
 
@@ -102,7 +97,7 @@ export const useAdminExtensions = () => {
       return null
     }
 
-    return extensionModules[page.componentPath] || null
+    return themeBuild.themeAdminPageModules[page.componentPath] || null
   }
 
   return {

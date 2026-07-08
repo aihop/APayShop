@@ -10,6 +10,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
+import * as themeBuild from '~/generated/theme-build'
 
 const { getSetting } = useSettings()
 
@@ -18,7 +19,10 @@ const route = useRoute()
 const normalizeAdminPath = (path: string) =>
   path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
 
-const activeTheme = computed(() => getSetting('active_theme') || '')
+const activeTheme = computed(() => {
+  const theme = getSetting('active_theme') || ''
+  return themeBuild.publishedOptionalThemeSet.has(theme) ? theme : ''
+})
 
 const isAdminRoute = computed(
   () => {
@@ -38,7 +42,13 @@ const activeLayout = computed(() => {
 
   return defineAsyncComponent(() => {
     if (!activeTheme.value) return import('../core/layouts/default.vue')
-    return import(`../themes/${activeTheme.value}/layouts/default.vue`).catch(() => {
+    const loadThemeLayout = themeBuild.themeLayoutLoaders[activeTheme.value] as
+      | (() => Promise<{ default: unknown }>)
+      | undefined
+    if (!loadThemeLayout) {
+      return import('../core/layouts/default.vue')
+    }
+    return loadThemeLayout().catch(() => {
       return import('../core/layouts/default.vue')
     })
   })

@@ -31,15 +31,10 @@
 </template>
 
 <script setup lang="ts">
-const themeAdminLocaleEnModules = import.meta.glob('../../../themes/**/locales/admin/en.ts', {
-  eager: true,
-  import: 'default',
-}) as Record<string, Record<string, any>>
-
-const themeAdminLocaleZhModules = import.meta.glob('../../../themes/**/locales/admin/zh.ts', {
-  eager: true,
-  import: 'default',
-}) as Record<string, Record<string, any>>
+import {
+  themeAdminLocaleEnModules,
+  themeAdminLocaleZhModules,
+} from '~/generated/theme-build'
 
 const route = useRoute()
 const { activeTheme, findExtensionPage, resolveExtensionComponent } = useAdminExtensions()
@@ -60,8 +55,8 @@ watchEffect(() => {
     return
   }
 
-  const en = themeAdminLocaleEnModules[`../../../themes/${theme}/locales/admin/en.ts`]
-  const zh = themeAdminLocaleZhModules[`../../../themes/${theme}/locales/admin/zh.ts`]
+  const en = themeAdminLocaleEnModules[`../themes/${theme}/locales/admin/en.ts`]
+  const zh = themeAdminLocaleZhModules[`../themes/${theme}/locales/admin/zh.ts`]
 
   if (en) {
     mergeLocaleMessage('en', {

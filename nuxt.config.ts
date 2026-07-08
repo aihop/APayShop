@@ -2,13 +2,47 @@ import fs from 'fs'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
+const resolveThemeDirectories = () => {
+  const themesDir = path.resolve(__dirname, 'app/themes')
+  if (!fs.existsSync(themesDir)) {
+    return []
+  }
+
+  return fs
+    .readdirSync(themesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== 'core')
+    .map((entry) => entry.name)
+}
+
+const resolveBuildThemes = () => {
+  const allThemes = resolveThemeDirectories()
+  const rawThemes = process.env.APAYSHOP_BUILD_THEMES || process.env.BUILD_THEMES || ''
+
+  if (!rawThemes) {
+    return allThemes
+  }
+
+  const selectedThemes = []
+  for (const item of rawThemes.split(',')) {
+    const theme = item.trim()
+    if (!theme || theme === 'default' || theme === 'core') {
+      continue
+    }
+    if (allThemes.includes(theme) && !selectedThemes.includes(theme)) {
+      selectedThemes.push(theme)
+    }
+  }
+
+  return selectedThemes
+}
+
 export default defineNuxtConfig({
   hooks: {
     'nitro:config'(nitroConfig) {
       const themesDir = path.resolve(__dirname, 'app/themes')
       if (fs.existsSync(themesDir)) {
-        const themes = fs.readdirSync(themesDir)
-        themes.filter(theme => theme !== 'core').forEach(theme => {
+        const themes = resolveBuildThemes()
+        themes.forEach(theme => {
           const apiDir = path.join(themesDir, theme, 'api')
           if (fs.existsSync(apiDir)) {
             const walkSync = (dir: string, filelist: string[] = []) => {
@@ -57,8 +91,8 @@ export default defineNuxtConfig({
     'components:dirs'(dirs) {
       const themesDir = path.resolve(__dirname, 'app/themes')
       if (fs.existsSync(themesDir)) {
-        const themes = fs.readdirSync(themesDir)
-        themes.filter(theme => theme !== 'core').forEach(theme => {
+        const themes = resolveBuildThemes()
+        themes.forEach(theme => {
           const componentsDir = path.join(themesDir, theme, 'components')
           if (fs.existsSync(componentsDir)) {
             dirs.push({
