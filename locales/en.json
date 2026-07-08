@@ -21,8 +21,7 @@
       "accessLogs": "Access Logs",
       "subscriptions": "Subscriptions",
       "docs": "Docs",
-      "automations": "Automations",
-      "scheduler": "Scheduler"
+      "automations": "Automations"
     },
     "header": {
       "search": "Search",
@@ -372,7 +371,8 @@
         "nav_integration": "Integration",
         "nav_email": "Email",
         "nav_company": "Company Details",
-        "nav_automations": "Automations"
+        "nav_automations": "Event Rules",
+        "nav_scheduler": "Scheduled Tasks"
       },
       "general": {
         "title": "General Information",

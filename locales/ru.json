@@ -21,8 +21,7 @@
       "accessLogs": "Журналы доступа",
       "subscriptions": "Подписки",
       "docs": "Документация",
-      "automations": "Автоматизация",
-      "scheduler": "Планировщик"
+      "automations": "Автоматизация"
     },
     "header": {
       "search": "Поиск",
@@ -372,7 +371,8 @@
         "nav_integration": "Интеграция",
         "nav_email": "Email",
         "nav_company": "Данные компании",
-        "nav_automations": "Автоматизация"
+        "nav_automations": "Правила событий",
+        "nav_scheduler": "Запланированные задачи"
       },
       "general": {
         "title": "Общая информация",

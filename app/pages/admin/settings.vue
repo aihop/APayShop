@@ -179,9 +179,12 @@
             :form="dynamicForm"
           />
 
-          <!-- 事件自动化:自管理数据(独立于上方设置表单的保存按钮) -->
+          <!-- 自动化(事件规则 + 定时任务):自管理数据,独立于上方设置表单的保存按钮 -->
           <AdminSettingsAutomationsTab
             v-if="activeTab === 'automations'"
+          />
+          <AdminSettingsSchedulerTab
+            v-if="activeTab === 'scheduler'"
           />
 
           <!-- Sticky Mobile Save Button -->
@@ -255,6 +258,7 @@ const tabs = [
   { id: 'email', labelKey: 'admin.settings.page.nav_email', icon: 'ph:envelope-fill' },
   { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
   { id: 'automations', labelKey: 'admin.settings.page.nav_automations', icon: 'ph:lightning-fill' },
+  { id: 'scheduler', labelKey: 'admin.settings.page.nav_scheduler', icon: 'ph:clock-countdown-fill' },
 ]
 
 const {
