@@ -21,7 +21,8 @@
       "accessLogs": "Журналы доступа",
       "subscriptions": "Подписки",
       "docs": "Документация",
-      "automations": "Автоматизация"
+      "automations": "Автоматизация",
+      "scheduler": "Планировщик"
     },
     "header": {
       "search": "Поиск",
@@ -393,7 +394,7 @@
         "toast_error": "Ошибка",
         "toast_upload_failed": "Не удалось загрузить логотип",
         "favicon_title": "Иконка сайта",
-        "favicon_desc": "Используется для вкладок браузера и закладок. Рекомендуется: .ico или 32\u00d732 PNG.",
+        "favicon_desc": "Используется для вкладок браузера и закладок. Рекомендуется: .ico или 32×32 PNG.",
         "favicon_url": "URL фавикона",
         "upload_favicon": "Загрузить иконку",
         "clear_favicon": "Очистить",

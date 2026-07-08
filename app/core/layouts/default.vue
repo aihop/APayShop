@@ -381,6 +381,19 @@
                 </div>
               </NuxtLink>
               <NuxtLink
+                to="/admin/scheduler"
+                :class="adminMobileNavItemClass"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:clock-countdown"
+                    class="w-5 h-5"
+                  />
+                  {{ $t('admin.nav.scheduler') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
                 to="/admin/settings"
                 :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
@@ -639,6 +652,19 @@
                     class="w-4 h-4 text-purple-400"
                   />
                   {{ $t('admin.nav.themes') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/scheduler"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:clock-countdown"
+                    class="w-4 h-4"
+                  />
+                  {{ $t('admin.nav.scheduler') }}
                 </div>
               </NuxtLink>
               <NuxtLink
