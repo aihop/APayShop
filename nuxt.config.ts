@@ -1,39 +1,20 @@
 import fs from 'fs'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
+import { resolveManifestFile, resolveSelectedThemes } from './scripts/theme-shared.mjs'
 
-const resolveThemeDirectories = () => {
-  const themesDir = path.resolve(__dirname, 'app/themes')
-  if (!fs.existsSync(themesDir)) {
-    return []
-  }
-
-  return fs
-    .readdirSync(themesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name !== 'core')
-    .map((entry) => entry.name)
-}
-
+// Single source of truth shared with scripts/generate-theme-build.mjs, so the
+// nitro handlers/public assets/global components registered here always match
+// the themes bundled into the client (app/generated/theme-build.ts).
 const resolveBuildThemes = () => {
-  const allThemes = resolveThemeDirectories()
-  const rawThemes = process.env.APAYSHOP_BUILD_THEMES || process.env.BUILD_THEMES || ''
+  const themesDir = path.resolve(__dirname, 'app/themes')
+  const manifestFile = resolveManifestFile(__dirname, process.env.APAYSHOP_THEME_MANIFEST || '')
 
-  if (!rawThemes) {
-    return allThemes
-  }
-
-  const selectedThemes = []
-  for (const item of rawThemes.split(',')) {
-    const theme = item.trim()
-    if (!theme || theme === 'default' || theme === 'core') {
-      continue
-    }
-    if (allThemes.includes(theme) && !selectedThemes.includes(theme)) {
-      selectedThemes.push(theme)
-    }
-  }
-
-  return selectedThemes
+  return resolveSelectedThemes({
+    themesDir,
+    manifestFile,
+    envThemes: process.env.APAYSHOP_BUILD_THEMES || process.env.BUILD_THEMES || '',
+  })
 }
 
 export default defineNuxtConfig({
@@ -132,7 +113,8 @@ export default defineNuxtConfig({
   i18n: {
     locales: [
       { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
-      { code: 'zh', iso: 'zh-CN', file: 'zh.json', name: '简体中文' }
+      { code: 'zh', iso: 'zh-CN', file: 'zh.json', name: '简体中文' },
+      { code: 'ru', iso: 'ru-RU', file: 'ru.json', name: 'Русский' }
     ],
     defaultLocale: 'en',
     strategy: 'prefix_except_default',

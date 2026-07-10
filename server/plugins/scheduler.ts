@@ -54,15 +54,25 @@ async function tick(): Promise<void> {
   }
 }
 
-export default defineNitroPlugin(() => {
+export default defineNitroPlugin((nitroApp) => {
   if (process.env.CF_PAGES || (process.env.NITRO_PRESET || '').includes('cloudflare')) {
     return
   }
 
-  setTimeout(() => {
+  let intervalHandle: ReturnType<typeof setInterval> | null = null
+  const firstTickHandle = setTimeout(() => {
     void tick()
-    setInterval(() => void tick(), TICK_MS)
+    intervalHandle = setInterval(() => void tick(), TICK_MS)
   }, FIRST_TICK_DELAY_MS)
+
+  // `nuxt build` boots a throw-away Nitro instance internally (to resolve route
+  // rules / prerendering) and fires this same "close" hook on it right after -
+  // without clearing our timers here, that build-time instance's Node process
+  // never drains its event loop and `npm run build` hangs forever post "Build complete".
+  nitroApp.hooks.hook('close', () => {
+    clearTimeout(firstTickHandle)
+    if (intervalHandle) clearInterval(intervalHandle)
+  })
 
   console.log('[scheduler] scheduled webhook runner started (tick 60s)')
 })

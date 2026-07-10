@@ -152,6 +152,33 @@ copy_file() {
   run cp -f -v "${src}" "${dst}"
 }
 
+commit_output_repo() {
+  local dir="$1"
+  local commit_msg="build: ${REPO_NAME} ${THEME_NAME:-core} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    echo "+ $(mask_cmd git -C "${dir}" init) (skipped if already a repo)"
+    echo "+ $(mask_cmd git -C "${dir}" add -A)"
+    echo "+ $(mask_cmd git -C "${dir}" commit -m "${commit_msg}") (skipped if nothing changed)"
+    return 0
+  fi
+
+  if [[ ! -d "${dir}/.git" ]]; then
+    git -C "${dir}" init -q
+    echo "    Initialized git repo: ${dir}"
+  fi
+
+  git -C "${dir}" add -A
+
+  if git -C "${dir}" diff --cached --quiet; then
+    echo "    No changes to commit"
+    return 0
+  fi
+
+  git -C "${dir}" commit -q -m "${commit_msg}"
+  echo "    Committed: ${commit_msg}"
+}
+
 echo "==> Building project (dialect: ${DIALECT})"
 prepare_theme_build_loader
 if [[ "${DIALECT}" == "pg" ]]; then
@@ -200,6 +227,9 @@ if [[ -d "public" ]]; then
 else
   echo "WARN: public not found, skip copy"
 fi
+
+echo "==> Committing build output (${OUTPUT_DIR})"
+commit_output_repo "${OUTPUT_DIR}"
 
 echo "==> Done!"
 echo "Output directory: ${OUTPUT_DIR}"

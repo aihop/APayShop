@@ -2,13 +2,13 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { resolveAvailableThemes, resolveManifestFile, resolveSelectedThemes } from './theme-shared.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 const themesDir = path.join(projectRoot, 'app/themes')
 const outputDir = path.join(projectRoot, 'app/generated')
 const outputFile = path.join(outputDir, 'theme-build.ts')
-const defaultManifestFile = path.join(projectRoot, 'app/generated/theme-manifest.json')
 
 const args = process.argv.slice(2)
 const forceAllThemes = args.includes('--all')
@@ -30,69 +30,17 @@ const getArgValue = (name) => {
   return ''
 }
 
-const resolveManifestFile = () => {
-  const rawValue = getArgValue('manifest') || process.env.APAYSHOP_THEME_MANIFEST || ''
-  if (!rawValue) {
-    return defaultManifestFile
-  }
+const availableThemes = resolveAvailableThemes(themesDir)
+const manifestFile = resolveManifestFile(projectRoot, getArgValue('manifest') || process.env.APAYSHOP_THEME_MANIFEST || '')
 
-  return path.isAbsolute(rawValue) ? rawValue : path.resolve(projectRoot, rawValue)
-}
-
-const availableThemes = fs.existsSync(themesDir)
-  ? fs.readdirSync(themesDir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && entry.name !== 'core')
-      .map((entry) => entry.name)
-      .sort()
-  : []
-
-const normalizeThemeList = (rawValue) => {
-  if (!rawValue) {
-    return []
-  }
-
-  const selected = []
-  for (const item of rawValue.split(',')) {
-    const theme = item.trim()
-    if (!theme || theme === 'default' || theme === 'core') {
-      continue
-    }
-    if (availableThemes.includes(theme) && !selected.includes(theme)) {
-      selected.push(theme)
-    }
-  }
-
-  return selected
-}
-
-const readThemesFromManifest = (manifestFile) => {
-  if (!fs.existsSync(manifestFile)) {
-    return ''
-  }
-
-  try {
-    const raw = fs.readFileSync(manifestFile, 'utf-8')
-    const manifest = JSON.parse(raw)
-    if (Array.isArray(manifest?.publishedOptionalThemes)) {
-      return manifest.publishedOptionalThemes.join(',')
-    }
-  } catch (error) {
-    console.warn(`[theme-build] failed to read manifest: ${manifestFile}`, error)
-  }
-
-  return ''
-}
-
-const manifestFile = resolveManifestFile()
-const requestedThemes = forceAllThemes
-  ? availableThemes.join(',')
-  : getArgValue('themes') ||
-    readThemesFromManifest(manifestFile) ||
-    process.env.APAYSHOP_BUILD_THEMES ||
-    process.env.BUILD_THEMES ||
-    ''
-
-const selectedThemes = normalizeThemeList(requestedThemes)
+const selectedThemes = forceAllThemes
+  ? availableThemes
+  : resolveSelectedThemes({
+      themesDir,
+      manifestFile,
+      explicitThemes: getArgValue('themes'),
+      envThemes: process.env.APAYSHOP_BUILD_THEMES || process.env.BUILD_THEMES || '',
+    })
 
 const buildGlobObject = (patterns, options) => {
   if (!patterns.length) {

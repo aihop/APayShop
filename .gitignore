@@ -4,6 +4,7 @@ node_modules
 /dist
 .output
 /build
+/app/generated
 /content
 /payments
 /uploads
