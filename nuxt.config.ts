@@ -66,6 +66,14 @@ export default defineNuxtConfig({
               nitroConfig.publicAssets.push({ dir: publicDir, baseURL })
             }
           }
+
+          // 主题私有 vendor(构建产物库,如 qingpu-engine):注册 #<theme>-vendor 别名,
+          // 让 nitro 以绝对路径打包,避免相对引用被外部化后解析错位
+          const vendorDir = path.join(themesDir, theme, 'server', 'vendor')
+          if (fs.existsSync(vendorDir)) {
+            nitroConfig.alias = nitroConfig.alias || {}
+            nitroConfig.alias[`#${theme}-vendor`] = vendorDir
+          }
         })
       }
     },
