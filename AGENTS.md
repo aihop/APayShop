@@ -11,6 +11,7 @@
 > `2026-06-27`: 新增 ainode Go 后端 JSON 序列化规范（Section 6.J）。sqlc 必须配置 `emit_json_tags` + `json_tags_case_style: camel`，所有 API 统一输出小驼峰字段名。
 > `2026-06-28`: 新增数据自动清理机制。后台统计页支持手动清理 `visitor_events` 表原始事件数据（默认保留 90 天），`visitor_profiles` 访客画像永久保留，见 Section 6.K。
 > `2026-07-06`: 新增 Qingpu 主题私有 PostgreSQL 租户授权 Key 模块约定，主题专属表与直连 PG 逻辑不得并入全局 `server/db/schema.*`，见 Section 6.L。
+> `2026-07-19`: 新增 Qingpu 主题用户级通用设置桶约定，铺货工作台偏好统一收口到 `qingpu_settings.config` JSON，而非继续拆散列表或污染全局 `settings`，见 Section 6.L。
 
 ## 1. 项目定位与核心架构
 
@@ -250,6 +251,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
   - 主题私有 PG 客户端、查询封装、工具函数放在 `app/themes/[theme]/server/**`
   - 建表 SQL 放在 `app/themes/[theme]/database/*.sql`
 - **禁止事项**: 严禁把仅供主题使用的外部表、租户表、授权表强行加入 `server/db/schema.ts`、`schema.pg.ts`、`schema.sqlite.ts`、`schema.mysql.ts`。
+- **用户级主题配置建议**: 对于 Qingpu 铺货工作台这类“按登录用户保存偏好”的主题私有设置，优先使用 `qingpu_settings` 这类用户级 JSON 配置桶（`user_id + config jsonb`），再按 `listing.modelSettings` 等命名空间扩展，避免为每一类偏好继续拆新的细粒度配置表。
 - **密钥存储规则**: 主题私有授权 Key 表只保存 `api_key_hash` 与前缀/预览信息，原始明文 Key 仅允许在“创建 / 轮换”接口返回一次，不得持久化入库。
 - **订阅关联建议**: 主题私有授权 Key 可以保存 APayShop 核心订阅 `subscriptionId`，并额外保存 `subscriptionSnapshot` 快照，避免后续套餐名称、金额或周期变更时丢失签发时上下文。
 
