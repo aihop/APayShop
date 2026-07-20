@@ -18,6 +18,21 @@ const resolveBuildThemes = () => {
 }
 
 export default defineNuxtConfig({
+  // 主题私有 vendor 的客户端别名:纯函数(如 qingpu-engine 定价计算)可在浏览器组件复用;
+  // nitro 侧同名别名见下方 nitro:config 钩子,两侧解析到同一目录
+  alias: (() => {
+    const themesDir = path.resolve(__dirname, 'app/themes')
+    const aliases: Record<string, string> = {}
+    if (fs.existsSync(themesDir)) {
+      resolveBuildThemes().forEach(theme => {
+        const vendorDir = path.join(themesDir, theme, 'server', 'vendor')
+        if (fs.existsSync(vendorDir)) {
+          aliases[`#${theme}-vendor`] = vendorDir
+        }
+      })
+    }
+    return aliases
+  })(),
   hooks: {
     'nitro:config'(nitroConfig) {
       const themesDir = path.resolve(__dirname, 'app/themes')
