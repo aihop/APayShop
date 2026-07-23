@@ -329,3 +329,95 @@ export const notifications = mysqlTable('notifications', {
   isRead: boolean('is_read').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
+
+export const promoAgentTiers = mysqlTable('promo_agent_tiers', {
+  id: int('id').autoincrement().primaryKey(),
+  code: varchar('code', { length: 191 }).notNull().unique(),
+  name: varchar('name', { length: 191 }).notNull(),
+  roleScope: varchar('role_scope', { length: 64 }).notNull().default('agent'),
+  level: int('level').notNull().default(1),
+  discountRate: real('discount_rate').notNull().default(1),
+  salesThreshold: real('sales_threshold').notNull().default(0),
+  isFixed: boolean('is_fixed').notNull().default(false),
+  isActive: boolean('is_active').notNull().default(true),
+  description: text('description'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
+
+export const promoMembers = mysqlTable('promo_members', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull().references(() => users.id).unique(),
+  role: varchar('role', { length: 64 }).notNull().default('member'),
+  status: varchar('status', { length: 64 }).notNull().default('active'),
+  promoCode: varchar('promo_code', { length: 191 }).notNull().unique(),
+  inviteCode: varchar('invite_code', { length: 191 }).notNull().unique(),
+  agentCode: varchar('agent_code', { length: 191 }).unique(),
+  currentAgentTierId: int('current_agent_tier_id').references(() => promoAgentTiers.id),
+  joinedAt: timestamp('joined_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+export const promoInviteRelations = mysqlTable('promo_invite_relations', {
+  id: int('id').autoincrement().primaryKey(),
+  inviteeUserId: int('invitee_user_id').notNull().references(() => users.id).unique(),
+  inviterUserId: int('inviter_user_id').notNull().references(() => users.id),
+  source: varchar('source', { length: 64 }).notNull().default('register'),
+  codeSnapshot: varchar('code_snapshot', { length: 191 }),
+  boundAt: timestamp('bound_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
+export const promoAgentRelations = mysqlTable('promo_agent_relations', {
+  id: int('id').autoincrement().primaryKey(),
+  agentUserId: int('agent_user_id').notNull().references(() => users.id).unique(),
+  parentAgentUserId: int('parent_agent_user_id').references(() => users.id),
+  masterAgentUserId: int('master_agent_user_id').references(() => users.id),
+  depth: int('depth').notNull().default(1),
+  status: varchar('status', { length: 64 }).notNull().default('active'),
+  boundAt: timestamp('bound_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+export const promoOrderAttributions = mysqlTable('promo_order_attributions', {
+  id: int('id').autoincrement().primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  buyerUserId: int('buyer_user_id').references(() => users.id),
+  buyerPromoMemberId: int('buyer_promo_member_id').references(() => promoMembers.id),
+  inviteUserId: int('invite_user_id').references(() => users.id),
+  agentUserId: int('agent_user_id').references(() => users.id),
+  parentAgentUserId: int('parent_agent_user_id').references(() => users.id),
+  masterAgentUserId: int('master_agent_user_id').references(() => users.id),
+  agentTierIdSnapshot: int('agent_tier_id_snapshot'),
+  agentTierNameSnapshot: varchar('agent_tier_name_snapshot', { length: 191 }),
+  discountRateSnapshot: real('discount_rate_snapshot'),
+  sourceType: varchar('source_type', { length: 64 }).notNull().default('direct'),
+  metaData: json('meta_data'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    orderIdx: uniqueIndex('promo_order_attributions_order_id_idx').on(table.orderId),
+  }
+})
+
+export const promoCommissions = mysqlTable('promo_commissions', {
+  id: int('id').autoincrement().primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  ownerUserId: int('owner_user_id').notNull().references(() => users.id),
+  ownerPromoMemberId: int('owner_promo_member_id').references(() => promoMembers.id),
+  type: varchar('type', { length: 64 }).notNull(),
+  sourceType: varchar('source_type', { length: 64 }).notNull().default('direct'),
+  amount: real('amount').notNull(),
+  rate: real('rate'),
+  status: varchar('status', { length: 64 }).notNull().default('pending'),
+  remark: text('remark'),
+  metaData: json('meta_data'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  // 注意:pg/sqlite 两套已加 (order_id, type) 唯一索引防重复佣金;MySQL 的
+  // order_id 是 TEXT(同 orders.id 主键),TEXT 列建唯一索引需要前缀长度,
+  // 本套 schema 现状本就无法在严格 MySQL 上 push——如启用 MySQL 部署,先把
+  // id/order_id 迁到 varchar 再补同名唯一索引
+})

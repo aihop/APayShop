@@ -169,6 +169,7 @@ export default defineNuxtConfig({
       'admin/posts': false,
       'admin/logs': false,
       'admin/stats': false,
+      'admin/promo': false,
     }
   },
   hub: {

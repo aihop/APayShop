@@ -15,7 +15,7 @@
         <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.processingPayment') }}</h1>
         <p class="text-gray-400 mb-6">{{ $t('site.payment.processingPaymentTips') }}</p>
         <div class="text-sm font-mono text-gray-500 bg-black/30 py-2 px-4 rounded-lg inline-block">
-          Order ID: {{ orderId }}
+          {{ $t('site.payment.orderIdLabel') }}: {{ orderId }}
         </div>
         <p class="my-6">
           <UButton
@@ -38,6 +38,12 @@
         </div>
         <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.paymentSuccessful') }}</h1>
         <p class="text-gray-400 mb-6">{{ $t('site.payment.paymentSuccessfulTips') }}</p>
+        <p
+          v-if="redirecting && externalReturnUrl"
+          class="text-xs text-emerald-300/80 mb-6"
+        >
+          {{ $t('site.payment.redirectingAfterPayment') }}
+        </p>
 
         <div
           v-if="deliveryInfo"
@@ -68,6 +74,12 @@
         </div>
         <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.paymentFailed') }}</h1>
         <p class="text-gray-400 mb-6">{{ $t('site.payment.paymentFailedTips') }}</p>
+        <p
+          v-if="redirecting && externalCancelUrl"
+          class="text-xs text-amber-300/80 mb-6"
+        >
+          {{ $t('site.payment.redirectingToSource') }}
+        </p>
         <UButton
           color="neutral"
           variant="outline"
@@ -83,26 +95,76 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+const { t } = useI18n()
 const { localePath } = useLocaleRouter()
 
-useHead({
-  title: 'Payment - APayShop',
+useHead(() => ({
+  title: t('site.payment.pageTitle'),
   meta: [
     {
       name: 'description',
-      content: 'Payment processing and order status page.',
+      content: t('site.payment.pageDescription'),
     },
   ],
-})
+}))
 
 const route = useRoute()
 const orderId = route.params['slug']?.[1] as string
 
 const payStatus = ref('pending')
 const deliveryInfo = ref('')
+const externalReturnUrl = ref('')
+const externalCancelUrl = ref('')
+const externalOrderId = ref('')
+const redirecting = ref(false)
 let pollInterval: any = null
+let redirectTimer: any = null
 let pollCount = 0
 const MAX_POLLS = 20 // Stop polling after ~1 minute
+
+const buildExternalRedirectUrl = (targetUrl: string, status: 'paid' | 'failed' | 'cancelled') => {
+  try {
+    const url = new URL(targetUrl)
+    url.searchParams.set('orderId', orderId)
+    if (externalOrderId.value) {
+      url.searchParams.set('externalOrderId', externalOrderId.value)
+    }
+    url.searchParams.set('status', status)
+    return url.toString()
+  } catch {
+    return targetUrl
+  }
+}
+
+const scheduleExternalRedirect = (targetUrl: string, status: 'paid' | 'failed' | 'cancelled') => {
+  if (!import.meta.client || !targetUrl || redirecting.value) return
+  redirecting.value = true
+  const resolvedUrl = buildExternalRedirectUrl(targetUrl, status)
+  redirectTimer = window.setTimeout(() => {
+    window.location.href = resolvedUrl
+  }, 1200)
+}
+
+const hydrateCheckoutBridge = async () => {
+  if (!orderId) return
+  try {
+    const detail: any = await $fetch(`/api/orders/detail?orderId=${encodeURIComponent(orderId)}`)
+    const bridge = detail?.metaData?.checkoutBridge
+    if (!bridge) return
+    externalReturnUrl.value = String(bridge.returnUrl || '').trim()
+    externalCancelUrl.value = String(bridge.cancelUrl || '').trim()
+    externalOrderId.value = String(bridge.externalOrderId || '').trim()
+
+    if (payStatus.value === 'paid' && externalReturnUrl.value) {
+      scheduleExternalRedirect(externalReturnUrl.value, 'paid')
+    }
+    if (payStatus.value === 'failed' && externalCancelUrl.value) {
+      scheduleExternalRedirect(externalCancelUrl.value, 'failed')
+    }
+  } catch (error) {
+    console.error('Failed to load checkout bridge detail', error)
+  }
+}
 
 const checkStatus = async () => {
   if (!orderId) {
@@ -117,9 +179,15 @@ const checkStatus = async () => {
         payStatus.value = 'paid'
         deliveryInfo.value = res.data.deliveryInfo
         stopPolling()
+        if (externalReturnUrl.value) {
+          scheduleExternalRedirect(externalReturnUrl.value, 'paid')
+        }
       } else if (res.data.payStatus === 'failed') {
         payStatus.value = 'failed'
         stopPolling()
+        if (externalCancelUrl.value) {
+          scheduleExternalRedirect(externalCancelUrl.value, 'failed')
+        }
       }
     }
   } catch (e) {
@@ -157,6 +225,7 @@ onMounted(async () => {
 
   // 2. 检查一次最新状态
   await checkStatus()
+  await hydrateCheckoutBridge()
 
   // 3. 如果仍未支付成功，则开启轮询作为兜底（等待异步 Webhook）
   if (payStatus.value === 'pending') {
@@ -166,5 +235,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopPolling()
+  if (redirectTimer) {
+    clearTimeout(redirectTimer)
+    redirectTimer = null
+  }
 })
 </script>

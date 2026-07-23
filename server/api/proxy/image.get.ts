@@ -28,6 +28,8 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'content-type', contentType)
   setResponseHeader(event, 'cache-control', cacheControl)
+  setResponseHeader(event, 'access-control-allow-origin', '*')
+  setResponseHeader(event, 'cross-origin-resource-policy', 'cross-origin')
   setResponseHeader(event, 'x-robots-tag', 'noindex')
   if (etag) setResponseHeader(event, 'etag', etag)
   if (lastModified) setResponseHeader(event, 'last-modified', lastModified)

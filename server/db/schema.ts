@@ -58,5 +58,11 @@ export const {
   accessLogs,
   posts,
   subscriptions,
-  notifications
+  notifications,
+  promoMembers,
+  promoInviteRelations,
+  promoAgentRelations,
+  promoAgentTiers,
+  promoOrderAttributions,
+  promoCommissions
 } = activeSchema

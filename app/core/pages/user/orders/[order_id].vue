@@ -4,7 +4,7 @@
 
       <!-- Back Navigation -->
       <NuxtLink
-        to="/user/orders"
+        :to="localePath('/user/orders')"
         class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
       >
         <UIcon
@@ -121,7 +121,7 @@
               <p class="text-gray-400 text-sm mb-3">{{ $t('site.payment.successTips') }}</p>
               <UButton
                 v-if="order.productSlug"
-                :to="`/products/${order.productSlug}`"
+                :to="localePath(`/products/${order.productSlug}`)"
                 target="_blank"
                 variant="ghost"
                 color="neutral"
@@ -233,23 +233,13 @@
                 class="w-12 h-12 text-amber-500/50 mb-3"
               />
               <p class="text-gray-400 mb-4">Payment is required before delivery information can be accessed.</p>
-              <PaymentModal
-                :order-id="order.id"
-                :quantity="1"
-                :amount="order.amount"
+              <UButton
+                color="primary"
+                class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-8"
+                :to="localePath(`/payment/${order.id}`)"
               >
-                <template #trigger="{ loading, open }">
-                  <UButton
-                    color="primary"
-                    class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-8"
-                    @click="open"
-                    :disabled="loading"
-                    :loading="loading"
-                  >
-                    Pay Now
-                  </UButton>
-                </template>
-              </PaymentModal>
+                Pay Now
+              </UButton>
             </div>
 
             <!-- Failed/Expired State -->
@@ -293,8 +283,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
 const { formatDateTime } = useFormatTime()
+const { localePath } = useLocaleRouter()
 const route = useRoute()
 const router = useRouter() 
 const orderId = route.params['slug']?.[2] as string

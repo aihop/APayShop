@@ -71,6 +71,13 @@
       "when": 1783392984468,
       "tag": "0009_sloppy_banshee",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784710501000,
+      "tag": "0010_add_promo",
+      "breakpoints": true
     }
   ]
 }

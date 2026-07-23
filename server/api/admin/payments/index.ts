@@ -2,6 +2,7 @@ import { paymentMethods } from "../../../db/schema"
 import fs from "fs"
 import path from "path"
 import { db } from '../../../db/runtime'
+import { applyLocalPaymentPluginDefaults } from '../../../../payments/meta'
 
 export default defineEventHandler(async (event) => {
   if (event.method === "GET") {
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
     }
     
     // 3. Merge them
-    const mergedMethods = [...dbMethods]
+    const mergedMethods = dbMethods.map((method: any) => applyLocalPaymentPluginDefaults({ ...method }))
     
     for (const pluginCode of localPlugins) {
       // Check if this plugin already exists in DB
@@ -31,6 +32,7 @@ export default defineEventHandler(async (event) => {
         let info = ''
         let create = ''
         let callback = ''
+        let configJson = '{}'
         
         try {
           const infoPath = path.join(paymentsDir, pluginCode, 'info.html')
@@ -41,24 +43,27 @@ export default defineEventHandler(async (event) => {
 
           const createPath = path.join(paymentsDir, pluginCode, 'create.js')
           if (fs.existsSync(createPath)) create = fs.readFileSync(createPath, 'utf-8')
+
+          const configPath = path.join(paymentsDir, pluginCode, 'config.json')
+          if (fs.existsSync(configPath)) configJson = fs.readFileSync(configPath, 'utf-8')
         } catch (e) {
           console.error(`Error reading local plugin ${pluginCode}:`, e)
         }
         
         // Push as a new "Unconfigured" method
-        mergedMethods.push({
+        mergedMethods.push(applyLocalPaymentPluginDefaults({
           id: null as any, // Null ID indicates it's not in DB yet
           name: pluginCode.charAt(0).toUpperCase() + pluginCode.slice(1),
           code: pluginCode,
           iconUrl: '',
           isActive: false,
-          configJson: '{}',
+          configJson,
           info,
           create,
           callback,
           createdAt: new Date(),
           isLocalOnly: true // custom flag for frontend
-        } as any)
+        } as any))
       } else {
         // If it exists in DB, we could optionally attach a flag saying it has local files backing it
         (existsInDb as any).hasLocalFiles = true

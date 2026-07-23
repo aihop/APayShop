@@ -211,78 +211,25 @@
     </div>
 
     <!-- Template Edit Modal -->
-    <FullScreenModal
-      v-model="isTemplateModalOpen"
+    <EmailTemplateModal
+      :open="isTemplateModalOpen"
       :title="editingTemplateIndex >= 0 ? $t('admin.settings.email.edit_template_title') : $t('admin.settings.email.new_template_title')"
-      :default-fullscreen="false"
-      max-width="sm:max-w-2xl"
-    >
-      <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UFormField :label="$t('admin.settings.email.tpl_code')" required>
-            <UInput
-              v-model="editingTemplate.code"
-              placeholder="verify_email"
-              size="md"
-              class="w-full"
-              :disabled="editingTemplateIndex >= 0"
-              :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
-            />
-          </UFormField>
-          <UFormField :label="$t('admin.settings.email.tpl_name')" required>
-            <UInput
-              v-model="editingTemplate.name"
-              placeholder="注册验证"
-              size="md"
-              class="w-full"
-              :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
-            />
-          </UFormField>
-        </div>
-        <UFormField :label="$t('admin.settings.email.tpl_subject')" required>
-          <UInput
-            v-model="editingTemplate.subject"
-            placeholder="验证你的邮箱 - {{site_name}}"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
-          />
-        </UFormField>
-        <UFormField :label="$t('admin.settings.email.tpl_variables')" :description="$t('admin.settings.email.tpl_variables_desc')">
-          <UInput
-            v-model="variablesInput"
-            placeholder="nickname, verify_link, site_name"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
-          />
-        </UFormField>
-        <UFormField :label="$t('admin.settings.email.tpl_html')" required>
-          <UTextarea
-            v-model="editingTemplate.html"
-            :rows="14"
-            size="md"
-            class="font-mono text-sm w-full"
-            placeholder="<p>你好 {{nickname}}，点击验证：<a href='{{verify_link}}'>{{verify_link}}</a></p>"
-            :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
-          />
-        </UFormField>
-      </div>
-      <template #footer>
-        <UButton type="button" variant="outline" size="md" class="rounded-xl" @click="isTemplateModalOpen = false">
-          {{ $t('admin.settings.email.cancel') }}
-        </UButton>
-        <UButton type="button" color="primary" size="md" class="rounded-xl" @click="saveTemplate">
-          {{ $t('admin.settings.email.save_template') }}
-        </UButton>
-      </template>
-    </FullScreenModal>
+      :draft="editingTemplate"
+      :variables-input="variablesInput"
+      :is-editing="editingTemplateIndex >= 0"
+      @update:open="isTemplateModalOpen = $event"
+      @update:variables-input="variablesInput = $event"
+      @save="saveTemplate"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { DEFAULT_RESEND_SCRIPT } from './email/shared'
+
 const toast = useToast()
 const { t } = useI18n()
+const translate = (key: string) => t(key as any)
 
 const props = defineProps<{
   form: any
@@ -313,25 +260,7 @@ const providerForm = reactive({
   defaultTemplateCode: '__none__',
 })
 
-const defaultResendScript = `// Sandbox: { to, subject, html, config, fetch, crypto, console }
-const res = await fetch('https://api.resend.com/emails', {
-  method: 'POST',
-  headers: {
-    'Authorization': \`Bearer \${config.apiKey}\`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    from: config.from || 'noreply@yourdomain.com',
-    to: [to],
-    subject: subject,
-    html: html
-  })
-})
-if (res.ok) {
-  const data = await res.json()
-  return { ok: true, messageId: data.id }
-}
-return { ok: false, error: await res.text() }`
+const defaultResendScript = DEFAULT_RESEND_SCRIPT
 
 // Load existing provider from settings form into providerForm
 watchEffect(() => {
@@ -418,168 +347,27 @@ async function saveProvider() {
   }
 }
 
-// --- Templates ---
-const templates = ref<Array<{ code: string; name: string; subject: string; variables: string[]; html: string }>>([])
-
-watchEffect(() => {
-  if (props.form.email_templates) {
-    try {
-      templates.value = JSON.parse(props.form.email_templates)
-    } catch { /* ignore invalid JSON during editing */ }
-  }
+const {
+  templates,
+  templateOptions,
+  defaultTemplateOptions,
+  isTemplateModalOpen,
+  editingTemplateIndex,
+  editingTemplate,
+  variablesInput,
+  openNewTemplate,
+  editTemplate,
+  deleteTemplate,
+  saveTemplate,
+  syncTemplatesToForm,
+  loadDefaultTemplates,
+  testEmail,
+  isSendingTest,
+  testResult,
+  sendTestEmail,
+} = useEmailTemplateManager({
+  form: props.form,
+  toast,
+  t: translate,
 })
-
-const templateOptions = computed(() =>
-  templates.value.map((t) => ({ label: `${t.name} (${t.code})`, value: t.code }))
-)
-
-const defaultTemplateOptions = computed(() => {
-  const options = templates.value.map((t) => ({ label: `${t.name} (${t.code})`, value: t.code }))
-  return [{ label: t('admin.settings.email.no_default_template'), value: '__none__' }, ...options]
-})
-
-const isTemplateModalOpen = ref(false)
-const editingTemplateIndex = ref(-1)
-const editingTemplate = reactive({ code: '', name: '', subject: '', variables: [] as string[], html: '' })
-const variablesInput = ref('')
-
-function openNewTemplate() {
-  editingTemplateIndex.value = -1
-  editingTemplate.code = ''
-  editingTemplate.name = ''
-  editingTemplate.subject = ''
-  editingTemplate.variables = []
-  editingTemplate.html = ''
-  variablesInput.value = ''
-  isTemplateModalOpen.value = true
-}
-
-function editTemplate(idx: number) {
-  editingTemplateIndex.value = idx
-  const tpl = templates.value[idx]
-  editingTemplate.code = tpl.code
-  editingTemplate.name = tpl.name
-  editingTemplate.subject = tpl.subject
-  editingTemplate.variables = [...tpl.variables]
-  editingTemplate.html = tpl.html
-  variablesInput.value = tpl.variables.join(', ')
-  isTemplateModalOpen.value = true
-}
-
-function deleteTemplate(idx: number) {
-  templates.value.splice(idx, 1)
-  syncTemplatesToForm()
-  toast.add({
-    title: t('admin.common.success'),
-    description: t('admin.settings.email.toast_template_deleted'),
-    color: 'success',
-  })
-}
-
-function saveTemplate() {
-  const vars = variablesInput.value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-
-  const tpl = {
-    code: editingTemplate.code.trim(),
-    name: editingTemplate.name.trim(),
-    subject: editingTemplate.subject.trim(),
-    variables: vars,
-    html: editingTemplate.html.trim(),
-  }
-
-  if (!tpl.code || !tpl.name) {
-    toast.add({ title: t('admin.common.error'), description: t('admin.settings.email.tpl_code_name_required'), color: 'error' })
-    return
-  }
-
-  if (editingTemplateIndex.value >= 0) {
-    templates.value[editingTemplateIndex.value] = tpl
-  } else {
-    if (templates.value.some((t) => t.code === tpl.code)) {
-      toast.add({ title: t('admin.common.error'), description: t('admin.settings.email.tpl_duplicate'), color: 'error' })
-      return
-    }
-    templates.value.push(tpl)
-  }
-
-  syncTemplatesToForm()
-  isTemplateModalOpen.value = false
-  toast.add({ title: t('admin.common.success'), description: t('admin.settings.email.toast_template_saved'), color: 'success' })
-}
-
-function syncTemplatesToForm() {
-  props.form.email_templates = JSON.stringify(templates.value)
-}
-
-async function loadDefaultTemplates() {
-  try {
-    const result: any = await $fetch('/api/admin/email/default-templates')
-    const defaults: Array<{ code: string; name: string; subject: string; variables: string[]; html: string }>
-      = Array.isArray(result) ? result : []
-    if (defaults.length === 0) {
-      toast.add({ title: t('admin.common.info'), description: 'No default templates available', color: 'warning' })
-      return
-    }
-
-    // Merge: skip existing codes, add new ones
-    const existingCodes = new Set(templates.value.map((t) => t.code))
-    let addedCount = 0
-    for (const tpl of defaults) {
-      if (!existingCodes.has(tpl.code)) {
-        templates.value.push({ ...tpl })
-        existingCodes.add(tpl.code)
-        addedCount++
-      }
-    }
-
-    if (addedCount > 0) {
-      syncTemplatesToForm()
-      toast.add({
-        title: t('admin.common.success'),
-        description: `${addedCount} template(s) loaded`,
-        color: 'success',
-      })
-    } else {
-      toast.add({ title: t('admin.common.info'), description: 'All default templates already exist', color: 'warning' })
-    }
-  } catch (e: any) {
-    toast.add({
-      title: t('admin.common.error'),
-      description: e.data?.message || e.message || 'Failed to load default templates',
-      color: 'error',
-    })
-  }
-}
-
-// --- Test ---
-const testEmail = reactive({ to: '', templateCode: '' })
-const isSendingTest = ref(false)
-const testResult = ref<{ ok: boolean; messageId?: string; error?: string } | null>(null)
-
-async function sendTestEmail() {
-  if (!testEmail.to || !testEmail.templateCode) {
-    toast.add({ title: t('admin.common.error'), description: t('admin.settings.email.test_fill_fields'), color: 'error' })
-    return
-  }
-  isSendingTest.value = true
-  testResult.value = null
-  try {
-    const res = await $fetch('/api/admin/email/test', {
-      method: 'POST',
-      body: {
-        to: testEmail.to,
-        templateCode: testEmail.templateCode,
-        templates: props.form.email_templates,
-      },
-    })
-    testResult.value = res
-  } catch (e: any) {
-    testResult.value = { ok: false, error: e.data?.message || e.message }
-  } finally {
-    isSendingTest.value = false
-  }
-}
 </script>

@@ -12,9 +12,13 @@
           />
         </div>
 
-        <h1 class="text-2xl font-bold text-white mb-2">Payment Cancelled</h1>
-        <p class="text-gray-400 mb-8">
-          It looks like you've cancelled the checkout process. Don't worry, no charges were made to your account.
+        <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.paymentCancelled') }}</h1>
+        <p class="text-gray-400 mb-8">{{ $t('site.payment.paymentCancelledTips') }}</p>
+        <p
+          v-if="redirecting && externalCancelUrl"
+          class="text-xs text-amber-300/80 mb-6"
+        >
+          {{ $t('site.payment.redirectingToSource') }}
         </p>
 
         <div class="space-y-4">
@@ -22,10 +26,10 @@
             color="primary"
             size="lg"
             block
-            class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+            class="bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
             to="/"
           >
-            Continue Shopping
+            {{ $t('site.payment.continueShopping') }}
           </UButton>
 
           <UButton
@@ -35,7 +39,7 @@
             to="/user/orders"
             v-if="loggedIn"
           >
-            View My Orders
+            {{ $t('site.payment.viewMyOrders') }}
           </UButton>
         </div>
       </div>
@@ -44,11 +48,75 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useCustomerAuth } from '~/composables/useCustomerAuth'
+const { t } = useI18n()
 
-definePageMeta({
-  title: 'Payment Cancelled',
-})
+useHead(() => ({
+  title: t('site.payment.cancelledPageTitle'),
+  meta: [
+    {
+      name: 'description',
+      content: t('site.payment.cancelledPageDescription'),
+    },
+  ],
+}))
 
 const { loggedIn } = useCustomerAuth()
+const route = useRoute()
+const orderId = computed(() => String(route.query.orderId || '').trim())
+const externalCancelUrl = ref('')
+const externalOrderId = ref('')
+const redirecting = ref(false)
+let redirectTimer: any = null
+
+const buildExternalRedirectUrl = (targetUrl: string) => {
+  try {
+    const url = new URL(targetUrl)
+    if (orderId.value) {
+      url.searchParams.set('orderId', orderId.value)
+    }
+    if (externalOrderId.value) {
+      url.searchParams.set('externalOrderId', externalOrderId.value)
+    }
+    url.searchParams.set('status', 'cancelled')
+    return url.toString()
+  } catch {
+    return targetUrl
+  }
+}
+
+const scheduleExternalRedirect = (targetUrl: string) => {
+  if (!import.meta.client || !targetUrl || redirecting.value) return
+  redirecting.value = true
+  const resolvedUrl = buildExternalRedirectUrl(targetUrl)
+  redirectTimer = window.setTimeout(() => {
+    window.location.href = resolvedUrl
+  }, 1200)
+}
+
+const hydrateCheckoutBridge = async () => {
+  if (!orderId.value) return
+  try {
+    const detail: any = await $fetch(`/api/orders/detail?orderId=${encodeURIComponent(orderId.value)}`)
+    const bridge = detail?.metaData?.checkoutBridge
+    if (!bridge?.cancelUrl) return
+    externalCancelUrl.value = String(bridge.cancelUrl || '').trim()
+    externalOrderId.value = String(bridge.externalOrderId || '').trim()
+    scheduleExternalRedirect(externalCancelUrl.value)
+  } catch (error) {
+    console.error('Failed to load checkout bridge detail for cancel callback', error)
+  }
+}
+
+onMounted(() => {
+  void hydrateCheckoutBridge()
+})
+
+onUnmounted(() => {
+  if (redirectTimer) {
+    clearTimeout(redirectTimer)
+    redirectTimer = null
+  }
+})
 </script>

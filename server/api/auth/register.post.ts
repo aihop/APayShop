@@ -5,11 +5,16 @@ import { emitEvent } from "../../utils/eventActions"
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { sendEmail } from "../../utils/email"
 import { isMultiDeviceLoginDisabled, generateSessionId, EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
+import { bindInviteRelation, capturePromoTracking, ensurePromoMember, mergePromoTracking, readPromoTracking, requestPromoAgentJoin } from "../../promo/service"
 
 export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const { email, password, nickname, inviteCode } = body
+  const promoTracking = mergePromoTracking(
+    readPromoTracking(event),
+    await capturePromoTracking(event),
+  )
 
   if (!email || !password) {
     throw createError({
@@ -39,6 +44,25 @@ export default defineEventHandler(async (event) => {
   }).returning()
 
   const user = newUser[0]
+
+  await ensurePromoMember(user.id)
+
+  const resolvedInviteCode = String(inviteCode || promoTracking.inviteCode || promoTracking.promoCode || '').trim()
+  if (resolvedInviteCode) {
+    await bindInviteRelation({
+      inviteeUserId: user.id,
+      inviteCode: resolvedInviteCode,
+      source: 'register',
+    })
+  }
+
+  if (promoTracking.agentCode) {
+    await requestPromoAgentJoin({
+      userId: user.id,
+      agentCode: promoTracking.agentCode,
+      source: 'register',
+    })
+  }
 
   // Automatically link past guest orders that match this email
   await db.update(orders)

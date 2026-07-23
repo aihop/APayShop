@@ -12,6 +12,16 @@
 > `2026-06-28`: 新增数据自动清理机制。后台统计页支持手动清理 `visitor_events` 表原始事件数据（默认保留 90 天），`visitor_profiles` 访客画像永久保留，见 Section 6.K。
 > `2026-07-06`: 新增 Qingpu 主题私有 PostgreSQL 租户授权 Key 模块约定，主题专属表与直连 PG 逻辑不得并入全局 `server/db/schema.*`，见 Section 6.L。
 > `2026-07-19`: 新增 Qingpu 主题用户级通用设置桶约定，铺货工作台偏好统一收口到 `qingpu_settings.config` JSON，而非继续拆散列表或污染全局 `settings`，见 Section 6.L。
+> `2026-07-20`: 新增 Qingpu 铺货资源表软删统一约定，`products/workspaces/channel_drafts/image_assets` 一律使用 `deleted_at` 表达删除态；图片可恢复场景允许同时保留 `meta.softDeleted` 作为前端显示辅助，见 Section 6.L。
+> `2026-07-23`: 新增 Qingpu 资产媒体主类型约定，`qingpu_assets` 使用 `media_type(image|video)` 区分图片与视频；“我的创作”资产中心与预览统一基于该字段分流，见 Section 6.L。
+> `2026-07-23`: 新增 Qingpu 主题私有轻量状态表约定，`qingpu_kv` 用于 maintenance / lazy-cron 等少量全局幂等状态，不占用核心 `settings`，见 Section 6.L。
+> `2026-07-23`: 新增 Qingpu 通用 AI 工具任务约定，主题工具页统一复用 `qingpu_tasks`（新增 `tool_image_generate`）与 `qingpu_assets`，不再为 text-to-image 等工具单独拆任务账本，见 Section 6.L。
+> `2026-07-23`: 新增 Qingpu 1688 直抓原始协议统一约定，铺货服务端直抓统一保存 ainode crawl payload（`provider='ainode-crawl-1688'`），不得再把 ainode 返回重包成 OneBound 风格字段，见 Section 6.L。
+> `2026-07-23`: 新增本地支付宝插件模板，`payments/alipay/` 按官网收费场景实现为 `PC 网页(page) + 手机 H5(wap)` 的支付宝 RSA2 插件，见 Section 6.F。
+> `2026-07-22`: 新增 Promo 推广体系最小闭环建模，核心表包括 `promo_members / promo_invite_relations / promo_agent_relations / promo_agent_tiers / promo_order_attributions / promo_commissions`，用于承载会员邀请与总代理/子代理两级折扣体系，见 Section 3 与 Section 6.G。
+> `2026-07-22`: 新增 Promo 总代理招募待审核闭环，`promo_agent_relations.status` 现承载 `pending / active / disabled` 三态；通过总代理 `agent` 链接注册的用户先进入待审核列表，经总代理确认后再转正式子代理，见 Section 6.G。
+> `2026-07-22`: 修正 Promo tracking 捕获时机；前台首次访问带 `invite/promo/agent` 的页面即写入 `promo_tracking` Cookie，注册接口同时执行 `read + capture` 双保险，见 Section 6.G。
+> `2026-07-22`: 修正 Promo tracking 合并逻辑；API 请求若无 query，不得让空的 `capturePromoTracking()` 结果覆盖 Cookie 中已有来源码，统一通过非空优先 merge，见 Section 6.G。
 
 ## 1. 项目定位与核心架构
 
@@ -76,6 +86,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 6. **`payment_methods`**: 支付插件配置。
 7. **`posts`**: 博客与系统文章。
 8. **`logs`**: 系统操作与事件日志。
+9. **`promo_*`**: 推广与代理体系表。承载会员邀请关系、代理层级、折扣档位、订单归因快照与收益流水。
 
 ---
 
@@ -176,12 +187,19 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
   - `create.js` 会基于请求 `UA + IP` 在 `tradeType=auto` 时自动选择 `native` 或 `h5`。
   - `callback.js` 依赖 `platformPublicKey + apiV3Key` 验签并解密通知报文。
   - `config.json` 至少需要配置 `appid / mchid / serialNo / privateKey / apiV3Key / platformPublicKey`。
+- `payments/alipay/` 当前按官网收费场景实现为 `PC 网页(page) + 手机 H5(wap)` 的支付宝插件：
+  - `create.js` 会基于请求 `UA` 在 `tradeType=auto` 时自动选择 `page` 或 `wap`，并按 Alipay OpenAPI 规则生成带 RSA2 签名的收银台跳转链接。
+  - `callback.js` 依赖 `alipayPublicKey` 验签异步通知表单，并将 `TRADE_SUCCESS / TRADE_FINISHED / TRADE_CLOSED` 映射为系统支付状态。
+  - `config.json` 至少需要配置 `appid / privateKey / alipayPublicKey`，可选补充 `sellerId / gateway / timeoutExpress / timestampOffsetMinutes`。
 
 ### G. 数据库边界与 Schema 纯洁性 (禁止跨界定义模型)
 
 - **边界清晰**: `server/db/schema.ts` 和 `schema.pg.ts` 只能且必须只包含 APayShop 本项目直接使用的核心业务表。
 - **绝对禁止**: 严禁为了绕过 Drizzle ORM 的同步/迁移警告（如提示要删除其他外部系统创建的表或序列，例如 Go 后端的 `models`、`channels` 等），而将这些无关的外部模型强行加入到本项目的 Schema 文件中。
 - **解决方式**: 面对多服务共用同一数据库的场景，应通过 `drizzle.config.ts` 中的 `tablesFilter` 精准匹配本项目表，或在执行 push/migrate 时手动忽略外部库变更，始终维护本系统 Schema 的独立与纯洁。
+- **Promo 代理待审核状态约定**: `promo_agent_relations.status` 现统一表达三种状态：`pending`（通过总代理代理链接注册、待审核）、`active`（已确认加入正式团队）、`disabled`（已拒绝或已停用）。总代理用户中心的团队人数、团队报表、团队订单默认只统计 `active`；待加入列表单独读取 `pending`。
+- **Promo tracking 捕获约定**: `invite / promo / agent` 来源码不能只在下单接口中捕获。前台用户首次访问任意带相关 query 的页面时，就应通过 server middleware 写入 `promo_tracking` Cookie；注册接口需再次执行 `read + capture` 作为兜底，避免用户直接落到注册页或中途跳页后丢失归因来源。
+- **Promo tracking 合并约定**: 读取 Cookie 与读取当前请求 query 时，不能直接用对象展开让后者覆盖前者；因为注册/下单 API 往往没有携带页面 query。必须采用“非空值优先覆盖”的 merge 规则，避免空字符串把 Cookie 中已有的 `inviteCode / promoCode / agentCode` 冲掉。
 
 ### H. 测试策略
 
@@ -252,6 +270,11 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
   - 建表 SQL 放在 `app/themes/[theme]/database/*.sql`
 - **禁止事项**: 严禁把仅供主题使用的外部表、租户表、授权表强行加入 `server/db/schema.ts`、`schema.pg.ts`、`schema.sqlite.ts`、`schema.mysql.ts`。
 - **用户级主题配置建议**: 对于 Qingpu 铺货工作台这类“按登录用户保存偏好”的主题私有设置，优先使用 `qingpu_settings` 这类用户级 JSON 配置桶（`user_id + config jsonb`），再按 `listing.modelSettings` 等命名空间扩展，避免为每一类偏好继续拆新的细粒度配置表。
+- **主题级轻量状态建议**: 对于 Qingpu 维护任务、lazy-cron 抢占、水位等“非用户维度、少量键值”的主题私有状态，优先使用 `qingpu_kv(key primary key, value jsonb)` 这类轻量 KV 表；不要继续挤占核心 `settings`，也不要为单个状态再拆专表。
+- **资源表软删统一**: Qingpu 铺货私有资源表 `qingpu_listing_products`、`qingpu_listing_workspaces`、`qingpu_listing_channel_drafts`、`qingpu_assets` 删除语义统一收口到 `deleted_at`；查询默认过滤 `deleted_at is null`，恢复/重建/upsert 必须显式清回 `deleted_at = null`。若图片前端需要“显示已软删 / 恢复”体验，可额外保留 `meta.softDeleted` 作为 UI 辅助标记，但数据库权威删除态仍以 `deleted_at` 为准。
+- **资产媒体类型约定**: `qingpu_assets` 必须显式保存 `media_type`（当前白名单 `image / video`），前后端都不要再依赖 `kind`、`mode` 或 URL 后缀去临时猜测素材类型；新写入链路需同时落 `media_type`，历史数据可按 `meta/url/kind/mode` 幂等回填。
+- **通用工具任务约定**: Qingpu 主题下 text-to-image / image-to-image / text-to-video 这类非 listing 专属 AI 工具，统一复用 `qingpu_tasks` 作为异步任务账本；任务类型按能力命名（如 `tool_image_generate`），不要继续创建 `qingpu_listing_tasks` 或工具专属任务表。工具产物统一落 `qingpu_assets`，并通过 `meta.source / meta.toolLabel / meta.prompt` 与“我的创作”联通。
+- **1688 直抓原始协议约定**: Qingpu 铺货服务端直抓 1688 商品时，统一以 ainode `/ai/crawl` 返回 payload 作为 `canonical.extra.raw.payload` 的权威原始档，`canonical.extra.raw.provider` 固定标记为 `ainode-crawl-1688`；不得再在业务层把 ainode 返回重包成 OneBound 风格 `props_list / prop_imgs / skus.sku` 兼容结构。规格值图、SKU 维度与 fallback 聚合应直接基于 ainode raw 的 `specs / skus / detail_images / raw.skuList` 派生（`raw.skuList` 是每 SKU 包装尺寸/毛重的权威来源——`skus[].packaging` 实测常年为空，归一逻辑按 `spec_combination` 关联回填，唯一产线归口在引擎 `normalizeAinodeCrawl1688Product`，业务层不得再手写这层解析，见 qingpu-ai@332a7d9c / vendor v0.7.21）。
 - **密钥存储规则**: 主题私有授权 Key 表只保存 `api_key_hash` 与前缀/预览信息，原始明文 Key 仅允许在“创建 / 轮换”接口返回一次，不得持久化入库。
 - **订阅关联建议**: 主题私有授权 Key 可以保存 APayShop 核心订阅 `subscriptionId`，并额外保存 `subscriptionSnapshot` 快照，避免后续套餐名称、金额或周期变更时丢失签发时上下文。
 

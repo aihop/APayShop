@@ -329,3 +329,91 @@ export const notifications = pgTable('notifications', {
   isRead: boolean('is_read').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
+
+export const promoAgentTiers = pgTable('promo_agent_tiers', {
+  id: serial('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  roleScope: text('role_scope').notNull().default('agent'),
+  level: integer('level').notNull().default(1),
+  discountRate: real('discount_rate').notNull().default(1),
+  salesThreshold: real('sales_threshold').notNull().default(0),
+  isFixed: boolean('is_fixed').notNull().default(false),
+  isActive: boolean('is_active').notNull().default(true),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+export const promoMembers = pgTable('promo_members', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id).unique(),
+  role: text('role').notNull().default('member'),
+  status: text('status').notNull().default('active'),
+  promoCode: text('promo_code').notNull().unique(),
+  inviteCode: text('invite_code').notNull().unique(),
+  agentCode: text('agent_code').unique(),
+  currentAgentTierId: integer('current_agent_tier_id').references(() => promoAgentTiers.id),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const promoInviteRelations = pgTable('promo_invite_relations', {
+  id: serial('id').primaryKey(),
+  inviteeUserId: integer('invitee_user_id').notNull().references(() => users.id).unique(),
+  inviterUserId: integer('inviter_user_id').notNull().references(() => users.id),
+  source: text('source').notNull().default('register'),
+  codeSnapshot: text('code_snapshot'),
+  boundAt: timestamp('bound_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const promoAgentRelations = pgTable('promo_agent_relations', {
+  id: serial('id').primaryKey(),
+  agentUserId: integer('agent_user_id').notNull().references(() => users.id).unique(),
+  parentAgentUserId: integer('parent_agent_user_id').references(() => users.id),
+  masterAgentUserId: integer('master_agent_user_id').references(() => users.id),
+  depth: integer('depth').notNull().default(1),
+  status: text('status').notNull().default('active'),
+  boundAt: timestamp('bound_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const promoOrderAttributions = pgTable('promo_order_attributions', {
+  id: serial('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id).unique(),
+  buyerUserId: integer('buyer_user_id').references(() => users.id),
+  buyerPromoMemberId: integer('buyer_promo_member_id').references(() => promoMembers.id),
+  inviteUserId: integer('invite_user_id').references(() => users.id),
+  agentUserId: integer('agent_user_id').references(() => users.id),
+  parentAgentUserId: integer('parent_agent_user_id').references(() => users.id),
+  masterAgentUserId: integer('master_agent_user_id').references(() => users.id),
+  agentTierIdSnapshot: integer('agent_tier_id_snapshot'),
+  agentTierNameSnapshot: text('agent_tier_name_snapshot'),
+  discountRateSnapshot: real('discount_rate_snapshot'),
+  sourceType: text('source_type').notNull().default('direct'),
+  metaData: jsonb('meta_data'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const promoCommissions = pgTable('promo_commissions', {
+  id: serial('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  ownerUserId: integer('owner_user_id').notNull().references(() => users.id),
+  ownerPromoMemberId: integer('owner_promo_member_id').references(() => promoMembers.id),
+  type: text('type').notNull(),
+  sourceType: text('source_type').notNull().default('direct'),
+  amount: real('amount').notNull(),
+  rate: real('rate'),
+  status: text('status').notNull().default('pending'),
+  remark: text('remark'),
+  metaData: jsonb('meta_data'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  // 同一订单同一佣金类型只允许入账一次:结算是"先查后插",并发回调靠这条
+  // 数据库级约束兜底防重复佣金(应用层冲突时忽略即可)
+  orderTypeIdx: uniqueIndex('promo_commissions_order_type_idx').on(table.orderId, table.type),
+}))

@@ -11,7 +11,7 @@
       <UButton
         color="neutral"
         variant="ghost"
-        class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-all duration-300 rounded-lg px-3 py-2 flex items-center gap-2 border border-transparent hover:border-gray-300 dark:hover:border-gray-700/50"
+        class="flex items-center gap-2 rounded-xl px-3 py-2 text-gray-500 transition-all duration-300 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/40 dark:hover:text-white"
       >
         <UIcon
           name="ph:translate-duotone"

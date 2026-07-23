@@ -50,6 +50,13 @@
       "when": 1782730510000,
       "tag": "0006_add_users_email_verify",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784710500000,
+      "tag": "0007_add_promo",
+      "breakpoints": true
     }
   ]
 }

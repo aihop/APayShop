@@ -1,10 +1,40 @@
 import { notifications } from '../../../db/schema'
-import { eq, desc, count, and, or, isNull } from 'drizzle-orm'
+import { eq, desc, count, and } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
+
+const normalizeNotificationData = (value: unknown) => {
+  if (!value) return {}
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return {}
+    }
+  }
+  if (typeof value === 'object') {
+    return value as Record<string, any>
+  }
+  return {}
+}
+
+const resolveNotificationTargetPath = (data: Record<string, any>) => {
+  if (typeof data.targetPath === 'string' && data.targetPath.trim()) {
+    return data.targetPath.trim()
+  }
+
+  const orderId = typeof data.orderId === 'string' ? data.orderId.trim() : ''
+  if (!orderId) return null
+
+  if (data.payStatus === 'pending') {
+    return `/payment/${orderId}`
+  }
+
+  return `/user/orders/${orderId}`
+}
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const userId = session.user?.id as number | undefined
+  const userId = (session.user as any)?.id as number | undefined
 
   const query = getQuery(event)
   const page = parseInt(query.page as string) || 1
@@ -42,10 +72,16 @@ export default defineEventHandler(async (event) => {
     .offset(offset)
 
   // Normalize createdAt to ISO string
-  const data = rows.map((row) => ({
-    ...row,
-    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
-  }))
+  const data = rows.map((row: any) => {
+    const normalizedData = normalizeNotificationData(row.data)
+
+    return {
+      ...row,
+      data: normalizedData,
+      targetPath: resolveNotificationTargetPath(normalizedData),
+      createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+    }
+  })
 
   return { data, total, page, pageSize }
 })

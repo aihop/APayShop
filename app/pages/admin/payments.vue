@@ -28,6 +28,27 @@
           :data="methods || []"
           :loading="pending"
         >
+          <template #name-cell="{ row }">
+            <div class="flex items-center gap-3">
+              <img
+                v-if="row.original.iconUrl"
+                :src="row.original.iconUrl"
+                :alt="row.original.name"
+                class="w-7 h-7 rounded-md border border-gray-200 dark:border-gray-800 bg-white object-contain p-1"
+              >
+              <div
+                v-else
+                class="w-7 h-7 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-500 dark:text-gray-400"
+              >
+                <UIcon name="ph:credit-card-bold" class="w-4 h-4" />
+              </div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ row.original.name }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">{{ row.original.code }}</div>
+              </div>
+            </div>
+          </template>
+
           <template #isActive-cell="{ row }">
             <div class="flex items-center gap-2">
               <USwitch
@@ -351,7 +372,6 @@ const tabItems = computed(() => [
 
 const columns = [
   { accessorKey: 'name', header: t('admin.payments.table.name') },
-  { accessorKey: 'code', header: t('admin.payments.table.code') },
   { accessorKey: 'isActive', header: t('admin.payments.table.status') },
   { accessorKey: 'actions', header: t('admin.payments.table.actions') },
 ]

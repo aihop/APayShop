@@ -155,12 +155,20 @@ export async function sendEmail(options: {
       }
     }
 
-    // Locale-aware template lookup: try locale-specific code first, fallback to generic
-    const localeCode = options.locale ? `${options.templateCode}-${options.locale}` : null
+    // Locale-aware template lookup:
+    // 1) requested locale
+    // 2) Chinese default pack
+    // 3) generic code
+    const normalizedLocale = options.locale?.trim().toLowerCase() || ''
+    const localeCode = normalizedLocale ? `${options.templateCode}-${normalizedLocale}` : null
+    const zhLocaleCode = `${options.templateCode}-zh`
     let tpl: EmailTemplate | undefined
 
     if (localeCode) {
       tpl = templates.find((t) => t.code === localeCode)
+    }
+    if (!tpl && localeCode !== zhLocaleCode) {
+      tpl = templates.find((t) => t.code === zhLocaleCode)
     }
     if (!tpl) {
       tpl = templates.find((t) => t.code === options.templateCode)

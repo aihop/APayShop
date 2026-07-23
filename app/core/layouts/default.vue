@@ -329,6 +329,19 @@
             <div class="space-y-1 mt-4">
               <h3 :class="adminSectionTitleClass">{{ $t('admin.nav.configs') }}</h3>
               <NuxtLink
+                to="/admin/promo"
+                :class="adminMobileNavItemClass"
+                @click="isMobileMenuOpen = false"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:megaphone-simple"
+                    class="w-5 h-5"
+                  />
+                  {{ $t('admin.nav.promo') }}
+                </div>
+              </NuxtLink>
+              <NuxtLink
                 to="/admin/payments"
                 :class="adminMobileNavItemClass"
                 @click="isMobileMenuOpen = false"
@@ -589,6 +602,19 @@
           <div>
             <h3 :class="adminSectionTitleClass">{{ $t('admin.nav.configs') }}</h3>
             <nav class="space-y-1">
+              <NuxtLink
+                to="/admin/promo"
+                :class="adminDesktopNavItemClass"
+                :active-class="adminNavActiveClass"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon
+                    name="ph:megaphone-simple"
+                    class="w-4 h-4"
+                  />
+                  {{ $t('admin.nav.promo') }}
+                </div>
+              </NuxtLink>
               <NuxtLink
                 to="/admin/payments"
                 :class="adminDesktopNavItemClass"

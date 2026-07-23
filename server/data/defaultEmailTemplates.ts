@@ -237,6 +237,36 @@ export const defaultEmailTemplates: EmailTemplatePreset[] = [
     `),
   },
 
+  {
+    code: 'order_pending-en',
+    name: 'Pending Payment (English)',
+    subject: 'Complete Your Payment - Order #{{order_id}}',
+    variables: ['nickname', 'order_id', 'product_name', 'amount', 'site_name', 'site_url', 'payment_link'],
+    html: makeTableWrapper(`
+      ${makeHeader('Finish Your Payment')}
+      <tr>
+        <td style="padding:36px 36px 28px">
+          <p style="margin:0 0 16px;font-size:16px;color:${brand.textPrimary};line-height:1.7">Hi <strong>{{nickname}}</strong>,</p>
+          <p style="margin:0 0 20px;font-size:15px;color:${brand.textSecondary};line-height:1.7">Your order has been created and is waiting for payment. You can reopen the payment page anytime from the link below.</p>
+          ${makeInfoCard(`
+            ${makeInfoRow('Order #', '{{order_id}}')}
+            ${makeInfoRow('Product', '{{product_name}}')}
+            ${makeInfoRow('Amount Due', '{{amount}}', true)}
+          `)}
+          ${makeButton('{{payment_link}}', 'Continue To Payment', 'warning')}
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;background:rgba(139,92,246,0.08);border-radius:10px;border:1px solid rgba(139,92,246,0.2)">
+            <tr>
+              <td style="padding:14px 18px;font-size:13px;color:${brand.textSecondary};line-height:1.7">
+                If you already completed payment in another tab or device, you can ignore this reminder.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      ${makeFooter('{{site_name}}')}
+    `),
+  },
+
   // --- Subscription Renewal ---
   {
     code: 'subscription_renewal-en',
@@ -381,6 +411,36 @@ export const defaultEmailTemplates: EmailTemplatePreset[] = [
             ${makeInfoRow('支付金额', '{{amount}}', true)}
           `)}
           ${makeButton('{{site_url}}/user/orders/{{order_id}}', '查看订单详情', 'success')}
+        </td>
+      </tr>
+      ${makeFooter('{{site_name}}')}
+    `),
+  },
+
+  {
+    code: 'order_pending-zh',
+    name: '待支付提醒 (中文)',
+    subject: '请完成支付 - 订单 #{{order_id}}',
+    variables: ['nickname', 'order_id', 'product_name', 'amount', 'site_name', 'site_url', 'payment_link'],
+    html: makeTableWrapper(`
+      ${makeHeader('继续完成支付')}
+      <tr>
+        <td style="padding:36px 36px 28px">
+          <p style="margin:0 0 16px;font-size:16px;color:${brand.textPrimary};line-height:1.8">你好，<strong>{{nickname}}</strong>，</p>
+          <p style="margin:0 0 20px;font-size:15px;color:${brand.textSecondary};line-height:1.8">您的订单已经创建，当前仍在等待支付。您可以通过下方链接随时回到支付页继续完成付款。</p>
+          ${makeInfoCard(`
+            ${makeInfoRow('订单号', '{{order_id}}')}
+            ${makeInfoRow('商品', '{{product_name}}')}
+            ${makeInfoRow('待支付金额', '{{amount}}', true)}
+          `)}
+          ${makeButton('{{payment_link}}', '继续支付', 'warning')}
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;background:rgba(139,92,246,0.08);border-radius:10px;border:1px solid rgba(139,92,246,0.2)">
+            <tr>
+              <td style="padding:14px 18px;font-size:13px;color:${brand.textSecondary};line-height:1.8">
+                如果您已经在其他页面或设备完成支付，可以忽略这封提醒邮件。
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
       ${makeFooter('{{site_name}}')}

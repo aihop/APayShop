@@ -8,6 +8,7 @@ const DEFAULT_ALLOWED_HOSTS = [
   'taobaocdn.com',
   'pinduoduo.com',
   'yangkeduo.com',
+  'aliyuncs.com',
 ] as const
 
 const REFERER_RULES = [

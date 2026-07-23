@@ -4,41 +4,13 @@
     maxWidth="sm:max-w-6xl"
     :title="form.id ? $t('admin.products.edit') : $t('admin.products.add')"
   >
-    <!-- Language Tabs -->
-    <div
-      v-if="supportedLocales.length > 1"
-      class="border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-[#121214] mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6"
-    >
-      <nav class="flex space-x-2 overflow-x-auto hide-scrollbar pb-2">
-        <button
-          v-for="locale in supportedLocales"
-          :key="locale"
-          type="button"
-          @click="() => {
-            if (locale !== defaultLocale && !form.name) return;
-            currentTabLocale = locale;
-          }"
-          :class="[
-            'flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
-            currentTabLocale === locale
-              ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-              : locale !== defaultLocale && !form.name
-                ? 'text-gray-600 cursor-not-allowed border border-transparent'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
-          ]"
-          :disabled="locale !== defaultLocale && !form.name"
-        >
-          <UIcon
-            :name="locale === defaultLocale ? 'ph:star-fill' : 'ph:translate'"
-            :class="[
-              'w-4 h-4',
-              locale === defaultLocale ? 'text-yellow-500' : ''
-            ]"
-          />
-          {{ locale.toUpperCase() }}
-        </button>
-      </nav>
-    </div>
+    <ProductLocaleTabs
+      :locales="supportedLocales"
+      :default-locale="defaultLocale"
+      :current-locale="currentTabLocale"
+      :has-default-name="Boolean(form.name)"
+      @select="currentTabLocale = $event"
+    />
 
     <form
       @submit.prevent="onSubmit"
@@ -174,188 +146,28 @@
         </div>
       </div>
 
-      <!-- Gateway Plan IDs (仅限默认语言) -->
-      <div
-        v-if="form.type === 'subscription' && currentTabLocale === defaultLocale"
-        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c] mt-4"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
-            <UIcon
-              name="ph:plugs-connected"
-              class="text-green-400"
-            />
-            {{ $t('admin.products.form.gateway_plan_ids') }}
-          </h3>
-        </div>
-        <p class="text-xs text-gray-400 mb-4">{{ $t('admin.products.form.gateway_description') }}</p>
-        <div class="space-y-3">
-          <div
-            v-for="(item, index) in planIdsList"
-            :key="index"
-            class="flex items-center gap-3"
-          >
-            <USelect
-              v-model="item.gateway"
-              :items="availableGateways"
-              :placeholder="$t('admin.products.form.select_gateway')"
-              class="w-1/3"
-            />
-            <UInput
-              v-model="item.id"
-              :placeholder="$t('admin.products.form.plan_id_placeholder')"
-              class="flex-1 text-gray-900 dark:text-white"
-            />
-            <UButton
-              color="error"
-              variant="ghost"
-              icon="ph:trash"
-              @click="removePlanId(index)"
-            />
-          </div>
-          <UButton
-            color="neutral"
-            variant="outline"
-            icon="ph:plus"
-            size="sm"
-            class="w-full border-dashed"
-            @click="addPlanId"
-          >
-            {{ $t('admin.products.form.add_gateway_mapping') }}
-          </UButton>
-        </div>
-      </div>
+      <ProductGatewayPlanIdsSection
+        :visible="form.type === 'subscription' && currentTabLocale === defaultLocale"
+        :items="planIdsList"
+        :available-gateways="availableGateways"
+        @add="addPlanId"
+        @remove="removePlanId"
+      />
 
-      <div
-        v-if="form.type === 'service'"
-        class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c]"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
-            <UIcon
-              name="ph:list-dashes"
-              class="text-blue-400"
-            />
-            {{ $t('admin.products.form.service_settings') }}{{ currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '' }}
-          </h3>
-          <UButton
-            v-if="currentTabLocale === defaultLocale"
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            :icon="isServiceSchemaVisualMode ? 'ph:code' : 'ph:eye'"
-            @click="toggleServiceSchemaMode"
-          >
-            {{ isServiceSchemaVisualMode ? $t('admin.products.form.edit_raw_json') : $t('admin.products.form.visual_builder') }}
-          </UButton>
-        </div>
-
-        <!-- 默认语言的完整表单设计器 -->
-        <div
-          v-if="currentTabLocale === defaultLocale"
-          class="grid grid-cols-1 gap-4"
-        >
-          <UFormField :label="$t('admin.products.form.form_schema')">
-            <div class="w-full space-y-3">
-              <!-- Visual Builder Mode -->
-              <template v-if="isServiceSchemaVisualMode">
-                <draggable
-                  v-if="serviceFormSchemaList.length > 0"
-                  v-model="serviceFormSchemaList"
-                  item-key="id"
-                  handle=".drag-handle"
-                  ghost-class="opacity-50 bg-gray-200 dark:bg-gray-800"
-                  animation="200"
-                  class="space-y-2"
-                >
-                  <template #item="{ element, index }">
-                    <div class="flex items-center gap-3 p-3 bg-gray-100 dark:bg-[#1e1e20] border border-gray-200 dark:border-gray-800 rounded-lg group">
-                      <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300">
-                        <UIcon
-                          name="ph:dots-six-vertical"
-                          class="w-5 h-5"
-                        />
-                      </div>
-
-                      <div class="w-40">
-                        <UInput
-                          v-model="element.name"
-                          :placeholder="$t('admin.products.form.field_name_placeholder')"
-                          class="text-gray-900 dark:text-white"
-                        />
-                      </div>
-
-                      <UInput
-                        v-model="element.label"
-                        :placeholder="$t('admin.products.form.field_label_placeholder')"
-                        class="text-gray-900 dark:text-white flex-1"
-                      />
-
-                      <div class="w-32">
-                        <USelect
-                          v-model="element.type"
-                          :items="schemaFieldTypeOptions"
-                          option-attribute="label"
-                          value-attribute="value"
-                          class="w-full"
-                        />
-                      </div>
-
-                      <div class="flex items-center gap-3 ml-2">
-                        <UCheckbox
-                          v-model="element.required"
-                          :label="$t('admin.products.form.field_required')"
-                          :ui="{ label: 'text-sm' }"
-                        />
-
-                        <UButton
-                          color="error"
-                          variant="ghost"
-                          icon="ph:trash"
-                          size="sm"
-                          class="opacity-0 group-hover:opacity-100 transition-opacity"
-                          @click="removeServiceSchemaField(index)"
-                        />
-                      </div>
-                    </div>
-                  </template>
-                </draggable>
-
-                <div
-                  v-else
-                  class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-300 dark:border-gray-800 rounded-lg text-center"
-                >
-                  {{ $t('admin.products.form.no_fields') }}
-                </div>
-
-                <UButton
-                  color="neutral"
-                  variant="outline"
-                  icon="ph:plus"
-                  size="sm"
-                  class="w-full justify-center border-dashed"
-                  @click="addServiceSchemaField"
-                >
-                  {{ $t('admin.products.form.add_field') }}
-                </UButton>
-              </template>
-
-              <!-- Raw JSON Mode -->
-              <template v-else>
-                <UTextarea
-                  v-model="serviceFormSchemaStr"
-                  :rows="10"
-                  class="font-mono text-sm text-gray-900 dark:text-white w-full"
-                  :placeholder="$t('admin.products.form.schema_json_placeholder')"
-                />
-                <p class="text-xs text-gray-500 mt-2">
-                  {{ $t('admin.products.form.schema_json_help') }}
-                </p>
-              </template>
-            </div>
-          </UFormField>
-        </div>
-      </div>
+      <ProductServiceSchemaSection
+        :visible="form.type === 'service'"
+        :is-default-locale="currentTabLocale === defaultLocale"
+        :locale-suffix="currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : ''"
+        :is-visual-mode="isServiceSchemaVisualMode"
+        :schema-json="serviceFormSchemaStr"
+        :schema-list="serviceFormSchemaList"
+        :schema-field-type-options="schemaFieldTypeOptions"
+        @toggle-mode="toggleServiceSchemaMode"
+        @update:schema-json="serviceFormSchemaStr = $event"
+        @update:schema-list="serviceFormSchemaList = $event"
+        @add-field="addServiceSchemaField"
+        @remove-field="removeServiceSchemaField"
+      />
 
       <div
         v-if="form.type === 'file'"
@@ -423,129 +235,19 @@
         </div>
       </div>
 
-      <div
-        v-if="(form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan"
-        class="p-4 border border-purple-500/30 rounded-lg bg-purple-50/80 dark:bg-[#2a1a3a]/30 mt-4"
+      <ProductPricingFeaturesSection
+        :visible="(form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan"
+        :locale="currentTabLocale"
+        :is-visual-mode="isFeaturesVisualMode"
+        :features-json="currentFeaturesJson"
+        :features-list="currentFeaturesList"
+        @toggle-mode="toggleFeaturesMode"
+        @update:features-json="currentFeaturesJson = $event"
+        @update:features-list="currentFeaturesList = $event"
+        @add-feature="addFeature"
+        @remove-feature="removeFeature"
       >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
-              <UIcon
-                name="ph:star-fill"
-                class="text-purple-400"
-              />
-              {{ $t('admin.products.form.features_title') }}
-          </h3>
-          <UButton
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            :icon="isFeaturesVisualMode ? 'ph:code' : 'ph:eye'"
-            @click="toggleFeaturesMode"
-          >
-            {{ isFeaturesVisualMode ? $t('admin.products.form.edit_raw_json') : $t('admin.products.form.visual_builder') }}
-          </UButton>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4">
-          <UFormField :label="$t('admin.products.form.features_label', { locale: currentTabLocale })">
-            <div class="w-full space-y-3">
-              <!-- Visual Builder Mode -->
-              <template v-if="isFeaturesVisualMode">
-                <draggable
-                  v-if="currentFeaturesList.length > 0"
-                  v-model="currentFeaturesList"
-                  item-key="id"
-                  handle=".drag-handle"
-                  ghost-class="opacity-50 bg-gray-200 dark:bg-gray-800"
-                  animation="200"
-                  class="space-y-2"
-                >
-                  <template #item="{ element, index }">
-                    <div class="flex items-center gap-3 p-3 bg-gray-100 dark:bg-[#1e1e20] border border-gray-200 dark:border-gray-800 rounded-lg group">
-                      <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300">
-                        <UIcon
-                          name="ph:dots-six-vertical"
-                          class="w-5 h-5"
-                        />
-                      </div>
-
-                      <div class="w-48">
-                        <UInput
-                          v-model="element.icon"
-                          :placeholder="$t('admin.products.form.feature_icon_placeholder')"
-                          class="text-gray-900 dark:text-white"
-                        >
-                          <template #leading>
-                            <UIcon
-                              :name="element.icon || 'ph:check'"
-                              class="w-4 h-4 text-gray-400"
-                            />
-                          </template>
-                        </UInput>
-                      </div>
-
-                      <UInput
-                        v-model="element.name"
-                        :placeholder="$t('admin.products.form.feature_desc_placeholder')"
-                        class="text-gray-900 dark:text-white flex-1"
-                      />
-
-                      <div class="flex items-center gap-3 ml-2">
-                        <UCheckbox
-                          v-model="element.included"
-                          :label="$t('admin.products.form.feature_included')"
-                          :ui="{ label: 'text-sm' }"
-                        />
-
-                        <UButton
-                          color="error"
-                          variant="ghost"
-                          icon="ph:trash"
-                          size="sm"
-                          class="opacity-0 group-hover:opacity-100 transition-opacity"
-                          @click="removeFeature(index)"
-                        />
-                      </div>
-                    </div>
-                  </template>
-                </draggable>
-
-                <div
-                  v-else
-                  class="text-sm text-gray-500 italic p-4 border border-dashed border-gray-300 dark:border-gray-800 rounded-lg text-center"
-                >
-                  {{ $t('admin.products.form.no_features') }}
-                </div>
-
-                <UButton
-                  color="neutral"
-                  variant="outline"
-                  icon="ph:plus"
-                  size="sm"
-                  class="w-full justify-center border-dashed"
-                  @click="addFeature"
-                >
-                  {{ $t('admin.products.form.add_feature') }}
-                </UButton>
-              </template>
-
-              <!-- Raw JSON Mode -->
-              <template v-else>
-                <UTextarea
-                  v-model="currentFeaturesJson"
-                  :rows="10"
-                  class="font-mono text-sm text-gray-900 dark:text-white w-full"
-                  :placeholder="$t('admin.products.form.features_json_placeholder')"
-                />
-                <p class="text-xs text-gray-500 mt-2">
-                  {{ $t('admin.products.form.features_json_help') }}
-                </p>
-              </template>
-            </div>
-          </UFormField>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mt-4">
+        <template #badge-field>
           <UFormField :label="$t('admin.products.form.plan_badge', { locale: currentTabLocale })">
             <UInput
               v-if="currentTabLocale === defaultLocale"
@@ -560,9 +262,11 @@
               :placeholder="$t('admin.products.form.badge_translated', { locale: currentTabLocale })"
             />
           </UFormField>
+        </template>
+        <template #color-field>
           <UFormField
-            :label="$t('admin.products.form.highlight_color')"
             v-if="currentTabLocale === defaultLocale"
+            :label="$t('admin.products.form.highlight_color')"
           >
             <USelect
               v-model="form.metaData.plan_color"
@@ -572,83 +276,21 @@
               value-attribute="value"
             />
           </UFormField>
-        </div>
-      </div>
+        </template>
+      </ProductPricingFeaturesSection>
 
-      <UFormField
-        :label="$t('admin.products.form.images')"
-        v-if="currentTabLocale === defaultLocale"
-      >
-        <div class="flex flex-col gap-4 w-full">
-          <div class="flex gap-2 w-full">
-            <UInput
-              v-model="newImageUrl"
-              class="text-gray-900 dark:text-white flex-1"
-              :placeholder="$t('admin.products.form.image_url_placeholder')"
-              @keyup.enter.prevent="addImageUrl"
-            />
-            <UButton
-              color="primary"
-              variant="outline"
-              @click="addImageUrl"
-              :disabled="!newImageUrl"
-            >
-              {{ $t('admin.products.form.add_url') }}
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="ph:upload-simple"
-              :loading="isUploading"
-              @click="fileInput?.click()"
-            >
-              {{ $t('admin.products.form.upload') }}
-            </UButton>
-            <input
-              type="file"
-              ref="fileInput"
-              class="hidden"
-              multiple
-              accept="image/png, image/jpeg, image/webp, image/gif"
-              @change="onFileUpload"
-            />
-          </div>
-
-          <draggable
-            v-if="form.imageUrls && form.imageUrls.length > 0"
-            v-model="form.imageUrls"
-            item-key="url"
-            class="flex flex-wrap gap-4 mt-2"
-            ghost-class="opacity-50"
-            animation="200"
-          >
-            <template #item="{ element, index }">
-              <div class="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group cursor-move">
-                <img
-                  :src="element"
-                  class="w-full h-full object-cover"
-                />
-                <div class="absolute inset-0 bg-gray-900/50 dark:bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <UButton
-                    color="primary"
-                    variant="ghost"
-                    icon="ph:eye"
-                    size="sm"
-                    @click.stop="previewImage(element)"
-                  />
-                  <UButton
-                    color="error"
-                    variant="ghost"
-                    icon="ph:trash"
-                    size="sm"
-                    @click.stop="removeImage(index)"
-                  />
-                </div>
-              </div>
-            </template>
-          </draggable>
-        </div>
-      </UFormField>
+      <ProductImagesField
+        :visible="currentTabLocale === defaultLocale"
+        :images="form.imageUrls"
+        :new-image-url="newImageUrl"
+        :is-uploading="isUploading"
+        @update:new-image-url="newImageUrl = $event"
+        @update:images="form.imageUrls = $event"
+        @add-url="addImageUrl"
+        @upload="onFileUpload"
+        @preview="previewImage"
+        @remove="removeImage"
+      />
 
       <UFormField :label="$t('admin.products.form.description') + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')">
         <UTextarea
@@ -725,7 +367,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import draggable from 'vuedraggable'
 import { useAdminProductForm } from '~/composables/useAdminProductForm'
 
 const props = defineProps<{
@@ -812,7 +453,6 @@ const highlightColorOptions = computed(() => [
   { label: t('admin.products.form.color_emerald'), value: 'emerald' },
 ])
 
-const fileInput = ref<HTMLInputElement | null>(null)
 const isPreviewModalOpen = ref(false)
 const previewImageUrl = ref('')
 
@@ -821,8 +461,8 @@ const previewImage = (url: string) => {
   isPreviewModalOpen.value = true
 }
 
-const onFileUpload = (e: Event) => {
-  handleFileUpload(e, fileInput.value)
+const onFileUpload = (e: Event, input: HTMLInputElement | null) => {
+  handleFileUpload(e, input)
 }
 
 const onSubmit = async () => {

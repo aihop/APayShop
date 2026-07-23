@@ -22,7 +22,7 @@ export default defineNuxtPlugin({
 
     // .client.ts 插件本就只在客户端运行,localStorage 可直接访问
     const saved = localStorage.getItem('locale')
-    if (saved === 'en' || saved === 'zh') {
+    if (saved === 'en' || saved === 'zh' || saved === 'ru') {
       if (saved !== unref(i18n.locale)) {
         await i18n.setLocale(saved)
       }

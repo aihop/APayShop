@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 // ==========================================
@@ -324,3 +324,90 @@ export const notifications = sqliteTable('notifications', {
   isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
+
+export const promoMembers = sqliteTable('promo_members', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id).unique(),
+  role: text('role').notNull().default('member'), // member | agent | master_agent
+  status: text('status').notNull().default('active'), // active | disabled
+  promoCode: text('promo_code').notNull().unique(),
+  inviteCode: text('invite_code').notNull().unique(),
+  agentCode: text('agent_code').unique(),
+  currentAgentTierId: integer('current_agent_tier_id').references(() => promoAgentTiers.id),
+  joinedAt: integer('joined_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const promoInviteRelations = sqliteTable('promo_invite_relations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  inviteeUserId: integer('invitee_user_id').notNull().references(() => users.id).unique(),
+  inviterUserId: integer('inviter_user_id').notNull().references(() => users.id),
+  source: text('source').notNull().default('register'), // register | bind | manual
+  codeSnapshot: text('code_snapshot'),
+  boundAt: integer('bound_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const promoAgentTiers = sqliteTable('promo_agent_tiers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  roleScope: text('role_scope').notNull().default('agent'), // agent | master_agent
+  level: integer('level').notNull().default(1),
+  discountRate: real('discount_rate').notNull().default(1),
+  salesThreshold: real('sales_threshold').notNull().default(0),
+  isFixed: integer('is_fixed', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  description: text('description'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const promoAgentRelations = sqliteTable('promo_agent_relations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  agentUserId: integer('agent_user_id').notNull().references(() => users.id).unique(),
+  parentAgentUserId: integer('parent_agent_user_id').references(() => users.id),
+  masterAgentUserId: integer('master_agent_user_id').references(() => users.id),
+  depth: integer('depth').notNull().default(1),
+  status: text('status').notNull().default('active'),
+  boundAt: integer('bound_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const promoOrderAttributions = sqliteTable('promo_order_attributions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  orderId: text('order_id').notNull().references(() => orders.id).unique(),
+  buyerUserId: integer('buyer_user_id').references(() => users.id),
+  buyerPromoMemberId: integer('buyer_promo_member_id').references(() => promoMembers.id),
+  inviteUserId: integer('invite_user_id').references(() => users.id),
+  agentUserId: integer('agent_user_id').references(() => users.id),
+  parentAgentUserId: integer('parent_agent_user_id').references(() => users.id),
+  masterAgentUserId: integer('master_agent_user_id').references(() => users.id),
+  agentTierIdSnapshot: integer('agent_tier_id_snapshot'),
+  agentTierNameSnapshot: text('agent_tier_name_snapshot'),
+  discountRateSnapshot: real('discount_rate_snapshot'),
+  sourceType: text('source_type').notNull().default('direct'), // direct | invite | agent | mixed
+  metaData: text('meta_data', { mode: 'json' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const promoCommissions = sqliteTable('promo_commissions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  orderId: text('order_id').notNull().references(() => orders.id),
+  ownerUserId: integer('owner_user_id').notNull().references(() => users.id),
+  ownerPromoMemberId: integer('owner_promo_member_id').references(() => promoMembers.id),
+  type: text('type').notNull(), // invite_reward | agent_discount | master_override
+  sourceType: text('source_type').notNull().default('direct'),
+  amount: real('amount').notNull(),
+  rate: real('rate'),
+  status: text('status').notNull().default('pending'), // pending | available | settled | canceled
+  remark: text('remark'),
+  metaData: text('meta_data', { mode: 'json' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+}, (table) => ({
+  // 同一订单同一佣金类型只允许入账一次(并发结算防重复,见 schema.pg.ts 同名索引)
+  orderTypeIdx: uniqueIndex('promo_commissions_order_type_idx').on(table.orderId, table.type),
+}))

@@ -114,6 +114,12 @@ const routes = computed(() => {
       to: '/admin/subscriptions',
     },
     {
+      id: 'admin-promo',
+      label: t('admin.nav.promo'),
+      icon: 'ph:megaphone-simple',
+      to: '/admin/promo',
+    },
+    {
       id: 'admin-payments',
       label: t('admin.nav.payments'),
       icon: 'ph:credit-card',

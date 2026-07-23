@@ -154,29 +154,19 @@
                     color="primary"
                     variant="solid"
                     class="bg-purple-600 hover:bg-purple-500 text-white font-medium"
-                    :to="`/user/orders/${order.id}`"
+                    :to="localePath(`/user/orders/${order.id}`)"
                   >
                     {{ $t('site.payment.viewDelivery') }}
                   </UButton>
-                  <PaymentModal
+                  <UButton
                     v-if="order.payStatus === 'pending'"
-                    :order-id="order.id"
-                    :quantity="1"
-                    :amount="order.amount"
+                    color="primary"
+                    variant="outline"
+                    class="font-medium"
+                    :to="localePath(`/payment/${order.id}`)"
                   >
-                    <template #trigger="{ loading, open }">
-                      <UButton
-                        color="primary"
-                        variant="outline"
-                        class="font-medium"
-                        @click="open"
-                        :disabled="loading"
-                        :loading="loading"
-                      >
-                        {{ $t('site.payment.payNow') }}
-                      </UButton>
-                    </template>
-                  </PaymentModal>
+                    {{ $t('site.payment.payNow') }}
+                  </UButton>
                 </div>
               </div>
             </div>
@@ -225,8 +215,10 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useLocaleRouter } from '~/composables/useLocaleRouter'
 const { getSetting } = useSettings()
 const { formatDate } = useFormatTime()
+const { localePath } = useLocaleRouter()
 
 useHead({
   title: `My Orders - ${getSetting('site_name')}`,
