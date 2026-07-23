@@ -102,6 +102,26 @@ const assertTargetAllowed = (targetUrl: URL, allowedOrigins?: Iterable<string>, 
 
 export const getConfiguredGatewayOrigins = () => [(cachedGatewayUrl || process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '')]
 
+// target= 模式在调用方未显式传 allowedOrigins/allowedPaths 时的默认白名单:
+// 全仓唯一调用方 /api/proxy/external.ts 从不传这两个参数,此前 assertTargetAllowed
+// 对空白名单直接放行,等于任意登录用户(甚至只带 x-auth cookie)都能让服务端携带
+// integration token/NUXT_SESSION_PASSWORD 向任意 host 发请求(SSRF + 凭证泄露)。
+// 实测全部真实调用方(useExternalApi 的 baseURL)只会是 AI 网关或 SAAS_API_URL,
+// 这里收紧为只允许这两个受信来源,不影响任何现有用法。
+async function getDefaultAllowedTargetOrigins(): Promise<string[]> {
+  const origins = new Set<string>()
+  try {
+    origins.add(new URL(await getAIGatewayUrl()).origin)
+  } catch {}
+  const saasApiUrl = (process.env.SAAS_API_URL || '').trim()
+  if (saasApiUrl) {
+    try {
+      origins.add(new URL(saasApiUrl).origin)
+    } catch {}
+  }
+  return [...origins]
+}
+
 /**
  * Get the full webhook events URL for ainode.
  */
@@ -142,12 +162,28 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
   const rawPath = query.path as string | undefined
 
   if (rawPath) {
-    // 相对路径模式：从 DB 读取 base URL，拼完整 URL
+    // 相对路径模式：从 DB 读取 base URL，拼完整 URL。
+    // SSRF 防线(同 gateway.ts):字符串拼接会被 `@host`、`//evil.com` 等构造改写目标
+    // 主机,改用 URL 解析后强制校验 host/协议仍等于配置的网关,越界即拒。
     const baseUrl = await getAIGatewayUrl()
-    targetUrl = new URL(baseUrl + rawPath)
+    try {
+      const base = new URL(baseUrl)
+      const resolved = new URL(rawPath.startsWith('/') ? rawPath : `/${rawPath}`, base)
+      if (resolved.protocol !== base.protocol || resolved.host !== base.host) {
+        throw new Error('cross-host')
+      }
+      targetUrl = resolved
+    } catch {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Bad Request: invalid path parameter',
+      })
+    }
   } else if (rawTarget) {
     targetUrl = normalizeTargetUrl(rawTarget)
-    assertTargetAllowed(targetUrl, allowedOrigins, allowedPaths)
+    // 调用方未显式传白名单时不再无条件放行,回落到受信来源默认值(见上方说明)
+    const effectiveAllowedOrigins = allowedOrigins ?? await getDefaultAllowedTargetOrigins()
+    assertTargetAllowed(targetUrl, effectiveAllowedOrigins, allowedPaths)
   } else {
     throw createError({
       statusCode: 400,

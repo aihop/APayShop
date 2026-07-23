@@ -10,6 +10,34 @@ export interface EmailSendResult {
   error?: string
 }
 
+// 与支付沙盒(sandbox.ts)同一套防护:只允许 http/https 协议与常规 HTTP 方法,
+// 挡掉 file:// 等非常规协议访问本地文件系统(此前邮件沙盒直接暴露 globalThis.fetch,
+// 无任何限制,与支付沙盒的 createSandboxFetch() 口径不一致)
+function createSandboxFetch() {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const urlString = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : (input as Request).url
+    let url: URL
+    try {
+      url = new URL(urlString)
+    } catch {
+      throw new Error('sandbox fetch: invalid URL')
+    }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('sandbox fetch: only http/https protocols allowed')
+    }
+    const method = String(init?.method || 'GET').toUpperCase()
+    const allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+    if (!allowedMethods.includes(method)) {
+      throw new Error(`sandbox fetch: method ${method} not allowed`)
+    }
+    return globalThis.fetch(input, init)
+  }
+}
+
 /**
  * Execute the email send script in a sandbox (same pattern as payment sandbox).
  * Exposes: { to, subject, html, config, fetch, crypto, console }
@@ -32,21 +60,25 @@ export async function executeEmailScript(
         randomString: (length = 32) =>
           crypto.randomBytes(Math.max(16, Math.ceil(length / 2))).toString('hex').slice(0, length),
       },
-      fetch: globalThis.fetch,
+      fetch: createSandboxFetch(),
       console: {
         log: (...args: any[]) => console.log('[Email Sandbox]', ...args),
         error: (...args: any[]) => console.error('[Email Sandbox Error]', ...args),
       },
     }
 
+    // 危险全局遮蔽(与支付沙盒 sandbox.ts 同一套说明):AsyncFunction 本质是 Function
+    // 构造器,脚本与宿主同环境。用同名参数把 process/globalThis/require 等挡在词法
+    // 作用域外,防止脚本"顺手"读环境变量/文件系统。注意这不是完整隔离(原型链仍可
+    // 摸到构造器),真隔离需 isolated-vm/独立进程——邮件脚本的信任边界仍是后台管理员。
     const wrapper = `
-      return (async function() {
+      return (async function(process, globalThis, global, require, module, exports, __dirname, __filename, Function, AsyncFunction) {
         const { config, crypto, fetch, console } = sandboxEnv;
         const { to, subject, html } = sandboxEnv.payload;
 
         ${scriptCode}
 
-      })();
+      })(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
     `
 
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
