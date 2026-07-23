@@ -1,5 +1,41 @@
 import crypto from 'crypto'
 
+const DEFAULT_SCRIPT_TIMEOUT_MS = 30_000
+
+function createSandboxFetch() {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const urlString = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : (input as Request).url
+    let url: URL
+    try {
+      url = new URL(urlString)
+    } catch {
+      throw new Error('sandbox fetch: invalid URL')
+    }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('sandbox fetch: only http/https protocols allowed')
+    }
+    const method = String(init?.method || 'GET').toUpperCase()
+    const allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+    if (!allowedMethods.includes(method)) {
+      throw new Error(`sandbox fetch: method ${method} not allowed`)
+    }
+    return globalThis.fetch(input, init)
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`sandbox script execution timeout (${ms}ms)`)), ms)
+  })
+  if (timer) (timer as any).unref?.()
+  return Promise.race([promise, timeoutPromise])
+}
+
 export interface WebhookResult {
   isSignValid: boolean;
   orderId: string;
@@ -28,6 +64,7 @@ export async function executeCallbackScript(
   configJson: any
 ): Promise<WebhookResult> {
   try {
+    if (/\bimport\s*\(/.test(scriptCode)) throw new Error('Dynamic import is not allowed in sandbox scripts')
     // 1. Prepare sandbox context
     // We provide standard utilities that payment callbacks might need
     const sandboxEnv = {
@@ -76,7 +113,7 @@ export async function executeCallbackScript(
         createHmac: (algo: string, key: any) => crypto.createHmac(algo, key)
       },
       URLSearchParams,
-      fetch: globalThis.fetch, // Expose standard fetch for API calls
+      fetch: createSandboxFetch(), // Expose standard fetch for API calls
       console: {
         log: (...args: any[]) => console.log('[Webhook Sandbox]', ...args),
         error: (...args: any[]) => console.error('[Webhook Sandbox Error]', ...args)
@@ -85,37 +122,41 @@ export async function executeCallbackScript(
 
     // 2. Wrap the user's script to return the result
     // Notice the `async function` wrapper to support `await fetch` inside the script
+    // 危险全局遮蔽:AsyncFunction 本质是 Function 构造器,脚本与宿主同环境。
+    // 用同名参数把 process/globalThis/require 等挡在词法作用域外,防止脚本
+    // "顺手"读环境变量/文件系统。注意这不是完整隔离(原型链仍可摸到构造器),
+    // 真隔离需 isolated-vm/独立进程——支付脚本的信任边界仍是后台管理员。
     const wrapper = `
-      return (async function() {
+      return (async function(process, globalThis, global, require, module, exports, __dirname, __filename, Function, AsyncFunction) {
         const { payload, config, crypto, URLSearchParams, fetch, console } = sandboxEnv;
         const { body, query, headers } = payload;
-        
+
         ${scriptCode}
-        
-      })();
+
+      })(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
     `
-    
+
     // 3. Execute using Function constructor
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
     const fn = new AsyncFunction('sandboxEnv', wrapper)
-    const result = await fn(sandboxEnv)
+    const result = await withTimeout(fn(sandboxEnv), DEFAULT_SCRIPT_TIMEOUT_MS)
 
     // 4. Validate the returned result matches our interface
     if (!result || typeof result !== 'object') {
       throw new Error("Callback script did not return a valid object")
     }
-    
-    if (!result.orderId) {
+    const r = result as Record<string, any>
+    if (!r.orderId) {
       throw new Error("Callback script did not return an orderId")
     }
 
     return {
-      isSignValid: !!result.isSignValid,
-      orderId: String(result.orderId),
-      tradeNo: result.tradeNo ? String(result.tradeNo) : undefined,
-      status: ['paid', 'failed', 'pending'].includes(result.status) ? result.status as any : 'pending',
-      amount: result.amount ? Number(result.amount) : undefined,
-      responseBody: result.responseBody || 'success'
+      isSignValid: !!r.isSignValid,
+      orderId: String(r.orderId),
+      tradeNo: r.tradeNo ? String(r.tradeNo) : undefined,
+      status: ['paid', 'failed', 'pending'].includes(r.status) ? r.status as any : 'pending',
+      amount: r.amount ? Number(r.amount) : undefined,
+      responseBody: r.responseBody || 'success'
     }
 
   } catch (error: any) {
@@ -130,6 +171,7 @@ export async function executeCreateScript(
   configJson: any
 ): Promise<CreatePaymentResult> {
   try {
+    if (/\bimport\s*\(/.test(scriptCode)) throw new Error('Dynamic import is not allowed in sandbox scripts')
     const sandboxEnv = {
       payload,
       config: configJson,
@@ -177,34 +219,36 @@ export async function executeCreateScript(
         createHmac: (algo: string, key: any) => crypto.createHmac(algo, key)
       },
       URLSearchParams,
-      fetch: globalThis.fetch,
+      fetch: createSandboxFetch(),
       console: {
         log: (...args: any[]) => console.log('[Create Sandbox]', ...args),
         error: (...args: any[]) => console.error('[Create Sandbox Error]', ...args)
       }
     }
 
+    // 危险全局遮蔽,同 executeCallbackScript 的说明:非完整隔离,仅防"顺手"越权
     const wrapper = `
-      return (async function() {
+      return (async function(process, globalThis, global, require, module, exports, __dirname, __filename, Function, AsyncFunction) {
         const { payload, config, crypto, URLSearchParams, fetch, console } = sandboxEnv;
         ${scriptCode}
-      })();
+      })(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
     `
 
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
     const fn = new AsyncFunction('sandboxEnv', wrapper)
-    const result = await fn(sandboxEnv)
+    const result = await withTimeout(fn(sandboxEnv), DEFAULT_SCRIPT_TIMEOUT_MS)
 
     if (!result || typeof result !== 'object') {
       throw new Error("Create script did not return a valid object")
     }
+    const r = result as Record<string, any>
 
     return {
-      ok: !!result.ok,
-      paymentUrl: result.paymentUrl ? String(result.paymentUrl) : undefined,
-      tradeNo: result.tradeNo ? String(result.tradeNo) : undefined,
-      responseBody: result.responseBody,
-      message: result.message ? String(result.message) : undefined
+      ok: !!r.ok,
+      paymentUrl: r.paymentUrl ? String(r.paymentUrl) : undefined,
+      tradeNo: r.tradeNo ? String(r.tradeNo) : undefined,
+      responseBody: r.responseBody,
+      message: r.message ? String(r.message) : undefined
     }
   } catch (error: any) {
     console.error("Failed to execute create script:", error)
