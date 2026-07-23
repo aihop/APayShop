@@ -8,6 +8,7 @@ import { orders, paymentMethods } from '../../db/schema'
 import { executeCreateScript } from '../../utils/sandbox'
 import { ORDER_PAY_STATUS } from '../../utils/constants'
 import { requireOrderOwnership } from '../../utils/orderAccess'
+import { resolvePaymentMethodCurrency } from '../../utils/topup'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
@@ -63,6 +64,25 @@ export default defineEventHandler(async (event) => {
           configJson = JSON.parse(fs.readFileSync(localConfigLowerPath, 'utf-8'))
         }
       } catch {}
+    }
+
+    // 充值订单币种守卫:充值单的 amount 是用户自填的原币金额,若拿去给一个
+    // 结算币种不同的网关(如 CNY 单走 Stripe),会按同一个数字扣成美元。
+    // 仅作用于充值订单(metaData.topup),且只在能确定插件币种时才拦——普通
+    // 商品下单与未声明币种的插件行为保持不变。
+    let orderMetaObj: any = null
+    try {
+      orderMetaObj = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
+    } catch {}
+    if (orderMetaObj?.topup) {
+      const methodCurrency = resolvePaymentMethodCurrency(configJson)
+      const orderCurrency = String((order as any).currency || '').trim().toUpperCase()
+      if (methodCurrency && orderCurrency && methodCurrency !== orderCurrency) {
+        return {
+          code: 1,
+          message: `This payment method settles in ${methodCurrency}, but the top-up order is in ${orderCurrency}. Please choose a ${orderCurrency} method.`,
+        }
+      }
     }
 
     const requestURL = getRequestURL(event)

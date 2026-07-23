@@ -117,6 +117,7 @@ export const emailProviders = mysqlTable('email_providers', {
 export const orders = mysqlTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),
+  currency: text('currency').notNull().default('USD'), // 实付币种(CNY/USD…);快捷充值按币种校验区间并折算到账额度
   productId: int('product_id').notNull().references(() => products.id),
   userId: int('user_id').references(() => users.id), // Link to C-end user
   contactEmail: text('contact_email').notNull(),

@@ -8,6 +8,7 @@ import { ensureVisitorId, trackVisitorEvent } from '../../utils/visitorAnalytics
 import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readPromoTracking } from '../../promo/service'
 import { sendEmail } from '../../utils/email'
 import { createNotification } from '../../utils/notifications'
+import { stripReservedOrderMeta } from '../../utils/orderMetaData'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -203,17 +204,21 @@ export default defineEventHandler(async (event) => {
       }
     }
     
+    // 客户端 metaData 先展开、且剔除记账保留键(recharge_amount/balance_type/
+    // integration/plan_ids):这些字段决定发给 ainode 的入账金额与余额池,只能由
+    // 服务端按商品配置写入。此前客户端 metaData 最后展开可整体覆盖,等于买家
+    // 自定义到账额度,详见 utils/orderMetaData.ts。
     const finalMetaData = {
+      ...stripReservedOrderMeta(parsedBody.metaData),
       ...(productMetaData.plan_ids ? { plan_ids: productMetaData.plan_ids } : {}),
       ...(promoTracking.inviteCode ? { inviteCode: promoTracking.inviteCode } : {}),
       ...(promoTracking.promoCode ? { promoCode: promoTracking.promoCode } : {}),
       ...(promoTracking.agentCode ? { agentCode: promoTracking.agentCode } : {}),
-      ...(parsedBody.metaData || {})
     }
     
-    if (Object.keys(finalMetaData).length > 0) {
-      parsedBody.metaData = finalMetaData
-    }
+    // 无条件回写:若客户端只传了保留键,剥离后 finalMetaData 为空,
+    // 带条件赋值会让原始未净化的 parsedBody.metaData 直接落库
+    parsedBody.metaData = Object.keys(finalMetaData).length > 0 ? finalMetaData : undefined
 
     // ==========================================
     // 订阅升级校验 (Subscription Upgrade Check)

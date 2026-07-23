@@ -36,6 +36,13 @@
       "when": 1784710502000,
       "tag": "0004_add_promo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785300002000,
+      "tag": "0006_add_orders_currency",
+      "breakpoints": true
     }
   ]
 }

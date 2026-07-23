@@ -219,11 +219,16 @@ export async function fulfillOrder(orderId: string) {
       break
     }
     case 'topup': {
+      // 订单级优先:快捷充值是可变金额,到账额度由服务端按币种折算后写在订单上
+      // (与 buildOrderIntegration 的取值顺序保持一致,否则通知里显示的是原币金额)
       const rechargeAmount = firstPositiveNumber(
+        (orderMeta as any).recharge_amount,
         (productMeta as any).recharge_amount,
         order.amount,
       )
-      const unit = String((productMeta as any).display_unit || 'credits').trim()
+      const unit = String(
+        (orderMeta as any).display_unit || (productMeta as any).display_unit || 'credits',
+      ).trim()
       deliveryInfo = (productMeta as any).delivery_message
         || `Top-up payment confirmed. ${rechargeAmount} ${unit} will be credited to your account.`
       await createNotification({
