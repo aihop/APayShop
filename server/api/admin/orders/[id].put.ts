@@ -4,6 +4,8 @@ import { db } from '../../../db/runtime'
 import { fulfillOrder } from '../../../utils/fulfillment'
 import { dispatchEvent } from '../../../utils/eventBus'
 import { ORDER_PAY_STATUS } from '../../../utils/constants'
+import { createOrderAttribution, settlePromoCommission } from '../../../promo/service'
+import { sendMinimalCheckoutPaidNotification } from '../../../../app/themes/minimal/server/checkout/notify'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id")
@@ -27,9 +29,17 @@ export default defineEventHandler(async (event) => {
   // 2. If payStatus changed to 'paid', trigger fulfillment + webhook
   const wasAlreadyPaid = existing.length > 0 && existing[0].payStatus === ORDER_PAY_STATUS.PAID
   if (body.payStatus === ORDER_PAY_STATUS.PAID && !wasAlreadyPaid) {
+    const updatedOrder = result[0]
+    await createOrderAttribution({
+      orderId: id,
+      buyerUserId: updatedOrder?.userId,
+      metaData: updatedOrder?.metaData,
+    })
     const fulfilledOrder = await fulfillOrder(id)
     if (fulfilledOrder) {
-      dispatchEvent('order.paid', fulfilledOrder)
+      await settlePromoCommission(id)
+      await sendMinimalCheckoutPaidNotification(fulfilledOrder)
+      await dispatchEvent('order.paid', fulfilledOrder)
     }
   }
     

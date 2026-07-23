@@ -2,10 +2,13 @@ import { spawn } from 'child_process'
 import path from 'path'
 
 export default defineEventHandler(async (event) => {
-  // 1. Validate Admin Authorization
-  // Since this is an /api/admin route, it should already be protected by the middleware
-  // but we can double check or log it
-  
+  // 1. 纵深防御:此接口会 spawn('bash', rebuild.sh) 执行系统命令,是全站最危险的
+  // 入口。不能只依赖 /api/admin 中间件——接口内显式二次断言 admin 身份,中间件
+  // 一旦被绕过或路由匹配出偏差,这里仍能挡住。
+  if (!event.context.admin) {
+    throw createError({ statusCode: 403, message: 'Forbidden: Admin access required' })
+  }
+
   try {
     // 2. Locate the rebuild script
     const scriptPath = path.join(process.cwd(), 'rebuild.sh')

@@ -5,6 +5,7 @@ import { db } from '../db/runtime'
 import { sendHttpWebhook } from './eventBus'
 import { getWebhookSubscriptionUrl, getIntegrationToken } from './externalProxy'
 import { createNotification } from './notifications'
+import { getAffectedRows } from './dbResult'
 
 
 export async function fulfillOrder(orderId: string) {
@@ -34,11 +35,23 @@ export async function fulfillOrder(orderId: string) {
   // 3. Process by Type
   switch (product.type) {
     case 'key': {
-      const cardRes = await db.select().from(cards).where(and(eq(cards.productId, product.id), eq(cards.isUsed, false))).limit(1)
-      if (cardRes.length) {
-        const card = cardRes[0]
-        deliveryInfo = card.cardNumber
-        await db.update(cards).set({ isUsed: true, orderId }).where(eq(cards.id, card.id))
+      // 原子认领卡密:UPDATE 带 isUsed=false 条件,靠受影响行数确认本单抢到;
+      // 先查后按 id 直改会让两个并发订单发出同一张卡。抢不到(被并发单拿走)
+      // 就重选下一张,连续落空按缺货走人工。
+      let claimedCard: typeof cards.$inferSelect | null = null
+      for (let attempt = 0; attempt < 5 && !claimedCard; attempt++) {
+        const cardRes = await db.select().from(cards).where(and(eq(cards.productId, product.id), eq(cards.isUsed, false))).limit(1)
+        if (!cardRes.length) break
+        const card = cardRes[0]!
+        const claim = await db.update(cards)
+          .set({ isUsed: true, orderId })
+          .where(and(eq(cards.id, card.id), eq(cards.isUsed, false)))
+        if (getAffectedRows(claim) > 0) {
+          claimedCard = card
+        }
+      }
+      if (claimedCard) {
+        deliveryInfo = claimedCard.cardNumber
       } else {
         deliveryInfo = "Pending manual delivery (Out of stock)"
         newStatus = "processing" // Need manual intervention
@@ -157,8 +170,10 @@ export async function fulfillOrder(orderId: string) {
       if (order.userId) {
         const [webhookUrl, ainodeToken] = await Promise.all([getWebhookSubscriptionUrl(), getIntegrationToken()])
         if (webhookUrl && ainodeToken) {
+          // 必须等待送达:Serverless 响应返回后运行时即回收,不等待会导致
+          // 用户已付款但外部余额/权益未到账(sendHttpWebhook 自带重试,失败仅记日志)
           const eventId = `sub:apply:${subId}:1`
-          sendHttpWebhook(
+          await sendHttpWebhook(
             webhookUrl,
             {
               event: 'subscription.apply',

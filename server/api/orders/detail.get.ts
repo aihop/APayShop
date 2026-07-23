@@ -2,7 +2,10 @@ import { orders, products } from "../../db/schema"
 import { eq, and, or } from "drizzle-orm"
 import { db } from '../../db/runtime'
 
-export default defineCachedEventHandler(async (event) => {
+// 安全约束:订单详情含邮箱/卡密/交易号,禁止使用共享响应缓存——此前
+// defineCachedEventHandler 的 getKey 读路由参数而路由实际走查询参数,
+// 缓存键恒为 'unknown',60s 内跨用户返回同一份订单(高危泄露)。
+export default defineEventHandler(async (event) => {
   const orderId = getQuery(event).orderId as string
   
   if (!orderId) {
@@ -30,6 +33,7 @@ export default defineCachedEventHandler(async (event) => {
     id: orders.id,
     amount: orders.amount,
     status: orders.status,
+    payStatus: orders.payStatus,
     createdAt: orders.createdAt,
     paidAt: orders.paidAt,
     tradeNo: orders.tradeNo,
@@ -68,9 +72,4 @@ export default defineCachedEventHandler(async (event) => {
     ...order,
     metaData: parsedMetaData
   }
-}, {
-  maxAge: 60, // 1 minute
-  swr: true,
-  name: 'order-detail',
-  getKey: (event) => getRouterParam(event, "orderId") || 'unknown'
 })

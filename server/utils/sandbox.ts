@@ -48,6 +48,8 @@ export interface WebhookResult {
 export interface CreatePaymentResult {
   ok: boolean;
   paymentUrl?: string;
+  qrCodeText?: string;
+  tradeType?: string;
   tradeNo?: string;
   responseBody?: string | Record<string, any>;
   message?: string;
@@ -246,6 +248,8 @@ export async function executeCreateScript(
     return {
       ok: !!r.ok,
       paymentUrl: r.paymentUrl ? String(r.paymentUrl) : undefined,
+      qrCodeText: r.qrCodeText ? String(r.qrCodeText) : undefined,
+      tradeType: r.tradeType ? String(r.tradeType) : undefined,
       tradeNo: r.tradeNo ? String(r.tradeNo) : undefined,
       responseBody: r.responseBody,
       message: r.message ? String(r.message) : undefined

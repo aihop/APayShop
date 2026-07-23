@@ -1,8 +1,10 @@
-import { paymentMethods, orders } from "../../db/schema"
+import { paymentMethods } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../db/runtime'
+import { requireOrderOwnership } from '../../utils/orderAccess'
+import { applyLocalPaymentPluginDefaults } from '../../../payments/meta'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -13,15 +15,12 @@ export default defineEventHandler(async (event) => {
       return { code: 1, message: "Order ID is required" }
     }
 
-    // 1. 获取订单，确定金额等信息
-    const orderList = await db.select().from(orders).where(eq(orders.id, orderId))
-    if (orderList.length === 0) {
-      return { code: 1, message: "Order not found" }
-    }
-    const order = orderList[0]
+    // 1. 归属校验后获取订单——支付信息含金额与收款内容,只允许订单所有者查看
+    const order = await requireOrderOwnership(event, String(orderId))
     
     // 2. 获取所有激活的支付方式
-    const activeMethods = await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true))
+    const activeMethods = (await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true)))
+      .map((method: any) => applyLocalPaymentPluginDefaults({ ...method }))
     if (activeMethods.length === 0) {
       return { code: 1, message: "No active payment methods available" }
     }
@@ -64,6 +63,20 @@ export default defineEventHandler(async (event) => {
       } catch (e) {
         // ignore JSON parse error
       }
+
+      if (!Object.keys(configObj).length) {
+        const localConfigPath = path.join(process.cwd(), 'payments', methodCode, 'config.json')
+        const localConfigLowerPath = path.join(process.cwd(), 'payments', String(methodCode).toLowerCase(), 'config.json')
+        try {
+          if (fs.existsSync(localConfigPath)) {
+            configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf-8'))
+          } else if (fs.existsSync(localConfigLowerPath)) {
+            configObj = JSON.parse(fs.readFileSync(localConfigLowerPath, 'utf-8'))
+          }
+        } catch (e) {
+          // ignore JSON parse error
+        }
+      }
       
       for (const [key, value] of Object.entries(configObj)) {
         const regex = new RegExp(`\\{\\$config\\.${key}\\}`, 'g')
@@ -93,6 +106,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch (error: any) {
+    if (error?.statusCode) throw error
     return { code: 1, message: error.message || "Internal server error" }
   }
 })

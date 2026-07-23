@@ -5,11 +5,23 @@ import { z } from "zod"
 import { db } from '../../db/runtime'
 import { ORDER_STATUS, ORDER_PAY_STATUS } from '../../utils/constants'
 import { ensureVisitorId, trackVisitorEvent } from '../../utils/visitorAnalytics'
+import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readPromoTracking } from '../../promo/service'
+import { sendEmail } from '../../utils/email'
+
+// metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
+// 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
+// 注意:存储型 XSS 的正确防线是渲染侧转义(Vue 默认已转义,禁止对其 v-html),
+// 不在落库时 HTML 转义——那会污染数据并造成双重转义。
+const METADATA_MAX_BYTES = 16 * 1024
+const metaDataSchema = z.record(z.string(), z.any())
+  .refine(obj => Buffer.byteLength(JSON.stringify(obj), 'utf8') <= METADATA_MAX_BYTES, {
+    message: `metaData too large (max ${METADATA_MAX_BYTES} bytes)`,
+  })
 
 const orderSchema = z.object({
   email: z.string().email("Invalid email format").optional(),
   payMethod: z.string().optional(),
-  metaData: z.any().optional(), // For service form answers or other custom data
+  metaData: metaDataSchema.optional(), // For service form answers or other custom data
   items: z.array(z.object({
     productId: z.number().int().positive(),
     productNum: z.number().int().positive()
@@ -20,8 +32,60 @@ const orderSchema = z.object({
 // For edge/serverless production, use `useStorage('cache')` or Redis KV.
 const rateLimitMap = new Map<string, { count: number, resetTime: number }>()
 
+const isDeliverableEmail = (value?: string | null) => {
+  const email = String(value || '').trim()
+  if (!email) return false
+  return !email.endsWith('@example.com')
+}
+
+const getPreferredLocale = (event: any) => {
+  const acceptLanguage = String(getHeaders(event)['accept-language'] || '').toLowerCase()
+  return acceptLanguage.startsWith('zh') ? 'zh' : 'en'
+}
+
+const sendPendingOrderEmail = async (event: any, input: {
+  email?: string | null
+  nickname?: string | null
+  orderId: string
+  productName: string
+  amount: number
+}) => {
+  if (!isDeliverableEmail(input.email)) return
+
+  const siteUrl = getRequestURL(event).origin
+  const recipient = String(input.email || '').trim()
+  const nickname = String(input.nickname || recipient.split('@')[0] || 'Customer').trim()
+  const siteNameSetting = await db.select()
+    .from(settings)
+    .where(eq(settings.key, 'site_name'))
+    .limit(1)
+  const siteName = String(siteNameSetting[0]?.value || 'APayShop').trim()
+
+  sendEmail({
+    to: recipient,
+    templateCode: 'order_pending',
+    locale: getPreferredLocale(event),
+    variables: {
+      nickname,
+      order_id: input.orderId,
+      product_name: input.productName,
+      amount: Number(input.amount || 0).toFixed(2),
+      site_name: siteName,
+      site_url: siteUrl,
+      payment_link: `${siteUrl}/payment/${input.orderId}`,
+    },
+  }).catch((error) => {
+    console.error('[Checkout] Failed to send pending payment email:', error)
+  })
+}
+
 export default defineEventHandler(async (event) => {
   try {
+    const promoTracking = mergePromoTracking(
+      readPromoTracking(event),
+      await capturePromoTracking(event),
+    )
+
     const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
     const now = Date.now()
     
@@ -44,15 +108,21 @@ export default defineEventHandler(async (event) => {
     
     // Check if user is logged in
     let userId = null;
+    let userEmail: string | null = null
+    let userNickname: string | null = null
     const session = await requireUserSession(event).catch(() => null)
     if (session && session.user) {
-      userId = session.user.id
+      userId = (session.user as any).id
+      userEmail = String((session.user as any).email || '').trim() || null
+      userNickname = String((session.user as any).nickname || '').trim() || null
       
       // Verify user actually exists in the database to prevent FK constraint errors
       // (happens when a user is deleted but their session cookie remains)
       const userExists = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
       if (userExists.length === 0) {
         userId = null // fallback to guest
+        userEmail = null
+        userNickname = null
         // Optionally, we could clear the session here: await clearUserSession(event)
         await clearUserSession(event).catch(() => null)
       }
@@ -68,8 +138,13 @@ export default defineEventHandler(async (event) => {
     }
 
     const visitorId = ensureVisitorId(event)
-    const contactEmail = parsedBody.email || visitorId + '@example.com'
+    const contactEmail = parsedBody.email || userEmail || visitorId + '@example.com'
     
+    // 当前实现只支持单商品下单:DTO 允许多 items 但历史上静默截断为第一项,
+    // 会生成金额不完整的订单——改为显式拒绝,直到真正支持多商品结算
+    if (parsedBody.items.length > 1) {
+      return { code: 1, message: "Multiple items are not supported yet, please checkout one product at a time" }
+    }
     const firstItem = parsedBody.items[0]!
     if (!firstItem) {
       return { code: 1, message: "Invalid product information" }
@@ -82,8 +157,13 @@ export default defineEventHandler(async (event) => {
     if (productList.length === 0) {
       return { code: 1, message: "Product not found" }
     }
-    
+
     const product = productList[0]
+
+    // 可售状态检查:下架商品不允许下单(此前只查存在性,隐藏商品可被直接下单)
+    if (product.isActive === false) {
+      return { code: 1, message: "Product is not available for sale" }
+    }
     
     // Prepare metaData for the order by merging product's plan_ids (if any) with user's metaData
     let productMetaData = product.metaData || {}
@@ -97,6 +177,9 @@ export default defineEventHandler(async (event) => {
     
     const finalMetaData = {
       ...(productMetaData.plan_ids ? { plan_ids: productMetaData.plan_ids } : {}),
+      ...(promoTracking.inviteCode ? { inviteCode: promoTracking.inviteCode } : {}),
+      ...(promoTracking.promoCode ? { promoCode: promoTracking.promoCode } : {}),
+      ...(promoTracking.agentCode ? { agentCode: promoTracking.agentCode } : {}),
       ...(parsedBody.metaData || {})
     }
     
@@ -163,12 +246,26 @@ export default defineEventHandler(async (event) => {
             .where(eq(orders.id, pendingOrder.id))
         }
 
+        await createOrderAttribution({
+          orderId: pendingOrder.id,
+          buyerUserId: userId,
+          metaData: finalMetaData,
+        })
+
         await trackVisitorEvent(event, {
           visitorId,
           userId,
           orderId: pendingOrder.id,
           productId,
           eventName: 'begin_checkout',
+        })
+
+        await sendPendingOrderEmail(event, {
+          email: parsedBody.email || userEmail || pendingOrder.contactEmail,
+          nickname: userNickname,
+          orderId: pendingOrder.id,
+          productName: product.name,
+          amount: totalAmount,
         })
 
         return {
@@ -215,7 +312,13 @@ export default defineEventHandler(async (event) => {
       createdAt: new Date()
     }
     
-    const result = await db.insert(orders).values(orderData).returning()
+    await db.insert(orders).values(orderData).returning()
+
+    await createOrderAttribution({
+      orderId,
+      buyerUserId: userId,
+      metaData: finalMetaData,
+    })
 
     await trackVisitorEvent(event, {
       visitorId,
@@ -223,6 +326,14 @@ export default defineEventHandler(async (event) => {
       orderId,
       productId,
       eventName: 'begin_checkout',
+    })
+
+    await sendPendingOrderEmail(event, {
+      email: parsedBody.email || userEmail || contactEmail,
+      nickname: userNickname,
+      orderId,
+      productName: product.name,
+      amount: totalAmount,
     })
     
     return {

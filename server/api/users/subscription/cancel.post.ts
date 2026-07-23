@@ -52,8 +52,9 @@ export default defineEventHandler(async (event) => {
   if (sub.userId) {
     const [webhookUrl, ainodeToken] = await Promise.all([getWebhookSubscriptionUrl(), getIntegrationToken()])
     if (webhookUrl && ainodeToken) {
+      // 等待送达:不等待在 Serverless 下会丢投递,外部系统收不到取消同步
       const eventId = `sub:cancel:${sub.id}:${Date.now()}`
-      sendHttpWebhook(
+      await sendHttpWebhook(
         webhookUrl,
         {
           event: 'subscription.cancel',

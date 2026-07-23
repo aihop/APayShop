@@ -1,15 +1,37 @@
 import { paymentMethods, orders } from "../../db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq, ne } from "drizzle-orm"
+import { getAffectedRows } from "../../utils/dbResult"
 import { executeCallbackScript } from "../../utils/sandbox"
 import { dispatchEvent } from "../../utils/eventBus"
 import { fulfillOrder } from "../../utils/fulfillment"
 import { logger } from "../../utils/logger"
 import { trackVisitorEvent } from "../../utils/visitorAnalytics"
+import { createOrderAttribution, settlePromoCommission } from "../../promo/service"
+import { sendMinimalCheckoutPaidNotification } from "../../../app/themes/minimal/server/checkout/notify"
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS,ORDER_STATUS } from '../../utils/constants'
 import { readRawBody, readBody } from 'h3'
+
+// 写日志时对回调 payload 脱敏:授权/签名类头域打码,rawBody 只留长度(防签名
+// 与 PII 落库)。query/urlOrderId 保留供排查
+const SENSITIVE_HEADER_KEYS = new Set([
+  'authorization', 'x-api-key', 'apikey', 'cookie', 'signature', 'x-signature',
+  'sign', 'x-sign', 'token', 'x-token', 'secret',
+])
+function sanitizePayloadForLog(payload: { body: any; rawBody: string; query: any; headers: Record<string, any>; urlOrderId: any }) {
+  const maskedHeaders: Record<string, any> = {}
+  for (const [key, value] of Object.entries(payload.headers || {})) {
+    maskedHeaders[key] = SENSITIVE_HEADER_KEYS.has(key.toLowerCase()) ? '***redacted***' : value
+  }
+  return {
+    urlOrderId: payload.urlOrderId,
+    query: payload.query,
+    headers: maskedHeaders,
+    rawBodyLength: (payload.rawBody || '').length,
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const urlOrderId = getRouterParam(event, 'order_id')
@@ -31,9 +53,13 @@ export default defineEventHandler(async (event) => {
   const headers = getRequestHeaders(event)
   const payload = { body, rawBody, query, headers, urlOrderId }
 
+  // 日志脱敏:payload 含回调 headers(签名/授权头)与 body(可能带 PII/卡密),
+  // 生产日志不落原文。敏感头整体打码,rawBody 只留长度,写日志一律用此副本。
+  const logPayload = sanitizePayloadForLog(payload)
+
   await logger.warn(`record webhook for order ${urlOrderId}`, { 
       source: 'webhook', 
-      details: { urlOrderId, payload } 
+      details: { urlOrderId, payload: logPayload } 
     })
   
   if (!urlOrderId) {
@@ -125,7 +151,7 @@ export default defineEventHandler(async (event) => {
   
     await logger.info(`Webhook processed for ${realMethodCode}`, { 
       source: 'webhook', 
-      details: { urlOrderId, payload, result } 
+      details: { urlOrderId, payload: logPayload, result } 
     })
 
     // 4. Handle Result
@@ -133,13 +159,24 @@ export default defineEventHandler(async (event) => {
       console.error(`[Webhook] Invalid signature for ${realMethodCode}, Order: ${result.orderId}`)
       await logger.error(`Invalid webhook signature for ${realMethodCode}`, { 
         source: 'webhook', 
-        details: { urlOrderId, payload, result } 
+        details: { urlOrderId, payload: logPayload, result } 
       })
       setResponseStatus(event, 403)
       return "Invalid Signature"
     }
 
     // 5. Update Order
+    // 越权防线:result.orderId 来自支付脚本返回值,必须与 URL 上的订单号一致。
+    // 否则签名有效的脚本可返回任意订单号,把别人的订单顶成已支付并触发履约/佣金。
+    if (result.orderId && String(result.orderId) !== String(urlOrderId)) {
+      await logger.error(`Webhook orderId mismatch: url=${urlOrderId} script=${result.orderId}`, {
+        source: 'webhook',
+        details: { urlOrderId, scriptOrderId: result.orderId, method: realMethodCode }
+      })
+      setResponseStatus(event, 400)
+      return "Order ID mismatch"
+    }
+
     if (result.orderId) {
       const existingOrders = await db.select().from(orders).where(eq(orders.id, result.orderId))
       
@@ -150,7 +187,7 @@ export default defineEventHandler(async (event) => {
         if (result.amount && Math.abs(order.amount - result.amount) > 0.01) {
           await logger.warn(`Amount mismatch for order ${order.id}`, { 
             source: 'webhook', 
-            details: { expected: order.amount, got: result.amount, payload, result } 
+            details: { expected: order.amount, got: result.amount, payload: logPayload, result } 
           })
           
           await db.update(orders)
@@ -175,23 +212,41 @@ export default defineEventHandler(async (event) => {
           }
           if (result.tradeNo) updateData.tradeNo = result.tradeNo
 
-          await db.update(orders)
+          // 原子抢占:仅当订单尚未支付时置为已支付。网关会并发/重试推送同一
+          // 回调,靠前面的内存快照判断挡不住竞争——只有真正改到行的那个请求
+          // 才继续履约,其余幂等返回,杜绝重复发卡/重复佣金/重复事件。
+          const claimResult = await db.update(orders)
             .set(updateData)
-            .where(eq(orders.id, result.orderId))
+            .where(and(eq(orders.id, result.orderId), ne(orders.payStatus, ORDER_PAY_STATUS.PAID)))
 
-          await trackVisitorEvent(null, {
-            visitorId: order.visitorId,
-            userId: order.userId,
-            orderId: order.id,
-            productId: order.productId,
-            eventName: 'order_paid',
-            createdAt: updateData.paidAt,
-          })
-            
-          // Trigger delivery logic here
-          const fulfilledOrder = await fulfillOrder(result.orderId)
-          if (fulfilledOrder) {
-             dispatchEvent('order.paid', fulfilledOrder)
+          if (getAffectedRows(claimResult) === 0) {
+            await logger.info(`Order ${order.id} already claimed by concurrent webhook, skipping fulfillment`, {
+              source: 'webhook',
+              details: { tradeNo: result.tradeNo }
+            })
+          } else {
+            await createOrderAttribution({
+              orderId: result.orderId,
+              buyerUserId: order.userId,
+              metaData: typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData,
+            })
+
+            await trackVisitorEvent(null, {
+              visitorId: order.visitorId,
+              userId: order.userId,
+              orderId: order.id,
+              productId: order.productId,
+              eventName: 'order_paid',
+              createdAt: updateData.paidAt,
+            })
+
+            // Trigger delivery logic here
+            const fulfilledOrder = await fulfillOrder(result.orderId)
+            if (fulfilledOrder) {
+               await settlePromoCommission(result.orderId)
+               await sendMinimalCheckoutPaidNotification(fulfilledOrder)
+               await dispatchEvent('order.paid', fulfilledOrder)
+            }
           }
 
         } else if (result.status === 'failed' && order.payStatus !== ORDER_PAY_STATUS.PAID) {
@@ -200,20 +255,21 @@ export default defineEventHandler(async (event) => {
             details: { tradeNo: result.tradeNo, amount: result.amount } 
           })
           const updateData: any = {
-            payStatus: ORDER_PAY_STATUS.FAILED, 
+            payStatus: ORDER_PAY_STATUS.FAILED,
             status: ORDER_STATUS.FAILED, // Keep them in sync for failure
             payMethod: realMethodCode
           }
           if (result.tradeNo) updateData.tradeNo = result.tradeNo
 
+          // 条件更新:失败回调不得覆盖已支付订单(乱序/迟到的失败推送)
           await db.update(orders)
             .set(updateData)
-            .where(eq(orders.id, result.orderId))
+            .where(and(eq(orders.id, result.orderId), ne(orders.payStatus, ORDER_PAY_STATUS.PAID)))
         }
       } else {
         await logger.error(`Order ${result.orderId} not found in database`, { 
           source: 'webhook', 
-          details: { payload, result } 
+          details: { payload: logPayload, result } 
         })
       }
     }

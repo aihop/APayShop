@@ -110,9 +110,10 @@ export async function dispatchEvent(eventName: string, payload: any) {
 
     const timestamp = Date.now().toString()
     
-    // Dispatch to all subscribers asynchronously
-    // We don't await Promise.all here because we don't want webhook failures to block the main thread
-    subscribers.forEach(async (webhook: any) => {
+    // 逐个投递并整体等待:Serverless 运行时在响应返回后即可能被回收,
+    // fire-and-forget 会永久丢投递(order.paid 等关键事件)。allSettled
+    // 保证单个订阅方失败不影响其它投递,也不向调用方抛错。
+    await Promise.allSettled(subscribers.map(async (webhook: any) => {
       try {
         const rawPayload = {
           event: eventName,
@@ -153,7 +154,7 @@ export async function dispatchEvent(eventName: string, payload: any) {
       } catch (err: any) {
         console.error(`[EventBus] Webhook delivery error for ${webhook.name} (${webhook.url}):`, err.message)
       }
-    })
+    }))
   } catch (error) {
     console.error(`[EventBus] Failed to process event ${eventName}:`, error)
   }

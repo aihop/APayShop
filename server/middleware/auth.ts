@@ -21,8 +21,14 @@ export default defineEventHandler(async (event) => {
 
   // 1. 定义受保护的后台路径
   const isAdminPath = pathname.startsWith("/api/admin")
-  // 排除不需要校验的路径
-  const isAuthPath = pathname.includes("/setup") || pathname.includes("/login") || pathname.includes("/logout") || pathname.includes("/find-or-create") || pathname.includes("/check-email")
+  // 排除不需要校验的路径——必须精确匹配:此前用 pathname.includes 子串判断,
+  // 任何路径名带 setup/login 等单词的后台新接口都会意外绕过鉴权
+  const ADMIN_PUBLIC_PATHS = new Set([
+    "/api/admin/setup",
+    "/api/admin/login",
+    "/api/admin/logout",
+  ])
+  const isAuthPath = ADMIN_PUBLIC_PATHS.has(pathname)
 
   let session: any = { user: null, admin: null }
   let authenticatedFromToken = false
@@ -55,20 +61,18 @@ export default defineEventHandler(async (event) => {
     const incomingHeaders = event.node.req.headers
     let token: string | null = null
     
-    // 支持多种方式传递 token：
+    // 只从 header 取 token:
     // - Authorization: Bearer <token>
     // - X-Api-Key: <token>
-    // - 查询参数 ?api_key=<token>
+    // 已移除 ?api_key= 查询参数分支——URL 会被 access log / 代理日志原样记录,
+    // 是公认的 token 泄露面(全仓无调用方依赖此方式)
     const authHeader = incomingHeaders['authorization'] as string
     const xApiKey = incomingHeaders['x-api-key'] as string
-    const query = getQuery(event)
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.slice(7)
     } else if (xApiKey) {
       token = xApiKey
-    } else if (query.api_key) {
-      token = query.api_key as string
     }
 
     // 5. 如果有 token，验证 token（API token 不限制多设备）

@@ -4,8 +4,9 @@ import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
   const query = getQuery(event)
-  const page = parseInt(query.page as string) || 1
-  const pageSize = parseInt(query.pageSize as string) || 100 // Default to a larger size for public storefront
+  const page = Math.max(parseInt(query.page as string) || 1, 1)
+  // Default to a larger size for public storefront;公开接口设分页上限防大查询
+  const pageSize = Math.min(Math.max(parseInt(query.pageSize as string) || 100, 1), 200)
   const offset = (page - 1) * pageSize
 
   const totalResult = await db.select({ value: count() }).from(products).where(eq(products.isActive, true))

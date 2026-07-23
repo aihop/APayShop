@@ -14,7 +14,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const gatewayUrl = await getAIGatewayUrl()
-  const targetUrl = `${gatewayUrl}${path.startsWith('/') ? path : `/${path}`}`
+
+  // SSRF 防线:path 是客户端传入的,直接字符串拼接会被 `@host`、`//evil.com`、
+  // `../` 等构造改写目标主机。用 URL 解析后强制校验 host/协议仍等于配置的
+  // 网关,越界即拒——攻击者只能访问网关自身的路径,不能借此打别的主机。
+  let targetUrl: string
+  try {
+    const base = new URL(gatewayUrl)
+    const resolved = new URL(path.startsWith('/') ? path : `/${path}`, base)
+    if (resolved.protocol !== base.protocol || resolved.host !== base.host) {
+      throw new Error('cross-host')
+    }
+    targetUrl = resolved.toString()
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid path parameter' })
+  }
 
   const method = event.node.req.method || 'POST'
 

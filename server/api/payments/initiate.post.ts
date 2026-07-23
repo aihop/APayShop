@@ -7,6 +7,7 @@ import { db } from '../../db/runtime'
 import { orders, paymentMethods } from '../../db/schema'
 import { executeCreateScript } from '../../utils/sandbox'
 import { ORDER_PAY_STATUS } from '../../utils/constants'
+import { requireOrderOwnership } from '../../utils/orderAccess'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
@@ -19,11 +20,8 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   try {
     const body = bodySchema.parse(await readBody(event))
-    const orderRows = await db.select().from(orders).where(eq(orders.id, body.orderId)).limit(1)
-    if (!orderRows.length || !orderRows[0]) {
-      return { code: 1, message: 'Order not found' }
-    }
-    const order = orderRows[0]
+    // 归属校验:发起支付会改写订单的 payMethod/tradeNo,只允许订单所有者操作
+    const order = await requireOrderOwnership(event, body.orderId)
     if (order.payStatus === ORDER_PAY_STATUS.PAID) {
       return { code: 1, message: 'Order already paid' }
     }
@@ -93,7 +91,7 @@ export default defineEventHandler(async (event) => {
       returnUrl,
       cancelUrl
     }, configJson)
-    if (!result.ok || !result.paymentUrl) {
+    if (!result.ok || (!result.paymentUrl && !result.qrCodeText)) {
       return { code: 1, message: result.message || 'Failed to initiate payment' }
     }
     const updateData: any = { payMethod: method.code }
@@ -105,10 +103,13 @@ export default defineEventHandler(async (event) => {
       message: 'Payment initiated successfully',
       data: {
         paymentUrl: result.paymentUrl,
+        qrCodeText: result.qrCodeText,
+        tradeType: result.tradeType,
         tradeNo: result.tradeNo
       }
     }
   } catch (error: any) {
+    if (error?.statusCode) throw error
     return { code: 1, message: error?.message || 'Internal server error' }
   }
 })
