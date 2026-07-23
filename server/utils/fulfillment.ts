@@ -62,7 +62,7 @@ export async function fulfillOrder(orderId: string) {
         type: 'key_delivered',
         title: '卡密已发放',
         message: `您购买的 ${product.name} 卡密已发放，请查看订单详情。`,
-        data: { orderId, productId: product.id, slug: product.slug },
+        data: { orderId, productId: product.id, slug: product.slug, targetPath: `/callback/${orderId}` },
       })
       break
     }
@@ -74,7 +74,7 @@ export async function fulfillOrder(orderId: string) {
         type: 'file_delivered',
         title: '文件已就绪',
         message: `您购买的 ${product.name} 已可下载，请查看订单详情获取下载链接。`,
-        data: { orderId, productId: product.id, slug: product.slug },
+        data: { orderId, productId: product.id, slug: product.slug, targetPath: `/callback/${orderId}` },
       })
       break
     }
@@ -200,7 +200,7 @@ export async function fulfillOrder(orderId: string) {
         type: 'subscription_activated',
         title: '订阅已激活',
         message: `您已成功订阅 ${product.name}，有效期至 ${endDate.toISOString().split('T')[0]}。`,
-        data: { orderId, productId: product.id, subscriptionId: subId },
+        data: { orderId, productId: product.id, subscriptionId: subId, targetPath: `/callback/${orderId}` },
       })
 
       break
@@ -214,7 +214,7 @@ export async function fulfillOrder(orderId: string) {
         type: 'service_processing',
         title: '服务订单已接收',
         message: `您购买的 ${product.name} 服务已接收，我们将尽快与您联系。`,
-        data: { orderId, productId: product.id },
+        data: { orderId, productId: product.id, targetPath: `/user/orders/${orderId}` },
       })
       break
     }
@@ -232,7 +232,7 @@ export async function fulfillOrder(orderId: string) {
         type: 'topup_credited',
         title: '充值已到账',
         message: `您已成功充值 ${rechargeAmount} ${unit}，余额已更新。`,
-        data: { orderId, productId: product.id },
+        data: { orderId, productId: product.id, targetPath: `/callback/${orderId}` },
       })
       break
     }

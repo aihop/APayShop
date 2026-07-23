@@ -243,6 +243,40 @@
         </div>
 
         <div class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-[#1a1a1c]">
+          <h3 class="text-gray-900 dark:text-white font-medium mb-3">{{ $t('admin.orders.modal.frontend_payment_title') }}</h3>
+          <div class="space-y-3">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20 px-3 py-2">
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{{ $t('admin.orders.modal.payment_link') }}</p>
+              <p class="text-xs font-mono text-gray-900 dark:text-white break-all">
+                {{ getFrontendPaymentUrl(selectedOrder.id) }}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <UButton
+                color="primary"
+                variant="soft"
+                icon="ph:credit-card"
+                :to="getFrontendPaymentPath(selectedOrder.id)"
+                target="_blank"
+              >
+                {{ $t('admin.orders.modal.open_payment_page') }}
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="ph:copy"
+                @click="copyFrontendPaymentUrl(selectedOrder.id)"
+              >
+                {{ $t('admin.orders.modal.copy_payment_link') }}
+              </UButton>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {{ $t('admin.orders.modal.payment_page_hint') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-[#1a1a1c]">
           <h3 class="text-gray-900 dark:text-white font-medium mb-4">{{ $t('admin.orders.modal.fulfillment_title') }}</h3>
           <div class="space-y-4">
             <UFormField :label="$t('admin.orders.modal.update_fulfillment')">
@@ -280,7 +314,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { definePageMeta, useToast, useFetch, useRouter, useI18n } from '#imports'
+import { definePageMeta, useToast, useFetch, useRouter, useI18n, useRequestURL } from '#imports'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
@@ -288,6 +322,7 @@ const { formatDateTime } = useFormatTime()
 definePageMeta({ title: 'Orders Management' })
 
 const toast = useToast()
+const requestUrl = useRequestURL()
 
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.orders.id') },
@@ -326,6 +361,7 @@ const {
 
 const orders = computed(() => ordersData.value?.data || [])
 const totalItems = computed(() => ordersData.value?.total || 0)
+const frontendOrigin = computed(() => requestUrl.origin.replace(/\/$/, ''))
 
 const isModalOpen = ref(false)
 const selectedOrder = ref<any>(null)
@@ -423,6 +459,20 @@ const copyToClipboard = (text: string, label: string) => {
   toast.add({
     title: t('admin.orders.toast.copied'),
     description: t('admin.orders.toast.copied_to_clipboard', { label }),
+    color: 'success',
+  })
+}
+
+const getFrontendPaymentPath = (orderId?: string) => `/payment/${orderId || ''}`
+
+const getFrontendPaymentUrl = (orderId?: string) => `${frontendOrigin.value}${getFrontendPaymentPath(orderId)}`
+
+const copyFrontendPaymentUrl = (orderId?: string) => {
+  if (!orderId) return
+  navigator.clipboard.writeText(getFrontendPaymentUrl(orderId))
+  toast.add({
+    title: t('admin.orders.toast.copied'),
+    description: t('admin.orders.toast.payment_link_copied'),
     color: 'success',
   })
 }

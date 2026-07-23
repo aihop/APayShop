@@ -7,6 +7,7 @@ import { ORDER_STATUS, ORDER_PAY_STATUS } from '../../utils/constants'
 import { ensureVisitorId, trackVisitorEvent } from '../../utils/visitorAnalytics'
 import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readPromoTracking } from '../../promo/service'
 import { sendEmail } from '../../utils/email'
+import { createNotification } from '../../utils/notifications'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -76,6 +77,33 @@ const sendPendingOrderEmail = async (event: any, input: {
     },
   }).catch((error) => {
     console.error('[Checkout] Failed to send pending payment email:', error)
+  })
+}
+
+const createPendingOrderNotification = async (event: any, input: {
+  userId?: number | null
+  visitorId?: string | null
+  orderId: string
+  productName: string
+  amount: number
+}) => {
+  const locale = getPreferredLocale(event)
+  const title = locale === 'zh' ? '订单待支付' : 'Payment Pending'
+  const message = locale === 'zh'
+    ? `您的 ${input.productName} 订单已创建，当前待支付金额为 $${Number(input.amount || 0).toFixed(2)}。点击继续完成支付。`
+    : `Your ${input.productName} order has been created. $${Number(input.amount || 0).toFixed(2)} is still pending payment.`
+
+  await createNotification({
+    userId: input.userId ?? null,
+    visitorId: input.visitorId ?? null,
+    type: 'order_pending',
+    title,
+    message,
+    data: {
+      orderId: input.orderId,
+      payStatus: 'pending',
+      targetPath: `/payment/${input.orderId}`,
+    },
   })
 }
 
@@ -326,6 +354,14 @@ export default defineEventHandler(async (event) => {
       orderId,
       productId,
       eventName: 'begin_checkout',
+    })
+
+    await createPendingOrderNotification(event, {
+      userId,
+      visitorId,
+      orderId,
+      productName: product.name,
+      amount: totalAmount,
     })
 
     await sendPendingOrderEmail(event, {

@@ -230,7 +230,7 @@ export const defaultEmailTemplates: EmailTemplatePreset[] = [
             ${makeInfoRow('Product', '{{product_name}}')}
             ${makeInfoRow('Amount Paid', '{{amount}}', true)}
           `)}
-          ${makeButton('{{site_url}}/user/orders/{{order_id}}', 'View Order Details', 'success')}
+          ${makeButton('{{site_url}}/callback/{{order_id}}', 'View Delivery', 'success')}
         </td>
       </tr>
       ${makeFooter('{{site_name}}')}
@@ -410,7 +410,7 @@ export const defaultEmailTemplates: EmailTemplatePreset[] = [
             ${makeInfoRow('商品', '{{product_name}}')}
             ${makeInfoRow('支付金额', '{{amount}}', true)}
           `)}
-          ${makeButton('{{site_url}}/user/orders/{{order_id}}', '查看订单详情', 'success')}
+          ${makeButton('{{site_url}}/callback/{{order_id}}', '查看交付结果', 'success')}
         </td>
       </tr>
       ${makeFooter('{{site_name}}')}

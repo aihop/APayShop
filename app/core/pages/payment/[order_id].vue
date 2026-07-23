@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#050505] py-10 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gray-50 dark:bg-[#050505] py-10 px-4 sm:px-6 lg:px-8 transition-colors">
     <div class="max-w-6xl mx-auto">
       <div class="mb-6">
         <UButton
           color="neutral"
           variant="ghost"
           :to="localePath('/user/orders')"
-          class="text-gray-400 hover:text-white"
+          class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
         >
           <UIcon name="ph:arrow-left" class="w-4 h-4 mr-2"></UIcon>
           {{ $t('site.order.myOrders') }}
@@ -15,21 +15,21 @@
 
       <div
         v-if="pending"
-        class="grid gap-6 lg:grid-cols-[320px,1fr]"
+        class="grid gap-6 md:grid-cols-[260px,1fr]"
       >
-        <div class="h-[360px] rounded-3xl border border-white/10 bg-[#0A0A0A] animate-pulse"></div>
-        <div class="h-[620px] rounded-[40px] border border-white/10 bg-[#0A0A0A] animate-pulse"></div>
+        <div class="h-[360px] rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A] animate-pulse"></div>
+        <div class="h-[620px] rounded-[40px] border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A] animate-pulse"></div>
       </div>
 
       <div
         v-else-if="fetchError || !order"
-        class="max-w-xl mx-auto bg-[#0A0A0A] border border-white/10 rounded-[32px] p-8 text-center"
+        class="max-w-xl mx-auto bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 text-center shadow-sm dark:shadow-none"
       >
         <div class="w-16 h-16 mx-auto mb-5 rounded-2xl border flex items-center justify-center" :class="errorState.iconWrapClass">
           <UIcon :name="errorState.icon" class="w-9 h-9" :class="errorState.iconClass"></UIcon>
         </div>
-        <h1 class="text-2xl font-bold text-white mb-2">{{ errorState.title }}</h1>
-        <p class="text-gray-400 mb-6">{{ errorState.description }}</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ errorState.title }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{{ errorState.description }}</p>
         <div class="flex flex-wrap justify-center gap-3">
           <UButton
             color="primary"
@@ -50,11 +50,11 @@
 
       <div
         v-else
-        class="grid gap-6 lg:grid-cols-[320px,1fr]"
+        class="grid gap-6 md:grid-cols-[260px,1fr]"
       >
-        <aside class="bg-[#0A0A0A] border border-white/10 rounded-3xl p-6 h-fit">
+        <aside class="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-3xl p-6 h-fit shadow-sm dark:shadow-none">
           <div class="flex items-start gap-4 mb-6">
-            <div class="w-16 h-16 rounded-2xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
+            <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 shrink-0">
               <img
                 v-if="order.productImageUrl"
                 :src="order.productImageUrl"
@@ -63,33 +63,33 @@
               />
               <div
                 v-else
-                class="w-full h-full flex items-center justify-center text-gray-600"
+                class="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600"
               >
                 <UIcon name="ph:package" class="w-7 h-7"></UIcon>
               </div>
             </div>
             <div class="min-w-0">
-              <p class="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2">{{ order.productType || 'product' }}</p>
-              <h1 class="text-xl font-bold text-white leading-tight break-words">{{ order.productName || `Order #${order.id}` }}</h1>
+              <p class="text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-2">{{ order.productType || 'product' }}</p>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white leading-tight break-words">{{ order.productName || `Order #${order.id}` }}</h1>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
-            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-500 mb-2">Amount</p>
-            <p class="text-4xl font-bold text-white">${{ Number(order.amount || 0).toFixed(2) }}</p>
+          <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5 mb-6">
+            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-2">Amount</p>
+            <p class="text-4xl font-bold text-gray-900 dark:text-white">${{ Number(order.amount || 0).toFixed(2) }}</p>
           </div>
 
           <div class="space-y-4 text-sm">
-            <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-              <span class="text-gray-500">{{ $t('site.payment.tradeNo') }}</span>
-              <span class="text-white font-mono text-right break-all">{{ order.tradeNo || 'Pending' }}</span>
+            <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+              <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.tradeNo') }}</span>
+              <span class="text-gray-900 dark:text-white font-mono text-right break-all">{{ order.tradeNo || 'Pending' }}</span>
             </div>
-            <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-              <span class="text-gray-500">{{ $t('site.payment.payMethod') }}</span>
-              <span class="text-white capitalize text-right">{{ order.payMethod || 'Pending' }}</span>
+            <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+              <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.payMethod') }}</span>
+              <span class="text-gray-900 dark:text-white capitalize text-right">{{ order.payMethod || 'Pending' }}</span>
             </div>
-            <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-              <span class="text-gray-500">{{ $t('site.payment.pendingPayment') }}</span>
+            <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+              <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.pendingPayment') }}</span>
               <UBadge
                 :color="order.payStatus === 'pending' ? 'warning' : order.payStatus === 'paid' ? 'success' : 'neutral'"
                 variant="subtle"
@@ -99,8 +99,8 @@
               </UBadge>
             </div>
             <div class="flex items-center justify-between gap-4">
-              <span class="text-gray-500">{{ $t('site.payment.paidAt') }}</span>
-              <span class="text-white text-right">{{ order.paidAt ? formatDateTime(order.paidAt) : 'N/A' }}</span>
+              <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.paidAt') }}</span>
+              <span class="text-gray-900 dark:text-white text-right">{{ order.paidAt ? formatDateTime(order.paidAt) : 'N/A' }}</span>
             </div>
           </div>
         </aside>

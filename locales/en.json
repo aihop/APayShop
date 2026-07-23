@@ -195,6 +195,11 @@
         "amount": "Amount",
         "payment_method": "Payment Method",
         "trade_no": "Trade No",
+        "frontend_payment_title": "Frontend Payment Page",
+        "payment_link": "Payment Link",
+        "open_payment_page": "Open Payment Page",
+        "copy_payment_link": "Copy Payment Link",
+        "payment_page_hint": "This link opens the frontend payment page directly. Unpaid orders can continue checkout, while paid orders will show the latest payment result.",
         "meta_data": "Order Meta Data (User Input)",
         "fulfillment_title": "Fulfillment & Status",
         "update_fulfillment": "Update Fulfillment Status",
@@ -209,7 +214,8 @@
         "order_updated": "Order updated",
         "update_failed": "Failed to update order",
         "visitor_id_copied": "Visitor ID copied to clipboard",
-        "copied_to_clipboard": "{label} copied to clipboard"
+        "copied_to_clipboard": "{label} copied to clipboard",
+        "payment_link_copied": "Frontend payment link copied to clipboard"
       }
     },
     "promo": {
@@ -947,7 +953,19 @@
       "payNow": "Pay Now",
       "viewDelivery": "View Delivery",
       "pendingPayment": "Pending Payment",
-      "completed": "Completed"
+      "completed": "Completed",
+      "workspaceTitle": "Payment Workspace",
+      "workspaceTotalPayable": "Total Payable",
+      "workspaceQuantity": "Quantity",
+      "workspaceSecurityHint": "Secure digital transaction enabled via encrypted gateway",
+      "workspaceInitialisingGateway": "Initialising Gateway...",
+      "workspaceNoMethods": "No express payment methods available for this configuration.",
+      "workspaceSelectMethod": "Select Method",
+      "workspaceNetworkError": "Network Error",
+      "workspaceLoadGatewayFailed": "Failed to load payment gateway",
+      "workspaceSuccessToast": "Transaction confirmed. Order ID: {orderId}",
+      "workspaceTransactionFailed": "Transaction Failed",
+      "workspaceExecutionReverted": "Payment execution reverted"
     },
     "order": {
       "noOrders": "No orders found.",

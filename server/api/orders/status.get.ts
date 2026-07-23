@@ -1,16 +1,26 @@
-import { orders } from "../../db/schema"
-import { eq } from "drizzle-orm"
+import { orders, products } from "../../db/schema"
+import { eq, and, or } from "drizzle-orm"
 import { db } from '../../db/runtime'
 
 export default defineEventHandler(async (event) => {
-
   const query = getQuery(event)
   const orderId = query.orderId as string
   
   if (!orderId) {
-    return createError({ statusCode: 400, message: "Order ID is required" })
+    throw createError({ statusCode: 400, message: "Order ID is required" })
   }
+
+  const session = await getUserSession(event)
+  const userId = (session?.user as any)?.id
   const visitorId = getCookie(event, 'visitor_id')
+
+  if (!userId && !visitorId) {
+    throw createError({ statusCode: 401, message: "Unauthorized: No user session or visitor cookie found" })
+  }
+
+  const authCondition = userId
+    ? or(eq(orders.userId, userId), eq(orders.visitorId, visitorId || ''))
+    : eq(orders.visitorId, visitorId as string)
 
   const existingOrders = await db.select({
     id: orders.id,
@@ -21,22 +31,26 @@ export default defineEventHandler(async (event) => {
     paidAt: orders.paidAt,
     payMethod: orders.payMethod,
     deliveryInfo: orders.deliveryInfo,
-    visitorId: orders.visitorId
-  }).from(orders).where(eq(orders.id, orderId))
+    visitorId: orders.visitorId,
+    productName: products.name,
+    productType: products.type,
+    productSlug: products.slug,
+    productImageUrl: products.imageUrl,
+  })
+    .from(orders)
+    .leftJoin(products, eq(orders.productId, products.id))
+    .where(and(eq(orders.id, orderId), authCondition))
+    .limit(1)
   
   if (existingOrders.length === 0) {
-    return createError({ statusCode: 404, message: "Order not found" })
+    throw createError({ statusCode: 404, message: "Order not found" })
   }
 
   const order = existingOrders[0]
-
-  if (order.visitorId !== visitorId) {
-    return createError({ statusCode: 403, message: "Unauthorized: Visitor ID does not match order visitor ID" })
-  }
   
   // 敏感信息脱敏：未支付成功前，不返回发货信息
   if (order.payStatus !== 'paid') {
-    order.deliveryInfo = null
+    order.deliveryInfo = null as any
   }
 
   return {
@@ -49,7 +63,11 @@ export default defineEventHandler(async (event) => {
       createdAt: order.createdAt,
       paidAt: order.paidAt,
       payMethod: order.payMethod,
-      deliveryInfo: order.deliveryInfo
+      deliveryInfo: order.deliveryInfo,
+      productName: order.productName,
+      productType: order.productType,
+      productSlug: order.productSlug,
+      productImageUrl: order.productImageUrl,
     }
   }
 })

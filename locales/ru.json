@@ -194,6 +194,11 @@
         "amount": "Сумма",
         "payment_method": "Метод оплаты",
         "trade_no": "Номер транзакции",
+        "frontend_payment_title": "Платежная страница витрины",
+        "payment_link": "Ссылка на оплату",
+        "open_payment_page": "Открыть страницу оплаты",
+        "copy_payment_link": "Скопировать ссылку оплаты",
+        "payment_page_hint": "Эта ссылка сразу открывает фронтовую страницу оплаты. Для неоплаченных заказов можно продолжить оплату, а для оплаченных будет показан актуальный результат платежа.",
         "meta_data": "Метаданные заказа (ввод пользователя)",
         "fulfillment_title": "Исполнение и статус",
         "update_fulfillment": "Обновить статус исполнения",
@@ -208,7 +213,8 @@
         "order_updated": "Заказ обновлен",
         "update_failed": "Не удалось обновить заказ",
         "visitor_id_copied": "ID посетителя скопирован в буфер обмена",
-        "copied_to_clipboard": "{label} скопировано в буфер обмена"
+        "copied_to_clipboard": "{label} скопировано в буфер обмена",
+        "payment_link_copied": "Ссылка на фронтовую оплату скопирована в буфер обмена"
       }
     },
     "products": {
@@ -871,7 +877,19 @@
       "payNow": "Оплатить сейчас",
       "viewDelivery": "Посмотреть доставку",
       "pendingPayment": "Ожидание оплаты",
-      "completed": "Завершено"
+      "completed": "Завершено",
+      "workspaceTitle": "Платежное рабочее пространство",
+      "workspaceTotalPayable": "Сумма к оплате",
+      "workspaceQuantity": "Количество",
+      "workspaceSecurityHint": "Безопасная цифровая транзакция выполняется через зашифрованный платежный шлюз",
+      "workspaceInitialisingGateway": "Инициализация платежного шлюза...",
+      "workspaceNoMethods": "Для текущей конфигурации нет доступных быстрых способов оплаты.",
+      "workspaceSelectMethod": "Выберите способ оплаты",
+      "workspaceNetworkError": "Сетевая ошибка",
+      "workspaceLoadGatewayFailed": "Не удалось загрузить платежный шлюз",
+      "workspaceSuccessToast": "Транзакция подтверждена. Номер заказа: {orderId}",
+      "workspaceTransactionFailed": "Ошибка транзакции",
+      "workspaceExecutionReverted": "Выполнение платежа не завершено"
     },
     "order": {
       "noOrders": "Заказы не найдены.",
