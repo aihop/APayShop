@@ -1,2 +1,0 @@
-import{F as a,D as e,w as l}from"./server.mjs";const useLocaleRouter=()=>{const s=a();e();const t=l(),localePath=a=>{const e=a.startsWith("/")?a:`/${a}`;return"en"===t.locale.value||e.startsWith(`/${t.locale.value}`)?e:"/"===e?`/${t.locale.value}`:`/${t.locale.value}${e}`};return{localePush:a=>s.push(localePath(a)),localePath:localePath}};export{useLocaleRouter as u};
-//# sourceMappingURL=useLocaleRouter-Bmu-7Nxu.mjs.map

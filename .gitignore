@@ -15,3 +15,6 @@ prompt.md
 wrangler.toml
 # macOS 目录元数据:会随每次 Finder 浏览产生改动,反复污染 git status
 .DS_Store
+
+# wrangler 本地运行时产物(miniflare D1 数据、临时 bundle),不入仓
+.wrangler/

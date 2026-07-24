@@ -1,1 +1,0 @@
-DROP INDEX `payment_methods_code_unique`;
