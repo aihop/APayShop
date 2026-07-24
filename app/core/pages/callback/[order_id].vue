@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-[#09090b] flex items-center justify-center p-4">
-    <div class="max-w-5xl w-full bg-[#121214] border border-gray-800/50 rounded-2xl p-8 md:p-10 shadow-2xl relative overflow-hidden">
+  <div class="min-h-screen bg-gray-50 dark:bg-[#09090b] flex items-center justify-center p-4 transition-colors">
+    <div class="max-w-5xl w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-8 md:p-10 shadow-sm dark:shadow-2xl relative overflow-hidden">
       <!-- Glow effect -->
       <div class="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl"></div>
 
@@ -12,9 +12,9 @@
           name="ph:spinner-gap"
           class="w-16 h-16 text-primary-500 animate-spin mx-auto mb-6"
         />
-        <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.processingPayment') }}</h1>
-        <p class="text-gray-400 mb-6">{{ $t('site.payment.processingPaymentTips') }}</p>
-        <div class="text-sm font-mono text-gray-500 bg-black/30 py-2 px-4 rounded-lg inline-block">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('site.payment.processingPayment') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{{ $t('site.payment.processingPaymentTips') }}</p>
+        <div class="text-sm font-mono text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-black/30 py-2 px-4 rounded-lg inline-block">
           {{ $t('site.payment.orderIdLabel') }}: {{ orderId }}
         </div>
         <p class="my-6">
@@ -36,8 +36,8 @@
             class="w-10 h-10 text-emerald-500"
           />
         </div>
-        <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.paymentSuccessful') }}</h1>
-        <p class="text-gray-400 mb-6">{{ $t('site.payment.paymentSuccessfulTips') }}</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('site.payment.paymentSuccessful') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{{ $t('site.payment.paymentSuccessfulTips') }}</p>
         <p
           v-if="redirecting && externalReturnUrl"
           class="text-xs text-emerald-300/80 mb-6"
@@ -47,10 +47,10 @@
 
         <div
           v-if="order"
-          class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-5"
+          class="mb-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/30 p-5"
         >
           <div class="flex flex-col gap-4 md:flex-row md:items-center">
-            <div class="h-20 w-20 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+            <div class="h-20 w-20 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black/30">
               <img
                 v-if="order.productImageUrl"
                 :src="order.productImageUrl"
@@ -59,7 +59,7 @@
               />
               <div
                 v-else
-                class="flex h-full w-full items-center justify-center text-gray-600"
+                class="flex h-full w-full items-center justify-center text-gray-400 dark:text-gray-600"
               >
                 <UIcon name="ph:package" class="h-8 w-8" />
               </div>
@@ -67,11 +67,11 @@
             <div class="min-w-0 flex-1 text-left">
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span class="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-emerald-300">
-                  {{ resolvedProductType || 'paid' }}
+                  {{ productTypeLabel(resolvedProductType) }}
                 </span>
-                <span class="text-lg font-semibold text-white">{{ order.productName || orderId }}</span>
+                <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ order.productName || orderId }}</span>
               </div>
-              <p class="text-sm text-gray-400">
+              <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ $t('site.payment.successTips') }}
               </p>
             </div>
@@ -83,45 +83,45 @@
               variant="outline"
             >
               <UIcon name="ph:arrow-square-out" class="mr-1 h-4 w-4" />
-              View Product
+              {{ $t('site.payment.viewProductPage') }}
             </UButton>
           </div>
         </div>
 
         <div class="grid gap-6 md:grid-cols-2">
-          <div class="rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 text-left">
-            <div class="mb-6 flex items-center gap-2 text-white">
+          <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A] p-6 text-left shadow-sm dark:shadow-none">
+            <div class="mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
               <UIcon name="ph:credit-card" class="h-5 w-5 text-purple-400" />
               <h3 class="font-semibold">{{ $t('site.payment.PaymentDetails') }}</h3>
             </div>
             <div class="space-y-4 text-sm">
-              <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-                <span class="text-gray-400">{{ $t('site.payment.orderIdLabel') }}</span>
-                <span class="font-mono text-white">{{ orderId }}</span>
+              <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+                <span class="text-gray-500 dark:text-gray-400">{{ $t('site.payment.orderIdLabel') }}</span>
+                <span class="font-mono text-gray-900 dark:text-white">{{ orderId }}</span>
               </div>
-              <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-                <span class="text-gray-400">{{ $t('site.payment.payMethod') }}</span>
-                <span class="text-white">{{ order?.payMethod || 'N/A' }}</span>
+              <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+                <span class="text-gray-500 dark:text-gray-400">{{ $t('site.payment.payMethod') }}</span>
+                <span class="text-gray-900 dark:text-white">{{ order?.payMethod || $t('site.payment.notAvailable') }}</span>
               </div>
-              <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-                <span class="text-gray-400">{{ $t('site.payment.tradeNo') }}</span>
-                <span class="font-mono text-white">{{ order?.tradeNo || 'Pending' }}</span>
+              <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+                <span class="text-gray-500 dark:text-gray-400">{{ $t('site.payment.tradeNo') }}</span>
+                <span class="font-mono text-gray-900 dark:text-white">{{ order?.tradeNo || $t('site.payment.pending') }}</span>
               </div>
-              <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
-                <span class="text-gray-400">{{ $t('site.payment.contactEmail') }}</span>
-                <span class="text-white">{{ order?.contactEmail || 'N/A' }}</span>
+              <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
+                <span class="text-gray-500 dark:text-gray-400">{{ $t('site.payment.contactEmail') }}</span>
+                <span class="text-gray-900 dark:text-white">{{ order?.contactEmail || $t('site.payment.notAvailable') }}</span>
               </div>
               <div class="flex items-center justify-between gap-4">
-                <span class="text-gray-400">{{ $t('site.payment.paidAt') }}</span>
-                <span class="text-white">{{ order?.paidAt ? formatDateTime(order.paidAt) : 'N/A' }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ $t('site.payment.paidAt') }}</span>
+                <span class="text-gray-900 dark:text-white">{{ order?.paidAt ? formatDateTime(order.paidAt) : $t('site.payment.notAvailable') }}</span>
               </div>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 text-left">
-            <div class="mb-6 flex items-center gap-2 text-white">
+          <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A] p-6 text-left shadow-sm dark:shadow-none">
+            <div class="mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
               <UIcon name="ph:rocket-launch" class="h-5 w-5 text-purple-400" />
-              <h3 class="font-semibold">Delivery Information</h3>
+              <h3 class="font-semibold">{{ $t('site.payment.deliveryInformation') }}</h3>
             </div>
 
             <div
@@ -129,17 +129,17 @@
               class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4"
             >
               <div class="mb-3 flex items-center justify-between gap-3">
-                <p class="text-sm font-medium text-emerald-300">Your License Key</p>
+                <p class="text-sm font-medium text-emerald-300">{{ $t('site.payment.licenseKey') }}</p>
                 <UButton
                   color="neutral"
                   variant="outline"
                   size="xs"
                   @click="copyDeliveryInfo"
                 >
-                  {{ copied ? 'Copied' : 'Copy Key' }}
+                  {{ copied ? $t('site.payment.copied') : $t('site.payment.copyKey') }}
                 </UButton>
               </div>
-              <div class="rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-sm text-white break-all select-all">
+              <div class="rounded-lg border border-emerald-500/20 dark:border-white/10 bg-white dark:bg-black/40 p-3 font-mono text-sm text-gray-900 dark:text-white break-all select-all">
                 {{ resolvedDeliveryInfo }}
               </div>
             </div>
@@ -148,7 +148,7 @@
               v-else-if="resolvedProductType === 'file' && resolvedDeliveryInfo"
               class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4"
             >
-              <p class="mb-3 text-sm font-medium text-blue-300">Your Download Link</p>
+              <p class="mb-3 text-sm font-medium text-blue-300">{{ $t('site.payment.downloadLink') }}</p>
               <UButton
                 :to="resolvedDeliveryInfo"
                 target="_blank"
@@ -156,18 +156,18 @@
                 class="mb-3 w-full justify-center bg-blue-600 text-white hover:bg-blue-500"
               >
                 <UIcon name="ph:download-simple" class="mr-2 h-5 w-5" />
-                Download File
+                {{ $t('site.payment.downloadFile') }}
               </UButton>
-              <p class="break-all text-xs text-blue-100/70">{{ resolvedDeliveryInfo }}</p>
+              <p class="break-all text-xs text-blue-700/80 dark:text-blue-100/70">{{ resolvedDeliveryInfo }}</p>
             </div>
 
             <div
               v-else-if="resolvedProductType === 'subscription'"
               class="rounded-xl border border-purple-500/20 bg-purple-500/10 p-4"
             >
-              <p class="mb-2 text-sm font-medium text-purple-300">Subscription Activated</p>
-              <p class="text-sm leading-6 text-purple-100/85 whitespace-pre-wrap">
-                {{ resolvedDeliveryInfo || 'Your subscription is active and ready to use.' }}
+              <p class="mb-2 text-sm font-medium text-purple-300">{{ $t('site.payment.subscriptionActivated') }}</p>
+              <p class="text-sm leading-6 text-purple-700/85 dark:text-purple-100/85 whitespace-pre-wrap">
+                {{ resolvedDeliveryInfo || $t('site.payment.subscriptionActivatedHint') }}
               </p>
             </div>
 
@@ -175,9 +175,9 @@
               v-else-if="resolvedProductType === 'topup'"
               class="rounded-xl border border-green-500/20 bg-green-500/10 p-4"
             >
-              <p class="mb-2 text-sm font-medium text-green-300">Balance Updated</p>
-              <p class="text-sm leading-6 text-green-100/85 whitespace-pre-wrap">
-                {{ resolvedDeliveryInfo || 'Your balance top-up has been applied successfully.' }}
+              <p class="mb-2 text-sm font-medium text-green-300">{{ $t('site.payment.balanceUpdated') }}</p>
+              <p class="text-sm leading-6 text-green-700/85 dark:text-green-100/85 whitespace-pre-wrap">
+                {{ resolvedDeliveryInfo || $t('site.payment.balanceUpdatedHint') }}
               </p>
             </div>
 
@@ -185,18 +185,18 @@
               v-else-if="resolvedProductType === 'service' || resolvedOrderStatus === 'processing'"
               class="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4"
             >
-              <p class="mb-2 text-sm font-medium text-amber-300">Service Request Received</p>
-              <p class="text-sm leading-6 text-amber-100/85 whitespace-pre-wrap">
-                {{ resolvedDeliveryInfo || 'Your payment has been received. Our team will continue processing this service order.' }}
+              <p class="mb-2 text-sm font-medium text-amber-300">{{ $t('site.payment.serviceRequestReceived') }}</p>
+              <p class="text-sm leading-6 text-amber-700/85 dark:text-amber-100/85 whitespace-pre-wrap">
+                {{ resolvedDeliveryInfo || $t('site.payment.serviceRequestReceivedHint') }}
               </p>
             </div>
 
             <div
               v-else
-              class="rounded-xl border border-white/10 bg-white/5 p-4"
+              class="rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4"
             >
-              <p class="text-sm leading-6 text-gray-300 whitespace-pre-wrap">
-                {{ resolvedDeliveryInfo || 'Your order has been paid successfully. Delivery details will appear here once they are ready.' }}
+              <p class="text-sm leading-6 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                {{ resolvedDeliveryInfo || $t('site.payment.deliveryReadyHint') }}
               </p>
             </div>
           </div>
@@ -230,8 +230,8 @@
             class="w-10 h-10 text-red-500"
           />
         </div>
-        <h1 class="text-2xl font-bold text-white mb-2">{{ $t('site.payment.paymentFailed') }}</h1>
-        <p class="text-gray-400 mb-6">{{ $t('site.payment.paymentFailedTips') }}</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('site.payment.paymentFailed') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{{ $t('site.payment.paymentFailedTips') }}</p>
         <p
           v-if="redirecting && externalCancelUrl"
           class="text-xs text-amber-300/80 mb-6"
@@ -311,7 +311,6 @@ const scheduleExternalRedirect = (targetUrl: string, status: 'paid' | 'failed' |
   }, 1200)
 }
 
-const hydrateCheckoutBridge = async () => {
 const copyDeliveryInfo = async () => {
   if (!resolvedDeliveryInfo.value || typeof window === 'undefined') return
   try {
@@ -326,6 +325,7 @@ const copyDeliveryInfo = async () => {
   }
 }
 
+const hydrateCheckoutBridge = async () => {
   if (!orderId) return
   try {
     const detail: any = await $fetch(`/api/orders/detail?orderId=${encodeURIComponent(orderId)}`)
@@ -340,7 +340,6 @@ const copyDeliveryInfo = async () => {
     if (!bridge) return
     externalReturnUrl.value = String(bridge.returnUrl || '').trim()
     externalCancelUrl.value = String(bridge.cancelUrl || '').trim()
-    externalCancelUrl.value = String(bridge.cancelUrl || '').trim()
     externalOrderId.value = String(bridge.externalOrderId || '').trim()
 
     if (payStatus.value === 'paid' && externalReturnUrl.value) {
@@ -352,6 +351,15 @@ const copyDeliveryInfo = async () => {
   } catch (error) {
     console.error('Failed to load checkout bridge detail', error)
   }
+}
+
+const productTypeLabel = (productType?: string) => {
+  if (productType === 'key') return t('site.payment.productTypeKey')
+  if (productType === 'file') return t('site.payment.productTypeFile')
+  if (productType === 'subscription') return t('site.payment.productTypeSubscription')
+  if (productType === 'topup') return t('site.payment.productTypeTopup')
+  if (productType === 'service') return t('site.payment.productTypeService')
+  return productType || t('site.payment.paid')
 }
 
 const checkStatus = async () => {

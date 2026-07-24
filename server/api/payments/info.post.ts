@@ -5,11 +5,16 @@ import path from 'path'
 import { db } from '../../db/runtime'
 import { requireOrderOwnership } from '../../utils/orderAccess'
 import { applyLocalPaymentPluginDefaults } from '../../../payments/meta'
+import {
+  getSiteLocaleConfig,
+  isPaymentMethodAvailableForLocale,
+  resolveRequestLocale,
+} from '../../utils/paymentMethodLocales'
 
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
-    const { orderId } = body
+    const { orderId, locale: inputLocale } = body
     
     if (!orderId) {
       return { code: 1, message: "Order ID is required" }
@@ -17,10 +22,13 @@ export default defineEventHandler(async (event) => {
 
     // 1. 归属校验后获取订单——支付信息含金额与收款内容,只允许订单所有者查看
     const order = await requireOrderOwnership(event, String(orderId))
+    const localeConfig = await getSiteLocaleConfig()
+    const requestLocale = resolveRequestLocale(event, inputLocale, localeConfig)
     
     // 2. 获取所有激活的支付方式
     const activeMethods = (await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true)))
       .map((method: any) => applyLocalPaymentPluginDefaults({ ...method }))
+      .filter((method: any) => isPaymentMethodAvailableForLocale(method, requestLocale, localeConfig))
     if (activeMethods.length === 0) {
       return { code: 1, message: "No active payment methods available" }
     }

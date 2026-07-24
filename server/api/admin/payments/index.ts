@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
           code: pluginCode,
           iconUrl: '',
           isActive: false,
+          supportedLocales: '',
           configJson,
           info,
           create,
@@ -85,6 +86,7 @@ export default defineEventHandler(async (event) => {
     if (insertData.info === undefined) insertData.info = null
     if (insertData.create === undefined) insertData.create = null
     if (insertData.callback === undefined) insertData.callback = null
+    insertData.supportedLocales = String(insertData.supportedLocales || '').trim() || null
     
     try {
       return await db.insert(paymentMethods).values(insertData).returning()

@@ -7,9 +7,9 @@
       <div
         v-if="isLoading"
         key="page-loading"
-        class="min-h-screen flex items-center justify-center bg-[#0A0A0A]"
+        class="min-h-screen flex items-center justify-center bg-white text-gray-900 dark:bg-[#0A0A0A] dark:text-white transition-colors duration-300"
       >
-        <div class="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        <div class="w-8 h-8 border-4 border-purple-500/80 dark:border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
       <component
         v-else-if="activeComponent"
@@ -19,50 +19,51 @@
       <div
         v-else
         key="page-404"
-        class="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white"
+        class="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white px-6 transition-colors duration-300"
       >
         <UIcon
           name="ph:file-dashed"
-          class="w-24 h-24 text-gray-700 mb-6"
+          class="w-24 h-24 text-gray-300 dark:text-gray-700 mb-6 transition-colors duration-300"
         ></UIcon>
-        <h1 class="text-4xl font-bold mb-4">404 - Page Not Found</h1>
-        <p class="text-gray-400 mb-8">The page you are looking for does not exist in this template.</p>
+        <h1 class="text-4xl font-bold mb-4">{{ t('routeFallback.notFoundTitle') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-8 text-center transition-colors duration-300">{{ t('routeFallback.notFoundDescription') }}</p>
         <UButton
           to="/"
           color="primary"
-          class="bg-purple-600 hover:bg-purple-500"
-        >Return Home</UButton>
+          class="bg-purple-600 hover:bg-purple-500 text-white dark:text-white"
+        >{{ t('routeFallback.returnHome') }}</UButton>
       </div>
     </Transition>
 
     <!-- Error Boundary Fallback -->
     <template #error="{ error, clearError }">
-      <div class="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-8">
+      <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white p-8 transition-colors duration-300">
         <UIcon
           name="ph:warning-circle-bold"
           class="w-24 h-24 text-red-500 mb-6"
         />
-        <h1 class="text-4xl font-bold mb-4 text-center">Oops! Something went wrong.</h1>
-        <p class="text-gray-400 mb-8 max-w-lg text-center">
-          We encountered an unexpected error while loading this page. Our team has been notified.
+        <h1 class="text-4xl font-bold mb-4 text-center">{{ t('routeFallback.errorTitle') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-8 max-w-lg text-center transition-colors duration-300">
+          {{ t('routeFallback.errorDescription') }}
         </p>
-        <div class="bg-black/50 p-4 rounded-xl border border-red-500/20 mb-8 max-w-2xl w-full overflow-auto">
-          <code class="text-sm text-red-400">{{ error }}</code>
+        <div class="bg-white border border-red-200 dark:bg-black/40 dark:border-red-500/20 p-4 rounded-xl mb-8 max-w-2xl w-full overflow-auto shadow-sm dark:shadow-none transition-colors duration-300">
+          <code class="text-sm text-red-500 dark:text-red-400">{{ error }}</code>
         </div>
         <div class="flex gap-4">
           <UButton
             @click="clearError"
             color="primary"
             variant="outline"
+            class="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/5"
           >
-            Try Again
+            {{ t('routeFallback.tryAgain') }}
           </UButton>
           <UButton
             to="/"
             color="primary"
             class="bg-purple-600 hover:bg-purple-500 text-white"
           >
-            Return Home
+            {{ t('routeFallback.returnHome') }}
           </UButton>
         </div>
       </div>
@@ -75,6 +76,7 @@ import { useRoute } from 'vue-router'
 import * as themeBuild from '~/generated/theme-build'
 
 const route = useRoute()
+const { t } = useI18n()
 
 // 兼容处理：如果 URL 包含 .vue 或以 /index 结尾，重定向到清理后的规范路径
 const cleanPath = route.path.replace(/\.vue$/, '').replace(/\/index$/, '')

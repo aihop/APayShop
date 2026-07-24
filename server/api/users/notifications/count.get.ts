@@ -3,8 +3,8 @@ import { eq, and, count } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const userId = session.user?.id as number | undefined
+  const session = await getUserSession(event).catch(() => null)
+  const userId = session?.user?.id as number | undefined
 
   const conditions = []
   if (userId) {

@@ -32,8 +32,8 @@
             <div class="flex items-center gap-3">
               <img
                 v-if="row.original.iconUrl"
-                :src="row.original.iconUrl"
-                :alt="row.original.name"
+                :src="String(row.original.iconUrl)"
+                :alt="String(row.original.name)"
                 class="w-7 h-7 rounded-md border border-gray-200 dark:border-gray-800 bg-white object-contain p-1"
               >
               <div
@@ -45,6 +45,13 @@
               <div class="min-w-0">
                 <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ row.original.name }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ row.original.code }}</div>
+                <div class="mt-1">
+                  <UBadge
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                  >{{ getMethodLocaleSummary(String(row.original.supportedLocales || '')) }}</UBadge>
+                </div>
               </div>
             </div>
           </template>
@@ -53,7 +60,7 @@
             <div class="flex items-center gap-2">
               <USwitch
                 :model-value="Boolean(row.original.isActive)"
-                :disabled="row.original.isLocalOnly"
+                :disabled="Boolean(row.original.isLocalOnly)"
                 @update:model-value="val => { if(!row.original.isLocalOnly) { row.original.isActive = val; toggleActive(row.original) } }"
               />
               <UBadge
@@ -133,6 +140,44 @@
             />
           </UFormField>
 
+          <UFormField :label="$t('admin.payments.modal.language_label')">
+            <div class="space-y-3">
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ $t('admin.payments.modal.language_help') }}
+              </p>
+
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <button
+                  v-for="localeOption in paymentLocaleOptions"
+                  :key="localeOption.code"
+                  type="button"
+                  :class="[
+                    'flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-colors',
+                    isMethodLocaleSelected(localeOption.code)
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-200'
+                      : 'border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-[#09090b] text-gray-600 dark:text-gray-300'
+                  ]"
+                  @click="toggleMethodLocale(localeOption.code, !isMethodLocaleSelected(localeOption.code))"
+                >
+                  <UCheckbox
+                    :model-value="isMethodLocaleSelected(localeOption.code)"
+                      @update:model-value="(checked) => toggleMethodLocale(localeOption.code, Boolean(checked))"
+                    @click.stop
+                  />
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium truncate">{{ localeOption.label }}</div>
+                    <div class="text-[11px] text-gray-500 uppercase">{{ localeOption.code }}</div>
+                  </div>
+                </button>
+              </div>
+
+              <UBadge
+                color="neutral"
+                variant="subtle"
+              >{{ getMethodLocaleSummary(form.supportedLocales) }}</UBadge>
+            </div>
+          </UFormField>
+
           <UFormField :label="$t('admin.payments.modal.info_label')">
             <UTextarea
               v-model="form.info"
@@ -190,7 +235,7 @@
             <UButton
               color="neutral"
               variant="ghost"
-              @click="isModalOpen = false"
+              @click="closeMethodModal"
             >{{ $t('admin.payments.modal.cancel') }}</UButton>
             <UButton
               color="primary"
@@ -283,7 +328,7 @@
                 variant="ghost"
                 icon="ph:x"
                 class="-my-1"
-                @click="isFailuresModalOpen = false"
+                @click="closeFailuresModal"
               />
             </div>
 
@@ -361,7 +406,10 @@ const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
+const { settings: appSettings, fetchSettings } = useSettings()
 const activeTab = ref('methods')
+
+await fetchSettings()
 
 const tabItems = computed(() => [
   { label: t('admin.payments.page.tabs.methods'), value: 'methods', icon: 'ph:credit-card' },
@@ -380,7 +428,7 @@ const {
   data: methods,
   pending,
   refresh,
-} = await useFetch('/api/admin/payments', {
+} = await useFetch<any[]>('/api/admin/payments', {
   onResponseError({ response }) {
     if (response.status === 401) {
       useRouter().push('/admin/login')
@@ -395,12 +443,96 @@ const form = reactive({
   name: '',
   code: '',
   iconUrl: '',
+  supportedLocales: '',
   configJson: '{}',
   info: '',
   create: '',
   callback: '',
   isActive: false,
 })
+
+const baseLocaleOptions = [
+  { code: 'en', label: 'English' },
+  { code: 'zh', label: '简体中文' },
+  { code: 'zh-TW', label: '繁体中文' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'es', label: 'Español' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'pt', label: 'Português' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'hi', label: 'हिन्दी' },
+]
+
+const normalizeLocaleCode = (value: string) => {
+  const normalized = String(value || '').trim().replace(/_/g, '-')
+  if (!normalized) return ''
+
+  const [language, region, ...rest] = normalized.split('-').filter(Boolean)
+  if (!language) return ''
+
+  const parts = [language.toLowerCase()]
+  if (region) parts.push(region.length <= 3 ? region.toUpperCase() : region.toLowerCase())
+  if (rest.length) parts.push(...rest.map(part => part.toLowerCase()))
+  return parts.join('-')
+}
+
+const parseLocaleCodes = (value: string | null | undefined) => {
+  return Array.from(new Set(
+    String(value || '')
+      .split(',')
+      .map(item => normalizeLocaleCode(item))
+      .filter(Boolean)
+  ))
+}
+
+const selectedMethodLocales = computed(() => parseLocaleCodes(form.supportedLocales))
+
+const paymentLocaleOptions = computed(() => {
+  const configuredLocales = parseLocaleCodes(appSettings.value?.supported_locales || 'en,zh')
+  const allCodes = Array.from(new Set([
+    ...configuredLocales,
+    ...selectedMethodLocales.value,
+  ]))
+
+  return allCodes.map((code) => {
+    const matched = baseLocaleOptions.find(locale => normalizeLocaleCode(locale.code) === code)
+    return matched || { code, label: code }
+  })
+})
+
+const isMethodLocaleSelected = (code: string) => {
+  const normalizedCode = normalizeLocaleCode(code)
+  return selectedMethodLocales.value.includes(normalizedCode)
+}
+
+const toggleMethodLocale = (code: string, checked: boolean) => {
+  const normalizedCode = normalizeLocaleCode(code)
+  let current = [...selectedMethodLocales.value]
+
+  if (checked && !current.includes(normalizedCode)) {
+    current.push(normalizedCode)
+  } else if (!checked) {
+    current = current.filter(item => item !== normalizedCode)
+  }
+
+  const visualOrder = paymentLocaleOptions.value
+    .map(option => normalizeLocaleCode(option.code))
+    .filter(optionCode => current.includes(optionCode))
+
+  form.supportedLocales = visualOrder.join(',')
+}
+
+const getMethodLocaleSummary = (value: string | null | undefined) => {
+  const locales = parseLocaleCodes(value)
+  if (!locales.length) {
+    return t('admin.payments.modal.language_all')
+  }
+
+  return locales.join(', ')
+}
 
 const hasJsonError = ref(false)
 
@@ -417,6 +549,7 @@ const openModal = (method?: any) => {
   hasJsonError.value = false
   if (method) {
     Object.assign(form, method)
+    form.supportedLocales = typeof form.supportedLocales === 'string' ? form.supportedLocales : ''
     if (typeof form.configJson !== 'string') {
       form.configJson = JSON.stringify(form.configJson || {}, null, 2)
     }
@@ -426,6 +559,7 @@ const openModal = (method?: any) => {
       name: '',
       code: '',
       iconUrl: '',
+      supportedLocales: '',
       configJson: '{}',
       info: '',
       create: '',
@@ -434,6 +568,10 @@ const openModal = (method?: any) => {
     })
   }
   isModalOpen.value = true
+}
+
+const closeMethodModal = () => {
+  isModalOpen.value = false
 }
 
 const saveMethod = async () => {
@@ -578,6 +716,10 @@ const copyVisitorId = (id: string) => {
 const viewDetails = (record: any) => {
   selectedFailure.value = record
   isFailuresModalOpen.value = true
+}
+
+const closeFailuresModal = () => {
+  isFailuresModalOpen.value = false
 }
 
 const formatJson = (str: string) => {

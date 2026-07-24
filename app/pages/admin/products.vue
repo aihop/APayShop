@@ -14,7 +14,7 @@
       >{{ $t('admin.products.add') }}</UButton>
     </div>
 
-    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedProducts"
@@ -50,24 +50,67 @@
             ${{ Number(row.original.price || 0).toFixed(2) }}
           </template>
           <template #type-cell="{ row }">
-            <div class="flex items-center gap-2">
-              <UBadge
-                color="neutral"
-                variant="subtle"
-                size="sm"
-                class="capitalize"
+            <div class="flex flex-col gap-2 min-w-[16rem] py-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <UBadge
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                  class="capitalize"
+                >
+                  {{ row.original.type }}
+                </UBadge>
+                <UTooltip
+                  :text="$t('admin.products.pricingPlan')"
+                  v-if="getProductMetaData(row.original).is_pricing_plan"
+                >
+                  <UIcon
+                    name="ph:star-fill"
+                    class="w-4 h-4 text-yellow-500"
+                  />
+                </UTooltip>
+              </div>
+
+              <div
+                v-if="isPlanFeatureProduct(row.original) && getProductPlanFeatures(row.original).length"
+                class="flex flex-wrap gap-1.5"
               >
-                {{ row.original.type }}
-              </UBadge>
-              <UTooltip
-                text="Shown as Pricing Plan on Frontend"
-                v-if="row.original.metaData?.is_pricing_plan"
-              >
-                <UIcon
-                  name="ph:star-fill"
-                  class="w-4 h-4 text-yellow-500"
-                />
-              </UTooltip>
+                <UBadge
+                  v-for="(feature, index) in getVisiblePlanFeatures(row.original)"
+                  :key="`${row.original.id}-feature-${index}`"
+                  :color="feature.included ? 'primary' : 'neutral'"
+                  variant="subtle"
+                  size="sm"
+                  class="max-w-full"
+                >
+                  <span
+                    class="inline-flex items-center gap-1 max-w-full"
+                    :class="feature.included ? '' : 'opacity-70'"
+                  >
+                    <UIcon
+                      :name="feature.included ? 'ph:check' : 'ph:x'"
+                      class="w-3.5 h-3.5 shrink-0"
+                    />
+                    <span
+                      class="truncate"
+                      :class="feature.included ? '' : 'line-through'"
+                    >{{ feature.name }}</span>
+                  </span>
+                </UBadge>
+
+                <UTooltip
+                  v-if="getHiddenPlanFeatureCount(row.original) > 0"
+                  :text="getPlanFeaturesTooltip(row.original)"
+                >
+                  <UBadge
+                    color="neutral"
+                    variant="outline"
+                    size="sm"
+                  >
+                    +{{ getHiddenPlanFeatureCount(row.original) }}
+                  </UBadge>
+                </UTooltip>
+              </div>
             </div>
           </template>
 
@@ -94,7 +137,7 @@
                 color="primary"
                 variant="ghost"
                 icon="ph:link"
-                title="View Product Page"
+                :title="$t('admin.products.viewPage')"
                 :to="`/products/${row.original.slug || row.original.id}`"
                 target="_blank"
               />
@@ -139,12 +182,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { TableColumn } from '@nuxt/ui'
 import { useSortable } from '@vueuse/integrations/useSortable'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 definePageMeta({ title: 'Products Management' })
 
@@ -157,8 +199,8 @@ const columns = computed(() => [
   { accessorKey: 'image', header: 'Image' },
   { accessorKey: 'name', header: t('admin.products.name') },
   { accessorKey: 'price', header: t('admin.products.price') },
-  { accessorKey: 'type', header: 'Type' },
-  { accessorKey: 'views', header: 'Views' },
+  { accessorKey: 'type', header: t('admin.products.type') },
+  { accessorKey: 'views', header: t('admin.products.views') },
   { accessorKey: 'isActive', header: t('admin.products.status') },
   {
     accessorKey: 'actions',
@@ -178,7 +220,6 @@ const {
   data: productsData,
   pending,
   refresh,
-  error,
 } = await useFetch<any>('/api/admin/products', {
   query: {
     page,
@@ -195,19 +236,88 @@ const {
 const paginatedProducts = computed(() => productsData.value?.data || [])
 const totalItems = computed(() => productsData.value?.total || 0)
 
+type ProductRow = {
+  id?: number | string
+  type?: string
+  metaData?: any
+}
+
+type PlanFeature = {
+  name: string
+  included: boolean
+}
+
+const parseJsonMaybe = (value: unknown) => {
+  if (typeof value !== 'string') return value
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+const getProductMetaData = (product: ProductRow) => {
+  const parsed = parseJsonMaybe(product?.metaData)
+  return parsed && typeof parsed === 'object' ? parsed as Record<string, any> : {}
+}
+
+const isPlanFeatureProduct = (product: ProductRow) => ['subscription', 'topup'].includes(String(product?.type || ''))
+
+const normalizePlanFeatures = (value: unknown): PlanFeature[] => {
+  const parsed = parseJsonMaybe(value)
+  if (!Array.isArray(parsed)) return []
+
+  return parsed
+    .map((feature: any) => {
+      if (typeof feature === 'string') {
+        return {
+          name: feature.trim(),
+          included: true,
+        }
+      }
+
+      return {
+        name: String(feature?.name || '').trim(),
+        included: feature?.included !== false,
+      }
+    })
+    .filter((feature: PlanFeature) => feature.name)
+}
+
+const getProductPlanFeatures = (product: ProductRow) => {
+  const metaData = getProductMetaData(product)
+  const translatedFeatures = normalizePlanFeatures(metaData?.translations?.[locale.value]?.plan_features)
+
+  if (translatedFeatures.length > 0) {
+    return translatedFeatures
+  }
+
+  return normalizePlanFeatures(metaData?.plan_features)
+}
+
+const getVisiblePlanFeatures = (product: ProductRow) => getProductPlanFeatures(product).slice(0, 2)
+
+const getHiddenPlanFeatureCount = (product: ProductRow) => Math.max(getProductPlanFeatures(product).length - 2, 0)
+
+const getPlanFeaturesTooltip = (product: ProductRow) => getProductPlanFeatures(product)
+  .map((feature) => `${feature.included ? '✓' : '✕'} ${feature.name}`)
+  .join('\n')
+
 const isModalOpen = ref(false)
 const editingProduct = ref<any>(null)
+const sortableTarget = computed<HTMLElement | null>(() => import.meta.client ? document.querySelector<HTMLElement>('.my-table-tbody') : null)
 
 // 拖拽排序逻辑
-useSortable('.my-table-tbody', paginatedProducts, {
+useSortable(sortableTarget, paginatedProducts, {
   animation: 150,
   handle: '.cursor-move',
-  onEnd: async (evt) => {
+  onEnd: async () => {
     const total = totalItems.value
     const startIndex = (page.value - 1) * pageCount.value
 
     // 生成基于新顺序的排序数据
-    const reorderedItems = paginatedProducts.value.map((item, index) => ({
+    const reorderedItems = paginatedProducts.value.map((item: any, index: number) => ({
       id: item.id,
       sortOrder: total - (startIndex + index),
     }))
@@ -232,7 +342,7 @@ useSortable('.my-table-tbody', paginatedProducts, {
       await refresh()
     }
   },
-})
+} as any)
 
 const openModal = (product?: any) => {
   if (product && typeof product === 'object') {
@@ -245,8 +355,8 @@ const openModal = (product?: any) => {
 
 const deleteProduct = async (id: number) => {
   const isConfirmed = await confirm({
-    title: 'Delete Product',
-    description: 'Are you sure you want to delete this product?',
+    title: t('admin.products.delete'),
+    description: t('admin.products.confirmDelete'),
   })
 
   if (!isConfirmed) return

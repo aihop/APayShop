@@ -9,10 +9,16 @@ import { executeCreateScript } from '../../utils/sandbox'
 import { ORDER_PAY_STATUS } from '../../utils/constants'
 import { requireOrderOwnership } from '../../utils/orderAccess'
 import { resolvePaymentMethodCurrency } from '../../utils/topup'
+import {
+  getSiteLocaleConfig,
+  isPaymentMethodAvailableForLocale,
+  resolveRequestLocale,
+} from '../../utils/paymentMethodLocales'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
   methodCode: z.string().min(1),
+  locale: z.string().min(1).optional(),
   returnUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
   successUrl: z.string().url().optional()
@@ -31,6 +37,12 @@ export default defineEventHandler(async (event) => {
     const method = methods.find((m: any) => String(m.code).toLowerCase() === body.methodCode.toLowerCase())
     if (!method) {
       return { code: 1, message: 'Payment method not found or inactive' }
+    }
+
+    const localeConfig = await getSiteLocaleConfig()
+    const requestLocale = resolveRequestLocale(event, body.locale, localeConfig)
+    if (!isPaymentMethodAvailableForLocale(method, requestLocale, localeConfig)) {
+      return { code: 1, message: 'Payment method is not available in current language' }
     }
 
     let createScript = method.create || ''

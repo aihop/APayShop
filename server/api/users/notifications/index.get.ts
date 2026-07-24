@@ -33,8 +33,8 @@ const resolveNotificationTargetPath = (data: Record<string, any>) => {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const userId = (session.user as any)?.id as number | undefined
+  const session = await getUserSession(event).catch(() => null)
+  const userId = (session?.user as any)?.id as number | undefined
 
   const query = getQuery(event)
   const page = parseInt(query.page as string) || 1

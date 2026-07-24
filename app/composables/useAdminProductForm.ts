@@ -417,16 +417,23 @@ export const useAdminProductForm = (emit: any) => {
 
     // 处理 Subscription / Top-up 的展示 Features
     if (form.type === 'subscription' || form.type === 'topup') {
-      if (form.metaData.is_pricing_plan) {
-        try {
-          const cleanFeatures = featuresList.value.map(f => ({
-            name: f.name, icon: f.icon, included: f.included
+      try {
+        const cleanFeatures = featuresList.value
+          .map(f => ({
+            name: String(f.name || '').trim(),
+            icon: f.icon,
+            included: f.included
           }))
+          .filter(f => f.name)
+
+        if (cleanFeatures.length > 0) {
           form.metaData.plan_features = cleanFeatures
-        } catch (e) {
-          toast.add({ title: 'Error', description: 'Invalid Default Plan Features', color: 'error' })
-          return false
+        } else {
+          delete form.metaData.plan_features
         }
+      } catch (e) {
+        toast.add({ title: 'Error', description: 'Invalid Default Plan Features', color: 'error' })
+        return false
       }
     }
 
@@ -480,12 +487,22 @@ export const useAdminProductForm = (emit: any) => {
         form.metaData.translations[loc].form_schema_labels = trans.form_schema_labels
       }
 
-      if ((form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan) {
+      if (form.type === 'subscription' || form.type === 'topup') {
         try {
           const transFeatures = translationFeaturesLists[loc] || []
-          form.metaData.translations[loc].plan_features = transFeatures.map(f => ({
-            name: f.name, icon: f.icon, included: f.included
-          }))
+          const cleanTranslatedFeatures = transFeatures
+            .map(f => ({
+              name: String(f.name || '').trim(),
+              icon: f.icon,
+              included: f.included
+            }))
+            .filter(f => f.name)
+
+          if (cleanTranslatedFeatures.length > 0) {
+            form.metaData.translations[loc].plan_features = cleanTranslatedFeatures
+          } else {
+            delete form.metaData.translations[loc].plan_features
+          }
         } catch (e) {
           toast.add({ title: 'Error', description: `Invalid ${loc} Plan Features`, color: 'error' })
           return false

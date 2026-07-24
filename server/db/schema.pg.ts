@@ -97,6 +97,7 @@ export const paymentMethods = pgTable('payment_methods', {
   code: text('code').notNull(), // e.g., 'alipay', 'stripe'
   iconUrl: text('icon_url'),
   isActive: boolean('is_active').notNull().default(false),
+  supportedLocales: text('supported_locales'), // Comma-separated locale whitelist, empty means all locales
   configJson: text('config_json'), // JSON object for API keys, etc.
   info: text('info'), // HTML for payment info
   create: text('create'), // JS for payment initiation
@@ -176,7 +177,7 @@ export const themeSettings = pgTable('theme_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
-export const failures = pgTable('failures', {
+export const paymentFailures = pgTable('payment_failures', {
   id: serial('id').primaryKey(),
   orderId: text('order_id').notNull(),
   cardBin: text('card_bin'),
@@ -188,6 +189,8 @@ export const failures = pgTable('failures', {
   visitorId: text('visitor_id'), // To track anonymous users
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
+
+export const failures = paymentFailures
 
 export const webhooks = pgTable('webhooks', {
   id: serial('id').primaryKey(),

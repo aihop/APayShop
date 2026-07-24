@@ -49,6 +49,7 @@ export const {
   orders,
   settings,
   themeSettings,
+  paymentFailures,
   failures,
   webhooks,
   eventRules,

@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 shadow-[0_0_30px_rgba(0,0,0,0.3)] rounded-2xl flex flex-col flex-1 min-h-0">
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0">
 
       <UTable
         :columns="columns"

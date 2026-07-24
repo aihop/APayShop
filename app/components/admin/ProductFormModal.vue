@@ -9,7 +9,7 @@
       :default-locale="defaultLocale"
       :current-locale="currentTabLocale"
       :has-default-name="Boolean(form.name)"
-      @select="currentTabLocale = $event"
+      @select="handleLocaleSelect"
     />
 
     <form
@@ -236,7 +236,7 @@
       </div>
 
       <ProductPricingFeaturesSection
-        :visible="(form.type === 'subscription' || form.type === 'topup') && form.metaData.is_pricing_plan"
+        :visible="form.type === 'subscription' || form.type === 'topup'"
         :locale="currentTabLocale"
         :is-visual-mode="isFeaturesVisualMode"
         :features-json="currentFeaturesJson"
@@ -248,7 +248,10 @@
         @remove-feature="removeFeature"
       >
         <template #badge-field>
-          <UFormField :label="$t('admin.products.form.plan_badge', { locale: currentTabLocale })">
+          <UFormField
+            v-if="form.metaData.is_pricing_plan"
+            :label="$t('admin.products.form.plan_badge', { locale: currentTabLocale })"
+          >
             <UInput
               v-if="currentTabLocale === defaultLocale"
               v-model="form.metaData.plan_badge"
@@ -265,7 +268,7 @@
         </template>
         <template #color-field>
           <UFormField
-            v-if="currentTabLocale === defaultLocale"
+            v-if="currentTabLocale === defaultLocale && form.metaData.is_pricing_plan"
             :label="$t('admin.products.form.highlight_color')"
           >
             <USelect
@@ -367,6 +370,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+// 显式 import:这些组件在 components/admin/products/ 子目录下,Nuxt 自动导入会带
+// 路径前缀(<AdminProductsProductPricingFeaturesSection>),模板里用短名解析不到,
+// 表现为「订阅/充值的套餐特性、服务表单、图片字段等整块 UI 静默不渲染」
+import ProductGatewayPlanIdsSection from './products/ProductGatewayPlanIdsSection.vue'
+import ProductImagesField from './products/ProductImagesField.vue'
+import ProductLocaleTabs from './products/ProductLocaleTabs.vue'
+import ProductPricingFeaturesSection from './products/ProductPricingFeaturesSection.vue'
+import ProductServiceSchemaSection from './products/ProductServiceSchemaSection.vue'
 import { useAdminProductForm } from '~/composables/useAdminProductForm'
 
 const props = defineProps<{
@@ -463,6 +474,17 @@ const previewImage = (url: string) => {
 
 const onFileUpload = (e: Event, input: HTMLInputElement | null) => {
   handleFileUpload(e, input)
+}
+
+const handleLocaleSelect = (locale: string) => {
+  const index = supportedLocales.value.indexOf(locale)
+
+  if (index === -1) {
+    currentTabLocale.value = locale
+    return
+  }
+
+  onTabChange(index)
 }
 
 const onSubmit = async () => {

@@ -80,10 +80,24 @@
       "breakpoints": true
     },
     {
+      "idx": 11,
+      "version": "7",
+      "when": 1785200401000,
+      "tag": "0011_add_payment_method_locales",
+      "breakpoints": true
+    },
+    {
       "idx": 12,
       "version": "7",
       "when": 1785300000000,
       "tag": "0012_add_orders_currency",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785300003000,
+      "tag": "0013_add_payment_failures",
       "breakpoints": true
     }
   ]

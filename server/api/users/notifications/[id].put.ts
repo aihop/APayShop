@@ -3,8 +3,8 @@ import { eq, and } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const userId = session.user?.id as number | undefined
+  const session = await getUserSession(event).catch(() => null)
+  const userId = session?.user?.id as number | undefined
   const notificationId = parseInt(getRouterParam(event, 'id') || '0')
 
   if (!notificationId) {

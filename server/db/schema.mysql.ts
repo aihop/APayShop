@@ -97,6 +97,7 @@ export const paymentMethods = mysqlTable('payment_methods', {
   code: text('code').notNull(), // e.g., 'alipay', 'stripe'
   iconUrl: text('icon_url'),
   isActive: boolean('is_active').notNull().default(false),
+  supportedLocales: text('supported_locales'), // Comma-separated locale whitelist, empty means all locales
   configJson: text('config_json'), // JSON object for API keys, etc.
   info: text('info'), // HTML for payment info
   create: text('create'), // JS for payment initiation
@@ -176,7 +177,7 @@ export const themeSettings = mysqlTable('theme_settings', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-export const failures = mysqlTable('failures', {
+export const paymentFailures = mysqlTable('payment_failures', {
   id: int('id').autoincrement().primaryKey(),
   orderId: text('order_id').notNull(),
   cardBin: text('card_bin'),
@@ -188,6 +189,8 @@ export const failures = mysqlTable('failures', {
   visitorId: text('visitor_id'), // To track anonymous users
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
+
+export const failures = paymentFailures
 
 export const webhooks = mysqlTable('webhooks', {
   id: int('id').autoincrement().primaryKey(),

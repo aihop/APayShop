@@ -25,7 +25,7 @@
           <div class="flex justify-between items-end mb-6">
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-2">{{ $t('site.payment.workspaceTotalPayable') }}</p>
-              <p class="text-5xl font-bold text-gray-900 dark:text-white tracking-tighter group-hover/summary:scale-105 transition-transform origin-left">USD {{ amount.toFixed(2) }}</p>
+              <p class="text-5xl font-bold text-gray-900 dark:text-white tracking-tighter group-hover/summary:scale-105 transition-transform origin-left">{{ displayCurrency }} {{ amount.toFixed(2) }}</p>
             </div>
             <div class="text-right">
               <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-2">{{ $t('site.payment.workspaceQuantity') }}</p>
@@ -38,15 +38,15 @@
 
         <div
           v-if="availablePaymentMethods.length > 1"
-          class="rounded-[28px] border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-black/30 p-5 shadow-inner"
+          class="rounded-[24px] border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-black/30 p-4 shadow-inner"
         >
-          <label class="block text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-4 ml-1">{{ $t('site.payment.workspaceSelectMethod') }}</label>
-          <div class="grid grid-cols-2 md:grid-cols-1 gap-3">
+          <label class="block text-[9px] font-bold uppercase tracking-[0.24em] text-gray-400 dark:text-white/20 mb-3 ml-1">{{ $t('site.payment.workspaceSelectMethod') }}</label>
+          <div class="grid grid-cols-2 md:grid-cols-1 gap-2">
             <button
               v-for="method in availablePaymentMethods"
               :key="method.code"
               :class="[
-                'flex items-center justify-center gap-3 p-4 rounded-[20px] border transition-all duration-300 font-bold text-xs shadow-inner',
+                'flex items-center justify-start gap-2.5 p-3 rounded-2xl border transition-all duration-300 font-bold text-[11px] leading-none shadow-inner min-h-[44px] text-left',
                 selectedPaymentMethod === method.code
                   ? 'border-[#6d4cff] bg-[#6d4cff]/10 text-[#6d4cff] shadow-[0_10px_30px_rgba(109,76,255,0.2)]'
                   : 'border-gray-200 dark:border-white/5 bg-white dark:bg-black/20 text-gray-400 dark:text-white/40 hover:border-[#6d4cff]/50 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5'
@@ -57,20 +57,46 @@
                 v-if="method.iconUrl"
                 :src="method.iconUrl"
                 :alt="method.name"
-                class="w-5 h-5 rounded-sm object-contain bg-white/90 p-0.5"
+                class="w-4 h-4 rounded-sm object-contain bg-white/90 p-0.5 shrink-0"
               >
               <UIcon
                 v-else
                 name="ph:credit-card-bold"
-                class="w-5 h-5"
+                class="w-4 h-4 shrink-0"
               />
-              <span>{{ method.name }}</span>
+              <span class="min-w-0 truncate">{{ method.name }}</span>
             </button>
           </div>
         </div>
       </aside>
 
       <div id="payment-info-container" class="min-h-[240px] flex flex-col justify-center">
+        <div
+          v-if="qrCodeImageUrl && !isFetchingPaymentInfo"
+          class="mb-6 rounded-[28px] border border-gray-100 dark:border-white/10 bg-white dark:bg-black/30 p-6 shadow-inner"
+        >
+          <div class="flex flex-col items-center text-center">
+            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-400 dark:text-white/20 mb-3">{{ $t('site.payment.workspaceScanToPay') }}</p>
+            <div class="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-gray-100">
+              <img
+                :src="qrCodeImageUrl"
+                :alt="$t('site.payment.workspaceScanToPay')"
+                class="w-52 h-52 object-contain"
+              >
+            </div>
+            <p class="mt-4 text-sm font-medium text-gray-700 dark:text-white/80">{{ qrCodeHint || $t('site.payment.workspaceQrHint') }}</p>
+            <a
+              v-if="qrCodeLink"
+              :href="qrCodeLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-3 text-sm font-semibold text-[#6d4cff] hover:text-[#5a3fe0] transition-colors"
+            >
+              {{ $t('site.payment.workspaceOpenPaymentLink') }}
+            </a>
+          </div>
+        </div>
+
         <div
           v-if="isFetchingPaymentInfo"
           class="flex flex-col items-center justify-center py-12 gap-4"
@@ -102,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRequestHeaders, useRouter, useToast } from '#imports'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
@@ -123,18 +149,30 @@ const emit = defineEmits<{
   success: [orderId: string]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 const router = useRouter()
 const { localePath } = useLocaleRouter()
+const { getSetting } = useSettings()
 const requestHeaders = useRequestHeaders(['cookie'])
+const displayCurrency = computed(() => {
+  const currency = String(getSetting('currency', 'USD') || 'USD').trim().toUpperCase()
+  return currency || 'USD'
+})
 
 const isFetchingPaymentInfo = ref(false)
 const availablePaymentMethods = ref<any[]>([])
 const selectedPaymentMethod = ref('')
 const paymentInfoContent = ref('')
+const qrCodePayload = ref('')
+const qrCodeLink = ref('')
+const qrCodeHint = ref('')
 const htmlContainer = ref<HTMLElement | null>(null)
 const injectedScripts = ref<HTMLScriptElement[]>([])
+const qrCodeImageUrl = computed(() => {
+  if (!qrCodePayload.value) return ''
+  return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrCodePayload.value)}`
+})
 
 const clearInjectedScripts = () => {
   injectedScripts.value.forEach((script) => {
@@ -145,8 +183,15 @@ const clearInjectedScripts = () => {
   injectedScripts.value = []
 }
 
+const clearQrCodeState = () => {
+  qrCodePayload.value = ''
+  qrCodeLink.value = ''
+  qrCodeHint.value = ''
+}
+
 const resetWorkspace = () => {
   clearInjectedScripts()
+  clearQrCodeState()
   availablePaymentMethods.value = []
   selectedPaymentMethod.value = ''
   paymentInfoContent.value = ''
@@ -182,6 +227,7 @@ const executeScripts = () => {
 
 const switchPaymentMethod = (code: string) => {
   selectedPaymentMethod.value = code
+  clearQrCodeState()
   const method = availablePaymentMethods.value.find((item) => item.code === code)
   if (!method) return
   paymentInfoContent.value = method.content
@@ -196,7 +242,10 @@ const fetchPaymentInfo = async (orderId: string) => {
     const res: any = await $fetch('/api/payments/info', {
       method: 'POST',
       headers: requestHeaders,
-      body: { orderId },
+      body: {
+        orderId,
+        locale: locale.value,
+      },
     })
 
     const methods = res?.data?.methods || []
@@ -221,6 +270,7 @@ const handlePaymentSuccess = async (event: Event) => {
   const detailOrderId = detail.orderId ? String(detail.orderId) : ''
   if (detailOrderId && detailOrderId !== props.orderId) return
 
+  clearQrCodeState()
   emit('success', props.orderId)
 
   toast.add({
@@ -243,6 +293,26 @@ const handlePaymentError = (event: Event) => {
   })
 }
 
+const handlePaymentQrReady = (event: Event) => {
+  const detail = (event as CustomEvent).detail || {}
+  const detailOrderId = detail.orderId ? String(detail.orderId) : ''
+  if (detailOrderId && detailOrderId !== props.orderId) return
+
+  const payload = String(detail.qrCodeText || detail.payload || detail.paymentUrl || '').trim()
+  if (!payload) return
+
+  qrCodePayload.value = payload
+  qrCodeLink.value = String(detail.paymentUrl || '').trim()
+  qrCodeHint.value = String(detail.message || '').trim()
+}
+
+const handlePaymentQrClear = (event: Event) => {
+  const detail = (event as CustomEvent).detail || {}
+  const detailOrderId = detail.orderId ? String(detail.orderId) : ''
+  if (detailOrderId && detailOrderId !== props.orderId) return
+  clearQrCodeState()
+}
+
 watch(
   () => props.orderId,
   async (orderId) => {
@@ -259,12 +329,16 @@ onMounted(() => {
   if (typeof window === 'undefined') return
   window.addEventListener('order-success', handlePaymentSuccess)
   window.addEventListener('order-error', handlePaymentError)
+  window.addEventListener('payment-qr-ready', handlePaymentQrReady)
+  window.addEventListener('payment-qr-clear', handlePaymentQrClear)
 })
 
 onUnmounted(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('order-success', handlePaymentSuccess)
     window.removeEventListener('order-error', handlePaymentError)
+    window.removeEventListener('payment-qr-ready', handlePaymentQrReady)
+    window.removeEventListener('payment-qr-clear', handlePaymentQrClear)
   }
   clearInjectedScripts()
 })

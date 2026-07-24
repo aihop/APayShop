@@ -15,7 +15,7 @@
 
       <div
         v-if="pending"
-        class="grid gap-6 md:grid-cols-[260px,1fr]"
+        class="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]"
       >
         <div class="h-[360px] rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A] animate-pulse"></div>
         <div class="h-[620px] rounded-[40px] border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A] animate-pulse"></div>
@@ -36,21 +36,21 @@
             class="bg-purple-600 hover:bg-purple-500 text-white"
             :to="localePath('/products')"
           >
-            Browse Products
+              {{ $t('site.payment.browseProducts') }}
           </UButton>
           <UButton
             color="neutral"
             variant="outline"
             :to="localePath('/user/orders')"
           >
-            My Orders
+              {{ $t('site.order.myOrders') }}
           </UButton>
         </div>
       </div>
 
       <div
         v-else
-        class="grid gap-6 md:grid-cols-[260px,1fr]"
+        class="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]"
       >
         <aside class="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-3xl p-6 h-fit shadow-sm dark:shadow-none">
           <div class="flex items-start gap-4 mb-6">
@@ -69,24 +69,24 @@
               </div>
             </div>
             <div class="min-w-0">
-              <p class="text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-2">{{ order.productType || 'product' }}</p>
-              <h1 class="text-xl font-bold text-gray-900 dark:text-white leading-tight break-words">{{ order.productName || `Order #${order.id}` }}</h1>
+              <p class="text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-2">{{ resolveProductTypeLabel(order.productType) }}</p>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white leading-tight break-words">{{ order.productName || $t('site.payment.orderTitle', { orderId: order.id }) }}</h1>
             </div>
           </div>
 
           <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5 mb-6">
-            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-2">Amount</p>
+            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-2">{{ $t('site.payment.amountLabel') }}</p>
             <p class="text-4xl font-bold text-gray-900 dark:text-white">${{ Number(order.amount || 0).toFixed(2) }}</p>
           </div>
 
           <div class="space-y-4 text-sm">
             <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
               <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.tradeNo') }}</span>
-              <span class="text-gray-900 dark:text-white font-mono text-right break-all">{{ order.tradeNo || 'Pending' }}</span>
+              <span class="text-gray-900 dark:text-white font-mono text-right break-all">{{ order.tradeNo || $t('site.payment.pending') }}</span>
             </div>
             <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
               <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.payMethod') }}</span>
-              <span class="text-gray-900 dark:text-white capitalize text-right">{{ order.payMethod || 'Pending' }}</span>
+              <span class="text-gray-900 dark:text-white capitalize text-right">{{ order.payMethod || $t('site.payment.pending') }}</span>
             </div>
             <div class="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-3">
               <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.pendingPayment') }}</span>
@@ -95,12 +95,12 @@
                 variant="subtle"
                 class="capitalize"
               >
-                {{ order.payStatus || 'pending' }}
+                {{ resolvePayStatusLabel(order.payStatus || order.status) }}
               </UBadge>
             </div>
             <div class="flex items-center justify-between gap-4">
               <span class="text-gray-500 dark:text-gray-500">{{ $t('site.payment.paidAt') }}</span>
-              <span class="text-gray-900 dark:text-white text-right">{{ order.paidAt ? formatDateTime(order.paidAt) : 'N/A' }}</span>
+              <span class="text-gray-900 dark:text-white text-right">{{ order.paidAt ? formatDateTime(order.paidAt) : $t('site.payment.notAvailable') }}</span>
             </div>
           </div>
         </aside>
@@ -155,21 +155,22 @@
 import { computed, watch } from 'vue'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
+const { t } = useI18n()
 const { localePath } = useLocaleRouter()
 const { formatDateTime } = useFormatTime()
 const { getSetting } = useSettings()
 const route = useRoute()
 const orderId = route.params['slug']?.[1] as string
 
-useHead({
-  title: `Payment - ${getSetting('site_name')}`,
+useHead(() => ({
+  title: `${t('site.payment.checkoutPageTitle')} - ${getSetting('site_name')}`,
   meta: [
     {
       name: 'description',
-      content: 'Secure payment page for your order.',
+      content: t('site.payment.checkoutPageDescription'),
     },
   ],
-})
+}))
 
 const {
   data: order,
@@ -183,6 +184,26 @@ const {
 
 const pending = computed(() => status.value === 'pending')
 
+const resolveProductTypeLabel = (productType?: string) => {
+  if (productType === 'key') return t('site.payment.productTypeKey')
+  if (productType === 'file') return t('site.payment.productTypeFile')
+  if (productType === 'subscription') return t('site.payment.productTypeSubscription')
+  if (productType === 'topup') return t('site.payment.productTypeTopup')
+  if (productType === 'service') return t('site.payment.productTypeService')
+  return productType || t('site.payment.productTypeProduct')
+}
+
+const resolvePayStatusLabel = (payStatus?: string) => {
+  if (payStatus === 'paid') return t('site.payment.paid')
+  if (payStatus === 'pending') return t('site.payment.pendingPayment')
+  if (payStatus === 'failed') return t('site.payment.failed')
+  if (payStatus === 'cancelled') return t('site.payment.cancelled')
+  if (payStatus === 'expired') return t('site.payment.expired')
+  if (payStatus === 'delivered') return t('site.payment.delivered')
+  if (payStatus === 'active') return t('site.payment.active')
+  return payStatus || t('site.payment.pendingPayment')
+}
+
 const errorState = computed(() => {
   const statusCode = Number((fetchError.value as any)?.statusCode || (fetchError.value as any)?.status || 0)
 
@@ -191,8 +212,8 @@ const errorState = computed(() => {
       icon: 'ph:lock-key-fill',
       iconWrapClass: 'bg-amber-500/10 border-amber-500/20',
       iconClass: 'text-amber-400',
-      title: 'Payment Link Unavailable',
-      description: 'Open this order in the same browser or account that created it, then try again.',
+      title: t('site.payment.paymentLinkUnavailableTitle'),
+      description: t('site.payment.paymentLinkUnavailableDescription'),
     }
   }
 
@@ -201,8 +222,8 @@ const errorState = computed(() => {
       icon: 'ph:link-break-fill',
       iconWrapClass: 'bg-red-500/10 border-red-500/20',
       iconClass: 'text-red-400',
-      title: 'Order Not Available',
-      description: 'This payment link no longer points to an accessible order. It may have expired, been removed, or belong to a different session.',
+      title: t('site.payment.orderUnavailableTitle'),
+      description: t('site.payment.orderUnavailableDescription'),
     }
   }
 
@@ -210,8 +231,8 @@ const errorState = computed(() => {
     icon: 'ph:warning-circle-fill',
     iconWrapClass: 'bg-red-500/10 border-red-500/20',
     iconClass: 'text-red-400',
-    title: 'Unable To Open Payment',
-    description: 'We could not load the payment workspace right now. Please refresh the page or try again from your orders list.',
+    title: t('site.payment.unableToOpenPaymentTitle'),
+    description: t('site.payment.unableToOpenPaymentDescription'),
   }
 })
 
@@ -224,12 +245,12 @@ const resolvedOrderState = computed(() => {
       icon: 'ph:check-circle-fill',
       iconWrapClass: 'bg-emerald-500/10 border-emerald-500/20',
       iconClass: 'text-emerald-400',
-      title: 'Payment Already Completed',
-      description: 'This order has already been paid. You can review the latest fulfillment details below.',
+      title: t('site.payment.paymentAlreadyCompletedTitle'),
+      description: t('site.payment.paymentAlreadyCompletedDescription'),
       primaryTo: `/callback/${currentOrder.id}`,
-      primaryLabel: 'View Delivery',
+      primaryLabel: t('site.payment.viewDelivery'),
       secondaryTo: `/user/orders/${currentOrder.id}`,
-      secondaryLabel: 'Open Order',
+      secondaryLabel: t('site.payment.viewOrderDetails'),
     }
   }
 
@@ -238,12 +259,12 @@ const resolvedOrderState = computed(() => {
       icon: 'ph:x-circle-fill',
       iconWrapClass: 'bg-gray-500/10 border-gray-500/20',
       iconClass: 'text-gray-400',
-      title: 'Payment Was Cancelled',
-      description: 'This order is no longer waiting for payment. Create a new order if you still want to continue with this purchase.',
+      title: t('site.payment.paymentWasCancelledTitle'),
+      description: t('site.payment.paymentWasCancelledDescription'),
       primaryTo: '/products',
-      primaryLabel: 'Browse Products',
+      primaryLabel: t('site.payment.browseProducts'),
       secondaryTo: `/user/orders/${currentOrder.id}`,
-      secondaryLabel: 'Open Order',
+      secondaryLabel: t('site.payment.viewOrderDetails'),
     }
   }
 
@@ -252,12 +273,12 @@ const resolvedOrderState = computed(() => {
       icon: 'ph:clock-countdown-fill',
       iconWrapClass: 'bg-amber-500/10 border-amber-500/20',
       iconClass: 'text-amber-400',
-      title: 'Order Expired',
-      description: 'This payment session has expired. Please create a fresh order before trying again.',
+      title: t('site.payment.orderExpiredTitle'),
+      description: t('site.payment.orderExpiredDescription'),
       primaryTo: '/products',
-      primaryLabel: 'Create New Order',
+      primaryLabel: t('site.payment.createNewOrder'),
       secondaryTo: `/user/orders/${currentOrder.id}`,
-      secondaryLabel: 'Open Order',
+      secondaryLabel: t('site.payment.viewOrderDetails'),
     }
   }
 
@@ -266,12 +287,12 @@ const resolvedOrderState = computed(() => {
       icon: 'ph:warning-octagon-fill',
       iconWrapClass: 'bg-red-500/10 border-red-500/20',
       iconClass: 'text-red-400',
-      title: 'Payment Failed',
-      description: 'The last payment attempt did not complete. Review the order and create a fresh checkout if needed.',
+      title: t('site.payment.paymentFailed'),
+      description: t('site.payment.paymentFailedStateDescription'),
       primaryTo: `/user/orders/${currentOrder.id}`,
-      primaryLabel: 'Open Order',
+      primaryLabel: t('site.payment.viewOrderDetails'),
       secondaryTo: '/products',
-      secondaryLabel: 'Browse Products',
+      secondaryLabel: t('site.payment.browseProducts'),
     }
   }
 
@@ -280,12 +301,12 @@ const resolvedOrderState = computed(() => {
       icon: 'ph:warning-circle-fill',
       iconWrapClass: 'bg-amber-500/10 border-amber-500/20',
       iconClass: 'text-amber-400',
-      title: 'Payment Unavailable',
-      description: 'This order is no longer in a payable state. Please review the order timeline for the latest status.',
+      title: t('site.payment.paymentUnavailableTitle'),
+      description: t('site.payment.paymentUnavailableDescription'),
       primaryTo: `/user/orders/${currentOrder.id}`,
-      primaryLabel: 'Open Order',
+      primaryLabel: t('site.payment.viewOrderDetails'),
       secondaryTo: '/products',
-      secondaryLabel: 'Browse Products',
+      secondaryLabel: t('site.payment.browseProducts'),
     }
   }
 

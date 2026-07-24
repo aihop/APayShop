@@ -119,7 +119,10 @@
       </UFormField>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 mt-4">
+    <div
+      v-if="$slots['badge-field'] || $slots['color-field']"
+      class="grid grid-cols-2 gap-4 mt-4"
+    >
       <slot name="badge-field" />
       <slot name="color-field" />
     </div>

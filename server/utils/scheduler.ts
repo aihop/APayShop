@@ -14,6 +14,10 @@ export interface ScheduledWebhook {
   method?: string
   schedule: 'hourly' | 'daily' | 'weekly' | number
   enabled?: boolean
+  /** 附加请求头(如 { "Authorization": "Bearer <token>" })。
+   * 鉴权令牌请放这里而不是 path 的 query:path 会被写进运行状态记录、回显到
+   * /admin/scheduler 管理页、并进日志,query 里的 token 等于公开。 */
+  headers?: Record<string, string>
 }
 
 export interface SchedulerJobState {
@@ -130,6 +134,7 @@ export async function runSchedulerJob(job: ScheduledWebhook): Promise<{ ok: bool
       method: (job.method || 'POST') as any,
       timeout: JOB_TIMEOUT_MS,
       retry: 0,
+      ...(job.headers && Object.keys(job.headers).length ? { headers: job.headers } : {}),
     })
     const detail = `status=${response.status}`
     await recordResult(job, true, detail, Date.now() - startedAt)

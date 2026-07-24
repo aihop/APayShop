@@ -92,6 +92,7 @@ export const paymentMethods = sqliteTable('payment_methods', {
   code: text('code').notNull(), // e.g., 'alipay', 'stripe'
   iconUrl: text('icon_url'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  supportedLocales: text('supported_locales'), // Comma-separated locale whitelist, empty means all locales
   configJson: text('config_json'), // JSON object for API keys, etc.
   info: text('info'), // HTML for payment info
   create: text('create'), // JS for payment initiation
@@ -171,7 +172,7 @@ export const themeSettings = sqliteTable('theme_settings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch() * 1000)`),
 })
 
-export const failures = sqliteTable('failures', {
+export const paymentFailures = sqliteTable('payment_failures', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   orderId: text('order_id').notNull(),
   cardBin: text('card_bin'),
@@ -183,6 +184,8 @@ export const failures = sqliteTable('failures', {
   visitorId: text('visitor_id'), // To track anonymous users
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
+
+export const failures = paymentFailures
 
 export const webhooks = sqliteTable('webhooks', {
   id: integer('id').primaryKey({ autoIncrement: true }),

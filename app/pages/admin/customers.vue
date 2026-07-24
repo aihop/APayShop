@@ -23,7 +23,7 @@
     <!-- Customers Tab Content -->
     <div
       v-if="activeTab === 'customers'"
-      class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0"
+      class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0"
     >
       <div class="flex-1 overflow-auto custom-scrollbar">
         <UTable
@@ -91,7 +91,7 @@
     <!-- Users Tab Content -->
     <div
       v-else-if="activeTab === 'users'"
-      class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl flex flex-col flex-1 min-h-0"
+      class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0"
     >
       <div class="flex-1 overflow-auto custom-scrollbar">
         <UTable

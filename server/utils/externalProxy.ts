@@ -12,6 +12,22 @@ interface ProxyExternalRequestOptions {
   userAgent?: string
 }
 
+function normalizeGatewayUrl(raw: string | null | undefined) {
+  const value = String(raw || '').trim()
+  if (!value) {
+    return ''
+  }
+
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`
+
+  try {
+    const url = new URL(withProtocol)
+    return url.toString().replace(/\/+$/, '')
+  } catch {
+    return ''
+  }
+}
+
 // 从 DB settings 读取 AI Gateway URL，带内存缓存
 let cachedGatewayUrl: string | null = null
 let lastGatewayUrlRead = 0
@@ -25,19 +41,29 @@ export async function getAIGatewayUrl(): Promise<string> {
   try {
     const result = await db.select().from(settings).where(eq(settings.key, 'ai_gateway_url')).limit(1)
     if (result.length > 0 && result[0].value) {
-      const url = result[0].value.replace(/\/+$/, '')
-      cachedGatewayUrl = url
-      lastGatewayUrlRead = now
-      return url
+      const url = normalizeGatewayUrl(result[0].value)
+      if (url) {
+        cachedGatewayUrl = url
+        lastGatewayUrlRead = now
+        return url
+      }
+      console.warn('[Proxy] Ignore invalid ai_gateway_url setting:', result[0].value)
     }
   } catch (e) {
     console.error('[Proxy] Failed to read ai_gateway_url from settings:', e)
   }
-  // Fallback: 环境变量 → 硬编码默认值
-  const fallback = (process.env.AI_GATEWAY_URL || 'https://api.ainode.run').trim().replace(/\/+$/, '')
-  cachedGatewayUrl = fallback
-  lastGatewayUrlRead = now
-  return fallback
+  // Fallback: 只认环境变量，不再写仓库默认网关，避免污染部署配置。
+  const fallback = normalizeGatewayUrl(process.env.AI_GATEWAY_URL)
+  if (fallback) {
+    cachedGatewayUrl = fallback
+    lastGatewayUrlRead = now
+    return fallback
+  }
+
+  throw createError({
+    statusCode: 500,
+    statusMessage: 'AI gateway URL is not configured',
+  })
 }
 
 
@@ -100,7 +126,9 @@ const assertTargetAllowed = (targetUrl: URL, allowedOrigins?: Iterable<string>, 
   }
 }
 
-export const getConfiguredGatewayOrigins = () => [(cachedGatewayUrl || process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '')]
+export const getConfiguredGatewayOrigins = () => [
+  normalizeGatewayUrl(cachedGatewayUrl || process.env.AI_GATEWAY_URL || ''),
+].filter(Boolean)
 
 // target= 模式在调用方未显式传 allowedOrigins/allowedPaths 时的默认白名单:
 // 全仓唯一调用方 /api/proxy/external.ts 从不传这两个参数,此前 assertTargetAllowed
@@ -123,7 +151,7 @@ async function getDefaultAllowedTargetOrigins(): Promise<string[]> {
 }
 
 /**
- * Get the full webhook events URL for ainode.
+ * Get the full webhook events URL for AI Gateway.
  */
 export async function getWebhookSubscriptionUrl(): Promise<string> {
   const base = await getAIGatewayUrl()
@@ -136,7 +164,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     allowedOrigins,
     allowedPaths,
     proxyLabel = 'Proxy',
-    userAgent = 'APayShop-Proxy/1.0',
+    userAgent = 'APayShop-google/1.0',
   } = options
   const session = await getUserSession(event).catch(() => null)
   const userId = (session?.user as any)?.id

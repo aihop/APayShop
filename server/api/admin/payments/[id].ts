@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
     if (updateData.info === undefined) updateData.info = null
     if (updateData.create === undefined) updateData.create = null
     if (updateData.callback === undefined) updateData.callback = null
+    updateData.supportedLocales = String(updateData.supportedLocales || '').trim() || null
 
     try {
       return await db.update(paymentMethods).set(updateData).where(eq(paymentMethods.id, parseInt(id))).returning()

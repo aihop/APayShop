@@ -180,6 +180,11 @@ commit_output_repo() {
 }
 
 echo "==> Building project (dialect: ${DIALECT})"
+# Node 默认 old space 上限约 4GB,构建 Nitro server 时会撞上并 OOM
+# (FATAL ERROR: Ineffective mark-compacts near heap limit)。这里给一个可覆盖的
+# 默认值:内存小的 CI 可用 NODE_OPTIONS=--max-old-space-size=4096 覆盖。
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
+echo "    NODE_OPTIONS=${NODE_OPTIONS}"
 prepare_theme_build_loader
 if [[ "${DIALECT}" == "pg" ]]; then
   run npm run build-pg
