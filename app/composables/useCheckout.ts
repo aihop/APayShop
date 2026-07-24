@@ -13,11 +13,8 @@ export const useCheckout = () => {
   const isOrderModalOpen = ref(false)
   const orderId = ref<string | null>(null)
 
-  const setBodyScrollLocked = (locked: boolean) => {
-    if (typeof document === 'undefined') return
-    document.body.style.overflow = locked ? 'hidden' : ''
-  }
-
+  // body 滚动锁交给 UModal(reka-ui DialogRoot modal=true)托管:
+  // 手动锁会被遮罩点击/ESC 这些不经过 closeCheckoutModal 的关闭路径绕过,把页面永久锁死
   const openCheckoutModal = async (productId: number | string, quantity: number, metaData?: any) => {
     // Check guest checkout permission
     const allowGuestCheckout = getSetting('allow_guest_checkout', 'true') === 'true'
@@ -52,7 +49,6 @@ export const useCheckout = () => {
       if (res && res.code === 0) {
         orderId.value = res.data?.id || ''
         isOrderModalOpen.value = true
-        setBodyScrollLocked(true)
       } else {
         throw new Error(res?.message || 'Failed to create order')
       }
@@ -94,14 +90,12 @@ export const useCheckout = () => {
       })
     } else {
       isOrderModalOpen.value = true
-      setBodyScrollLocked(true)
     }
   }
 
   const closeCheckoutModal = () => {
     isOrderModalOpen.value = false
     isCreatingOrder.value = false
-    setBodyScrollLocked(false)
   }
 
   return {
