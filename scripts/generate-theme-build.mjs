@@ -31,7 +31,7 @@ const getArgValue = (name) => {
 }
 
 const availableThemes = resolveAvailableThemes(themesDir)
-const manifestFile = resolveManifestFile(projectRoot, getArgValue('manifest') || process.env.APAYSHOP_THEME_MANIFEST || '')
+const manifestFile = resolveManifestFile(projectRoot, getArgValue('manifest') || process.env.APAY_THEME_MANIFEST || '')
 
 const selectedThemes = forceAllThemes
   ? availableThemes
@@ -39,7 +39,7 @@ const selectedThemes = forceAllThemes
       themesDir,
       manifestFile,
       explicitThemes: getArgValue('themes'),
-      envThemes: process.env.APAYSHOP_BUILD_THEMES || process.env.BUILD_THEMES || '',
+      envThemes: process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
     })
 
 const buildGlobObject = (patterns, options) => {

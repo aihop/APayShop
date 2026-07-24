@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     templates,
     variables: {
       nickname: 'Test User',
-      site_name: 'APayShop',
+      site_name: 'APay',
       verify_link: 'https://example.com/verify?token=test',
       order_id: 'TEST-001',
       amount: '99.00',

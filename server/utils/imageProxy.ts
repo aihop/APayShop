@@ -22,7 +22,7 @@ const REFERER_RULES = [
 ] as const
 
 const normalizeAllowedHosts = () => {
-  const fromEnv = String(process.env.APAYSHOP_IMAGE_PROXY_ALLOWED_HOSTS || '')
+  const fromEnv = String(process.env.APAY_IMAGE_PROXY_ALLOWED_HOSTS || '')
     .split(',')
     .map(item => item.trim().toLowerCase())
     .filter(Boolean)

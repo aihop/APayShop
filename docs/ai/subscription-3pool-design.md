@@ -1,7 +1,7 @@
-# 任务:在 APayShop 中接入 ainode 的订阅三池计费(发送订阅生命周期 Webhook)
+# 任务:在 APay  中接入 ainode 的订阅三池计费(发送订阅生命周期 Webhook)
 
 ## 背景
-- APayShop 是支付/电商平台(Nuxt 3 + Nitro server,TypeScript,代码在 /Users/hugh/code/aihop/apayshop,服务端在 server/)。
+- APay  是支付/电商平台(Nuxt 3 + Nitro server,TypeScript,代码在 /Users/hugh/code/aihop/APay ,服务端在 server/)。
 - ainode 是 AI 网关计费系统,它持有用户的余额「三池」:
   1. 订阅实付 sub(用户为订阅实际付的钱)
   2. 订阅赠送 grant(套餐附赠的额度)
@@ -10,8 +10,8 @@
 - 取消/过期时:grant 清零,sub 剩余转入 cash(不没收)。
 
 ## 职责边界(重要,不要越界)
-- **APayShop 只负责「钱」**:订阅定价、升级/降级的 proration(补差价/按比例)、实际收款金额、各套餐的赠送额、周期到期时间。算完后,把**最终结果**通过 Webhook 通知 ainode。
-- **APayShop 不负责余额池的加减**:不要去算 sub/grant/cash 怎么变,那是 ainode 的事。APayShop 只把「本周期实付多少、赠送多少、到期时间、套餐等级」发过去,ainode 自己做状态机。
+- **APay  只负责「钱」**:订阅定价、升级/降级的 proration(补差价/按比例)、实际收款金额、各套餐的赠送额、周期到期时间。算完后,把**最终结果**通过 Webhook 通知 ainode。
+- **APay  不负责余额池的加减**:不要去算 sub/grant/cash 怎么变,那是 ainode 的事。APay  只把「本周期实付多少、赠送多少、到期时间、套餐等级」发过去,ainode 自己做状态机。
 
 ## 你要实现的功能
 在「订阅/续费/升级/降级/取消」的业务流程**成功并落库之后**,可靠地向 ainode 发送对应的 Webhook 事件。
@@ -23,7 +23,7 @@
 - Header:
   - `Content-Type: application/json`
   - `Authorization: Bearer ${AINODE_INTERNAL_TOKEN}`(从环境变量读,**机密**,勿硬编码/勿入库)
-- 金额单位:**元(decimal,浮点)**,例如 100.00、700.00(ainode 内部自行放大存储,APayShop 传元即可)。
+- 金额单位:**元(decimal,浮点)**,例如 100.00、700.00(ainode 内部自行放大存储,APay  传元即可)。
 
 ### 事件 1:订阅生效 / 续费 / 升级 / 降级(统一用这一个)
 ```json
@@ -44,10 +44,10 @@
 ```
 说明:
 - 无论首次订阅、续费、升级、降级,都发这一个事件。把「**换/续套餐后本周期的最终值**」填进去:
-  - `paidAmount` = 本周期用户实付(升级补差价的话,填 APayShop 计算后的本周期实付等效金额);
+  - `paidAmount` = 本周期用户实付(升级补差价的话,填 APay  计算后的本周期实付等效金额);
   - `grantAmount` = 本周期套餐赠送额;
   - `expiresAt` = 本周期到期时间。
-- ainode 收到后会:把旧订阅实付剩余转入 cash、旧赠送清零,然后写入新的 paid/grant/到期。**APayShop 不用管旧额度怎么处理。**
+- ainode 收到后会:把旧订阅实付剩余转入 cash、旧赠送清零,然后写入新的 paid/grant/到期。**APay  不用管旧额度怎么处理。**
 
 ### 事件 2:取消订阅
 ```json
@@ -71,13 +71,13 @@
 - 升级/降级各自生成独立 eventId(如带上变更动作和时间/版本)。
 
 ## 可靠性(必须)
-- Webhook 必须在**本地业务事务提交后**发送(先保证 APayShop 自己的订单/订阅状态已落库)。
+- Webhook 必须在**本地业务事务提交后**发送(先保证 APay  自己的订单/订阅状态已落库)。
 - 发送要有**重试**(指数退避),直到 ainode 返回 2xx;多次失败要落「待重发」表 + 告警,**不能静默丢失**(这关系到用户余额)。
 - ainode 返回示例:成功 `{"alreadyProcessed":false,...}` 或 `{"alreadyProcessed":true,...}`(幂等命中,也算成功,不要再重发);4xx 是请求错误(不要无脑重试,记录排查);5xx/网络错误才重试。
 
 ## 套餐配置要求
-- 每个订阅套餐(plan)在 APayShop 配置里需要能取到:**月付价(=paidAmount)**、**赠送额(=grantAmount)**、**周期长度**(用于算 expiresAt)、**tier 等级**。
-- 升级/降级的差价与本期实付的计算逻辑由 APayShop 决定(proration 规则你们定),最终把结果填进 `subscription.apply`。
+- 每个订阅套餐(plan)在 APay  配置里需要能取到:**月付价(=paidAmount)**、**赠送额(=grantAmount)**、**周期长度**(用于算 expiresAt)、**tier 等级**。
+- 升级/降级的差价与本期实付的计算逻辑由 APay  决定(proration 规则你们定),最终把结果填进 `subscription.apply`。
 
 ## 代码组织建议
 - **不新建独立模块**，只增强已有的 `server/utils/eventBus.ts`：
@@ -90,7 +90,7 @@
 
 ## 验收标准
 1. 首次订阅成功 → ainode 收到 `subscription.apply`,用户三池正确(sub=paidAmount、grant=grantAmount)。
-2. 续费 → 旧实付剩余进 cash、赠送清零、发放新一期(由 ainode 处理,APayShop 只发事件)。
+2. 续费 → 旧实付剩余进 cash、赠送清零、发放新一期(由 ainode 处理,APay  只发事件)。
 3. 升级/降级 → 同样只发一条 `subscription.apply`(带换套餐后的最终值)。
 4. 取消 → 发 `subscription.cancel`,ainode 赠送清零、实付剩余进 cash。
 5. 重复发送同一 `eventId` 不产生重复效果(幂等)。
@@ -98,6 +98,6 @@
 7. token、base url 不硬编码,走环境变量。
 
 ## 约束
-- 不要在 APayShop 侧计算或修改 ainode 的余额池;只发送最终金额。
+- 不要在 APay  侧计算或修改 ainode 的余额池;只发送最终金额。
 - 不要把 `AINODE_INTERNAL_TOKEN` 写进代码或提交进仓库。
 - 金额一律用元(decimal)。

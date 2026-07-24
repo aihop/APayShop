@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm'
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  // 原 APayShop 用户属性
+  // 原 APay 用户属性
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash'), // Nullable for OAuth users
   nickname: text('nickname'),
@@ -41,7 +41,7 @@ export const usersTokens = sqliteTable('users_tokens', {
 })
 
 // ==========================================
-// APayShop Admin & eCommerce Tables
+// APay Admin & eCommerce Tables
 // ==========================================
 
 export const admins = sqliteTable('admins', {

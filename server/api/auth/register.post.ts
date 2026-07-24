@@ -136,7 +136,7 @@ export default defineEventHandler(async (event) => {
     .from(settings)
     .where(eq(settings.key, 'site_name'))
     .limit(1)
-  const siteName = String(siteNameSetting[0]?.value || 'APayShop').trim()
+  const siteName = String(siteNameSetting[0]?.value || 'APay').trim()
 
   sendEmail({
     to: user.email,

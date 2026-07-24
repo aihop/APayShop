@@ -59,7 +59,7 @@ const sendPendingOrderEmail = async (event: any, input: {
     .from(settings)
     .where(eq(settings.key, 'site_name'))
     .limit(1)
-  const siteName = String(siteNameSetting[0]?.value || 'APayShop').trim()
+  const siteName = String(siteNameSetting[0]?.value || 'APay').trim()
 
   sendEmail({
     to: recipient,

@@ -55,7 +55,7 @@ async function grantReward(rule: any, payload: EventPayload) {
       event: 'transaction.credit',
       timestamp: new Date().toISOString(),
       data: {
-        source: 'apayshop',
+        source: 'apay',
         eventId,
         userId,
         type: String(config?.type || 'reward'),

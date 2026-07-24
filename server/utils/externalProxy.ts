@@ -164,7 +164,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     allowedOrigins,
     allowedPaths,
     proxyLabel = 'Proxy',
-    userAgent = 'APayShop-google/1.0',
+    userAgent = 'APay-Proxy/1.0',
   } = options
   const session = await getUserSession(event).catch(() => null)
   const userId = (session?.user as any)?.id

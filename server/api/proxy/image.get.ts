@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     headers: {
       Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       Referer: getImageProxyReferer(targetUrl),
-      'User-Agent': 'APayShop-ImageProxy/1.0',
+      'User-Agent': 'APay-ImageProxy/1.0',
     },
     signal: AbortSignal.timeout(20000),
   })

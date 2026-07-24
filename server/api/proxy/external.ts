@@ -5,6 +5,6 @@ export default defineEventHandler(async (event) => {
   return await proxyExternalRequest(event, {
     requireSession: true,
     proxyLabel: 'Proxy',
-    userAgent: 'APayShop-Proxy/1.0',
+    userAgent: 'APay-Proxy/1.0',
   })
 })

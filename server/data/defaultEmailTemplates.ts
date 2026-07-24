@@ -77,7 +77,7 @@ function makeTableWrapper(content: string): string {
           ${content}
         </table>
         <!-- Optional bottom message -->
-        <p style="margin:16px 0 0;font-size:11px;color:${brand.textMuted}">${'{{site_name}}'} &mdash; Powered by APayShop</p>
+        <p style="margin:16px 0 0;font-size:11px;color:${brand.textMuted}">${'{{site_name}}'} &mdash; Powered by APay</p>
       </td>
     </tr>
   </table>

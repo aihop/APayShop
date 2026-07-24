@@ -127,8 +127,8 @@ export async function dispatchEvent(eventName: string, payload: any) {
 
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
-          'X-APayShop-Event': eventName,
-          'X-APayShop-Timestamp': timestamp
+          'X-Apay-Event': eventName,
+          'X-Apay-Timestamp': timestamp
         }
 
         // If integration token is configured, use it as Bearer auth
