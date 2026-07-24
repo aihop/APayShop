@@ -166,6 +166,10 @@
             v-if="activeTab === 'checkout'"
             :form="dynamicForm"
           />
+          <AdminSettingsTopupTab
+            v-if="activeTab === 'topup'"
+            :form="dynamicForm"
+          />
           <AdminSettingsIntegrationTab
             v-if="activeTab === 'integration'"
             :form="dynamicForm"
@@ -254,6 +258,7 @@ const tabs = [
   { id: 'localization', labelKey: 'admin.settings.page.nav_localization', icon: 'ph:translate-fill' },
   { id: 'seo', labelKey: 'admin.settings.page.nav_seo', icon: 'ph:magnifying-glass-fill' },
   { id: 'checkout', labelKey: 'admin.settings.page.nav_checkout', icon: 'ph:shopping-cart-fill' },
+  { id: 'topup', labelKey: 'admin.settings.page.nav_topup', icon: 'ph:wallet-fill' },
   { id: 'integration', labelKey: 'admin.settings.page.nav_integration', icon: 'ph:shuffle-fill' },
   { id: 'email', labelKey: 'admin.settings.page.nav_email', icon: 'ph:envelope-fill' },
   { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },

@@ -449,7 +449,8 @@
         "nav_email": "邮件",
         "nav_company": "公司详情",
         "nav_automations": "事件规则",
-        "nav_scheduler": "定时任务"
+        "nav_scheduler": "定时任务",
+        "nav_topup": "充值"
       },
       "general": {
         "title": "基本信息",
@@ -649,6 +650,33 @@
         "toast_provider_failed": "保存邮件服务商失败",
         "toast_template_saved": "邮件模板已保存",
         "toast_template_deleted": "邮件模板已删除"
+      },
+      "topup": {
+        "title": "充值(快捷充值)",
+        "enabled": "启用快捷充值",
+        "enabled_desc": "关闭后前台隐藏充值入口，下单接口也会直接拒绝。",
+        "accounting_currency": "记账币种",
+        "accounting_currency_desc": "余额所使用的单位。实付金额会按下方汇率折算成该币种入账。",
+        "currencies": "支付币种",
+        "currencies_desc": "每个币种有各自的金额区间与折算汇率。只有列出的币种才能用于充值。",
+        "add_currency": "添加币种",
+        "remove_currency": "删除币种",
+        "no_currency": "尚未配置币种，充值将回落到内置默认值。",
+        "f_currency": "币种",
+        "f_min": "最小金额",
+        "f_max": "最大金额",
+        "f_rate": "汇率",
+        "f_presets": "快捷档位（英文逗号分隔）",
+        "rate_hint": "1 {from} = {rate} {to}",
+        "issues_title": "请检查以下问题",
+        "issue_no_accounting": "记账币种为空。",
+        "issue_empty_code": "存在币种代码为空的行。",
+        "issue_duplicate": "币种 {currency} 重复配置。",
+        "issue_min": "{currency}：最小金额必须大于 0。",
+        "issue_max": "{currency}：最大金额不能小于最小金额。",
+        "issue_rate": "{currency}：汇率必须大于 0。",
+        "issue_self_rate": "{currency} 是记账币种，汇率必须为 1。",
+        "issue_accounting_missing": "记账币种 {currency} 不在支付币种列表中，用户无法用它充值。"
       }
     },
     "common": {

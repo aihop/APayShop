@@ -450,7 +450,8 @@
         "nav_email": "Email",
         "nav_company": "Company Details",
         "nav_automations": "Event Rules",
-        "nav_scheduler": "Scheduled Tasks"
+        "nav_scheduler": "Scheduled Tasks",
+        "nav_topup": "Top-up"
       },
       "general": {
         "title": "General Information",
@@ -650,6 +651,33 @@
         "toast_provider_failed": "Failed to save email provider",
         "toast_template_saved": "Email template saved",
         "toast_template_deleted": "Email template deleted"
+      },
+      "topup": {
+        "title": "Top-up (Quick Recharge)",
+        "enabled": "Enable quick top-up",
+        "enabled_desc": "When disabled, the top-up entry is hidden and the order API rejects requests.",
+        "accounting_currency": "Accounting currency",
+        "accounting_currency_desc": "The unit the balance is kept in. Paid amounts are converted into this currency using the rates below.",
+        "currencies": "Payment currencies",
+        "currencies_desc": "Each currency has its own amount range and conversion rate. Only listed currencies can be used to top up.",
+        "add_currency": "Add currency",
+        "remove_currency": "Remove currency",
+        "no_currency": "No currency configured yet. Top-up will fall back to built-in defaults.",
+        "f_currency": "Currency",
+        "f_min": "Min amount",
+        "f_max": "Max amount",
+        "f_rate": "Rate",
+        "f_presets": "Quick amounts (comma separated)",
+        "rate_hint": "1 {from} = {rate} {to}",
+        "issues_title": "Please review the following",
+        "issue_no_accounting": "Accounting currency is empty.",
+        "issue_empty_code": "A currency row has an empty currency code.",
+        "issue_duplicate": "Currency {currency} is configured more than once.",
+        "issue_min": "{currency}: minimum amount must be greater than 0.",
+        "issue_max": "{currency}: maximum amount must not be less than the minimum.",
+        "issue_rate": "{currency}: rate must be greater than 0.",
+        "issue_self_rate": "{currency} is the accounting currency, so its rate must be exactly 1.",
+        "issue_accounting_missing": "Accounting currency {currency} is not in the payment currency list; users cannot pay in it."
       }
     },
     "common": {
