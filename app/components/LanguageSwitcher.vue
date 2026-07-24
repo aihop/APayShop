@@ -45,24 +45,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   currentLocale: string
-  locales: any[]
+  locales?: any[]
   showText?: boolean
-}>()
+}>(), {
+  locales: () => [],
+})
 
 const emit = defineEmits<{
   (e: 'switch', code: any): void
 }>()
 
 const currentLocaleName = computed(() => {
-  const found = props.locales.find((l) => l.code === props.currentLocale)
+  const found = (props.locales || []).find((l) => l.code === props.currentLocale)
   return found && found.name ? found.name : props.currentLocale
 })
 
 const dropdownItems = computed(() => {
   return [
-    props.locales.map((loc) => ({
+    (props.locales || []).map((loc) => ({
       label: loc.name || loc.code,
       icon:
         props.currentLocale === loc.code ? 'ph:check-circle-fill' : 'ph:globe',

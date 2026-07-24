@@ -1,5 +1,6 @@
 import postgres from 'postgres'
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js'
+import { drizzle as drizzleD1 } from 'drizzle-orm/d1'
 import { createClient } from '@libsql/client'
 import { drizzle as drizzleLibsql } from 'drizzle-orm/libsql'
 import mysql from 'mysql2/promise'
@@ -18,6 +19,12 @@ const getConnectionUrl = () => normalizeEnv(
   || ''
 )
 
+const getD1Binding = () => {
+  return (process.env.DB
+    || (globalThis as any).__env__?.DB
+    || (globalThis as any).DB) as any
+}
+
 const resolveDialect = () => {
   const explicitDialect = normalizeEnv(process.env.DB_DIALECT).toLowerCase()
   if (explicitDialect === 'postgresql' || explicitDialect === 'sqlite' || explicitDialect === 'mysql') return explicitDialect
@@ -33,6 +40,11 @@ const resolveDialect = () => {
 }
 
 const createDb = () => {
+  const d1Binding = getD1Binding()
+  if (d1Binding) {
+    return drizzleD1(d1Binding, { schema } as any)
+  }
+
   const dialect = resolveDialect()
   const connectionUrl = getConnectionUrl()
 
@@ -62,5 +74,18 @@ const createDb = () => {
   return drizzleLibsql(client, { schema } as any)
 }
 
-export const db = createDb() as any
+let _db: any
+const getDb = () => {
+  if (!_db) {
+    _db = createDb()
+  }
+  return _db
+}
+
+export const db = new Proxy({}, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getDb(), prop, receiver)
+  },
+}) as any
+
 export { schema }

@@ -1,0 +1,2 @@
+import{$ as e,h as r}from"./server.mjs";const useContentPreview=()=>({isEnabled:()=>{const o=r().query;return!(Object.prototype.hasOwnProperty.call(o,"preview")&&!o.preview)&&!(!o.preview&&!e("previewToken").value)},getPreviewToken:()=>e("previewToken").value||void 0,setPreviewToken:o=>{e("previewToken").value=o,r().query.preview=o||""}});export{useContentPreview as u};
+//# sourceMappingURL=preview-HVbd1qUG.mjs.map

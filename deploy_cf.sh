@@ -1,9 +1,69 @@
 #!/bin/bash
+set -euo pipefail
 
 # 配置变量
 DEFAULT_PROJECT_NAME="apay"
 DEFAULT_DB_NAME="apay"
 BINDING_NAME="DB"
+MIGRATIONS_DIR="server/db/migrations/sqlite"
+THEME_NAME="${1:-${BUILD_THEME:-}}"
+BUILD_THEMES="${BUILD_THEMES:-${APAY_BUILD_THEMES:-}}"
+THEME_MANIFEST_FILE="${THEME_MANIFEST_FILE:-app/generated/theme-manifest.json}"
+
+resolve_build_themes() {
+    local allow="${BUILD_THEMES}"
+    if [[ -z "${allow}" && -n "${THEME_NAME}" ]]; then
+        allow="${THEME_NAME}"
+    fi
+
+    allow="${allow// /}"
+    allow="${allow#,}"
+    allow="${allow%,}"
+
+    echo "${allow}"
+}
+
+write_theme_manifest() {
+    local allow="$1"
+    local manifest_dir
+    manifest_dir="$(dirname "${THEME_MANIFEST_FILE}")"
+
+    local manifest_json
+    if [[ -n "${allow}" ]]; then
+        manifest_json="$(node -e "const themes=(process.argv[1]||'').split(',').map(v=>v.trim()).filter(Boolean); console.log(JSON.stringify({ coreTheme: 'core', publishedOptionalThemes: themes, buildMode: 'filtered', generatedAt: new Date().toISOString() }, null, 2))" "${allow}")"
+    else
+        manifest_json="$(node -e "console.log(JSON.stringify({ coreTheme: 'core', publishedOptionalThemes: [], buildMode: 'core-only', generatedAt: new Date().toISOString() }, null, 2))")"
+    fi
+
+    mkdir -p "${manifest_dir}"
+    printf '%s\n' "${manifest_json}" > "${THEME_MANIFEST_FILE}"
+}
+
+restore_theme_build_loader() {
+    unset APAY_BUILD_THEMES || true
+    unset APAY_THEME_MANIFEST || true
+    write_theme_manifest ""
+    node scripts/generate-theme-build.mjs --manifest "${THEME_MANIFEST_FILE}" >/dev/null
+}
+
+prepare_theme_build_loader() {
+    local allow
+    allow="$(resolve_build_themes)"
+    export APAY_THEME_MANIFEST="${THEME_MANIFEST_FILE}"
+    write_theme_manifest "${allow}"
+
+    if [[ -n "${allow}" ]]; then
+        export APAY_BUILD_THEMES="${allow}"
+        echo "🎨 本次仅构建模板: ${allow}"
+        node scripts/generate-theme-build.mjs --themes "${allow}" --manifest "${THEME_MANIFEST_FILE}"
+    else
+        unset APAY_BUILD_THEMES || true
+        echo "🎨 本次仅构建核心主题"
+        node scripts/generate-theme-build.mjs --manifest "${THEME_MANIFEST_FILE}"
+    fi
+
+    trap restore_theme_build_loader EXIT
+}
 
 # 1. 用户输入交互
 read -p "请输入项目名称 ($DEFAULT_PROJECT_NAME): " PROJECT_NAME
@@ -33,12 +93,13 @@ cat <<EOF > wrangler.toml
 name = "$PROJECT_NAME"
 compatibility_date = "2024-11-01"
 pages_build_output_dir = "dist"
+compatibility_flags = ["nodejs_compat_v2"]
 
 [[d1_databases]]
 binding = "$BINDING_NAME"
 database_name = "$DB_NAME"
 database_id = "$DB_ID"
-migrations_dir = "server/db/migrations"
+migrations_dir = "$MIGRATIONS_DIR"
 EOF
 
 # --- 数据库迁移 ---
@@ -131,21 +192,35 @@ npx wrangler pages secret put NUXT_SESSION_PASSWORD --project-name $PROJECT_NAME
 read -p "确认重新编译 $PROJECT_NAME 吗？ (y/n): " DEPLOY_CONFIRM
 if [ "${DEPLOY_CONFIRM:-y}" = "y" ]; then
     echo "📦 开始构建产物..."
-    rm -rf .output .nuxt
+    export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
+    echo "🧠 NODE_OPTIONS=${NODE_OPTIONS}"
+    prepare_theme_build_loader
+    rm -rf .output .nuxt dist .wrangler/deploy
     # 强制指定预设
     NITRO_PRESET=cloudflare-pages npx nuxi build
+    node scripts/patch-cloudflare-worker.mjs
+    restore_theme_build_loader
+    trap - EXIT
+fi
+
+if [ ! -d "dist" ] || [ -z "$(find dist -mindepth 1 -print -quit 2>/dev/null)" ]; then
+    echo "❌ dist 目录不存在或为空，构建未成功，停止部署。"
+    exit 1
 fi
 
 # 删除 .DS_Store 文件
 echo "🧹 删除 .DS_Store 文件..."
 find dist -name ".DS_Store" -delete
 
+# 清理本地残留的 Wrangler deploy 重定向配置，避免指向旧的 dist/_worker.js/wrangler.json
+rm -rf .wrangler/deploy
+
 echo "🚀 推送代码并部署..."
 npx wrangler pages deploy dist --project-name $PROJECT_NAME --branch main
 
 # 如何查看推送的进度和文件列表
 echo "🔍 查看推送的进度和文件列表..."
-npx wrangler pages list --project-name $PROJECT_NAME --branch main
+npx wrangler pages deployment list --project-name $PROJECT_NAME --environment production
 
 echo "------------------------------------------------"
 echo "✅ 全部部署完成！"

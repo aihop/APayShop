@@ -109,7 +109,11 @@ export default defineNuxtConfig({
   // nitro 侧同名别名见下方 nitro:config 钩子,两侧解析到同一目录
   alias: (() => {
     const themesDir = path.resolve(__dirname, 'app/themes')
-    const aliases: Record<string, string> = {}
+    const aliases: Record<string, string> = {
+      // Cloudflare Workers 下 klona 默认入口会对无原型对象直接调用
+      // x.hasOwnProperty(...)，在 app config 深拷贝时会崩。统一切到更稳的 full 版本。
+      klona: path.resolve(__dirname, 'node_modules/klona/full/index.mjs'),
+    }
     if (fs.existsSync(themesDir)) {
       resolveBuildThemes().forEach(theme => {
         const vendorDir = path.join(themesDir, theme, 'server', 'vendor')
@@ -122,6 +126,9 @@ export default defineNuxtConfig({
   })(),
   hooks: {
     'nitro:config'(nitroConfig) {
+      const nitroAliases = nitroConfig.alias ||= {}
+      nitroAliases.klona = path.resolve(__dirname, 'node_modules/klona/full/index.mjs')
+
       const themesDir = path.resolve(__dirname, 'app/themes')
       if (fs.existsSync(themesDir)) {
         const apiThemes = resolveNitroApiThemes()
@@ -170,8 +177,7 @@ export default defineNuxtConfig({
           // 让 nitro 以绝对路径打包,避免相对引用被外部化后解析错位
           const vendorDir = path.join(themesDir, theme, 'server', 'vendor')
           if (fs.existsSync(vendorDir)) {
-            nitroConfig.alias = nitroConfig.alias || {}
-            nitroConfig.alias[`#${theme}-vendor`] = vendorDir
+            nitroAliases[`#${theme}-vendor`] = vendorDir
           }
         })
 

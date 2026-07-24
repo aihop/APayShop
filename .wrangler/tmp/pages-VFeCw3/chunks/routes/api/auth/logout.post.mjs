@@ -1,0 +1,2 @@
+import{d as o,f as r,E as t}from"../../../nitro/nitro.mjs";import"node:crypto";import"node:buffer";import"node:process";import"cloudflare:workers";import"node:events";import"node:timers";import"node:async_hooks";import"node:stream";import"node:net";import"node:tls";import"node:string_decoder";import"node:zlib";import"node:util";import"node:url";import"node:fs/promises";import"node:path";import"node:assert";const e=o(async o=>{const e=r(o);return await t(o),{message:"zh"===e?"已成功退出登录":"Logged out successfully"}});export{e as default};
+//# sourceMappingURL=logout.post.mjs.map
