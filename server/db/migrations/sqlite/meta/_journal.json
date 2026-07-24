@@ -78,6 +78,13 @@
       "when": 1785300003002,
       "tag": "0010_add_payment_failures",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785300003003,
+      "tag": "0011_add_auth_and_event_rules",
+      "breakpoints": true
     }
   ]
 }

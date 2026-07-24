@@ -8,5 +8,30 @@ CREATE TABLE IF NOT EXISTS `payment_failures` (
         `contact_email` text,
         `raw_response` text,
         `visitor_id` text,
-        `created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL
+        `created_at` integer DEFAULT (unixepoch()) NOT NULL
 );
+--> statement-breakpoint
+INSERT OR IGNORE INTO `payment_failures` (
+        `id`,
+        `order_id`,
+        `card_bin`,
+        `reason`,
+        `amount`,
+        `pay_method`,
+        `contact_email`,
+        `raw_response`,
+        `visitor_id`,
+        `created_at`
+)
+SELECT
+        `id`,
+        `order_id`,
+        `card_bin`,
+        `reason`,
+        `amount`,
+        `pay_method`,
+        `contact_email`,
+        `raw_response`,
+        `visitor_id`,
+        `created_at`
+FROM `failures`;

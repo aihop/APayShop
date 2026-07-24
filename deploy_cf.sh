@@ -113,6 +113,13 @@ else
     npx wrangler d1 migrations apply $DB_NAME --remote
 fi
 
+echo "🧩 检查 Qingpu PostgreSQL 结构..."
+if [[ -n "${QINGPU_DATABASE_URL:-${DATABASE_URL:-}}" ]]; then
+    node scripts/apply-qingpu-sql.mjs
+else
+    echo "ℹ️ 未配置 QINGPU_DATABASE_URL / DATABASE_URL，跳过 Qingpu SQL 初始化"
+fi
+
 # --- 是否迁移本地数据库记录，如果是，就将本地 .data/db/sqlite.db 文件上传到 D1 数据库中 ---
 read -p "是否迁移本地数据库记录到D1数据库中？ (y/n): " MIGRATE_CONFIRM
 

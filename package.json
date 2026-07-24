@@ -15,6 +15,7 @@
     "db:pg:gen": "drizzle-kit generate --config=drizzle.pg.config.ts",
     "db:pg:push": "drizzle-kit push --config=drizzle.pg.config.ts",
     "db:pg:migrate": "drizzle-kit migrate --config=drizzle.pg.config.ts",
+    "db:qingpu:init": "node scripts/apply-qingpu-sql.mjs",
     "db:gen": "drizzle-kit generate --config=drizzle.config.ts",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
