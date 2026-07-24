@@ -13,3 +13,5 @@ TEMPLATE_GUIDE.md
 build_local.sh
 prompt.md
 wrangler.toml
+# macOS 目录元数据:会随每次 Finder 浏览产生改动,反复污染 git status
+.DS_Store
