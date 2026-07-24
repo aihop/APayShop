@@ -1,8 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const form = await readFormData(event)
   
   // Support multiple files ('files') or a single file ('file')
@@ -13,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }
   
   if (!files.length || !files[0]?.size) {
-    throw createError({ statusCode: 400, message: 'No file uploaded' })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '未上传文件' : 'No file uploaded' })
   }
 
   const urls: string[] = []

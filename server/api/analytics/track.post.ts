@@ -1,4 +1,5 @@
 import { trackVisitorEvent } from '../../utils/visitorAnalytics'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 const allowedEvents = new Set([
   'page_view',
@@ -9,6 +10,7 @@ const allowedEvents = new Set([
 ])
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const body = await readBody(event).catch(() => ({}))
   const session = await getUserSession(event).catch(() => null)
   const eventName = typeof body?.eventName === 'string' ? body.eventName : ''
@@ -16,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (!allowedEvents.has(eventName)) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid analytics event',
+      statusMessage: locale === 'zh' ? '无效的埋点事件' : 'Invalid analytics event',
     })
   }
 

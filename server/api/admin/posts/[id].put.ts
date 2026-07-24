@@ -1,15 +1,17 @@
 import { posts } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const id = getRouterParam(event, "id")
-  if (!id) throw createError({ statusCode: 400, message: "Missing id" })
+  if (!id) throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少 ID' : 'Missing id' })
 
   const body = await readBody(event)
   
   if (!body.title || !body.slug) {
-    throw createError({ statusCode: 400, message: "Title and slug are required" })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '标题和 slug 不能为空' : 'Title and slug are required' })
   }
 
   try {
@@ -36,17 +38,17 @@ export default defineEventHandler(async (event) => {
       .where(eq(posts.id, parseInt(id)))
       .returning()
 
-    return { code: 0, message: "Post updated successfully", data: result[0] }
+    return { code: 0, message: locale === 'zh' ? '文章更新成功' : 'Post updated successfully', data: result[0] }
   } catch (error: any) {
     console.error('Update post error:', error)
     const msg = String(error?.message || '')
     const pgCode = String(error?.code || '')
     if (msg.includes('UNIQUE constraint failed') || pgCode === '23505') {
       if (msg.includes('posts.slug') || msg.includes('posts_slug') || msg.includes('posts_slug_key')) {
-        return { code: 1, message: "A post with this slug already exists" }
+        return { code: 1, message: locale === 'zh' ? '该 slug 的文章已存在' : 'A post with this slug already exists' }
       }
-      return { code: 1, message: "Duplicate constraint" }
+      return { code: 1, message: locale === 'zh' ? '存在重复约束' : 'Duplicate constraint' }
     }
-    return { code: 1, message: error.message || "Internal server error" }
+    return { code: 1, message: error.message || (locale === 'zh' ? '服务器内部错误' : 'Internal server error') }
   }
 })

@@ -17,7 +17,7 @@
       >
         <UInput
           v-model="form.site_name"
-          placeholder="APayShop"
+          placeholder="APay"
           icon="ph:text-t"
           size="md"
           class="w-full"
@@ -31,7 +31,7 @@
       >
         <UInput
           v-model="form.site_url"
-          placeholder="https://apayshop.com"
+          placeholder="https://apay.run"
           icon="ph:globe"
           size="md"
           class="w-full"
@@ -105,7 +105,7 @@
       >
         <UInput
           v-model="form.footer_copyright"
-          placeholder="© 2024 APayShop. All rights reserved."
+          placeholder="© 2026 APay.run. All rights reserved."
           icon="ph:copyright"
           size="md"
           class="w-full"

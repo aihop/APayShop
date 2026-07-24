@@ -1,21 +1,21 @@
-# APayShop
+# APay
 
 **A Minimalist, Geek-Style Full-Stack E-commerce Platform for Virtual Goods**  
 Built with Nuxt 4 + Nuxt Hub (SQLite) + Tailwind CSS
 
-[Website](https://apayshop.com/) · [简体中文](README.zh-CN.md) · [Features](#-core-features) · [Quick Start](#-quick-start-1-click-deployment) · [Architecture](#-architecture-highlights)
+[Website](https://apay.run/) · [简体中文](README.zh-CN.md) · [Features](#-core-features) · [Quick Start](#-quick-start-1-click-deployment) · [Architecture](#-architecture-highlights)
 
 ---
 
 ## 🌟 Introduction
 
-**APayShop** is a lightweight, zero-external-dependency, full-stack independent store designed specifically for selling **virtual goods** (Activation Keys, Digital Files, SaaS Subscriptions, API Quotas, and Manual Services).
+**APay** is a lightweight, zero-external-dependency, full-stack independent store designed specifically for selling **virtual goods** (Activation Keys, Digital Files, SaaS Subscriptions, API Quotas, and Manual Services).
 
 It abandons the traditional heavy architecture of separating Java/Go backend from Vue/React frontend. Instead, it utilizes **Nuxt 4 + Local SQLite (via Nuxt Hub)** to achieve an ultimate single-machine extreme deployment experience. It features a dark-mode cyberpunk aesthetic, silky-smooth physical animations, and a powerful multi-theme dynamic engine.
 
-If you are an indie hacker, a digital nomad, or a small studio looking to sell your digital assets or APIs quickly and elegantly without maintaining a heavy database, APayShop is your best choice.
+If you are an indie hacker, a digital nomad, or a small studio looking to sell your digital assets or APIs quickly and elegantly without maintaining a heavy database, APay is your best choice.
 
-Official website: https://apayshop.com/
+Official website: https://apay.run/
 
 ---
 
@@ -43,8 +43,8 @@ We provide a foolproof deployment script for fresh Linux servers (Ubuntu/Debian/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/aihop/APayShop.git
-cd APayShop
+git clone https://github.com/aihop/apay.git
+cd apay
 
 # 2. Make the script executable
 chmod +x deploy.sh
@@ -75,7 +75,7 @@ node .output/server/index.mjs
 If you use a multi-theme setup and want to ship only `default` + a selected theme, you can build an isolated artifact directory:
 
 ```bash
-./build.sh apayshop-site panel
+./build.sh apay-site official
 ```
 
 ---
@@ -92,13 +92,13 @@ To avoid hardcoding dozens of payment gateways, the `payment_methods` table stor
 
 ### Rebuild & Restart Mechanism
 
-Since Vue's dynamic imports require static analysis during build time (`npm run build`), dynamically downloading a new theme won't work instantly. APayShop provides an async `/api/admin/system/rebuild` endpoint. Admins can click "Rebuild System" in the dashboard, and the server will silently recompile and restart via PM2 in the background.
+Since Vue's dynamic imports require static analysis during build time (`npm run build`), dynamically downloading a new theme won't work instantly. APay provides an async `/api/admin/system/rebuild` endpoint. Admins can click "Rebuild System" in the dashboard, and the server will silently recompile and restart via PM2 in the background.
 
 ---
 
 ## 🧩 Pro Themes & Payment Plugins (Coming Soon)
 
-APayShop is entirely open-source and free to use under the MIT License. However, to sustain the development and offer premium experiences, we are working on a marketplace for:
+APay is entirely open-source and free to use under the MIT License. However, to sustain the development and offer premium experiences, we are working on a marketplace for:
 
 - **Premium Themes**: Handcrafted, highly-converting themes for specific niches (e.g., Cyberpunk Game Key Store, Clean Minimalist SaaS Portal).
 - **Advanced Payment Gateways**: Ready-to-use webhook sandbox scripts for Crypto (USDT/BTC), Stripe, PayPal, and regional local payment providers.

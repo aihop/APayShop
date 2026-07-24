@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import { and, eq, or } from 'drizzle-orm'
 import { orders } from '../db/schema'
 import { db } from '../db/runtime'
+import { getRequestLocale } from './requestLocale'
 
 /**
  * 订单归属校验:凡是"按 orderId 读/写订单"的面向客户端接口都必须走这里,
@@ -11,12 +12,16 @@ import { db } from '../db/runtime'
  * 不匹配统一 404,不向探测者泄露订单是否存在。
  */
 export const requireOrderOwnership = async (event: H3Event, orderId: string) => {
+  const locale = getRequestLocale(event)
   const session = await getUserSession(event)
   const userId = (session?.user as any)?.id
   const visitorId = getCookie(event, 'visitor_id')
 
   if (!userId && !visitorId) {
-    throw createError({ statusCode: 401, message: 'Unauthorized: No user session or visitor cookie found' })
+    throw createError({
+      statusCode: 401,
+      message: locale === 'zh' ? '未登录，且未找到访客凭证' : 'Unauthorized: No user session or visitor cookie found',
+    })
   }
 
   const authCondition = userId
@@ -28,7 +33,7 @@ export const requireOrderOwnership = async (event: H3Event, orderId: string) => 
     .limit(1)
 
   if (!rows.length || !rows[0]) {
-    throw createError({ statusCode: 404, message: 'Order not found' })
+    throw createError({ statusCode: 404, message: locale === 'zh' ? '订单不存在' : 'Order not found' })
   }
   return rows[0]
 }

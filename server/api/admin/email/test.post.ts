@@ -1,11 +1,13 @@
 import { sendEmail } from '../../../utils/email'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const requestLocale = getRequestLocale(event)
   const body = await readBody(event)
   const { to, templateCode, locale, templates } = body
 
   if (!to || !templateCode) {
-    throw createError({ statusCode: 400, message: 'to and templateCode are required' })
+    throw createError({ statusCode: 400, message: requestLocale === 'zh' ? 'to 和 templateCode 不能为空' : 'to and templateCode are required' })
   }
 
   const result = await sendEmail({

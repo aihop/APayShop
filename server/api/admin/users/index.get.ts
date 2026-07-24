@@ -1,8 +1,10 @@
 import { users } from "../../../db/schema"
 import { count, desc } from "drizzle-orm"
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const query = getQuery(event)
   const page = parseInt(query.page as string) || 1
   const pageSize = parseInt(query.pageSize as string) || 15
@@ -34,7 +36,7 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     throw createError({
       statusCode: 500,
-      message: error.message || 'Failed to fetch users',
+      message: error.message || (locale === 'zh' ? '获取用户列表失败' : 'Failed to fetch users'),
     })
   }
 })

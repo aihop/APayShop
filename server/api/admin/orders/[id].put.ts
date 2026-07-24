@@ -6,10 +6,12 @@ import { dispatchEvent } from '../../../utils/eventBus'
 import { ORDER_PAY_STATUS } from '../../../utils/constants'
 import { createOrderAttribution, settlePromoCommission } from '../../../promo/service'
 import { sendMinimalCheckoutPaidNotification } from '../../../../app/themes/minimal/server/checkout/notify'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const id = getRouterParam(event, "id")
-  if (!id) throw createError({ statusCode: 400, message: "Missing id" })
+  if (!id) throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少 ID' : 'Missing id' })
   
   const body = await readBody(event)
   

@@ -1,13 +1,26 @@
 import { orders, products } from "../../db/schema"
 import { eq, and, or } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        orderIdRequired: '订单 ID 不能为空',
+        unauthorized: '未登录，且未找到访客凭证',
+        orderNotFound: '订单不存在',
+      }
+    : {
+        orderIdRequired: 'Order ID is required',
+        unauthorized: 'Unauthorized: No user session or visitor cookie found',
+        orderNotFound: 'Order not found',
+      }
   const query = getQuery(event)
   const orderId = query.orderId as string
   
   if (!orderId) {
-    throw createError({ statusCode: 400, message: "Order ID is required" })
+    throw createError({ statusCode: 400, message: messages.orderIdRequired })
   }
 
   const session = await getUserSession(event)
@@ -15,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const visitorId = getCookie(event, 'visitor_id')
 
   if (!userId && !visitorId) {
-    throw createError({ statusCode: 401, message: "Unauthorized: No user session or visitor cookie found" })
+    throw createError({ statusCode: 401, message: messages.unauthorized })
   }
 
   const authCondition = userId
@@ -43,7 +56,7 @@ export default defineEventHandler(async (event) => {
     .limit(1)
   
   if (existingOrders.length === 0) {
-    throw createError({ statusCode: 404, message: "Order not found" })
+    throw createError({ statusCode: 404, message: messages.orderNotFound })
   }
 
   const order = existingOrders[0]

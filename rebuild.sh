@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# APayShop Template Rebuild & Restart Script
+# APay Template Rebuild & Restart Script
 # 
 # Description: 
 # This script is used to safely rebuild the Nuxt application and restart the 
@@ -23,9 +23,9 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-APP_NAME="apayshop"
+APP_NAME="apay"
 
-echo -e "${YELLOW}🚀 Starting APayShop System Rebuild...${NC}"
+echo -e "${YELLOW}🚀 Starting APay System Rebuild...${NC}"
 echo "------------------------------------------------"
 
 # 1. Check dependencies

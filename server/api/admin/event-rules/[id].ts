@@ -1,12 +1,14 @@
 import { eventRules } from '../../../db/schema'
 import { db } from '../../../db/runtime'
 import { eq } from 'drizzle-orm'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 // 事件自动化规则:更新 / 删除。
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const id = Number(getRouterParam(event, 'id'))
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid id' })
+    throw createError({ statusCode: 400, statusMessage: locale === 'zh' ? '无效的 ID' : 'Invalid id' })
   }
 
   if (event.method === 'PUT') {
@@ -26,5 +28,5 @@ export default defineEventHandler(async (event) => {
     return { ok: true }
   }
 
-  throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' })
+  throw createError({ statusCode: 405, statusMessage: locale === 'zh' ? '请求方法不允许' : 'Method Not Allowed' })
 })

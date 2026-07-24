@@ -1,4 +1,4 @@
-import { users, orders, usersTokens } from "../../db/schema"
+import { users, orders, usersTokens, settings } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { emitEvent } from "../../utils/eventActions"
@@ -6,8 +6,19 @@ import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics
 import { sendEmail } from "../../utils/email"
 import { isMultiDeviceLoginDisabled, generateSessionId, EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
 import { bindInviteRelation, capturePromoTracking, ensurePromoMember, mergePromoTracking, readPromoTracking, requestPromoAgentJoin } from "../../promo/service"
+import { getRequestLocale } from "../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        emailPasswordRequired: '邮箱和密码不能为空',
+        userExists: '该邮箱已被注册',
+      }
+    : {
+        emailPasswordRequired: 'Email and password are required',
+        userExists: 'User with this email already exists',
+      };
 
   const body = await readBody(event)
   const { email, password, nickname, inviteCode } = body
@@ -19,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (!email || !password) {
     throw createError({
       statusCode: 400,
-      message: 'Email and password are required'
+      message: messages.emailPasswordRequired
     })
   }
 
@@ -29,7 +40,7 @@ export default defineEventHandler(async (event) => {
   if (existingUser.length > 0) {
     throw createError({
       statusCode: 409,
-      message: 'User with this email already exists'
+      message: messages.userExists
     })
   }
 
@@ -108,9 +119,6 @@ export default defineEventHandler(async (event) => {
   })
 
   // Send email verification (non-blocking)
-  const acceptLanguage = getHeaders(event)['accept-language'] || 'en'
-  const locale = acceptLanguage.startsWith('zh') ? 'zh' : 'en'
-
   // Generate email verification token (24h expiry)，存进通用的 users_tokens 表
   // （name 标记为 EMAIL_VERIFY_TOKEN_NAME，中间件鉴权会排除这个 purpose，不会当成 API token）
   const verifyToken = crypto.randomUUID()
@@ -124,13 +132,19 @@ export default defineEventHandler(async (event) => {
 
   const siteUrl = getRequestURL(event).origin
   const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
+  const siteNameSetting = await db.select()
+    .from(settings)
+    .where(eq(settings.key, 'site_name'))
+    .limit(1)
+  const siteName = String(siteNameSetting[0]?.value || 'APayShop').trim()
+
   sendEmail({
     to: user.email,
     templateCode: 'verify_email',
     locale,
     variables: {
       nickname: user.nickname || user.email.split('@')[0],
-      site_name: 'APayShop',
+      site_name: siteName,
       site_url: siteUrl,
       verify_link: verifyLink,
     },

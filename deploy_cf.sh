@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 配置变量
-DEFAULT_PROJECT_NAME="apayshop"
-DEFAULT_DB_NAME="apayshop"
+DEFAULT_PROJECT_NAME="apay"
+DEFAULT_DB_NAME="apay"
 BINDING_NAME="DB"
 
 # 1. 用户输入交互

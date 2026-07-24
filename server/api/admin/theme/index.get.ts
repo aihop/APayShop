@@ -1,7 +1,9 @@
 import fs from 'fs'
 import path from 'path'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const themesDir = path.resolve(process.cwd(), 'app/themes')
   const themes = []
 
@@ -43,7 +45,7 @@ export default defineEventHandler(async (event) => {
           description: schema.description || '',
           image: schema.image || defaultImage,
           version: schema.version || '1.0.0',
-          author: schema.author || 'Unknown'
+          author: schema.author || (locale === 'zh' ? '未知' : 'Unknown')
         })
       }
     }

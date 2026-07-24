@@ -1,26 +1,28 @@
 import { admins } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const body = await readBody(event)
   const { username, password } = body
 
   if (!username || !password) {
-    throw createError({ statusCode: 400, message: "Missing credentials" })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少登录凭据' : 'Missing credentials' })
   }
 
   // 1. 查询用户
   const [user] = await db.select().from(admins).where(eq(admins.username, username)).limit(1)
 
   if (!user) {
-    throw createError({ statusCode: 401, message: "Admin not found" })
+    throw createError({ statusCode: 401, message: locale === 'zh' ? '管理员不存在' : 'Admin not found' })
   }
 
   // 2. 验证密码 (使用 nuxt-auth-utils 内置的高性能验证)
   const isValid = await verifyPassword(user.passwordHash, password)
   if (!isValid) {
-    throw createError({ statusCode: 401, message: "Invalid credentials" })
+    throw createError({ statusCode: 401, message: locale === 'zh' ? '登录凭据无效' : 'Invalid credentials' })
   }
 
   // 3. 设置用户会话 (取代 jwt.sign)
@@ -35,5 +37,5 @@ export default defineEventHandler(async (event) => {
     loggedInAt: new Date()
   })
 
-  return { message: "Login successful" }
+  return { message: locale === 'zh' ? '登录成功' : 'Login successful' }
 })

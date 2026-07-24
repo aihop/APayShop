@@ -1,11 +1,13 @@
 import { subscriptions, products } from "../../../db/schema"
 import { eq, and, desc } from "drizzle-orm"
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from "../../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const session: any = await requireUserSession(event)
   if (!session.user) {
-    throw createError({ statusCode: 401, message: "Unauthorized" })
+    throw createError({ statusCode: 401, message: locale === 'zh' ? '未登录' : 'Unauthorized' })
   }
 
   const userId = session.user.id
@@ -59,7 +61,7 @@ export default defineEventHandler(async (event) => {
       status: sub.status,
       tier: productMeta.level || 0,
       grantAmount: productMeta.grant_amount || 0,
-      planName: sub.productName || 'Unknown',
+      planName: sub.productName || (locale === 'zh' ? '未知套餐' : 'Unknown'),
       interval: sub.interval,
       intervalCount: sub.intervalCount,
       amount: sub.amount,

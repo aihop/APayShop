@@ -1,8 +1,10 @@
 import { orders, products, users } from "../../db/schema"
 import { eq, desc, count, or } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+    const locale = getRequestLocale(event)
     const query = getQuery(event)
     const page = parseInt(query.page as string) || 1
     const pageSize = parseInt(query.pageSize as string) || 15
@@ -16,7 +18,7 @@ export default defineEventHandler(async (event) => {
     if (!userId && !visitorId) {
       throw createError({
         statusCode: 401,
-        message: 'Unauthorized: No user session or visitor cookie found'
+        message: locale === 'zh' ? '未登录，且未找到访客凭证' : 'Unauthorized: No user session or visitor cookie found'
       })
     }
 

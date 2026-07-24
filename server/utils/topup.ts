@@ -112,33 +112,55 @@ export class TopupValidationError extends Error {}
  * 校验并折算一笔充值。任何非法输入都抛 TopupValidationError,
  * 调用方转成 4xx——绝不允许「校验失败但继续建单」。
  */
-export function buildTopupQuote(rules: TopupRules, currencyInput: unknown, amountInput: unknown): TopupQuote {
+export function buildTopupQuote(
+  rules: TopupRules,
+  currencyInput: unknown,
+  amountInput: unknown,
+  locale: 'zh' | 'en' = 'en'
+): TopupQuote {
+  const messages = locale === 'zh'
+    ? {
+        disabled: '充值功能暂未开启',
+        unsupportedCurrency: (currency: string) => `不支持的充值币种：${currency || '(空)'}`,
+        invalidAmount: '充值金额必须为正数',
+        tooManyDecimals: '充值金额最多支持 2 位小数',
+        amountRange: (min: number, max: number, currency: string) => `充值金额必须在 ${min} 到 ${max} ${currency} 之间`,
+        invalidCreditAmount: '到账额度无效，请检查汇率设置',
+      }
+    : {
+        disabled: 'Top-up is currently disabled',
+        unsupportedCurrency: (currency: string) => `Unsupported top-up currency: ${currency || '(empty)'}`,
+        invalidAmount: 'Top-up amount must be a positive number',
+        tooManyDecimals: 'Top-up amount supports at most 2 decimal places',
+        amountRange: (min: number, max: number, currency: string) => `Top-up amount must be between ${min} and ${max} ${currency}`,
+        invalidCreditAmount: 'Resolved credit amount is invalid, please check the exchange rate setting',
+      }
   if (!rules.enabled) {
-    throw new TopupValidationError('Top-up is currently disabled')
+    throw new TopupValidationError(messages.disabled)
   }
 
   const currency = normalizeCurrencyCode(currencyInput)
   const option = rules.options[currency]
   if (!currency || !option) {
-    throw new TopupValidationError(`Unsupported top-up currency: ${currency || '(empty)'}`)
+    throw new TopupValidationError(messages.unsupportedCurrency(currency))
   }
 
   const amount = Number(amountInput)
   if (!Number.isFinite(amount) || amount <= 0) {
-    throw new TopupValidationError('Top-up amount must be a positive number')
+    throw new TopupValidationError(messages.invalidAmount)
   }
   // 币种最小单位:挡住 0.001 这类脏金额,也避免折算后出现记账尾数
   const normalizedAmount = roundMoney(amount)
   if (normalizedAmount !== amount) {
-    throw new TopupValidationError('Top-up amount supports at most 2 decimal places')
+    throw new TopupValidationError(messages.tooManyDecimals)
   }
   if (normalizedAmount < option.min || normalizedAmount > option.max) {
-    throw new TopupValidationError(`Top-up amount must be between ${option.min} and ${option.max} ${currency}`)
+    throw new TopupValidationError(messages.amountRange(option.min, option.max, currency))
   }
 
   const rechargeAmount = roundMoney(normalizedAmount * option.rate)
   if (!(rechargeAmount > 0)) {
-    throw new TopupValidationError('Resolved credit amount is invalid, please check the exchange rate setting')
+    throw new TopupValidationError(messages.invalidCreditAmount)
   }
 
   return {

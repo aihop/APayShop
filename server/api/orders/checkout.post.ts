@@ -9,6 +9,7 @@ import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readP
 import { sendEmail } from '../../utils/email'
 import { createNotification } from '../../utils/notifications'
 import { stripReservedOrderMeta } from '../../utils/orderMetaData'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -40,10 +41,7 @@ const isDeliverableEmail = (value?: string | null) => {
   return !email.endsWith('@example.com')
 }
 
-const getPreferredLocale = (event: any) => {
-  const acceptLanguage = String(getHeaders(event)['accept-language'] || '').toLowerCase()
-  return acceptLanguage.startsWith('zh') ? 'zh' : 'en'
-}
+const getPreferredLocale = (event: any) => getRequestLocale(event)
 
 const sendPendingOrderEmail = async (event: any, input: {
   email?: string | null
@@ -110,6 +108,30 @@ const createPendingOrderNotification = async (event: any, input: {
 
 export default defineEventHandler(async (event) => {
   try {
+    const locale = getPreferredLocale(event)
+    const messages = locale === 'zh'
+      ? {
+          tooManyRequests: '请求过于频繁，请稍后再试。',
+          guestCheckoutDisabled: '当前未开启游客下单，请先登录后再继续购买。',
+          multipleItemsUnsupported: '暂不支持多商品同时下单，请一次只购买一个商品。',
+          invalidProductInfo: '商品信息无效',
+          productNotFound: '商品不存在',
+          productUnavailable: '商品当前不可售',
+          activeSubscriptionExists: '您当前已拥有同级有效订阅，请升级到更高等级的套餐。',
+          orderCreated: '订单创建成功',
+          createOrderFailed: '创建订单失败：',
+        }
+      : {
+          tooManyRequests: 'Too many requests. Please try again later.',
+          guestCheckoutDisabled: 'Guest checkout is disabled. Please log in to continue your purchase.',
+          multipleItemsUnsupported: 'Multiple items are not supported yet, please checkout one product at a time',
+          invalidProductInfo: 'Invalid product information',
+          productNotFound: 'Product not found',
+          productUnavailable: 'Product is not available for sale',
+          activeSubscriptionExists: 'You already have an active subscription at this tier. Please upgrade to a higher plan.',
+          orderCreated: 'Order created successfully',
+          createOrderFailed: 'Failed to create order: ',
+        }
     const promoTracking = mergePromoTracking(
       readPromoTracking(event),
       await capturePromoTracking(event),
@@ -126,14 +148,21 @@ export default defineEventHandler(async (event) => {
     } else {
       rateData.count++
       if (rateData.count > 5) {
-        throw createError({ statusCode: 429, message: "Too many requests. Please try again later." })
+        throw createError({ statusCode: 429, message: messages.tooManyRequests })
       }
     }
 
     const body = await readBody(event)
-    
+
     // Validate DTO with Zod
-    const parsedBody = orderSchema.parse(body)
+    const parsedResult = orderSchema.safeParse(body)
+    if (!parsedResult.success) {
+      return {
+        code: 1,
+        message: locale === 'zh' ? '下单参数无效' : 'Invalid checkout payload',
+      }
+    }
+    const parsedBody = parsedResult.data
     
     // Check if user is logged in
     let userId = null;
@@ -162,7 +191,7 @@ export default defineEventHandler(async (event) => {
       const guestCheckoutSetting = await db.select().from(settings).where(eq(settings.key, 'allow_guest_checkout')).limit(1)
       const allowGuestCheckout = guestCheckoutSetting.length > 0 ? guestCheckoutSetting[0].value === 'true' : true
       if (!allowGuestCheckout) {
-        throw createError({ statusCode: 401, message: "Guest checkout is disabled. Please log in to continue your purchase." })
+        throw createError({ statusCode: 401, message: messages.guestCheckoutDisabled })
       }
     }
 
@@ -172,11 +201,11 @@ export default defineEventHandler(async (event) => {
     // 当前实现只支持单商品下单:DTO 允许多 items 但历史上静默截断为第一项,
     // 会生成金额不完整的订单——改为显式拒绝,直到真正支持多商品结算
     if (parsedBody.items.length > 1) {
-      return { code: 1, message: "Multiple items are not supported yet, please checkout one product at a time" }
+      return { code: 1, message: messages.multipleItemsUnsupported }
     }
     const firstItem = parsedBody.items[0]!
     if (!firstItem) {
-      return { code: 1, message: "Invalid product information" }
+      return { code: 1, message: messages.invalidProductInfo }
     }
     const productId = firstItem.productId
     const productNum = firstItem.productNum
@@ -184,14 +213,14 @@ export default defineEventHandler(async (event) => {
     // Check product existence and get price
     const productList = await db.select().from(products).where(eq(products.id, productId))
     if (productList.length === 0) {
-      return { code: 1, message: "Product not found" }
+      return { code: 1, message: messages.productNotFound }
     }
 
     const product = productList[0]
 
     // 可售状态检查:下架商品不允许下单(此前只查存在性,隐藏商品可被直接下单)
     if (product.isActive === false) {
-      return { code: 1, message: "Product is not available for sale" }
+      return { code: 1, message: messages.productUnavailable }
     }
     
     // Prepare metaData for the order by merging product's plan_ids (if any) with user's metaData
@@ -233,7 +262,7 @@ export default defineEventHandler(async (event) => {
         if (Number(productLevel) <= Number(currentLevel)) {
           throw createError({
             statusCode: 409,
-            message: "You already have an active subscription at this tier. Please upgrade to a higher plan."
+            message: messages.activeSubscriptionExists
           })
         }
       }
@@ -303,7 +332,7 @@ export default defineEventHandler(async (event) => {
 
         return {
           code: 0,
-          message: "Order created successfully",
+          message: messages.orderCreated,
           data: {
             id: pendingOrder.id, // using orderId as checkoutId for now
             amount: totalAmount,
@@ -379,7 +408,7 @@ export default defineEventHandler(async (event) => {
     
     return {
       code: 0,
-      message: "Order created successfully",
+      message: messages.orderCreated,
       data: {
         id: orderId, // using orderId as checkoutId for now
         amount: totalAmount,
@@ -387,6 +416,8 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch (error: any) {
-    return { code: 1, message: "Failed to create order: " + error.message }
+    const locale = getPreferredLocale(event)
+    const failedPrefix = locale === 'zh' ? '创建订单失败：' : 'Failed to create order: '
+    return { code: 1, message: `${failedPrefix}${error.message}` }
   }
 })

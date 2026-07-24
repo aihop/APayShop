@@ -1,4 +1,4 @@
-# APayShop: 极简极客风全栈虚拟商品独立站
+# APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
 > `2026-05-29`: 修正 Section 6 章节编号 (A→B→C→D→E→F→G)；补充测试策略与本节说明。
@@ -6,7 +6,7 @@
 > `2026-05-30`: 补充后台日志/列表时间字段的跨环境归一化约定，见 Section 6.A。
 > `2026-05-30`: 修正 SQLite `logs.created_at` 默认值与历史数据迁移方式，见 Section 6.A。
 > `2026-06-26`: 将旧充值商品语义重构为 `topup`，用于外部账户余额充值而非本地 API Key 发放，见 Section 4。
-> `2026-06-26`: 移除本地 API Key 资产模型与相关迁移定义，APayShop 不再维护本地 API Key 资产表，见 Section 3 与 Section 6.G。
+> `2026-06-26`: 移除本地 API Key 资产模型与相关迁移定义，APay 不再维护本地 API Key 资产表，见 Section 3 与 Section 6.G。
 > `2026-06-27`: 新增时间与时区规范（Section 6.I）。数据库存 UTC 时间戳 → 后端 API 输出 UTC ISO → 前端按 settings.timezone 渲染。Dashboard 与 Stats 聚合查询改为读取配置时区计算今日边界与按小时分组，不再依赖服务器本地时间。新增 `server/utils/timezone.ts` 提供跨方言时区工具函数。
 > `2026-06-27`: 新增 ainode Go 后端 JSON 序列化规范（Section 6.J）。sqlc 必须配置 `emit_json_tags` + `json_tags_case_style: camel`，所有 API 统一输出小驼峰字段名。
 > `2026-06-28`: 新增数据自动清理机制。后台统计页支持手动清理 `visitor_events` 表原始事件数据（默认保留 90 天），`visitor_profiles` 访客画像永久保留，见 Section 6.K。
@@ -25,7 +25,7 @@
 
 ## 1. 项目定位与核心架构
 
-APayShop 是一个专为**虚拟商品（服务订阅、卡密、数字文件、API接口等）**设计的极客风全栈独立站。
+APay 是一个专为**虚拟商品（服务订阅、卡密、数字文件、API接口等）**设计的极客风全栈独立站。
 最大特点是**“极致轻量、零外部依赖”**。完全基于 **Nuxt 4 + NuxtHub** 构建。支持在本地 SQLite 与 Cloudflare D1 之间无缝切换，实现免费且极速的全球边缘部署。
 
 ### 核心技术栈
@@ -38,7 +38,7 @@ APayShop 是一个专为**虚拟商品（服务订阅、卡密、数字文件、
 
 ### SaaS 矩阵中的商业定位
 
-APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示小程序）中的**唯一计费中心和引流门户**。它负责完成“按月/按年订阅”的售卖，以规避小程序端虚拟支付的合规风险。APayShop 只负责“收钱”和“通知”，绝对不参与具体的建站、小程序提审等繁重业务逻辑。
+APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序）中的**唯一计费中心和引流门户**。它负责完成“按月/按年订阅”的售卖，以规避小程序端虚拟支付的合规风险。APay 只负责“收钱”和“通知”，绝对不参与具体的建站、小程序提审等繁重业务逻辑。
 
 ---
 
@@ -56,7 +56,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 
 ### E. 跨系统服务调度 (Webhook to Shoply)
 
-- **机制**: 当用户在 APayShop 成功支付 SaaS 订阅套餐后，APayShop 不直接操作底层业务数据库。而是利用 `payment_methods.callback` 中的沙盒代码，向 Shoply 后端发起 Webhook 通知（需携带用户手机号/UnionID 等凭证），由 Shoply 接管后续的“转正、生成独立小程序”等业务流。
+- **机制**: 当用户在 APay 成功支付 SaaS 订阅套餐后，APay 不直接操作底层业务数据库。而是利用 `payment_methods.callback` 中的沙盒代码，向 Shoply 后端发起 Webhook 通知（需携带用户手机号/UnionID 等凭证），由 Shoply 接管后续的“转正、生成独立小程序”等业务流。
 
 ### C. 访客与买家双轨制 (Guest & User)
 
@@ -173,7 +173,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 - **后台扩展入口接入规则**: 如果新增模板后台扩展页，除了 `theme.admin.json` 和主题组件本身，还要同步确认默认后台侧栏与 `app/components/RouteSearch.vue` 是否已通过统一注册逻辑自动接入；禁止再新增一套分散硬编码菜单。
 - **主题后台扩展页国际化规则**: 主题后台扩展页的文案不要继续混塞在前台 `locales/en.ts`、`zh.ts` 中；优先放到 `app/themes/[theme]/locales/admin/en.ts` 与 `admin/zh.ts`，并由 `app/pages/admin/extensions/[...slug].vue` 统一 merge 到当前主题命名空间下，保持现有 `ainode.admin.*` 这类 key 兼容。
 - **模板后台直连 Golang 管理接口模式**: 主题后台扩展页如果需要直接调用 `ainode` 的管理接口，优先复用 `useExternalApi({ proxy: true})` 并在 `onMounted` 中发起请求，模式参照 `app/themes/aihop/pages/user/dashboard.vue` 的 `fetchGatewayStats`。统一经由 `server/api/proxy/external.ts` 转发，由服务端注入 `Authorization`，且该代理现在同时允许 `session.user` 与 `session.admin` 场景；适合 `/admin/extensions/*` 页面直接对接 Go 后台管理 API，例如 `models.vue`、`channels.vue` 这类 CRUD 页面直接对接 `/api/admin/models`、`/api/admin/channels`。
-- **官网微信登录收口规则**: APayShop 官网主题（如 `minimal`）的微信登录应优先走 Shoply `go-fast` 的统一认证入口 `/auth/connect`、`/auth/connect/signin`、`/auth/connect/callback`，由通用网关再触发 `plugins/app/Wechat` 应用；APayShop 侧只保留前端入口、同源代理和回调承接，不再直接承载微信登录核心业务。
+- **官网微信登录收口规则**: APay 官网主题（如 `minimal`）的微信登录应优先走 Shoply `go-fast` 的统一认证入口 `/auth/connect`、`/auth/connect/signin`、`/auth/connect/callback`，由通用网关再触发 `plugins/app/Wechat` 应用；APay 侧只保留前端入口、同源代理和回调承接，不再直接承载微信登录核心业务。
 - **官网 PC 扫码微信登录配置**: 如果官网需要支持 PC 端微信扫码登录，Shoply `plugins/app/Wechat` 应用除常规 `appId/appSecret` 外，还应额外配置开放平台网站应用的 `websiteAppId/websiteAppSecret`；微信内 H5 授权与官网 PC 扫码应分别使用各自凭证，不要混用。
 
 ### E. 依赖禁区
@@ -194,7 +194,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 
 ### G. 数据库边界与 Schema 纯洁性 (禁止跨界定义模型)
 
-- **边界清晰**: `server/db/schema.ts` 和 `schema.pg.ts` 只能且必须只包含 APayShop 本项目直接使用的核心业务表。
+- **边界清晰**: `server/db/schema.ts` 和 `schema.pg.ts` 只能且必须只包含 APay 本项目直接使用的核心业务表。
 - **绝对禁止**: 严禁为了绕过 Drizzle ORM 的同步/迁移警告（如提示要删除其他外部系统创建的表或序列，例如 Go 后端的 `models`、`channels` 等），而将这些无关的外部模型强行加入到本项目的 Schema 文件中。
 - **解决方式**: 面对多服务共用同一数据库的场景，应通过 `drizzle.config.ts` 中的 `tablesFilter` 精准匹配本项目表，或在执行 push/migrate 时手动忽略外部库变更，始终维护本系统 Schema 的独立与纯洁。
 - **Promo 代理待审核状态约定**: `promo_agent_relations.status` 现统一表达三种状态：`pending`（通过总代理代理链接注册、待审核）、`active`（已确认加入正式团队）、`disabled`（已拒绝或已停用）。总代理用户中心的团队人数、团队报表、团队订单默认只统计 `active`；待加入列表单独读取 `pending`。
@@ -276,7 +276,7 @@ APayShop 是整个 SaaS 矩阵（APayShop 官网 + Shoply 基座 + QingPu 演示
 - **通用工具任务约定**: Qingpu 主题下 text-to-image / image-to-image / text-to-video 这类非 listing 专属 AI 工具，统一复用 `qingpu_tasks` 作为异步任务账本；任务类型按能力命名（如 `tool_image_generate`），不要继续创建 `qingpu_listing_tasks` 或工具专属任务表。工具产物统一落 `qingpu_assets`，并通过 `meta.source / meta.toolLabel / meta.prompt` 与“我的创作”联通。
 - **1688 直抓原始协议约定**: Qingpu 铺货服务端直抓 1688 商品时，统一以 ainode `/ai/crawl` 返回 payload 作为 `canonical.extra.raw.payload` 的权威原始档，`canonical.extra.raw.provider` 固定标记为 `ainode-crawl-1688`；不得再在业务层把 ainode 返回重包成 OneBound 风格 `props_list / prop_imgs / skus.sku` 兼容结构。规格值图、SKU 维度与 fallback 聚合应直接基于 ainode raw 的 `specs / skus / detail_images / raw.skuList` 派生（`raw.skuList` 是每 SKU 包装尺寸/毛重的权威来源——`skus[].packaging` 实测常年为空，归一逻辑按 `spec_combination` 关联回填，唯一产线归口在引擎 `normalizeAinodeCrawl1688Product`，业务层不得再手写这层解析，见 qingpu-ai@332a7d9c / vendor v0.7.21）。
 - **密钥存储规则**: 主题私有授权 Key 表只保存 `api_key_hash` 与前缀/预览信息，原始明文 Key 仅允许在“创建 / 轮换”接口返回一次，不得持久化入库。
-- **订阅关联建议**: 主题私有授权 Key 可以保存 APayShop 核心订阅 `subscriptionId`，并额外保存 `subscriptionSnapshot` 快照，避免后续套餐名称、金额或周期变更时丢失签发时上下文。
+- **订阅关联建议**: 主题私有授权 Key 可以保存 APay 核心订阅 `subscriptionId`，并额外保存 `subscriptionSnapshot` 快照，避免后续套餐名称、金额或周期变更时丢失签发时上下文。
 
 ---
 

@@ -2,8 +2,10 @@ import { orders } from "../../../db/schema"
 import { desc, sql, eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { ORDER_PAY_STATUS } from "~~/server/utils/constants"
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   try {
     const query = getQuery(event)
     const page = parseInt(query.page as string) || 1
@@ -29,7 +31,7 @@ export default defineEventHandler(async (event) => {
     .groupBy(orders.contactEmail)
     
     const anonymousData = await db.select({
-      email: sql<string>`'Anonymous'`,
+      email: sql<string>`${locale === 'zh' ? '匿名访客' : 'Anonymous'}`,
       visitorId: orders.visitorId,
       totalOrders: sql<number>`COUNT(${orders.id})`,
       totalSpent: sql<number>`SUM(CASE WHEN ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} THEN ${orders.amount} ELSE 0 END)`,
@@ -61,7 +63,7 @@ export default defineEventHandler(async (event) => {
     console.error("Fetch customers error:", error)
     throw createError({
       statusCode: 500,
-      message: error.message || "Failed to fetch customers"
+      message: error.message || (locale === 'zh' ? '获取客户列表失败' : 'Failed to fetch customers')
     })
   }
 })

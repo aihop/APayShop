@@ -1,8 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { promoAgentTiers } from '../../../db/schema'
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const body = await readBody(event)
   const id = Number(body?.id || 0)
 
@@ -20,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!payload.code || !payload.name) {
-    throw createError({ statusCode: 400, statusMessage: 'code 和 name 必填' })
+    throw createError({ statusCode: 400, statusMessage: locale === 'zh' ? 'code 和 name 必填' : 'code and name are required' })
   }
 
   if (id > 0) {

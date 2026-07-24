@@ -24,7 +24,7 @@ fi
 DRY_RUN="${DRY_RUN:-0}"
 REPO_NAME="${1:-${REPO_NAME:-${CODEUP_REPO_NAME:-}}}"
 THEME_NAME="${2:-${THEME_NAME:-${BUILD_THEME:-}}}"
-BUILD_THEMES="${BUILD_THEMES:-${APAYSHOP_BUILD_THEMES:-}}"
+BUILD_THEMES="${BUILD_THEMES:-${APAY_BUILD_THEMES:-}}"
 OUTPUT_DIR="${OUTPUT_DIR:-}"
 THEME_MANIFEST_FILE="${THEME_MANIFEST_FILE:-app/generated/theme-manifest.json}"
 
@@ -47,8 +47,8 @@ resolve_build_themes() {
 }
 
 restore_theme_build_loader() {
-  unset APAYSHOP_BUILD_THEMES || true
-  unset APAYSHOP_THEME_MANIFEST || true
+  unset APAY_BUILD_THEMES || true
+  unset APAY_THEME_MANIFEST || true
 
   write_theme_manifest ""
 
@@ -86,11 +86,11 @@ write_theme_manifest() {
 prepare_theme_build_loader() {
   local allow
   allow="$(resolve_build_themes)"
-  export APAYSHOP_THEME_MANIFEST="${THEME_MANIFEST_FILE}"
+  export APAY_THEME_MANIFEST="${THEME_MANIFEST_FILE}"
   write_theme_manifest "${allow}"
 
   if [[ -n "${allow}" ]]; then
-    export APAYSHOP_BUILD_THEMES="${allow}"
+    export APAY_BUILD_THEMES="${allow}"
     echo "==> Generating theme build loader: ${allow}"
     if [[ "${DRY_RUN}" == "1" ]]; then
       echo "+ $(mask_cmd node scripts/generate-theme-build.mjs --themes "${allow}" --manifest "${THEME_MANIFEST_FILE}")"
@@ -98,7 +98,7 @@ prepare_theme_build_loader() {
       node scripts/generate-theme-build.mjs --themes "${allow}" --manifest "${THEME_MANIFEST_FILE}"
     fi
   else
-    unset APAYSHOP_BUILD_THEMES || true
+    unset APAY_BUILD_THEMES || true
     echo "==> Generating theme build loader: core only"
     if [[ "${DRY_RUN}" == "1" ]]; then
       echo "+ $(mask_cmd node scripts/generate-theme-build.mjs --manifest "${THEME_MANIFEST_FILE}")"
@@ -126,7 +126,7 @@ fi
 
 REPO_NAME="${REPO_NAME%.git}"
 if [[ -z "${OUTPUT_DIR}" ]]; then
-  OUTPUT_DIR="build/${REPO_NAME}"
+  OUTPUT_DIR="../apay-build/${REPO_NAME}"
 fi
 
 copy_dir() {

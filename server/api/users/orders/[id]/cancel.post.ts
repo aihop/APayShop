@@ -1,8 +1,23 @@
 import { orders } from "../../../../db/schema"
 import { eq, and } from "drizzle-orm"
 import { db } from '../../../../db/runtime'
+import { getRequestLocale } from "../../../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        invalidRequest: '请求无效',
+        orderNotFound: '订单不存在',
+        onlyPending: '只有待支付订单可以取消',
+        cancelled: '订单已成功取消',
+      }
+    : {
+        invalidRequest: 'Invalid request',
+        orderNotFound: 'Order not found',
+        onlyPending: 'Only pending orders can be cancelled',
+        cancelled: 'Order cancelled successfully',
+      }
   const session = await requireUserSession(event)
   const userId = session.user.id
   const orderId = event.context.params?.id
@@ -10,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!userId || !orderId) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid request'
+      message: messages.invalidRequest
     })
   }
 
@@ -27,7 +42,7 @@ export default defineEventHandler(async (event) => {
   if (!existing || existing.length === 0) {
     throw createError({
       statusCode: 404,
-      message: 'Order not found'
+      message: messages.orderNotFound
     })
   }
 
@@ -37,7 +52,7 @@ export default defineEventHandler(async (event) => {
   if (order.payStatus !== 'pending') {
     throw createError({
       statusCode: 400,
-      message: 'Only pending orders can be cancelled'
+      message: messages.onlyPending
     })
   }
 
@@ -51,6 +66,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    message: 'Order cancelled successfully'
+    message: messages.cancelled
   }
 })

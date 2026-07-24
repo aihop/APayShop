@@ -1,18 +1,33 @@
 import { users } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from "../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        unauthorized: '未登录',
+        noData: '没有可更新的数据',
+        profileUpdated: '资料更新成功',
+        internalError: '服务器内部错误',
+      }
+    : {
+        unauthorized: 'Unauthorized',
+        noData: 'No data to update',
+        profileUpdated: 'Profile updated successfully',
+        internalError: 'Internal server error',
+      }
   const session = await requireUserSession(event)
   if (!session.user) {
-    throw createError({ statusCode: 401, message: "Unauthorized" })
+    throw createError({ statusCode: 401, message: messages.unauthorized })
   }
 
   const body = await readBody(event)
   const { nickname, avatarUrl } = body
 
   if (!nickname && !avatarUrl) {
-    return { code: 1, message: "No data to update" }
+    return { code: 1, message: messages.noData }
   }
 
   try {
@@ -29,9 +44,9 @@ export default defineEventHandler(async (event) => {
     if (avatarUrl !== undefined) session.user.avatarUrl = avatarUrl
     await setUserSession(event, session)
 
-    return { code: 0, message: "Profile updated successfully", user: session.user }
+    return { code: 0, message: messages.profileUpdated, user: session.user }
   } catch (error: any) {
     console.error('Update profile error:', error)
-    return { code: 1, message: error.message || "Internal server error" }
+    return { code: 1, message: error.message || messages.internalError }
   }
 })

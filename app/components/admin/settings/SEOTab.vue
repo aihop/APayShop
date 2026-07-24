@@ -45,7 +45,7 @@
         >
           <UInput
             v-model="form[getTitleKey(activeLocale)]"
-            placeholder="APayShop - Premium Digital Goods"
+            placeholder="APay - Premium Products"
             icon="ph:browser"
             size="md"
             class="w-full"
@@ -59,7 +59,7 @@
         >
           <UTextarea
             v-model="form[getDescriptionKey(activeLocale)]"
-            placeholder="The best place to buy digital goods securely."
+            placeholder="The best place to buy products securely."
             icon="ph:text-align-left"
             size="md"
             class="w-full"

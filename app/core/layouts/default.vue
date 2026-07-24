@@ -26,7 +26,7 @@
           >
             <RouteSearch />
             <NuxtLink
-              to="https://apayshop.com/docs"
+              to="https://apay.run/docs"
               target="_blank"
               class="transition-colors hover:text-purple-500 dark:hover:text-purple-400"
             >{{ $t('admin.nav.docs') }}</NuxtLink>
@@ -702,10 +702,10 @@
           <p class="text-sm leading-6 text-gray-500 dark:text-gray-500">
             &copy; {{ new Date().getFullYear() }} {{ getSetting('site_name') || 'Your Site' }}. All rights reserved.
             <span class="ml-1">Designed & Developed by <a
-                href="https://apayshop.com/"
+                href="https://apay.run/"
                 target="_blank"
                 class="text-gray-600 transition-colors hover:text-purple-500 dark:text-gray-400 dark:hover:text-purple-400"
-              >APayShop</a></span>
+              >APay</a></span>
           </p>
           <div class="flex items-center space-x-4 mt-4 md:mt-0">
             <a

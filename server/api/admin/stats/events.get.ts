@@ -2,9 +2,12 @@ import { and, count, desc, gte, lt, sql } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
 import { visitorEvents } from '../../../db/schema'
 import { clampStatsPage, clampStatsPageSize, parseStatsRange } from '../../../utils/adminStats'
+import { getRequestLocale } from '../../../utils/requestLocale'
 import { getConfiguredTimezone } from '../../../utils/timezone'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const unknownLabel = locale === 'zh' ? '未知' : 'Unknown'
   const query = getQuery(event)
   const tz = await getConfiguredTimezone()
   const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query, tz)
@@ -69,10 +72,10 @@ export default defineEventHandler(async (event) => {
       userId: item.userId || null,
       visitCount: item.visitCount,
       isRegistered: !!item.userId,
-      country: item.country || 'Unknown',
+      country: item.country || unknownLabel,
       region: item.region || null,
       city: item.city || null,
-      deviceType: item.deviceType || 'Unknown',
+      deviceType: item.deviceType || unknownLabel,
       browser: item.browser || null,
       os: item.os || null,
       firstSeenAt: toIso(item.firstSeenAt),

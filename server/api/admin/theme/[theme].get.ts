@@ -3,12 +3,14 @@ import { eq } from "drizzle-orm"
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
 
   const themeName = getRouterParam(event, 'theme')
   if (!themeName) {
-    throw createError({ statusCode: 400, message: "Missing theme name" })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少主题名称' : 'Missing theme name' })
   }
 
   // 1. Read theme.json from the file system

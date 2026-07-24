@@ -2,15 +2,28 @@ import { users, usersTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
+import { getRequestLocale } from "../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        missingToken: '缺少验证令牌',
+        invalidToken: '验证令牌无效或已过期',
+        expiredToken: '验证链接已过期，请重新申请验证邮件。',
+      }
+    : {
+        missingToken: 'Missing verification token',
+        invalidToken: 'Invalid or expired verification token',
+        expiredToken: 'Verification token has expired. Please request a new verification email.',
+      }
   const query = getQuery(event)
   const token = query.token as string
 
   if (!token) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing verification token',
+      statusMessage: messages.missingToken,
     })
   }
 
@@ -25,7 +38,7 @@ export default defineEventHandler(async (event) => {
   if (!tokenRecord || tokenRecord.name !== EMAIL_VERIFY_TOKEN_NAME) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Invalid or expired verification token',
+      statusMessage: messages.invalidToken,
     })
   }
 
@@ -34,7 +47,7 @@ export default defineEventHandler(async (event) => {
   if (!user) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Invalid or expired verification token',
+      statusMessage: messages.invalidToken,
     })
   }
 
@@ -51,7 +64,7 @@ export default defineEventHandler(async (event) => {
   if (isRevoked || isExpired) {
     throw createError({
       statusCode: 410,
-      statusMessage: 'Verification token has expired. Please request a new verification email.',
+      statusMessage: messages.expiredToken,
     })
   }
 

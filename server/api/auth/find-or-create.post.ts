@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { isMultiDeviceLoginDisabled, generateSessionId } from "../../utils/auth"
+import { getRequestLocale } from "../../utils/requestLocale"
 
 function generateApiToken(): string {
   const prefix = 'aps_'
@@ -12,13 +13,14 @@ function generateApiToken(): string {
 }
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const body = await readBody(event)
   const { email, password, nickname, createApiToken = false, apiTokenExpiresInDays, apiTokenName } = body
 
   if (!email) {
     throw createError({
       statusCode: 400,
-      message: 'Email is required',
+      message: locale === 'zh' ? '邮箱不能为空' : 'Email is required',
     })
   }
 

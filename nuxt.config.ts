@@ -3,17 +3,26 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import { resolveAvailableThemes, resolveManifestFile, resolveSelectedThemes } from './scripts/theme-shared.mjs'
 
+const packageJson = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')
+) as { version?: string }
+
+const publicAppVersion = process.env.GOPANEL_PIPELINE_VERSION
+  || process.env.NUXT_PUBLIC_APP_VERSION
+  || packageJson.version
+  || '1.0.0'
+
 // Single source of truth shared with scripts/generate-theme-build.mjs, so the
 // nitro handlers/public assets/global components registered here always match
 // the themes bundled into the client (app/generated/theme-build.ts).
 const resolveBuildThemes = () => {
   const themesDir = path.resolve(__dirname, 'app/themes')
-  const manifestFile = resolveManifestFile(__dirname, process.env.APAYSHOP_THEME_MANIFEST || '')
+  const manifestFile = resolveManifestFile(__dirname, process.env.APAY_THEME_MANIFEST || '')
 
   return resolveSelectedThemes({
     themesDir,
     manifestFile,
-    envThemes: process.env.APAYSHOP_BUILD_THEMES || process.env.BUILD_THEMES || '',
+    envThemes: process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
   })
 }
 
@@ -28,8 +37,8 @@ const resolveNitroApiThemes = () => {
 // 站点语言在构建时确定(i18n 的 locales/defaultLocale 是构建期配置,运行时改不了)。
 // 后台「本地化」里的 supported_locales/default_locale 管的是内容多语言(商品翻译、
 // SEO),不影响前台 URL 前缀——要让单语言站不带 /zh 这类后缀,得在这里收窄语言表:
-//   APAYSHOP_LOCALES=zh ./build.sh <repo> <theme>        → 只有 zh,且无前缀
-//   APAYSHOP_LOCALES=zh,en APAYSHOP_DEFAULT_LOCALE=zh    → zh 无前缀,en 走 /en
+//   APAY_LOCALES=zh ./build.sh <repo> <theme>        → 只有 zh,且无前缀
+//   APAY_LOCALES=zh,en APAY_DEFAULT_LOCALE=zh    → zh 无前缀,en 走 /en
 // 不设则保持原有三语言、默认 en 的行为。
 const I18N_ALL_LOCALES = [
   { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
@@ -38,7 +47,7 @@ const I18N_ALL_LOCALES = [
 ]
 
 const resolveI18n = () => {
-  const wanted = String(process.env.APAYSHOP_LOCALES || '')
+  const wanted = String(process.env.APAY_LOCALES || '')
     .split(',')
     .map(code => code.trim())
     .filter(Boolean)
@@ -50,7 +59,7 @@ const resolveI18n = () => {
   const usable = locales.length ? locales : I18N_ALL_LOCALES
 
   // 默认语言必须在启用列表内,否则 i18n 会给它加前缀(单语言站就又出现 /zh 了)
-  const preferred = String(process.env.APAYSHOP_DEFAULT_LOCALE || '').trim()
+  const preferred = String(process.env.APAY_DEFAULT_LOCALE || '').trim()
   const defaultLocale = usable.some(locale => locale.code === preferred)
     ? preferred
     : (usable.some(locale => locale.code === 'en') && !wanted.length ? 'en' : usable[0]!.code)
@@ -59,6 +68,12 @@ const resolveI18n = () => {
 }
 
 const { locales: I18N_LOCALES, defaultLocale: I18N_DEFAULT_LOCALE } = resolveI18n()
+// dev 忽略清单。注意:这个数组同时喂给 `ignore: DEV_WATCH_IGNORE`(nuxt 的**扫描**
+// 忽略,影响组件/自动导入/页面扫描)和 vite watch。所以**绝不能**放 `node_modules`
+// 或根 `.nuxt`——那会让 nuxt 连 @nuxt/ui 从 node_modules 注册的组件(UAvatar 等)一起
+// 屏蔽掉,表现为「Failed to resolve component: UAvatar」。node_modules 本就被 nuxt/vite
+// 默认排除监听,不必也不该在这里列。EMFILE(too many open files)靠 dev 脚本的
+// `ulimit -n 65536` 兜底 + 下面排除 build/ 这个非默认忽略的大头(2.5 万文件)解决。
 const DEV_WATCH_IGNORE = [
   'app/themes/**/.git',
   'app/themes/**/.git/**',
@@ -70,6 +85,22 @@ const DEV_WATCH_IGNORE = [
   'app/themes/**/.output/**',
   'app/themes/**/dist',
   'app/themes/**/dist/**',
+  '.dbg',
+  '.claude',
+  // ⚠️ 本数组按 **gitignore 语义** 匹配:不带前导斜杠的 `build`/`dist` 会命中**任意层级**
+  // 的同名目录,包括 `node_modules/@nuxt/ui/dist/**`——那会让 UApp/UAvatar 等整个
+  // @nuxt/ui 组件库解析失败,渲染树直接塌掉(连 NuxtPage/NuxtLayout 都挂不上)。
+  // 排除项目自己的产物目录时**必须加前导斜杠锚定根目录**;上面 `app/themes/**/…`
+  // 那些带路径前缀的写法本身已锚定,不受影响。
+  //
+  // build/:build.sh 往这里 rsync 各站点完整 .output(含整份 node_modules),
+  // 非默认忽略且文件量上万,不排除会拖垮 file watcher(EMFILE)。
+  '/build',
+  '/build/**',
+  '/build/*/.output',
+  '/build/*/.output/**',
+  '/.git',
+  '/.git/**',
 ]
 
 export default defineNuxtConfig({
@@ -306,5 +337,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // 这里的键名会自动映射到环境变量 NUXT_DATABASE_URL
     databaseUrl: '', 
+    public: {
+      appVersion: publicAppVersion,
+    },
   }
 })

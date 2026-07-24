@@ -1,8 +1,10 @@
 import { emailProviders } from '../../../db/schema'
 import { eq } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   if (event.method === 'POST') {
     const body = await readBody(event)
 
@@ -50,5 +52,5 @@ export default defineEventHandler(async (event) => {
     return await db.select().from(emailProviders)
   }
 
-  throw createError({ statusCode: 405, message: 'Method not allowed' })
+  throw createError({ statusCode: 405, message: locale === 'zh' ? '请求方法不允许' : 'Method not allowed' })
 })

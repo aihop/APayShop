@@ -1,13 +1,28 @@
 import { eq, and } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
 import { orders, products } from '../../../db/schema'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        unauthorized: '未登录',
+        orderIdRequired: '订单 ID 不能为空',
+        invoiceNotFound: '发票不存在',
+        customPurchase: '自定义购买',
+      }
+    : {
+        unauthorized: 'Unauthorized',
+        orderIdRequired: 'Order ID is required',
+        invoiceNotFound: 'Invoice not found',
+        customPurchase: 'Custom Purchase',
+      }
   const session: any = await requireUserSession(event)
   if (!session || !session.user || !session.user.id) {
     throw createError({
       statusCode: 401,
-      message: 'Unauthorized'
+      message: messages.unauthorized
     })
   }
 
@@ -15,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (!orderId) {
     throw createError({
       statusCode: 400,
-      message: 'Order ID is required'
+      message: messages.orderIdRequired
     })
   }
 
@@ -31,12 +46,12 @@ export default defineEventHandler(async (event) => {
   if (!orderRecord.length) {
     throw createError({
       statusCode: 404,
-      message: 'Invoice not found'
+      message: messages.invoiceNotFound
     })
   }
   const order: any = orderRecord[0]
 
-  let productDescription = 'Custom Purchase'
+  let productDescription = messages.customPurchase
   if (order.productId) {
     const productRecord = await db.select({ name: products.name as any }).from(products as any).where(eq(products.id as any, order.productId)).limit(1)
     if (productRecord.length) {

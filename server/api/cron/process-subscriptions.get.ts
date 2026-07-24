@@ -3,8 +3,10 @@ import { orders, subscriptions } from '../../db/schema'
 import { eq, and, lt } from 'drizzle-orm'
 import { ORDER_STATUS } from '../../utils/constants'
 import { logger } from '../../utils/logger'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   // 1. 安全校验:默认拒绝——未配置 CRON_SECRET 时不再放行(此前漏配即完全
   //    公开);仅本地开发环境允许免密触发
   const config = useRuntimeConfig()
@@ -16,7 +18,7 @@ export default defineEventHandler(async (event) => {
     await logger.warn('[Cron] Unauthorized attempt to trigger subscriptions cron')
     // throw 而非 return:return createError 会把 error 对象当响应体吐出(内部结构泄露),
     // throw 才走 h3 的错误响应路径
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: locale === 'zh' ? '未授权' : 'Unauthorized' })
   }
 
   await logger.info('[Cron] Starting to process subscriptions...')
@@ -61,7 +63,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       code: 0,
-      message: 'Success',
+      message: locale === 'zh' ? '成功' : 'Success',
       data: {
         processed: dueSubscriptions.length,
         expired: expiredCount,
@@ -71,6 +73,6 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error: any) {
     await logger.error('[Cron] Fatal error in process-subscriptions', { source: 'cron', details: { error: error.message } })
-    throw createError({ statusCode: 500, message: 'Internal Server Error' })
+    throw createError({ statusCode: 500, message: locale === 'zh' ? '服务器内部错误' : 'Internal Server Error' })
   }
 })

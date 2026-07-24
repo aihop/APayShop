@@ -1,21 +1,21 @@
-# APayShop
+# APay
 
 **一个极简、极客风的虚拟商品全栈独立站**  
 基于 Nuxt 4 + Nuxt Hub (SQLite) + Tailwind CSS 构建
 
-[官网](https://apayshop.com/) · [English](README.md) · [核心特性](#-核心特性) · [快速开始](#-快速开始-一键部署) · [架构亮点](#-架构亮点)
+[官网](https://apay.run/) · [English](README.md) · [核心特性](#-核心特性) · [快速开始](#-快速开始-一键部署) · [架构亮点](#-架构亮点)
 
 ---
 
 ## 🌟 简介
 
-**APayShop** 是一个专为销售**虚拟商品**（卡密、数字文件、SaaS 订阅、API 额度、人工代充服务）而设计的轻量级、零外部依赖的全栈独立站。
+**APay** 是一个专为销售**虚拟商品**（卡密、数字文件、SaaS 订阅、API 额度、人工代充服务）而设计的轻量级、零外部依赖的全栈独立站。
 
 它抛弃了传统 Java/Go 后端与 Vue/React 前端分离的沉重架构，而是直接使用 **Nuxt 4 + 本地 SQLite (通过 Nuxt Hub 挂载)**，实现了极致的单机极速部署体验。项目整体采用暗黑电竞风美学，拥有丝滑的物理动效，以及一套极其强大的“多模板动态引擎”。
 
-如果您是一名独立开发者 (Indie Hacker)、数字游民或小型工作室，希望快速、优雅地售卖您的数字资产或 API，并且不想维护沉重的数据库，APayShop 将是您的绝佳选择。
+如果您是一名独立开发者 (Indie Hacker)、数字游民或小型工作室，希望快速、优雅地售卖您的数字资产或 API，并且不想维护沉重的数据库，APay 将是您的绝佳选择。
 
-官网：https://apayshop.com/
+官网：https://apay.run/
 
 ---
 
@@ -43,8 +43,8 @@
 
 ```bash
 # 1. 克隆代码仓库
-git clone https://github.com/aihop/APayShop.git
-cd APayShop
+git clone https://github.com/aihop/apay.git
+cd apay
 
 # 2. 赋予脚本执行权限
 chmod +x deploy.sh
@@ -75,7 +75,7 @@ node .output/server/index.mjs
 如果你使用多主题并希望发布时仅保留 `default` + 指定主题，可生成一个独立的产物目录：
 
 ```bash
-./build.sh apayshop-site panel
+./build.sh apay-site official
 ```
 
 ---
@@ -92,13 +92,13 @@ node .output/server/index.mjs
 
 ### 动态重构与重启机制 (Rebuild)
 
-因为 Vue 的动态组件依赖打包时 (`npm run build`) 的静态分析，所以在生产环境下下载或用 AI 生成了新模板后无法立即生效。为此，APayShop 提供了一个异步的 `/api/admin/system/rebuild` 接口。管理员只需在后台点击“Rebuild System”，服务器就会在后台静默完成编译与 PM2 重启。
+因为 Vue 的动态组件依赖打包时 (`npm run build`) 的静态分析，所以在生产环境下下载或用 AI 生成了新模板后无法立即生效。为此，APay 提供了一个异步的 `/api/admin/system/rebuild` 接口。管理员只需在后台点击“Rebuild System”，服务器就会在后台静默完成编译与 PM2 重启。
 
 ---
 
 ## 🧩 高级模板与支付插件 (即将推出)
 
-APayShop 的核心框架基于 MIT 协议永久开源免费。为了维持项目的长期健康发展，我们正在筹备官方的**增值插件市场**，未来您将可以购买：
+APay 的核心框架基于 MIT 协议永久开源免费。为了维持项目的长期健康发展，我们正在筹备官方的**增值插件市场**，未来您将可以购买：
 
 - **Pro 高级模板**: 针对不同行业（如电竞发卡站、极简 SaaS 售卖、API 聚合平台）精心打磨的高转化率前端模板。
 - **高级支付网关插件**: 开箱即用的 Webhook 沙箱代码，支持 USDT/加密货币、Stripe、PayPal 以及各大免签聚合支付渠道。

@@ -1,15 +1,17 @@
 import { products } from "../../../db/schema"
 import { db } from '../../../db/runtime'
 import { eq } from "drizzle-orm"
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const body = await readBody(event)
   const items = body.items
 
   if (!Array.isArray(items)) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid request body, expected an array of items'
+      message: locale === 'zh' ? '请求体无效，预期为数组 items' : 'Invalid request body, expected an array of items'
     })
   }
 

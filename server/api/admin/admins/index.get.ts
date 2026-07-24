@@ -1,8 +1,10 @@
 import { admins } from "../../../db/schema"
 import { desc,count } from "drizzle-orm"
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
  
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const query = getQuery(event)
   const page = parseInt(query.page as string) || 1
   const pageSize = parseInt(query.pageSize as string) || 12
@@ -31,7 +33,7 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     throw createError({
       statusCode: 500,
-      message: error.message || 'Failed to fetch admins'
+      message: error.message || (locale === 'zh' ? '获取管理员列表失败' : 'Failed to fetch admins')
     })
   }
 })

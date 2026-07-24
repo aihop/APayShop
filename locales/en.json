@@ -934,7 +934,7 @@
     "products": {
       "title": "Explore Our",
       "titleHighlight": "Products",
-      "titleTips": "Discover our premium selection of digital goods and services, curated for excellence.",
+      "titleTips": "Discover our premium selection of products and services, curated for excellence.",
       "emptyTitle": "No products found",
       "emptyDesc": "No products available",
       "noDescription": "No description available",
@@ -951,10 +951,10 @@
       "confirmPassword": "Confirm Password",
       "submit": "Submit",
       "createAccount": "Create Account",
-      "joinUs": "Join us to keep track of all your digital goods.",
+      "joinUs": "Join us to keep track of all your products.",
       "alreadyMember": "Already a member?",
       "welcomeBack": "Welcome Back",
-      "welcomeBackTips": "Sign in to manage your digital goods and orders.",
+      "welcomeBackTips": "Sign in to manage your products and orders.",
       "signIn": "Sign in",
       "orRegisterWithEmail": "Or register with email",
       "nickname": "Nickname (Optional)"
@@ -973,7 +973,7 @@
       "contactEmail": "Contact Email",
       "paidAt": "Paid At",
       "contactPhone": "Contact Phone",
-      "successTips": "You have successfully purchased this digital product.",
+      "successTips": "You have successfully purchased this product.",
       "viewOrderDetails": "View Order Details",
       "returnToShop": "Return to Shop",
       "paymentSuccessful": "Payment Successful!",
@@ -997,7 +997,7 @@
       "workspaceTitle": "Payment Workspace",
       "workspaceTotalPayable": "Total Payable",
       "workspaceQuantity": "Quantity",
-      "workspaceSecurityHint": "Secure digital transaction enabled via encrypted gateway",
+      "workspaceSecurityHint": "Secure transaction enabled via encrypted gateway",
       "workspaceInitialisingGateway": "Initialising Gateway...",
       "workspaceNoMethods": "No express payment methods available for this configuration.",
       "workspaceSelectMethod": "Select Method",
@@ -1065,9 +1065,9 @@
     },
     "order": {
       "noOrders": "No orders found.",
-      "noOrdersTips": "You haven't purchased any digital goods yet. Browse our catalog to find what you need.",
+      "noOrdersTips": "You haven't purchased any products yet. Browse our catalog to find what you need.",
       "myOrders": "My Orders",
-      "myOrdersTips": "View and manage all your purchased digital goods."
+      "myOrdersTips": "View and manage all your purchased products."
     },
     "nav": {
       "home": "Home",
@@ -1095,13 +1095,13 @@
         "feature1Title": "AI-Driven Creativity",
         "feature1Desc": "Unique storylines and visuals generated through state-of-the-art AI algorithms, ensuring fresh and engaging content.",
         "feature2Title": "Instant Delivery",
-        "feature2Desc": "Get immediate access to your purchased content. No waiting times, just seamless digital entertainment.",
+        "feature2Desc": "Get immediate access to your purchased products. No waiting times, just seamless entertainment.",
         "feature3Title": "Anywhere Access",
         "feature3Desc": "Enjoy our short dramas on any device. Fully responsive and optimized for mobile, tablet, and desktop viewing.",
         "ctaTitle": "Ready to Experience the Future?",
         "ctaDesc": "Join thousands of users who have already discovered the magic of AI-generated short dramas. Start your journey today.",
         "browseCatalog": "Browse Catalog",
-        "whyChooseDesc": "Experience the next generation of digital entertainment powered by advanced artificial intelligence."
+        "whyChooseDesc": "Experience the next generation of entertainment powered by advanced artificial intelligence."
       },
       "pricing": {
         "title": "Simple, Transparent Pricing",

@@ -113,7 +113,7 @@ useHead({
   meta: [
     {
       name: 'description',
-      content: 'Explore our premium selection of digital products.',
+      content: 'Explore our premium selection of products.',
     },
   ],
 })

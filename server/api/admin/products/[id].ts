@@ -1,6 +1,7 @@
 import { products } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 const normalizeImageUrls = (value: unknown) => {
   if (value === null || value === undefined || value === '') {
@@ -37,8 +38,9 @@ const normalizeMetaData = (value: unknown) => {
 }
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const id = getRouterParam(event, "id")
-  if (!id) throw createError({ statusCode: 400, message: "Missing id" })
+  if (!id) throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少 ID' : 'Missing id' })
   
   if (event.method === "PUT") {
     const body = await readBody(event)

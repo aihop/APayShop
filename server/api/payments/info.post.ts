@@ -10,14 +10,29 @@ import {
   isPaymentMethodAvailableForLocale,
   resolveRequestLocale,
 } from '../../utils/paymentMethodLocales'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        orderIdRequired: '订单 ID 不能为空',
+        noActiveMethods: '当前没有可用的支付方式',
+        emptyContent: '所有启用支付方式的支付说明内容均为空',
+        internalError: '服务器内部错误',
+      }
+    : {
+        orderIdRequired: 'Order ID is required',
+        noActiveMethods: 'No active payment methods available',
+        emptyContent: 'Payment info content is empty for all active methods',
+        internalError: 'Internal server error',
+      }
   try {
     const body = await readBody(event)
     const { orderId, locale: inputLocale } = body
     
     if (!orderId) {
-      return { code: 1, message: "Order ID is required" }
+      return { code: 1, message: messages.orderIdRequired }
     }
 
     // 1. 归属校验后获取订单——支付信息含金额与收款内容,只允许订单所有者查看
@@ -30,7 +45,7 @@ export default defineEventHandler(async (event) => {
       .map((method: any) => applyLocalPaymentPluginDefaults({ ...method }))
       .filter((method: any) => isPaymentMethodAvailableForLocale(method, requestLocale, localeConfig))
     if (activeMethods.length === 0) {
-      return { code: 1, message: "No active payment methods available" }
+      return { code: 1, message: messages.noActiveMethods }
     }
 
     // 3. 组合所有激活支付方式的 HTML
@@ -100,7 +115,7 @@ export default defineEventHandler(async (event) => {
     }
 
     if (availableMethods.length === 0) {
-      return { code: 1, message: "Payment info content is empty for all active methods" }
+      return { code: 1, message: messages.emptyContent }
     }
 
     // 兼容以前的单支付方式逻辑：如果只有一个，或者为了兼容旧版本前端，依然暴露 content 字段
@@ -115,6 +130,6 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error: any) {
     if (error?.statusCode) throw error
-    return { code: 1, message: error.message || "Internal server error" }
+    return { code: 1, message: error.message || messages.internalError }
   }
 })

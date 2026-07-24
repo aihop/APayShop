@@ -1,19 +1,21 @@
 import { posts } from "../../db/schema"
 import { eq, and, or, sql } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineCachedEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const slug = getRouterParam(event, "slug")
   
   if (!slug) {
-    throw createError({ statusCode: 400, message: "Missing post slug" })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少文章 slug' : 'Missing post slug' })
   }
 
   const postList = await db.select().from(posts).where(and(or(eq(posts.slug, slug), eq(posts.key, slug)), eq(posts.isActive, true))).limit(1)
   const post = postList[0]
 
   if (!post) {
-    throw createError({ statusCode: 404, message: "Post not found" })
+    throw createError({ statusCode: 404, message: locale === 'zh' ? '文章不存在' : 'Post not found' })
   }
 
   // Increment view count asynchronously

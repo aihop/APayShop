@@ -2,6 +2,7 @@ import { and, desc, gte, lt, sql } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../db/schema'
 import { parseStatsRange } from '../../utils/adminStats'
+import { getRequestLocale } from '../../utils/requestLocale'
 import { getConfiguredTimezone } from '../../utils/timezone'
 
 const toDate = (value: any) => {
@@ -49,6 +50,8 @@ const buildTopList = (items: Record<string, number>, total: number) => {
 }
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const unknownLabel = locale === 'zh' ? '未知' : 'Unknown'
   const query = getQuery(event)
   const tz = await getConfiguredTimezone()
   const { preset, days, rangeStart, rangeEnd } = parseStatsRange(query, tz)
@@ -159,8 +162,8 @@ export default defineEventHandler(async (event) => {
     if (['search', 'social', 'referral'].includes(sourceCategory)) {
       externalSourceMap[lastTouch] = (externalSourceMap[lastTouch] || 0) + 1
     }
-    countryMap[profile.country || 'Unknown'] = (countryMap[profile.country || 'Unknown'] || 0) + 1
-    deviceMap[profile.deviceType || 'Unknown'] = (deviceMap[profile.deviceType || 'Unknown'] || 0) + 1
+    countryMap[profile.country || unknownLabel] = (countryMap[profile.country || unknownLabel] || 0) + 1
+    deviceMap[profile.deviceType || unknownLabel] = (deviceMap[profile.deviceType || unknownLabel] || 0) + 1
 
     // Count external source visitors (referrer URL not from current site)
     if (externalEventVisitorIds.has(profile.visitorId)) {

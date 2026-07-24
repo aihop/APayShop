@@ -933,7 +933,7 @@
     "products": {
       "title": "探索我们的",
       "titleHighlight": "产品",
-      "titleTips": "发现我们的精选数字商品和服务，为卓越而设计",
+      "titleTips": "发现我们的精选产品和服务，为卓越而设计",
       "emptyTitle": "暂无产品",
       "emptyDesc": "暂无产品可用",
       "noDescription": "暂无描述可用",
@@ -950,10 +950,10 @@
       "confirmPassword": "确认密码",
       "submit": "提交",
       "createAccount": "创建账号",
-      "joinUs": "加入我们，追踪您的数字商品",
+      "joinUs": "加入我们，追踪您的产品",
       "alreadyMember": "您已注册吗？",
       "welcomeBack": "欢迎回来",
-      "welcomeBackTips": "登录以管理您的数字商品和订单",
+      "welcomeBackTips": "登录以管理您的产品和订单",
       "signIn": "登录",
       "orRegisterWithEmail": "或使用邮箱注册",
       "nickname": "昵称（可选）"
@@ -972,7 +972,7 @@
       "contactEmail": "联系邮箱",
       "paidAt": "支付时间",
       "contactPhone": "联系电话",
-      "successTips": "您已成功购买此数字商品",
+      "successTips": "您已成功购买此产品",
       "viewOrderDetails": "查看订单详情",
       "returnToShop": "返回商店",
       "paymentSuccessful": "支付成功!",
@@ -996,7 +996,7 @@
       "workspaceTitle": "支付工作台",
       "workspaceTotalPayable": "应付总额",
       "workspaceQuantity": "数量",
-      "workspaceSecurityHint": "当前支付将通过加密网关完成安全数字交易",
+      "workspaceSecurityHint": "当前支付将通过加密网关完成安全交易",
       "workspaceInitialisingGateway": "正在初始化支付网关...",
       "workspaceNoMethods": "当前配置下暂无可用的快捷支付方式。",
       "workspaceSelectMethod": "选择支付方式",
@@ -1064,9 +1064,9 @@
     },
     "order": {
       "noOrders": "暂无任何订单",
-      "noOrdersTips": "您暂无任何订单。您需要先购买数字商品才能查看订单",
+      "noOrdersTips": "您暂无任何订单。您需要先购买产品才能查看订单",
       "myOrders": "我的订单",
-      "myOrdersTips": "查看和管理您购买的数字商品。"
+      "myOrdersTips": "查看和管理您购买的产品。"
     },
     "nav": {
       "home": "首页",
@@ -1094,13 +1094,13 @@
         "feature1Title": "AI 驱动的创造力",
         "feature1Desc": "通过最先进的 AI 算法生成独特的故事情节和视觉效果，确保内容新颖且引人入胜",
         "feature2Title": "即时交付",
-        "feature2Desc": "购买后立即获取内容，无需等待，畅享无缝的数字娱乐体验",
+        "feature2Desc": "购买后立即获取内容，无需等待，畅享无缝的内容体验",
         "feature3Title": "随时随地访问",
         "feature3Desc": "在任何设备上观看短视频，完美适配手机、平板和桌面端",
         "ctaTitle": "准备好体验未来了吗？",
         "ctaDesc": "加入成千上万的用户，发现 AI 生成短视频的魅力。立即开始您的旅程",
         "browseCatalog": "浏览目录",
-        "whyChooseDesc": "体验由先进人工智能驱动的下一代数字娱乐。"
+        "whyChooseDesc": "体验由前沿人工智能驱动的下一代内容。"
       },
       "pricing": {
         "title": "简单透明的定价",

@@ -4,11 +4,26 @@ import { db } from '../../../db/runtime'
 import { sendHttpWebhook } from '../../../utils/eventBus'
 import { getWebhookSubscriptionUrl, getIntegrationToken } from '../../../utils/externalProxy'
 import { ORDER_STATUS } from '../../../utils/constants'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        unauthorized: '未登录',
+        noActiveSubscription: '未找到有效订阅',
+        cancelled: '订阅已取消',
+        cancelRemark: '用户取消了订阅',
+      }
+    : {
+        unauthorized: 'Unauthorized',
+        noActiveSubscription: 'No active subscription found',
+        cancelled: 'Subscription cancelled',
+        cancelRemark: 'User cancelled subscription',
+      }
   const session: any = await requireUserSession(event)
   if (!session.user) {
-    throw createError({ statusCode: 401, message: "Unauthorized" })
+    throw createError({ statusCode: 401, message: messages.unauthorized })
   }
 
   const userId = session.user.id
@@ -23,7 +38,7 @@ export default defineEventHandler(async (event) => {
     .limit(1)
 
   if (!existing.length) {
-    throw createError({ statusCode: 404, message: 'No active subscription found' })
+    throw createError({ statusCode: 404, message: messages.noActiveSubscription })
   }
 
   const sub = existing[0]
@@ -63,7 +78,7 @@ export default defineEventHandler(async (event) => {
             eventId,
             userId: Number(sub.userId),
             sourceId: sub.id,
-            remark: 'User cancelled subscription',
+            remark: messages.cancelRemark,
           },
         },
         { headers: { Authorization: `Bearer ${ainodeToken}` } },
@@ -71,5 +86,5 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return { success: true, message: 'Subscription cancelled' }
+  return { success: true, message: messages.cancelled }
 })

@@ -1,15 +1,28 @@
 import { orders, products } from "../../db/schema"
 import { eq, and, or } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 // 安全约束:订单详情含邮箱/卡密/交易号,禁止使用共享响应缓存——此前
 // defineCachedEventHandler 的 getKey 读路由参数而路由实际走查询参数,
 // 缓存键恒为 'unknown',60s 内跨用户返回同一份订单(高危泄露)。
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        missingOrderId: '缺少订单 ID',
+        unauthorized: '未登录，且未找到访客凭证',
+        orderNotFound: '订单不存在',
+      }
+    : {
+        missingOrderId: 'Missing order id',
+        unauthorized: 'Unauthorized: No user session or visitor cookie found',
+        orderNotFound: 'Order not found',
+      }
   const orderId = getQuery(event).orderId as string
   
   if (!orderId) {
-    throw createError({ statusCode: 400, message: "Missing order id" })
+    throw createError({ statusCode: 400, message: messages.missingOrderId })
   }
 
   // Auth & Identity checks for security
@@ -20,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!userId && !visitorId) {
     throw createError({
       statusCode: 401,
-      message: 'Unauthorized: No user session or visitor cookie found'
+      message: messages.unauthorized
     })
   }
 
@@ -54,7 +67,7 @@ export default defineEventHandler(async (event) => {
   const order = orderList[0]
 
   if (!order) {
-    throw createError({ statusCode: 404, message: "Order not found" })
+    throw createError({ statusCode: 404, message: messages.orderNotFound })
   }
 
   let parsedMetaData = null

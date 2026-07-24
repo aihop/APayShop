@@ -13,6 +13,7 @@ import path from 'path'
 import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS,ORDER_STATUS } from '../../utils/constants'
 import { readRawBody, readBody } from 'h3'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 // 写日志时对回调 payload 脱敏:授权/签名类头域打码,rawBody 只留长度(防签名
 // 与 PII 落库)。query/urlOrderId 保留供排查
@@ -34,6 +35,7 @@ function sanitizePayloadForLog(payload: { body: any; rawBody: string; query: any
 }
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const urlOrderId = getRouterParam(event, 'order_id')
  
   let rawBody = ''
@@ -63,7 +65,10 @@ export default defineEventHandler(async (event) => {
     })
   
   if (!urlOrderId) {
-    return createError({ statusCode: 400, message: "Order ID is required in webhook URL" })
+    return createError({
+      statusCode: 400,
+      message: locale === 'zh' ? 'Webhook URL 中缺少订单 ID' : 'Order ID is required in webhook URL',
+    })
   }
 
   try {

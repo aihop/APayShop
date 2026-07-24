@@ -3,8 +3,21 @@ import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { isMultiDeviceLoginDisabled, generateSessionId } from "../../utils/auth"
+import { getRequestLocale } from "../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        emailPasswordRequired: '邮箱和密码不能为空',
+        invalidCredentials: '邮箱或密码错误',
+        thirdPartyLogin: '该账号使用第三方登录',
+      }
+    : {
+        emailPasswordRequired: 'Email and password are required',
+        invalidCredentials: 'Invalid email or password',
+        thirdPartyLogin: 'This account uses third-party login',
+      };
 
   const body = await readBody(event)
   const { email, password } = body
@@ -12,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!email || !password) {
     throw createError({
       statusCode: 400,
-      message: 'Email and password are required'
+      message: messages.emailPasswordRequired
     })
   }
 
@@ -21,7 +34,7 @@ export default defineEventHandler(async (event) => {
   if (existingUsers.length === 0) {
     throw createError({
       statusCode: 401,
-      message: 'Invalid email or password'
+      message: messages.invalidCredentials
     })
   }
 
@@ -30,7 +43,7 @@ export default defineEventHandler(async (event) => {
   if (!user.passwordHash) {
     throw createError({
       statusCode: 401,
-      message: 'This account uses third-party login'
+      message: messages.thirdPartyLogin
     })
   }
 
@@ -39,7 +52,7 @@ export default defineEventHandler(async (event) => {
   if (!isValid) {
     throw createError({
       statusCode: 401,
-      message: 'Invalid email or password'
+      message: messages.invalidCredentials
     })
   }
 

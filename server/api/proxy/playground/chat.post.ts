@@ -1,10 +1,12 @@
 import { defineEventHandler, getQuery, readBody, setResponseHeader, setResponseStatus } from 'h3'
 import { getAIGatewayUrl } from '../../../utils/externalProxy'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const session = await getUserSession(event).catch(() => null)
   if (!session?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ statusCode: 401, statusMessage: locale === 'zh' ? '未登录' : 'Unauthorized' })
   }
 
   const body = await readBody(event)
@@ -13,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!apiKey || !model || !messages) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Bad Request: missing apiKey, model, or messages',
+      statusMessage: locale === 'zh' ? '请求参数错误：缺少 apiKey、model 或 messages' : 'Bad Request: missing apiKey, model, or messages',
     })
   }
 

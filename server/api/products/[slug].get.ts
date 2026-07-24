@@ -1,12 +1,14 @@
 import { products, cards } from "../../db/schema"
 import { eq, sql } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineCachedEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const slug = getRouterParam(event, "slug")
   
   if (!slug) {
-    throw createError({ statusCode: 400, message: "Missing product slug" })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少商品 slug' : 'Missing product slug' })
   }
 
   // Get product by slug instead of ID
@@ -14,7 +16,7 @@ export default defineCachedEventHandler(async (event) => {
   const product = productList[0]
   
   if (!product) {
-    throw createError({ statusCode: 404, message: "Product not found" })
+    throw createError({ statusCode: 404, message: locale === 'zh' ? '商品不存在' : 'Product not found' })
   }
 
   // Increment view count asynchronously

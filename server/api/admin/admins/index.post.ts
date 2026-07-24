@@ -1,8 +1,23 @@
 import { admins } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        required: '用户名和密码不能为空',
+        usernameExists: '用户名已存在',
+        created: '管理员创建成功',
+        failed: '创建管理员失败',
+      }
+    : {
+        required: 'Username and password are required',
+        usernameExists: 'Username already exists',
+        created: 'Admin created successfully',
+        failed: 'Failed to create admin',
+      }
   try {
     const body = await readBody(event)
     const { username, password } = body
@@ -10,7 +25,7 @@ export default defineEventHandler(async (event) => {
     if (!username || !password) {
       throw createError({
         statusCode: 400,
-        message: 'Username and password are required'
+        message: messages.required
       })
     }
     
@@ -19,7 +34,7 @@ export default defineEventHandler(async (event) => {
     if (existingAdmin.length > 0) {
       throw createError({
         statusCode: 400,
-        message: 'Username already exists'
+        message: messages.usernameExists
       })
     }
     
@@ -30,11 +45,11 @@ export default defineEventHandler(async (event) => {
       passwordHash: hashedPassword
     })
     
-    return { code: 0, message: "Admin created successfully" }
+    return { code: 0, message: messages.created }
   } catch (error: any) {
     throw createError({
       statusCode: error.statusCode || 500,
-      message: error.message || 'Failed to create admin'
+      message: error.message || messages.failed
     })
   }
 })

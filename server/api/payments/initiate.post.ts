@@ -14,6 +14,7 @@ import {
   isPaymentMethodAvailableForLocale,
   resolveRequestLocale,
 } from '../../utils/paymentMethodLocales'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
@@ -26,23 +27,51 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = bodySchema.parse(await readBody(event))
+    const locale = getRequestLocale(event)
+    const messages = locale === 'zh'
+      ? {
+          invalidPayload: '支付请求参数无效',
+          alreadyPaid: '订单已支付',
+          methodNotFound: '支付方式不存在或未启用',
+          methodUnavailableForLocale: '当前语言下该支付方式不可用',
+          createScriptMissing: (code: string) => `支付创建脚本缺失：${code}`,
+          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `该支付方式使用 ${methodCurrency} 结算，但充值订单币种为 ${orderCurrency}，请选择 ${orderCurrency} 支付方式。`,
+          initiateFailed: '发起支付失败',
+          initiated: '支付发起成功',
+          internalError: '服务器内部错误',
+        }
+      : {
+          invalidPayload: 'Invalid payment request',
+          alreadyPaid: 'Order already paid',
+          methodNotFound: 'Payment method not found or inactive',
+          methodUnavailableForLocale: 'Payment method is not available in current language',
+          createScriptMissing: (code: string) => `Create script missing for ${code}`,
+          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `This payment method settles in ${methodCurrency}, but the top-up order is in ${orderCurrency}. Please choose a ${orderCurrency} method.`,
+          initiateFailed: 'Failed to initiate payment',
+          initiated: 'Payment initiated successfully',
+          internalError: 'Internal server error',
+        }
+    const parsedBody = bodySchema.safeParse(await readBody(event))
+    if (!parsedBody.success) {
+      return { code: 1, message: messages.invalidPayload }
+    }
+    const body = parsedBody.data
     // 归属校验:发起支付会改写订单的 payMethod/tradeNo,只允许订单所有者操作
     const order = await requireOrderOwnership(event, body.orderId)
     if (order.payStatus === ORDER_PAY_STATUS.PAID) {
-      return { code: 1, message: 'Order already paid' }
+      return { code: 1, message: messages.alreadyPaid }
     }
 
     const methods = await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true))
     const method = methods.find((m: any) => String(m.code).toLowerCase() === body.methodCode.toLowerCase())
     if (!method) {
-      return { code: 1, message: 'Payment method not found or inactive' }
+      return { code: 1, message: messages.methodNotFound }
     }
 
     const localeConfig = await getSiteLocaleConfig()
     const requestLocale = resolveRequestLocale(event, body.locale, localeConfig)
     if (!isPaymentMethodAvailableForLocale(method, requestLocale, localeConfig)) {
-      return { code: 1, message: 'Payment method is not available in current language' }
+      return { code: 1, message: messages.methodUnavailableForLocale }
     }
 
     let createScript = method.create || ''
@@ -56,7 +85,7 @@ export default defineEventHandler(async (event) => {
       }
     }
     if (!createScript.trim()) {
-      return { code: 1, message: `Create script missing for ${method.code}` }
+      return { code: 1, message: messages.createScriptMissing(method.code) }
     }
 
     let configJson: Record<string, any> = {}
@@ -92,7 +121,7 @@ export default defineEventHandler(async (event) => {
       if (methodCurrency && orderCurrency && methodCurrency !== orderCurrency) {
         return {
           code: 1,
-          message: `This payment method settles in ${methodCurrency}, but the top-up order is in ${orderCurrency}. Please choose a ${orderCurrency} method.`,
+          message: messages.currencyMismatch(methodCurrency, orderCurrency),
         }
       }
     }
@@ -124,7 +153,7 @@ export default defineEventHandler(async (event) => {
       cancelUrl
     }, configJson)
     if (!result.ok || (!result.paymentUrl && !result.qrCodeText)) {
-      return { code: 1, message: result.message || 'Failed to initiate payment' }
+      return { code: 1, message: result.message || messages.initiateFailed }
     }
     const updateData: any = { payMethod: method.code }
     if (result.tradeNo) updateData.tradeNo = result.tradeNo
@@ -132,7 +161,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       code: 0,
-      message: 'Payment initiated successfully',
+      message: messages.initiated,
       data: {
         paymentUrl: result.paymentUrl,
         qrCodeText: result.qrCodeText,
@@ -142,6 +171,7 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error: any) {
     if (error?.statusCode) throw error
-    return { code: 1, message: error?.message || 'Internal server error' }
+    const locale = getRequestLocale(event)
+    return { code: 1, message: error?.message || (locale === 'zh' ? '服务器内部错误' : 'Internal server error') }
   }
 })

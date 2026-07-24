@@ -11,7 +11,7 @@
         AI Theme Builder
       </h1>
       <p class="text-gray-400 mt-2 text-sm max-w-2xl">
-        Describe the storefront you want to build. Our AI will automatically generate the Vue components, Tailwind styles, and configurations following APayShop's architecture.
+        Describe the storefront you want to build. Our AI will automatically generate the Vue components, Tailwind styles, and configurations following APay's architecture.
       </p>
     </div>
 
@@ -34,7 +34,7 @@
               />
             </div>
             <div class="bg-gray-800/50 border border-gray-700/50 rounded-2xl rounded-tl-sm p-4 text-sm text-gray-200">
-              Hello! I'm your APayShop AI Developer. I can help you create a brand new theme or modify an existing one.
+              Hello! I'm your APay AI Developer. I can help you create a brand new theme or modify an existing one.
               <br><br>
               Try saying: <br>
               <span class="text-purple-400 cursor-pointer hover:underline mt-1 inline-block">"Build a minimalist white theme for selling eBooks"</span>

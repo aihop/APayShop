@@ -1,7 +1,9 @@
 import { defineEventHandler, getQuery, setResponseHeader } from 'h3'
 import { getImageProxyReferer, normalizeImageProxyUrl } from '../../utils/imageProxy'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const query = getQuery(event)
   const targetUrl = normalizeImageProxyUrl(query.url)
 
@@ -17,7 +19,9 @@ export default defineEventHandler(async (event) => {
   if (!upstream.ok) {
     throw createError({
       statusCode: upstream.status === 404 ? 404 : 502,
-      statusMessage: `Upstream image request failed (${upstream.status})`,
+      statusMessage: locale === 'zh'
+        ? `上游图片请求失败（${upstream.status}）`
+        : `Upstream image request failed (${upstream.status})`,
     })
   }
 

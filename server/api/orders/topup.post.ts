@@ -8,6 +8,7 @@ import { ensureVisitorId, trackVisitorEvent } from '../../utils/visitorAnalytics
 import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readPromoTracking } from '../../promo/service'
 import { createNotification } from '../../utils/notifications'
 import { buildTopupQuote, ensureTopupCarrierProduct, getTopupRules, TopupValidationError } from '../../utils/topup'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 /**
  * 快捷充值下单。
@@ -26,18 +27,36 @@ const bodySchema = z.object({
 const rateLimitMap = new Map<string, { count: number, resetTime: number }>()
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
+  const messages = locale === 'zh'
+    ? {
+        loginRequired: '请先登录后再充值',
+        tooManyRequests: '请求过于频繁，请稍后再试。',
+        pendingTitle: '充值订单待支付',
+        pendingMessage: (amount: number, currency: string, rechargeAmount: number, accountingCurrency: string) =>
+          `您的充值订单已创建，待支付 ${amount} ${currency}，到账 ${rechargeAmount} ${accountingCurrency}。`,
+        created: '充值订单创建成功',
+      }
+    : {
+        loginRequired: 'Please log in before topping up',
+        tooManyRequests: 'Too many requests. Please try again later.',
+        pendingTitle: 'Top-up Payment Pending',
+        pendingMessage: (amount: number, currency: string, rechargeAmount: number, accountingCurrency: string) =>
+          `Your top-up order has been created. ${amount} ${currency} is pending payment, and ${rechargeAmount} ${accountingCurrency} will be credited after payment.`,
+        created: 'Top-up order created successfully',
+      }
   // 充值必须落到具体用户:余额按 userId 记在 ainode,访客无处入账
   const session = await requireUserSession(event).catch(() => null)
   const userId = (session?.user as any)?.id
   if (!userId) {
-    throw createError({ statusCode: 401, message: 'Please log in before topping up' })
+    throw createError({ statusCode: 401, message: messages.loginRequired })
   }
 
   // session 可能指向已删除用户,直接建单会撞外键
   const userExists = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
   if (userExists.length === 0) {
     await clearUserSession(event).catch(() => null)
-    throw createError({ statusCode: 401, message: 'Please log in before topping up' })
+    throw createError({ statusCode: 401, message: messages.loginRequired })
   }
 
   const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
@@ -48,16 +67,23 @@ export default defineEventHandler(async (event) => {
   } else {
     rateData.count++
     if (rateData.count > 5) {
-      throw createError({ statusCode: 429, message: 'Too many requests. Please try again later.' })
+      throw createError({ statusCode: 429, message: messages.tooManyRequests })
     }
   }
 
-  const body = bodySchema.parse(await readBody(event))
+  const parsedBody = bodySchema.safeParse(await readBody(event))
+  if (!parsedBody.success) {
+    throw createError({
+      statusCode: 400,
+      message: locale === 'zh' ? '充值参数无效' : 'Invalid top-up request',
+    })
+  }
+  const body = parsedBody.data
 
   const rules = await getTopupRules()
   let quote
   try {
-    quote = buildTopupQuote(rules, body.currency, body.amount)
+    quote = buildTopupQuote(rules, body.currency, body.amount, locale)
   } catch (error) {
     if (error instanceof TopupValidationError) {
       throw createError({ statusCode: 400, message: error.message })
@@ -128,14 +154,14 @@ export default defineEventHandler(async (event) => {
     userId,
     visitorId,
     type: 'order_pending',
-    title: '充值订单待支付',
-    message: `您的充值订单已创建，待支付 ${quote.amount} ${quote.currency}，到账 ${quote.rechargeAmount} ${quote.accountingCurrency}。`,
+    title: messages.pendingTitle,
+    message: messages.pendingMessage(quote.amount, quote.currency, quote.rechargeAmount, quote.accountingCurrency),
     data: { orderId, payStatus: 'pending', targetPath: `/payment/${orderId}` },
   })
 
   return {
     code: 0,
-    message: 'Top-up order created successfully',
+    message: messages.created,
     data: {
       id: orderId,
       amount: quote.amount,

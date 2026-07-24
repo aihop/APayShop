@@ -1,16 +1,18 @@
 import { defineEventHandler, getQuery, readBody, createError } from 'h3'
 import { getAIGatewayUrl } from '../../utils/externalProxy'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const query = getQuery(event)
   const path = query.path as string
   if (!path) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing path parameter' })
+    throw createError({ statusCode: 400, statusMessage: locale === 'zh' ? '缺少 path 参数' : 'Missing path parameter' })
   }
 
   const apiKey = event.node.req.headers['x-api-key'] as string
   if (!apiKey) {
-    throw createError({ statusCode: 401, statusMessage: 'Missing API key (x-api-key header)' })
+    throw createError({ statusCode: 401, statusMessage: locale === 'zh' ? '缺少 API Key（x-api-key 请求头）' : 'Missing API key (x-api-key header)' })
   }
 
   const gatewayUrl = await getAIGatewayUrl()
@@ -27,7 +29,7 @@ export default defineEventHandler(async (event) => {
     }
     targetUrl = resolved.toString()
   } catch {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid path parameter' })
+    throw createError({ statusCode: 400, statusMessage: locale === 'zh' ? '无效的 path 参数' : 'Invalid path parameter' })
   }
 
   const method = event.node.req.method || 'POST'
@@ -57,7 +59,7 @@ export default defineEventHandler(async (event) => {
     } catch {}
     throw createError({
       statusCode: 502,
-      statusMessage: `Gateway upstream error: ${errorDetail}`,
+      statusMessage: locale === 'zh' ? `网关上游错误：${errorDetail}` : `Gateway upstream error: ${errorDetail}`,
     })
   }
 

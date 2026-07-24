@@ -3,8 +3,10 @@ import fs from "fs"
 import path from "path"
 import { db } from '../../../db/runtime'
 import { applyLocalPaymentPluginDefaults } from '../../../../payments/meta'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   if (event.method === "GET") {
     // 1. Fetch from database
     const dbMethods = await db.select().from(paymentMethods)
@@ -94,7 +96,7 @@ export default defineEventHandler(async (event) => {
       console.error('Database insert error:', e)
       throw createError({
         statusCode: 500,
-        message: 'Failed query: ' + e.message,
+        message: locale === 'zh' ? `数据库写入失败：${e.message}` : 'Failed query: ' + e.message,
       })
     }
   }

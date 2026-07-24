@@ -4,15 +4,17 @@ import { db } from '../../../db/runtime'
 import { sendHttpWebhook } from '../../../utils/eventBus'
 import { getWebhookSubscriptionUrl, getIntegrationToken } from '../../../utils/externalProxy'
 import { ORDER_STATUS } from '../../../utils/constants'
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, message: 'Missing subscription id' })
+  if (!id) throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少订阅 ID' : 'Missing subscription id' })
 
   // 1. Find the subscription
   const existing = await db.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1)
   if (!existing.length) {
-    throw createError({ statusCode: 404, message: 'Subscription not found' })
+    throw createError({ statusCode: 404, message: locale === 'zh' ? '订阅不存在' : 'Subscription not found' })
   }
 
   const sub = existing[0]
@@ -47,12 +49,12 @@ export default defineEventHandler(async (event) => {
           eventId,
           userId: Number(sub.userId),
           sourceId: id,
-          remark: 'Admin cancelled subscription',
+          remark: locale === 'zh' ? '管理员取消了订阅' : 'Admin cancelled subscription',
         },
       },
       { headers: { Authorization: `Bearer ${ainodeToken}` } }
     )
   }
 
-  return { code: 0, message: 'Subscription cancelled' }
+  return { code: 0, message: locale === 'zh' ? '订阅已取消' : 'Subscription cancelled' }
 })

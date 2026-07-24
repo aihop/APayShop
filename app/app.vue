@@ -14,10 +14,10 @@ const route = useRoute()
 useAsyncData('global-settings', () => fetchSettings())
 
 useHead(() => {
-  const title = route.meta.title || 'APayShop'
+  const title = route.meta.title || 'APay'
   return {
     title: title,
-    titleTemplate: title === 'APayShop' ? '%s' : '%s - APayShop'
+    titleTemplate: title === 'APay' ? '%s' : '%s - APay'
   }
 })
 </script>

@@ -1,8 +1,10 @@
 import { orders, products } from "../../db/schema"
 import { eq, desc, count, and, ne } from "drizzle-orm"
 import { db } from '../../db/runtime'
+import { getRequestLocale } from "../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   // Ensure the user is logged in
   const session = await requireUserSession(event)
   const userId = session.user.id
@@ -10,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!userId) {
     throw createError({
       statusCode: 401,
-      message: 'Unauthorized'
+      message: locale === 'zh' ? '未登录' : 'Unauthorized'
     })
   }
 

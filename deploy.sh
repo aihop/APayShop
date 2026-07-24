@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# APayShop One-Click Deployment Script
+# APay One-Click Deployment Script
 # 
 # Description: 
 # This script is designed for a fresh Linux server (Ubuntu/Debian/CentOS).
@@ -23,7 +23,7 @@ CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-APP_NAME="apayshop"
+APP_NAME="apay"
 PORT=5400
 NODE_VERSION="20"
 SUPERVISOR_INI="/opt/gopanel/supervisord.ini"
@@ -58,7 +58,7 @@ if [[ -n "$PORT_INPUT" ]]; then
 fi
 
 if [ "$LANG_CHOICE" = "2" ]; then
-    MSG_WELCOME="      🚀 欢迎使用 APayShop 一键部署脚本         "
+    MSG_WELCOME="          欢迎使用 APay 一键部署脚本         "
     MSG_STEP1="[1/6] 检查服务器环境..."
     MSG_NODE_INSTALL="Node.js 未安装或版本低于 18。正在通过 NVM 安装 Node.js v${NODE_VERSION}..."
     MSG_NODE_OK="✓ Node.js 已安装。"
@@ -76,7 +76,7 @@ if [ "$LANG_CHOICE" = "2" ]; then
     MSG_OUTPUT_DEPS_SKIP="⚠ 未检测到 .output/server/package.json，无法自动补齐运行时依赖。"
     MSG_OUTPUT_DEPS_FAIL="❌ .output 运行时依赖安装失败。"
     MSG_PROJECT_MISSING="❌ 未检测到 package.json，且也没有可运行的 .output/server/index.mjs。请先上传完整项目源码或 .output 产物。"
-    MSG_STEP4="[4/6] 编译 APayShop (这可能需要几分钟时间)..."
+    MSG_STEP4="[4/6] 编译 APay (这可能需要几分钟时间)..."
     MSG_BUILD_DETECT="检测到已有 .output 构建产物，跳过编译步骤。"
     MSG_BUILD_OK="✓ Nuxt 应用程序编译成功。"
     MSG_STEP5="[5/6] 启动应用服务..."
@@ -103,7 +103,7 @@ if [ "$LANG_CHOICE" = "2" ]; then
     MSG_STEP6="[6/6] 域名与反向代理配置"
     MSG_DOMAIN_PROMPT="您是否需要为本服务器绑定域名？(y/n): "
     MSG_DOMAIN_BIND_NOTICE="请先在域名 DNS 中添加 A 记录，并指向当前服务器 IP："
-    MSG_DOMAIN_INPUT="请输入您的域名 (例如 apayshop.com): "
+    MSG_DOMAIN_INPUT="请输入您的域名 (例如 apay.run): "
     MSG_NGINX_DETECT="ℹ 检测到 Nginx。正在生成 Nginx 配置..."
     MSG_NGINX_CREATED="✓ Nginx 配置文件已创建于 "
     MSG_NGINX_RELOAD="正在测试并重载 Nginx..."
@@ -123,14 +123,14 @@ if [ "$LANG_CHOICE" = "2" ]; then
     MSG_CADDY_INSTALLED="✓ Caddy 已安装并配置完毕。HTTPS 证书将自动申请！"
     MSG_CADDY_OS_ERR="❌ 自动安装 Caddy 仅支持 Debian/Ubuntu 系统。"
     MSG_MANUAL_PROXY="请手动安装 Web 服务器并将请求反向代理至端口 ${PORT}。"
-    MSG_SUCCESS="🎉 APayShop 部署成功！"
+    MSG_SUCCESS="🎉 APay 部署成功！"
     MSG_RUNNING="您的独立站已在后台运行。"
     MSG_LOCAL_URL="本地地址: http://localhost:${PORT}"
     MSG_USEFUL_CMD="常用命令:"
     MSG_LOGS="- 查看实时日志: ${YELLOW}pm2 logs $APP_NAME${NC}"
     MSG_STOP="- 停止服务:    ${YELLOW}pm2 stop $APP_NAME${NC}"
 else
-    MSG_WELCOME="      🚀 Welcome to APayShop 1-Click Deployer         "
+    MSG_WELCOME="      🚀 Welcome to APay 1-Click Deployer         "
     MSG_STEP1="[1/6] Checking Server Environment..."
     MSG_NODE_INSTALL="Node.js is not installed or version is below 18. Installing Node.js v${NODE_VERSION} via NVM..."
     MSG_NODE_OK="✓ Node.js is installed."
@@ -148,7 +148,7 @@ else
     MSG_OUTPUT_DEPS_SKIP="⚠ .output/server/package.json not found, cannot auto-install runtime dependencies."
     MSG_OUTPUT_DEPS_FAIL="❌ Failed to install .output runtime dependencies."
     MSG_PROJECT_MISSING="❌ package.json not found and no runnable .output/server/index.mjs detected. Please upload full project source or .output artifact first."
-    MSG_STEP4="[4/6] Building APayShop (This will take a few minutes)..."
+    MSG_STEP4="[4/6] Building APay (This will take a few minutes)..."
     MSG_BUILD_DETECT="Detected existing .output build artifact, skipping build step."
     MSG_BUILD_OK="✓ Nuxt application compiled successfully."
     MSG_STEP5="[5/6] Starting Application Server..."
@@ -195,7 +195,7 @@ else
     MSG_CADDY_INSTALLED="✓ Caddy installed and configured. HTTPS will be provisioned automatically!"
     MSG_CADDY_OS_ERR="❌ Auto-installing Caddy is only supported on Debian/Ubuntu via this script."
     MSG_MANUAL_PROXY="Please install a web server manually and reverse proxy to port ${PORT}."
-    MSG_SUCCESS="🎉 APayShop Deployment Successful!"
+    MSG_SUCCESS="🎉 APay Deployment Successful!"
     MSG_RUNNING="Your store is now running in the background."
     MSG_LOCAL_URL="Local URL: http://localhost:${PORT}"
     MSG_USEFUL_CMD="Useful Commands:"
@@ -281,17 +281,17 @@ fi
 NODE_BIN_DIR="$(dirname "$(command -v node)")"
 if [ -n "$NODE_BIN_DIR" ]; then
     export PATH="$NODE_BIN_DIR:$PATH"
-    if [ -f "$HOME/.bashrc" ] && ! grep -q "APAYSHOP_NODE_PATH" "$HOME/.bashrc"; then
+    if [ -f "$HOME/.bashrc" ] && ! grep -q "APAY_NODE_PATH" "$HOME/.bashrc"; then
         {
             echo ""
-            echo "# APAYSHOP_NODE_PATH"
+            echo "# APAY_NODE_PATH"
             echo "export PATH=\"$NODE_BIN_DIR:\$PATH\""
         } >> "$HOME/.bashrc"
     fi
-    if [ -f "$HOME/.profile" ] && ! grep -q "APAYSHOP_NODE_PATH" "$HOME/.profile"; then
+    if [ -f "$HOME/.profile" ] && ! grep -q "APAY_NODE_PATH" "$HOME/.profile"; then
         {
             echo ""
-            echo "# APAYSHOP_NODE_PATH"
+            echo "# APAY_NODE_PATH"
             echo "export PATH=\"$NODE_BIN_DIR:\$PATH\""
         } >> "$HOME/.profile"
     fi

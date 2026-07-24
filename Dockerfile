@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # 2. 设置容器内的工作目录
-WORKDIR /var/www/apayshop
+WORKDIR /var/www/apay
 
 COPY package*.json ./
 

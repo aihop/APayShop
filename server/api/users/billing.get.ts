@@ -1,13 +1,15 @@
 import { eq, desc, and, gte, inArray, ne } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { users, orders, products } from '../../db/schema'
+import { getRequestLocale } from '../../utils/requestLocale'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const session: any = await requireUserSession(event)
   if (!session || !session.user || !session.user.id) {
     throw createError({
       statusCode: 401,
-      message: 'Unauthorized'
+      message: locale === 'zh' ? '未登录' : 'Unauthorized'
     })
   }
   const userId = session.user.id
@@ -79,7 +81,7 @@ export default defineEventHandler(async (event) => {
       id: order.id,
       time: order.paidAt ? new Date(order.paidAt).toLocaleString() : new Date(order.createdAt).toLocaleString(),
       type: displayType,
-      target: product?.name || 'Unknown Product',
+      target: product?.name || (locale === 'zh' ? '未知商品' : 'Unknown Product'),
       amount: Number(order.amount),
       status: order.payStatus,
       payMethod: order.payMethod || null
