@@ -7,6 +7,7 @@
 
   <UModal
     v-model:open="isOrderModalOpen"
+    scrollable
     :ui="{ content: 'bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/10 rounded-[40px] shadow-2xl dark:shadow-[0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden' }"
   >
     <template #content>

@@ -12,6 +12,11 @@ const publicAppVersion = process.env.GOPANEL_PIPELINE_VERSION
   || packageJson.version
   || '1.0.0'
 
+const isCloudflarePagesTarget = (() => {
+  const preset = String(process.env.NITRO_PRESET || '').trim().toLowerCase()
+  return Boolean(process.env.CF_PAGES) || preset === 'cloudflare-pages'
+})()
+
 // Single source of truth shared with scripts/generate-theme-build.mjs, so the
 // nitro handlers/public assets/global components registered here always match
 // the themes bundled into the client (app/generated/theme-build.ts).
@@ -106,7 +111,8 @@ const DEV_WATCH_IGNORE = [
 export default defineNuxtConfig({
   ignore: DEV_WATCH_IGNORE,
   // 主题私有 vendor 的客户端别名:纯函数(如 qingpu-engine 定价计算)可在浏览器组件复用;
-  // nitro 侧同名别名见下方 nitro:config 钩子,两侧解析到同一目录
+  // 这里避免使用 `#` 前缀,否则会落入 Node package imports 语义,把主题私有约定抬成
+  // 根包级别配置。nitro 侧同名别名见下方 nitro:config 钩子,两侧解析到同一目录。
   alias: (() => {
     const themesDir = path.resolve(__dirname, 'app/themes')
     const aliases: Record<string, string> = {
@@ -118,7 +124,7 @@ export default defineNuxtConfig({
       resolveBuildThemes().forEach(theme => {
         const vendorDir = path.join(themesDir, theme, 'server', 'vendor')
         if (fs.existsSync(vendorDir)) {
-          aliases[`#${theme}-vendor`] = vendorDir
+          aliases[`@${theme}-vendor`] = vendorDir
         }
       })
     }
@@ -173,11 +179,11 @@ export default defineNuxtConfig({
             })
           }
 
-          // 主题私有 vendor(构建产物库,如 qingpu-engine):注册 #<theme>-vendor 别名,
+          // 主题私有 vendor(构建产物库,如 qingpu-engine):注册 @<theme>-vendor 别名,
           // 让 nitro 以绝对路径打包,避免相对引用被外部化后解析错位
           const vendorDir = path.join(themesDir, theme, 'server', 'vendor')
           if (fs.existsSync(vendorDir)) {
-            nitroAliases[`#${theme}-vendor`] = vendorDir
+            nitroAliases[`@${theme}-vendor`] = vendorDir
           }
         })
 
@@ -277,9 +283,9 @@ export default defineNuxtConfig({
   hub: {
     db: {
       dialect: "sqlite",
-      driver: process.env.CF_PAGES ? 'd1' : "libsql",
-      connection: process.env.CF_PAGES ? {} : { url: process.env.LIBSQL_URL || 'file:.data/db/sqlite.db' },
-      applyMigrationsDuringBuild: !!process.env.CF_PAGES,
+      driver: isCloudflarePagesTarget ? 'd1' : "libsql",
+      connection: isCloudflarePagesTarget ? {} : { url: process.env.LIBSQL_URL || 'file:.data/db/sqlite.db' },
+      applyMigrationsDuringBuild: isCloudflarePagesTarget,
       applyMigrationsDuringDev: false, // 禁用开发环境的自动迁移，避免与正式环境冲突
     },
     blob: true,
@@ -307,7 +313,7 @@ export default defineNuxtConfig({
       crawlLinks: false,
       ignore: ['/']
     },
-    preset: process.env.NITRO_PRESET || (!!process.env.CF_PAGES ? 'cloudflare-pages' : 'node-server'),
+    preset: process.env.NITRO_PRESET || (isCloudflarePagesTarget ? 'cloudflare-pages' : 'node-server'),
     minify: true,
     compressPublicAssets: true, // 开启 gzip/br 压缩
     // 强制将这些容易丢失的包内联到产物中

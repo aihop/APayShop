@@ -3,5 +3,5 @@ import { getHeader } from 'h3'
 
 export function getRequestLocale(event: H3Event): 'zh' | 'en' {
   const acceptLanguage = String(getHeader(event, 'accept-language') || '').toLowerCase()
-  return acceptLanguage.startsWith('zh') ? 'zh' : 'en'
+  return acceptLanguage.includes('zh') ? 'zh' : 'en'
 }
