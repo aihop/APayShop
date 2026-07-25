@@ -1,6 +1,7 @@
 {
   "admin": {
     "nav": {
+      "collapse": "收起",
       "dashboard": "仪表盘",
       "stats": "访客统计",
       "store": "商店",

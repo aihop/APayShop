@@ -1,6 +1,7 @@
 {
   "admin": {
     "nav": {
+      "collapse": "Collapse",
       "dashboard": "Dashboard",
       "stats": "Visitor Stats",
       "store": "STORE",

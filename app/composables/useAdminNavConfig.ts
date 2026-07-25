@@ -51,7 +51,8 @@ export const useAdminNav = () => {
       { to: '/admin/payments', icon: 'ph:credit-card', labelKey: 'admin.nav.payments' },
       { to: '/admin/users', icon: 'ph:users-four', labelKey: 'admin.nav.users' },
       { to: '/admin/logs', icon: 'ph:log', labelKey: 'admin.nav.logs' },
-      { to: '/admin/themes', icon: 'ph:sparkles-duotone', labelKey: 'admin.nav.themes' },
+      // themes 已收编为设置族成员页(入口在 settings 左栏导航,路由仍是 /admin/themes;
+      // RouteSearch 里保留可搜),不再占侧栏一级位
       { to: '/admin/settings', icon: 'ph:gear', labelKey: 'admin.nav.settings' },
     ],
   }

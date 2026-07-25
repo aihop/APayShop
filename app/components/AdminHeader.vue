@@ -1,6 +1,7 @@
 <template>
   <header class="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur dark:border-gray-800/50 dark:bg-[#09090b]/80">
-    <div class="max-w-[1440px] w-full px-6 lg:px-12 mx-auto h-16 flex items-center justify-between">
+    <!-- 全宽不限 1440:侧栏 fixed 贴边后,顶栏内容再居中限宽会在超宽屏上与侧栏左缘错位 -->
+    <div class="w-full px-4 md:px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
         <NuxtLink
           to="/"

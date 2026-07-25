@@ -48,7 +48,6 @@ export const {
   emailProviders,
   orders,
   settings,
-  themeSettings,
   paymentFailures,
   failures,
   webhooks,

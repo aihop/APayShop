@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
       })
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayIso}::timestamptz`)
-        .groupBy(sql`date_trunc('hour', ${orders.createdAt} AT TIME ZONE ${tz})`)
+        .groupBy(sql`1`)
     : isMysql
     ? await db.select({
         hour: sql<string>`DATE_FORMAT(CONVERT_TZ(${orders.createdAt}, '+00:00', ${mysqlOffset}), '%H')`,
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
       })
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayMysql}`)
-        .groupBy(sql`DATE_FORMAT(CONVERT_TZ(${orders.createdAt}, '+00:00', ${mysqlOffset}), '%H')`)
+        .groupBy(sql`1`)
     : await db.select({
         hour: sql<string>`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', ${sqliteOffset}))`,
         ordersCount: sql<number>`count(*)`,
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
       })
         .from(orders)
         .where(sql`${orders.createdAt} >= ${startOfDayMs} OR (${orders.createdAt} < 1000000000000 AND ${orders.createdAt} >= ${startOfDaySec})`)
-        .groupBy(sql`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', ${sqliteOffset}))`)
+        .groupBy(sql`1`)
 
   // Format hourly data into a map for easy lookup
   const hourlyMap = new Map()

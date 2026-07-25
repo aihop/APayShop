@@ -1,16 +1,27 @@
 <template>
-  <div class="space-y-8">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  <!-- 设置族成员页:套 settings 同款外壳与共享左栏导航,自身保留独立路由 -->
+  <div class="max-w-5xl mx-auto pb-12">
+    <div class="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.themes.page.title') }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+          <UIcon
+            name="ph:sparkles-duotone"
+            class="w-8 h-8 text-purple-500"
+          />
+          {{ $t('admin.themes.page.title') }}
+        </h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.themes.page.subtitle') }}</p>
       </div>
-
     </div>
 
-    <!-- Active Theme Settings Link -->
- 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <AdminSettingsNav
+        active="themes"
+        @select="goToSettingsTab"
+      />
+
+      <div class="lg:col-span-9">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <div
         v-for="theme in themes || []"
         :key="theme.id"
@@ -81,13 +92,15 @@
           </div>
         </div>
       </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useToast, definePageMeta, useI18n } from '#imports'
+import { useToast, definePageMeta, useI18n, navigateTo } from '#imports'
 
 definePageMeta({ title: 'Themes', layout: 'admin' })
 
@@ -98,6 +111,11 @@ const { settings, getSetting, fetchSettings } = useSettings()
 const toast = useToast()
 
 const isActivating = ref('')
+
+// 共享导航上点了 settings 页内 tab → 跳回 settings 并落到对应 tab(?tab= 由 settings 解析)
+const goToSettingsTab = (tabId: string) => {
+  navigateTo({ path: '/admin/settings', query: { tab: tabId } })
+}
 
 const { data: themes } = await useFetch<any[]>('/api/admin/theme')
 

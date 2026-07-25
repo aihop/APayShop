@@ -51,7 +51,6 @@
                   <Icon
                     :name="item.icon"
                     class="w-5 h-5"
-                    :class="item.to === '/admin/themes' ? 'text-purple-400' : ''"
                   />
                   {{ resolveLabel(item) }}
                 </div>
@@ -94,7 +93,6 @@
                 <Icon
                   :name="item.icon"
                   class="w-5 h-5"
-                  :class="item.to === '/admin/themes' ? 'text-purple-400' : ''"
                 />
                 {{ resolveLabel(item) }}
               </div>

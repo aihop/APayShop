@@ -31,55 +31,11 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <!-- Mobile Navigation for Settings -->
-      <div class="block lg:hidden overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
-        <nav class="flex space-x-2">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            @click="activeTab = tab.id"
-            :class="[
-              'shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2',
-              activeTab === tab.id
-                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
-            ]"
-          >
-            <UIcon
-              :name="tab.icon"
-              class="w-5 h-5"
-            />
-            {{ $t(tab.labelKey) }}
-          </button>
-        </nav>
-      </div>
-
-      <!-- Left Sidebar Navigation for Settings -->
-      <div class="lg:col-span-3 hidden lg:block space-y-1">
-        <nav class="sticky top-24 space-y-2">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            @click="activeTab = tab.id"
-            :class="[
-              'w-full text-left block px-4 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              activeTab === tab.id
-                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
-            ]"
-          >
-            <div class="flex items-center gap-3">
-              <UIcon
-                :name="tab.icon"
-                class="w-5 h-5"
-              />
-              {{ $t(tab.labelKey) }}
-            </div>
-          </button>
-        </nav>
-      </div>
+      <!-- 设置族共享导航(移动横滚 + 桌面左栏两块由组件多根输出);清单单点 nav-tabs.ts -->
+      <AdminSettingsNav
+        :active="activeTab"
+        @select="activeTab = $event"
+      />
 
       <!-- Main Form Area -->
       <div class="lg:col-span-9 space-y-8">
@@ -238,9 +194,11 @@ import {
   definePageMeta,
   useToast,
   useFetch,
+  useRoute,
   useRouter,
   useI18n,
 } from '#imports'
+import { isSettingsTabId } from '~/components/admin/settings/nav-tabs'
 const { fetchSettings } = useSettings()
 
 const { t } = useI18n()
@@ -251,20 +209,10 @@ const toast = useToast()
 const { confirm } = useConfirm()
 const router = useRouter()
 
-const activeTab = ref('general')
-
-const tabs = [
-  { id: 'general', labelKey: 'admin.settings.page.nav_general', icon: 'ph:browser-fill' },
-  { id: 'localization', labelKey: 'admin.settings.page.nav_localization', icon: 'ph:translate-fill' },
-  { id: 'seo', labelKey: 'admin.settings.page.nav_seo', icon: 'ph:magnifying-glass-fill' },
-  { id: 'checkout', labelKey: 'admin.settings.page.nav_checkout', icon: 'ph:shopping-cart-fill' },
-  { id: 'topup', labelKey: 'admin.settings.page.nav_topup', icon: 'ph:wallet-fill' },
-  { id: 'integration', labelKey: 'admin.settings.page.nav_integration', icon: 'ph:shuffle-fill' },
-  { id: 'email', labelKey: 'admin.settings.page.nav_email', icon: 'ph:envelope-fill' },
-  { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
-  { id: 'automations', labelKey: 'admin.settings.page.nav_automations', icon: 'ph:lightning-fill' },
-  { id: 'scheduler', labelKey: 'admin.settings.page.nav_scheduler', icon: 'ph:clock-countdown-fill' },
-]
+// tab 清单已收口到 components/admin/settings/nav-tabs.ts(与 AdminSettingsNav 共用);
+// 支持 ?tab=xxx 直达——themes 等路由型成员页跳回时靠它落到指定 tab
+const route = useRoute()
+const activeTab = ref(isSettingsTabId(route.query.tab) ? route.query.tab : 'general')
 
 const {
   data: settings,
