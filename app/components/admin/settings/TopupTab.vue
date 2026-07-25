@@ -52,8 +52,22 @@
               <UInput v-model="row.max" type="number" step="0.01" />
             </div>
             <div>
-              <label class="mb-1 block text-xs text-gray-500 dark:text-gray-400">{{ $t('admin.settings.topup.f_rate') }}</label>
-              <UInput v-model="row.rate" type="number" step="0.000001" />
+              <label class="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                {{ $t('admin.settings.topup.f_rate') }}
+                <span v-if="isAccountingRow(row)" class="ml-1 text-emerald-600 dark:text-emerald-400">
+                  {{ $t('admin.settings.topup.f_rate_self') }}
+                </span>
+              </label>
+              <!-- 记账币种对自己的汇率恒为 1（本币充值即到账），不是可配置项：
+                   开放编辑只会让人填一个不生效的值（服务端 getTopupRules 会覆写成 1），
+                   界面数字和实际口径对不上 -->
+              <UInput
+                v-if="isAccountingRow(row)"
+                :model-value="'1'"
+                type="number"
+                disabled
+              />
+              <UInput v-else v-model="row.rate" type="number" step="0.000001" />
             </div>
             <div class="flex items-end gap-2">
               <div class="flex-1">
@@ -74,7 +88,7 @@
           <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {{ $t('admin.settings.topup.rate_hint', {
               from: (row.currency || '?').toUpperCase(),
-              rate: row.rate || 0,
+              rate: rateOf(row),
               to: (model.accountingCurrency || 'USD').toUpperCase(),
             }) }}
           </p>
@@ -149,6 +163,14 @@ watch(() => props.form?.topup_rules, (raw) => {
   if (!hydrated) hydrate(raw)
 }, { immediate: true })
 
+/** 该行是否是记账币种本身（本币对自己的汇率恒为 1） */
+const isAccountingRow = (row: CurrencyRow) =>
+  Boolean(row.currency) &&
+  String(row.currency).trim().toUpperCase() === String(model.accountingCurrency || '').trim().toUpperCase()
+
+/** 取该行写入配置的汇率：本币恒 1，其余取用户填的值 */
+const rateOf = (row: CurrencyRow) => (isAccountingRow(row) ? 1 : toNumber(row.rate, 1))
+
 const addCurrency = () => {
   model.currencies.push({ currency: '', min: '1', max: '10000', rate: '1', presets: '' })
 }
@@ -174,10 +196,9 @@ const issues = computed(() => {
     const min = toNumber(row.min), max = toNumber(row.max), rate = toNumber(row.rate)
     if (!(min > 0)) list.push(t('admin.settings.topup.issue_min', { currency: code }))
     if (max < min) list.push(t('admin.settings.topup.issue_max', { currency: code }))
-    if (!(rate > 0)) list.push(t('admin.settings.topup.issue_rate', { currency: code }))
-    // 记账币种对自己的汇率必须是 1,否则等于凭空放大/缩水余额
-    if (code === accounting && rate !== 1) {
-      list.push(t('admin.settings.topup.issue_self_rate', { currency: code }))
+    // 本币行的汇率被锁成 1（见 isAccountingRow），只校验其它币种
+    if (code !== accounting && !(rate > 0)) {
+      list.push(t('admin.settings.topup.issue_rate', { currency: code }))
     }
   }
   if (model.currencies.length && !seen.has(accounting) && accounting) {
@@ -194,7 +215,7 @@ const serialize = () => {
     options[code] = {
       min: toNumber(row.min),
       max: toNumber(row.max),
-      rate: toNumber(row.rate, 1),
+      rate: rateOf(row),
       presets: String(row.presets || '')
         .split(',')
         .map(item => Number(String(item).trim()))
@@ -207,6 +228,15 @@ const serialize = () => {
     options,
   })
 }
+
+// 切换记账币种时,把新本币那行的汇率同步成 1:
+// 序列化本来就按 rateOf 写 1,但模型里留着旧值会在下次再换基准币种时被当成
+// 「用户填的汇率」重新用上(那是上一个基准下的数字,换基准后毫无意义)。
+watch(() => model.accountingCurrency, () => {
+  for (const row of model.currencies) {
+    if (isAccountingRow(row)) row.rate = '1'
+  }
+})
 
 // 任何改动即时写回设置表单,保存按钮无需感知本组件
 watch(model, () => {

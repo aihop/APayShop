@@ -680,6 +680,7 @@
         "f_min": "最小金额",
         "f_max": "最大金额",
         "f_rate": "汇率",
+        "f_rate_self": "（本币，恒为 1）",
         "f_presets": "快捷档位（英文逗号分隔）",
         "rate_hint": "1 {from} = {rate} {to}",
         "issues_title": "请检查以下问题",

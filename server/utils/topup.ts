@@ -65,6 +65,15 @@ const normalizeOption = (raw: any, fallback: TopupCurrencyOption): TopupCurrency
   return { min, max, presets, rate: rate > 0 ? rate : fallback.rate }
 }
 
+/**
+ * 兜底选项:只开放「用记账币种充值」,汇率恒为 1。
+ * 区间/档位借用内置默认里同币种的配置,没有就用 USD 那套数字(只是金额范围,不涉汇率)。
+ */
+const fallbackAccountingOnlyOptions = (accountingCurrency: string): Record<string, TopupCurrencyOption> => {
+  const base = DEFAULT_TOPUP_RULES.options[accountingCurrency] || DEFAULT_TOPUP_RULES.options.USD!
+  return { [accountingCurrency]: { ...base, rate: 1 } }
+}
+
 /** 读取并归一 settings.topup_rules;缺配置或配置损坏时回落内置默认值 */
 export async function getTopupRules(): Promise<TopupRules> {
   let stored: any = null
@@ -80,19 +89,47 @@ export async function getTopupRules(): Promise<TopupRules> {
   if (!stored || typeof stored !== 'object') return DEFAULT_TOPUP_RULES
 
   const accountingCurrency = normalizeCurrencyCode(stored.accountingCurrency) || DEFAULT_TOPUP_RULES.accountingCurrency
+  // 内置默认汇率是按「记账币种 = USD」设计的(USD:1, CNY:0.14)。记账币种改成别的之后
+  // 这些默认值就失去意义了,不能再拿来兜底——见下面 missing rate 的处理。
+  const defaultsMatchAccounting = accountingCurrency === DEFAULT_TOPUP_RULES.accountingCurrency
   const rawOptions = (stored.options && typeof stored.options === 'object') ? stored.options : {}
   const options: Record<string, TopupCurrencyOption> = {}
   for (const [code, raw] of Object.entries(rawOptions)) {
     const currency = normalizeCurrencyCode(code)
     if (!currency) continue
+
+    // 记账币种自身的汇率恒为 1:这是「rate = 1 单位实付币种换多少记账单位」的定义,
+    // 不是可配置项。此前它和其它币种一样从配置里读,把 accountingCurrency 改成 CNY
+    // 却忘了把 CNY 的 rate 从默认 0.14 改成 1,就会静默按 0.14 折算(充 100 只到账 14),
+    // 而订单/流水/余额三处会一致地记着这个错数,事后从数据上完全看不出来。
+    // 覆写而不是校验:让这类错误结构上不可能存在,而不是发现后再报错。
+    if (currency === accountingCurrency) {
+      const base = normalizeOption(raw, DEFAULT_TOPUP_RULES.options[currency] || DEFAULT_TOPUP_RULES.options.USD!)
+      options[currency] = { ...base, rate: 1 }
+      continue
+    }
+
+    // 非记账币种缺 rate:在默认值不适用的记账币种下,无法推断汇率的币种一律不提供充值
+    // (宁可少一个支付币种,也不能按 1:1 或按 USD 口径的默认值静默错算)。
+    const hasExplicitRate = toFiniteNumber((raw as any)?.rate, 0) > 0
+    if (!hasExplicitRate && !defaultsMatchAccounting) {
+      console.warn(`[Topup] currency ${currency} has no rate under accounting currency ${accountingCurrency}, skipped`)
+      continue
+    }
+
     options[currency] = normalizeOption(raw, DEFAULT_TOPUP_RULES.options[currency] || DEFAULT_TOPUP_RULES.options.USD!)
   }
 
   return {
     enabled: stored.enabled !== false,
     accountingCurrency,
-    // 配置里一个币种都没有时回落默认,避免误配置把充值入口整个锁死
-    options: Object.keys(options).length > 0 ? options : DEFAULT_TOPUP_RULES.options,
+    // 配置里一个可用币种都没有时的兜底,避免误配置把充值入口整个锁死。
+    // 注意不能无脑回落 DEFAULT_TOPUP_RULES.options:那套汇率是按 USD 记账设计的,
+    // 在别的记账币种下会把上面刚堵住的错算又放回来。记账币种不同时,只保留
+    // 「用本币充值、1:1 到账」——这条无需任何汇率假设,永远是对的。
+    options: Object.keys(options).length > 0
+      ? options
+      : (defaultsMatchAccounting ? DEFAULT_TOPUP_RULES.options : fallbackAccountingOnlyOptions(accountingCurrency)),
   }
 }
 

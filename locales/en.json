@@ -681,6 +681,7 @@
         "f_min": "Min amount",
         "f_max": "Max amount",
         "f_rate": "Rate",
+        "f_rate_self": "(base currency, always 1)",
         "f_presets": "Quick amounts (comma separated)",
         "rate_hint": "1 {from} = {rate} {to}",
         "issues_title": "Please review the following",
