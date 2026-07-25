@@ -6,7 +6,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.payments.page.subtitle') }}</p>
       </div>
       <UButton
-        v-if="activeTab === 'methods'"
+        v-if="activeTab === 'methods' && hasAdminPerm('payments:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -60,7 +60,7 @@
             <div class="flex items-center gap-2">
               <USwitch
                 :model-value="Boolean(row.original.isActive)"
-                :disabled="Boolean(row.original.isLocalOnly)"
+                :disabled="Boolean(row.original.isLocalOnly) || !hasAdminPerm('payments:edit')"
                 @update:model-value="val => { if(!row.original.isLocalOnly) { row.original.isActive = val; toggleActive(row.original) } }"
               />
               <UBadge
@@ -92,6 +92,7 @@
                 :icon="row.original.isLocalOnly ? 'ph:plug-bold' : 'ph:pencil-simple'"
                 :label="row.original.isLocalOnly ? $t('admin.payments.table.configure') : ''"
                 @click="openModal(row.original)"
+                :disabled="!hasAdminPerm('payments:edit')"
               />
               <UButton
                 v-if="!row.original.isLocalOnly"
@@ -99,6 +100,7 @@
                 variant="ghost"
                 icon="ph:trash"
                 @click="deleteMethod(Number(row.original.id))"
+                :disabled="!hasAdminPerm('payments:edit')"
               />
             </div>
           </template>
@@ -242,6 +244,7 @@
               class="bg-purple-600 hover:bg-purple-500 text-white"
               type="submit"
               :loading="isSaving"
+              :disabled="!hasAdminPerm('payments:edit')"
             >{{ $t('admin.payments.modal.save') }}</UButton>
           </div>
         </form>
@@ -407,6 +410,7 @@ const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { settings: appSettings, fetchSettings } = useSettings()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const activeTab = ref('methods')
 
 await fetchSettings()

@@ -8,6 +8,7 @@
         </p>
       </div>
       <UButton
+        v-if="hasAdminPerm('system:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white shrink-0"
         icon="ph:plus-bold"
@@ -51,12 +52,12 @@
               <div v-if="job.lastResult" class="truncate max-w-[200px]" :class="resultClass(job.lastResult)" :title="job.lastResult">{{ job.lastResult }}</div>
             </td>
             <td class="py-3 px-5">
-              <USwitch :model-value="job.enabled !== false" @update:model-value="(v) => toggleEnabled(job, v)" />
+              <USwitch :model-value="job.enabled !== false" :disabled="!hasAdminPerm('system:edit')" @update:model-value="(v) => toggleEnabled(job, v)" />
             </td>
             <td class="py-3 px-5 text-right whitespace-nowrap">
-              <UButton color="neutral" variant="ghost" size="sm" :loading="triggering === job.name" @click="triggerJob(job)">立即执行</UButton>
-              <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" size="sm" @click="openEdit(job)" />
-              <UButton color="error" variant="ghost" icon="ph:trash" size="sm" @click="removeJob(job)" />
+              <UButton color="neutral" variant="ghost" size="sm" :loading="triggering === job.name" :disabled="!hasAdminPerm('system:edit')" @click="triggerJob(job)">立即执行</UButton>
+              <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" size="sm" @click="openEdit(job)" :disabled="!hasAdminPerm('system:edit')" />
+              <UButton color="error" variant="ghost" icon="ph:trash" size="sm" @click="removeJob(job)" :disabled="!hasAdminPerm('system:edit')" />
             </td>
           </tr>
         </tbody>
@@ -105,7 +106,7 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <UButton color="neutral" variant="ghost" @click="modalOpen = false">取消</UButton>
-            <UButton color="primary" :loading="saving" @click="save">保存</UButton>
+            <UButton color="primary" :loading="saving" :disabled="!hasAdminPerm('system:edit')" @click="save">保存</UButton>
           </div>
         </div>
       </template>
@@ -116,6 +117,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { useFetch } from '#imports'
+
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 interface JobRow {
   name: string

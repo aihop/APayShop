@@ -59,12 +59,12 @@
           </div>
 
           <div
-            v-if="extensionPages.length"
+            v-if="allowedExtensionPages.length"
             class="space-y-1 mt-4"
           >
             <h3 :class="adminSectionTitleClass">{{ themeSectionTitle }}</h3>
             <NuxtLink
-              v-for="page in extensionPages"
+              v-for="page in allowedExtensionPages"
               :key="page.key"
               :to="page.route"
               :class="adminMobileNavItemClass"
@@ -119,10 +119,14 @@ const emit = defineEmits<{
 }>()
 
 const { getSetting } = useSettings()
-const { extensionPages, themeSectionTitle } = useAdminExtensions()
-const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes } = useAdminNav()
+const { activeTheme, extensionPages, themeSectionTitle } = useAdminExtensions()
+const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes, hasPermissionFor } = useAdminNav()
 const { adminSectionTitleClass, adminMobileNavItemClass } = useAdminNavStyle()
 const colorMode = useColorMode()
+
+const allowedExtensionPages = computed(() =>
+  extensionPages.value.filter(page => hasPermissionFor(themeExtensionPermissionCode(activeTheme.value, page.key)))
+)
 
 const innerOpen = computed({
   get: () => props.open,

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { normalizePermissions } from '../../../utils/adminPermissions'
+import { setAuditMeta } from '../../../utils/auditLog'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -48,7 +49,12 @@ export default defineEventHandler(async (event) => {
       passwordHash: hashedPassword,
       permissions: normalizedPerms,
     })
-    
+
+    setAuditMeta(event, {
+      summary: `Created admin "${username}"`,
+      details: { username, permissions: normalizedPerms },
+    })
+
     return { code: 0, message: messages.created }
   } catch (error: any) {
     throw createError({

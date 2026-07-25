@@ -88,6 +88,7 @@
           class="rounded-xl"
           @click="saveProvider"
           :loading="isSavingProvider"
+          :disabled="!hasAdminPerm('settings:edit')"
         >
           {{ $t('admin.settings.email.save_provider') }}
         </UButton>
@@ -104,13 +105,13 @@
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.templates_title') }}</h2>
         </div>
         <div class="flex items-center gap-2">
-          <UButton type="button" size="sm" color="gray" variant="outline" class="rounded-xl" @click="loadDefaultTemplates">
+          <UButton type="button" size="sm" color="gray" variant="outline" class="rounded-xl" :disabled="!hasAdminPerm('settings:edit')" @click="loadDefaultTemplates">
             <template #leading>
               <UIcon name="ph:download-simple" class="w-4 h-4" />
             </template>
             Load Defaults
           </UButton>
-          <UButton type="button" size="sm" class="rounded-xl" @click="openNewTemplate">
+          <UButton type="button" size="sm" class="rounded-xl" :disabled="!hasAdminPerm('settings:edit')" @click="openNewTemplate">
             <template #leading>
               <UIcon name="ph:plus" class="w-4 h-4" />
             </template>
@@ -151,6 +152,7 @@
               color="gray"
               icon="ph:pencil-simple"
               @click="editTemplate(idx)"
+              :disabled="!hasAdminPerm('settings:edit')"
             />
             <UButton
               type="button"
@@ -159,6 +161,7 @@
               color="red"
               icon="ph:trash"
               @click="deleteTemplate(idx)"
+              :disabled="!hasAdminPerm('settings:edit')"
             />
           </div>
         </div>
@@ -200,6 +203,7 @@
             class="rounded-xl bg-emerald-600 hover:bg-emerald-500 shrink-0"
             @click="sendTestEmail"
             :loading="isSendingTest"
+            :disabled="!hasAdminPerm('settings:edit')"
           >
             {{ $t('admin.settings.email.send_test') }}
           </UButton>
@@ -228,6 +232,7 @@
 import { DEFAULT_RESEND_SCRIPT } from './email/shared'
 
 const toast = useToast()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const { t } = useI18n()
 const translate = (key: string) => t(key as any)
 

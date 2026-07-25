@@ -4,6 +4,7 @@ import { accessLogs } from '../db/schema'
 
 const EXCLUDED_PREFIXES = [
   '/api/admin/access-logs',
+  '/api/admin/operation-logs',
   '/api/analytics/track',
   '/api/admin/login',
   '/api/admin/logout',

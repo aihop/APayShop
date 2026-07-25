@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 // ==========================================
@@ -293,6 +293,31 @@ export const accessLogs = sqliteTable('access_logs', {
   userId: integer('user_id').references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
+
+// Audit trail: who changed what in the admin panel. Deliberately NOT merged
+// into `logs` — that table is free-text and has a user-facing "clear all"
+// button, which would let anyone erase their own tracks.
+export const operationLogs = sqliteTable('operation_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  actorType: text('actor_type').notNull().default('admin'), // admin | user | system
+  actorId: integer('actor_id'), // no FK: the record must outlive a deleted actor
+  actorName: text('actor_name'), // snapshot — still readable after a rename/delete
+  action: text('action').notNull(), // create | update | delete | login | logout | ...
+  resource: text('resource').notNull(), // products | orders | admins | settings | ...
+  resourceId: text('resource_id'), // text, not int: orders.id is a string
+  summary: text('summary'),
+  details: text('details'), // JSON string
+  path: text('path').notNull(),
+  method: text('method').notNull(),
+  statusCode: integer('status_code'), // 401/403 included — denied attempts matter
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+}, (table) => ({
+  createdAtIdx: index('operation_logs_created_at_idx').on(table.createdAt),
+  actorIdx: index('operation_logs_actor_idx').on(table.actorId, table.createdAt),
+  resourceIdx: index('operation_logs_resource_idx').on(table.resource, table.resourceId)
+}))
 
 export const posts = sqliteTable('posts', {
   id: integer('id').primaryKey({ autoIncrement: true }),

@@ -12,7 +12,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.users.subtitle') }}</p>
       </div>
       <UButton
-        v-if="hasAdminPerm('admins')"
+        v-if="hasAdminPerm('admins:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -91,83 +91,113 @@
       </div>
     </div>
 
-    <UModal
-      v-model:open="isModalOpen"
-      :ui="{ content: 'bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800' }"
+    <FullScreenModal
+      v-model="isModalOpen"
+      :title="form.id ? $t('admin.users.edit') : $t('admin.users.add')"
+      maxWidth="sm:max-w-2xl"
+      :defaultFullscreen="false"
     >
-      <template #content>
-        <div class="p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold">{{ form.id ? $t('admin.users.edit') : $t('admin.users.add') }}</h3>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="ph:x-bold"
-              class="-my-1"
-              @click="isModalOpen = false"
-            />
+      <form
+        id="admin-user-form"
+        @submit.prevent="saveUser"
+        class="space-y-5"
+      >
+        <UFormField :label="$t('admin.users.username')">
+          <UInput
+            v-model="form.username"
+            required
+            class="text-gray-900 dark:text-white w-full"
+            :disabled="isEditingMainAdmin"
+          />
+        </UFormField>
+
+        <UFormField :label="form.id ? 'Password (leave blank to keep current)' : 'Password'">
+          <UInput
+            v-model="form.password"
+            type="password"
+            :required="!form.id"
+            class="text-gray-900 dark:text-white w-full"
+          />
+        </UFormField>
+
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{{ permissionSectionLabel }}</label>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ permissionSectionHint }}</p>
+            </div>
+            <div v-if="!isEditingMainAdmin" class="flex items-center gap-2">
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click="toggleAllPerms(true)"
+              >{{ selectAllLabel }}</UButton>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click="toggleAllPerms(false)"
+              >{{ clearAllLabel }}</UButton>
+            </div>
           </div>
 
-          <form
-            @submit.prevent="saveUser"
-            class="space-y-5"
+          <div
+            v-if="isEditingMainAdmin"
+            class="rounded-xl border border-purple-200/60 bg-purple-50/60 px-4 py-3 dark:border-purple-500/20 dark:bg-purple-500/10"
           >
-            <UFormField :label="$t('admin.users.username')">
-              <UInput
-                v-model="form.username"
-                required
-                class="text-gray-900 dark:text-white w-full"
-                :disabled="isEditingMainAdmin"
-              />
-            </UFormField>
-
-            <UFormField :label="form.id ? 'Password (leave blank to keep current)' : 'Password'">
-              <UInput
-                v-model="form.password"
-                type="password"
-                :required="!form.id"
-                class="text-gray-900 dark:text-white w-full"
-              />
-            </UFormField>
-
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{{ permissionSectionLabel }}</label>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ permissionSectionHint }}</p>
-                </div>
-                <div v-if="!isEditingMainAdmin" class="flex items-center gap-2">
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    @click="toggleAllPerms(true)"
-                  >{{ selectAllLabel }}</UButton>
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    @click="toggleAllPerms(false)"
-                  >{{ clearAllLabel }}</UButton>
-                </div>
+            <div class="flex items-start gap-2.5">
+              <UIcon name="ph:shield-check" class="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+              <div>
+                <div class="text-sm font-medium text-purple-800 dark:text-purple-300">{{ superAdminLabel }}</div>
+                <div class="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">{{ superAdminHint }}</div>
               </div>
+            </div>
+          </div>
 
+          <template v-else>
+            <div class="flex items-center gap-4 px-3 mb-1.5 text-[11px] font-semibold tracking-wide text-gray-400 dark:text-gray-500">
+              <div class="flex-1">{{ moduleColumnLabel }}</div>
+              <div class="w-14 text-center shrink-0">{{ viewLabel }}</div>
+              <div class="w-14 text-center shrink-0">{{ editLabel }}</div>
+            </div>
+            <div class="space-y-1.5">
               <div
-                v-if="isEditingMainAdmin"
-                class="rounded-xl border border-purple-200/60 bg-purple-50/60 px-4 py-3 dark:border-purple-500/20 dark:bg-purple-500/10"
+                v-for="def in ADMIN_PERMISSIONS"
+                :key="def.code"
+                class="flex items-center gap-4 rounded-lg border border-gray-200 dark:border-white/5 px-3 py-2"
               >
-                <div class="flex items-start gap-2.5">
-                  <UIcon name="ph:shield-check" class="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
-                  <div>
-                    <div class="text-sm font-medium text-purple-800 dark:text-purple-300">{{ superAdminLabel }}</div>
-                    <div class="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">{{ superAdminHint }}</div>
-                  </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ labelFor(def) }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ def.code }}</div>
+                </div>
+                <div class="w-14 flex justify-center shrink-0">
+                  <input
+                    :checked="hasView(def.code)"
+                    :disabled="isEditingMainAdmin"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-[#1a1a1e] dark:ring-offset-0"
+                    @change="onViewToggle(def.code, ($event.target as HTMLInputElement).checked)"
+                  />
+                </div>
+                <div class="w-14 flex justify-center shrink-0">
+                  <input
+                    v-if="def.editable !== false"
+                    :checked="hasEdit(def.code)"
+                    :disabled="isEditingMainAdmin"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-[#1a1a1e] dark:ring-offset-0"
+                    @change="onEditToggle(def.code, ($event.target as HTMLInputElement).checked)"
+                  />
                 </div>
               </div>
+            </div>
 
-              <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <template v-if="extensionPermissionDefs.length">
+              <div class="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-500 mt-4 mb-2">{{ themeSectionTitle }}</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <label
-                  v-for="def in ADMIN_PERMISSIONS"
+                  v-for="def in extensionPermissionDefs"
                   :key="def.code"
                   class="flex items-start gap-2.5 rounded-lg border border-gray-200 dark:border-white/5 px-3 py-2.5 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] has-[:checked]:border-purple-300 has-[:checked]:bg-purple-50/60 dark:has-[:checked]:border-purple-500/30 dark:has-[:checked]:bg-purple-500/10"
                 >
@@ -184,26 +214,27 @@
                   </div>
                 </label>
               </div>
-            </div>
-
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                @click="isModalOpen = false"
-              >{{ $t('admin.common.cancel') }}</UButton>
-              <UButton
-                type="submit"
-                color="primary"
-                class="bg-purple-600 hover:bg-purple-500 text-white"
-                :loading="isSaving"
-                :disabled="!hasAdminPerm('admins')"
-              >{{ $t('admin.common.save') }}</UButton>
-            </div>
-          </form>
+            </template>
+          </template>
         </div>
+      </form>
+
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="isModalOpen = false"
+        >{{ $t('admin.common.cancel') }}</UButton>
+        <UButton
+          type="submit"
+          form="admin-user-form"
+          color="primary"
+          class="bg-purple-600 hover:bg-purple-500 text-white"
+          :loading="isSaving"
+          :disabled="!hasAdminPerm('admins:edit')"
+        >{{ $t('admin.common.save') }}</UButton>
       </template>
-    </UModal>
+    </FullScreenModal>
   </div>
 </template>
 
@@ -211,7 +242,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { definePageMeta, useI18n, useToast, useConfirm, useFetch, useRouter, navigateTo } from '#imports'
 import { isSettingsTabId } from '~/components/admin/settings/nav-tabs'
-import { ADMIN_PERMISSIONS, useAdminPermissions, type AdminPermissionDef } from '~/composables/useAdminPermissions'
+import { ADMIN_PERMISSIONS, useAdminPermissions, moduleViewCode, moduleEditCode, type AdminPermissionDef } from '~/composables/useAdminPermissions'
 
 const { t, locale } = useI18n()
 const { formatDateTime } = useFormatTime()
@@ -222,10 +253,26 @@ const toast = useToast()
 const { confirm } = useConfirm()
 
 const { loadAdmin, hasPerm: hasAdminPerm, labelFor, permissions: currentAdminPerms, isSuper } = useAdminPermissions()
+const { extensionPermissionDefs, themeSectionTitle } = useAdminExtensions()
 
 onMounted(async () => {
   await loadAdmin()
 })
+
+// Static system permissions + the active theme's extension pages, combined
+// for "select all / clear all" and the full-access ('*') detection below.
+const allPermissionDefs = computed(() => [...ADMIN_PERMISSIONS, ...extensionPermissionDefs.value])
+
+// Every possible tiered code across all defs — a module def (has `editable`)
+// expands to its view/edit codes (edit omitted if the module has no edit
+// actions); an extension def (no `editable`) stays a single flat code.
+// Used for "select all" and to detect a full selection worth saving as '*'.
+const allTieredCodes = computed(() =>
+  allPermissionDefs.value.flatMap((def) => {
+    if (def.editable === undefined) return [def.code]
+    return def.editable === false ? [moduleViewCode(def.code)] : [moduleViewCode(def.code), moduleEditCode(def.code)]
+  })
+)
 
 const goToSettingsTab = (tabId: string) => {
   if (isSettingsTabId(tabId)) {
@@ -240,7 +287,10 @@ const permissionsLabel = computed(() => (locale.value.startsWith('zh') ? '个模
 const superAdminLabel = computed(() => (locale.value.startsWith('zh') ? '超级管理员' : 'Super Admin'))
 const superAdminHint = computed(() => (locale.value.startsWith('zh') ? '主管理员账号默认拥有全部权限，不可修改或删除。' : 'The primary admin always has full access and cannot be modified or deleted.'))
 const permissionSectionLabel = computed(() => (locale.value.startsWith('zh') ? '管理权限' : 'Permissions'))
-const permissionSectionHint = computed(() => (locale.value.startsWith('zh') ? '勾选此管理员可访问的后台模块。' : 'Select which admin modules this account can access.'))
+const permissionSectionHint = computed(() => (locale.value.startsWith('zh') ? '勾选此管理员可访问的后台模块，以及是否允许修改。' : 'Select which admin modules this account can access, and whether it can make changes.'))
+const moduleColumnLabel = computed(() => (locale.value.startsWith('zh') ? '模块' : 'Module'))
+const viewLabel = computed(() => (locale.value.startsWith('zh') ? '查看' : 'View'))
+const editLabel = computed(() => (locale.value.startsWith('zh') ? '编辑' : 'Edit'))
 const selectAllLabel = computed(() => (locale.value.startsWith('zh') ? '全选' : 'Select All'))
 const clearAllLabel = computed(() => (locale.value.startsWith('zh') ? '清空' : 'Clear All'))
 const editBlockedTitle = computed(() => (locale.value.startsWith('zh') ? '超级管理员不可编辑，请到个人资料页修改密码' : 'Super admin is locked; use Profile page to change password'))
@@ -293,17 +343,18 @@ const formPermissions = ref<string[]>([])
 const isEditingMainAdmin = computed(() => !!form.id && form.username === 'admin')
 
 const canEdit = (row: any) => {
-  if (!hasAdminPerm('admins')) return false
+  if (!hasAdminPerm('admins:edit')) return false
   if (row.username === 'admin') return isSuper.value
   return true
 }
 
 const canDelete = (row: any) => {
-  if (!hasAdminPerm('admins')) return false
+  if (!hasAdminPerm('admins:edit')) return false
   if (row.username === 'admin') return false
   return true
 }
 
+// Extension pages stay single-tier (unsplit) — plain toggle.
 const onPermToggle = (code: string, checked: boolean) => {
   if (checked) {
     if (!formPermissions.value.includes(code)) formPermissions.value.push(code)
@@ -313,12 +364,51 @@ const onPermToggle = (code: string, checked: boolean) => {
   }
 }
 
-const toggleAllPerms = (select: boolean) => {
-  if (select) {
-    formPermissions.value = ADMIN_PERMISSIONS.map(p => p.code)
+// A module's access may currently be expressed as a legacy bare code (e.g.
+// "orders", predating the view/edit split) rather than tiered codes — both
+// display checks and the toggle handlers below need to recognize that form.
+const hasView = (code: string) =>
+  formPermissions.value.includes(code) ||
+  formPermissions.value.includes(moduleViewCode(code)) ||
+  formPermissions.value.includes(moduleEditCode(code))
+
+const hasEdit = (code: string) =>
+  formPermissions.value.includes(code) || formPermissions.value.includes(moduleEditCode(code))
+
+// Any toggle on a module "migrates" it off the legacy bare code onto the
+// explicit tiered codes the checkboxes are actually expressing.
+const clearModuleGrant = (code: string) => {
+  formPermissions.value = formPermissions.value.filter(p => p !== code)
+}
+
+const onViewToggle = (code: string, checked: boolean) => {
+  clearModuleGrant(code)
+  const viewCode = moduleViewCode(code)
+  const editCode = moduleEditCode(code)
+  if (checked) {
+    if (!formPermissions.value.includes(viewCode)) formPermissions.value.push(viewCode)
   } else {
-    formPermissions.value = []
+    // Can't edit without view.
+    formPermissions.value = formPermissions.value.filter(p => p !== viewCode && p !== editCode)
   }
+}
+
+const onEditToggle = (code: string, checked: boolean) => {
+  clearModuleGrant(code)
+  const viewCode = moduleViewCode(code)
+  const editCode = moduleEditCode(code)
+  if (checked) {
+    if (!formPermissions.value.includes(editCode)) formPermissions.value.push(editCode)
+    // Edit implies view — keep the view checkbox visibly checked too.
+    if (!formPermissions.value.includes(viewCode)) formPermissions.value.push(viewCode)
+  } else {
+    const i = formPermissions.value.indexOf(editCode)
+    if (i >= 0) formPermissions.value.splice(i, 1)
+  }
+}
+
+const toggleAllPerms = (select: boolean) => {
+  formPermissions.value = select ? [...allTieredCodes.value] : []
 }
 
 const openModal = (user?: any) => {
@@ -330,7 +420,7 @@ const openModal = (user?: any) => {
     // was deliberately given zero permissions and must show as unchecked.
     const perms = Array.isArray(user.permissions) ? user.permissions : null
     if (perms === null || perms.includes('*')) {
-      formPermissions.value = ADMIN_PERMISSIONS.map(p => p.code)
+      formPermissions.value = [...allTieredCodes.value]
     } else {
       formPermissions.value = [...perms]
     }
@@ -344,7 +434,7 @@ const openModal = (user?: any) => {
 }
 
 const saveUser = async () => {
-  if (!hasAdminPerm('admins')) {
+  if (!hasAdminPerm('admins:edit')) {
     toast.add({ title: 'Error', description: noPermTitle.value, color: 'error' })
     return
   }
@@ -359,7 +449,7 @@ const saveUser = async () => {
     }
 
     if (!isEditingMainAdmin.value) {
-      if (formPermissions.value.length >= ADMIN_PERMISSIONS.length) {
+      if (formPermissions.value.length >= allTieredCodes.value.length) {
         payload.permissions = ['*']
       } else if (formPermissions.value.length === 0) {
         payload.permissions = []
@@ -393,7 +483,7 @@ const saveUser = async () => {
 }
 
 const deleteUser = async (id: number) => {
-  if (!hasAdminPerm('admins')) {
+  if (!hasAdminPerm('admins:edit')) {
     toast.add({ title: 'Error', description: noPermTitle.value, color: 'error' })
     return
   }

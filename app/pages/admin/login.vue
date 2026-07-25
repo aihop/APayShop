@@ -152,7 +152,9 @@ const handleLogin = async () => {
       // the 'dashboard' permission needs to land on their first allowed page.
       try {
         const res: any = await $fetch('/api/admin/session')
-        redirectTarget = firstAllowedAdminRoute(res?.admin) || '/admin/profile'
+        await fetchSettings()
+        const { extensionPermissionDefs } = useAdminExtensions()
+        redirectTarget = firstAllowedAdminRoute(res?.admin, extensionPermissionDefs.value) || '/admin/profile'
       } catch {}
     }
 

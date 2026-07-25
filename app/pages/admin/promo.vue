@@ -7,6 +7,7 @@
       </div>
       <div class="flex items-center gap-3">
         <UButton
+          v-if="hasAdminPerm('promo:edit')"
           color="neutral"
           variant="soft"
           :loading="initializingTiers"
@@ -26,6 +27,7 @@
           color="primary"
           class="bg-purple-600 hover:bg-purple-500 text-white"
           :loading="savingSettings"
+          :disabled="!hasAdminPerm('promo:edit')"
           @click="saveSettings"
         >
           {{ $t('admin.promo.saveSettings') }}
@@ -51,7 +53,7 @@
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.tiersTitle') }}</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.promo.tiersSubtitle') }}</p>
           </div>
-          <UButton color="primary" variant="soft" icon="ph:plus-bold" @click="openTierModal()">
+          <UButton v-if="hasAdminPerm('promo:edit')" color="primary" variant="soft" icon="ph:plus-bold" @click="openTierModal()">
             {{ $t('admin.promo.addTier') }}
           </UButton>
         </div>
@@ -64,7 +66,7 @@
               <span class="text-sm text-gray-500 dark:text-gray-400">${{ Number(row.original.salesThreshold || 0).toFixed(2) }}</span>
             </template>
             <template #actions-cell="{ row }">
-              <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" @click="openTierModal(row.original)" />
+              <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" @click="openTierModal(row.original)" :disabled="!hasAdminPerm('promo:edit')" />
             </template>
           </UTable>
         </div>
@@ -73,7 +75,7 @@
       <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="flex items-center justify-between mb-4 shrink-0">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.agentsTitle') }}</h2>
-          <UButton color="primary" variant="soft" icon="ph:user-plus" @click="agentModalOpen = true">
+          <UButton v-if="hasAdminPerm('promo:edit')" color="primary" variant="soft" icon="ph:user-plus" @click="agentModalOpen = true">
             {{ $t('admin.promo.addAgent') }}
           </UButton>
         </div>
@@ -118,8 +120,8 @@
             </template>
             <template #actions-cell="{ row }">
               <div class="flex items-center gap-1">
-                <UButton color="neutral" variant="ghost" icon="ph:arrows-clockwise" @click="openRelationModal(row.original)" />
-                <UButton color="error" variant="ghost" icon="ph:trash" @click="openRelationDeleteModal(row.original)" />
+                <UButton color="neutral" variant="ghost" icon="ph:arrows-clockwise" @click="openRelationModal(row.original)" :disabled="!hasAdminPerm('promo:edit')" />
+                <UButton color="error" variant="ghost" icon="ph:trash" @click="openRelationDeleteModal(row.original)" :disabled="!hasAdminPerm('promo:edit')" />
               </div>
             </template>
           </UTable>
@@ -244,7 +246,7 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <UButton color="neutral" variant="ghost" @click="agentModalOpen = false">{{ $t('admin.common.cancel') }}</UButton>
-            <UButton color="primary" :loading="savingAgent" @click="saveAgent">{{ $t('admin.common.save') }}</UButton>
+            <UButton color="primary" :loading="savingAgent" :disabled="!hasAdminPerm('promo:edit')" @click="saveAgent">{{ $t('admin.common.save') }}</UButton>
           </div>
         </div>
       </template>
@@ -262,7 +264,7 @@
           </UFormField>
           <div class="flex justify-end gap-2 pt-2">
             <UButton color="neutral" variant="ghost" @click="relationModalOpen = false">{{ $t('admin.common.cancel') }}</UButton>
-            <UButton color="primary" :loading="savingRelation" @click="saveRelation">{{ $t('admin.common.save') }}</UButton>
+            <UButton color="primary" :loading="savingRelation" :disabled="!hasAdminPerm('promo:edit')" @click="saveRelation">{{ $t('admin.common.save') }}</UButton>
           </div>
         </div>
       </template>
@@ -285,7 +287,7 @@
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <UButton color="neutral" variant="ghost" @click="deleteRelationModalOpen = false">{{ $t('admin.common.cancel') }}</UButton>
-            <UButton color="error" :loading="deletingRelation" @click="deleteRelation">{{ $t('admin.common.delete') }}</UButton>
+            <UButton color="error" :loading="deletingRelation" :disabled="!hasAdminPerm('promo:edit')" @click="deleteRelation">{{ $t('admin.common.delete') }}</UButton>
           </div>
         </div>
       </template>
@@ -342,7 +344,7 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <UButton color="neutral" variant="ghost" @click="tierModalOpen = false">{{ $t('admin.common.cancel') }}</UButton>
-            <UButton color="primary" :loading="savingTier" @click="saveTier">{{ $t('admin.common.save') }}</UButton>
+            <UButton color="primary" :loading="savingTier" :disabled="!hasAdminPerm('promo:edit')" @click="saveTier">{{ $t('admin.common.save') }}</UButton>
           </div>
         </div>
       </template>
@@ -358,6 +360,7 @@ definePageMeta({ title: 'Promo Management', layout: 'admin' })
 const { t } = useI18n()
 const toast = useToast()
 const { formatDateTime } = useFormatTime()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const { data: overviewData, pending: overviewPending, refresh: refreshOverview } = await useFetch<any>('/api/admin/promo/overview')
 const { data: tiersData, pending: tiersPending, refresh: refreshTiers } = await useFetch<any[]>('/api/admin/promo/tiers')

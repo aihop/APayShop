@@ -2,6 +2,7 @@ import { products } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { setAuditMeta } from '../../../utils/auditLog'
 
 const normalizeImageUrls = (value: unknown) => {
   if (value === null || value === undefined || value === '') {
@@ -66,11 +67,33 @@ export default defineEventHandler(async (event) => {
       }
     })
     
-    return await db.update(products).set(updateData).where(eq(products.id, parseInt(id))).returning()
+    const [before] = await db.select({ name: products.name, price: products.price, isActive: products.isActive })
+      .from(products).where(eq(products.id, parseInt(id))).limit(1)
+
+    const updated = await db.update(products).set(updateData).where(eq(products.id, parseInt(id))).returning()
+
+    setAuditMeta(event, {
+      summary: `Updated product "${before?.name ?? id}"`,
+      details: {
+        before: before ?? null,
+        after: { name: updateData.name, price: updateData.price, isActive: updateData.isActive },
+      },
+    })
+
+    return updated
   }
-  
+
   if (event.method === "DELETE") {
+    const [before] = await db.select({ name: products.name, price: products.price })
+      .from(products).where(eq(products.id, parseInt(id))).limit(1)
+
     await db.delete(products).where(eq(products.id, parseInt(id)))
+
+    setAuditMeta(event, {
+      summary: `Deleted product "${before?.name ?? id}"`,
+      details: { before: before ?? null },
+    })
+
     return { success: true }
   }
 })

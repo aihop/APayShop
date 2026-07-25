@@ -89,6 +89,7 @@
                     variant="outline"
                     icon="ph:upload-simple"
                     :loading="isUploading.wechat_qr"
+                    :disabled="!hasAdminPerm('settings:edit')"
                     @click="() => wechatQrInputRef?.click()"
                   />
                 </div>
@@ -140,6 +141,7 @@
                     variant="outline"
                     icon="ph:upload-simple"
                     :loading="isUploading.whatsapp_qr"
+                    :disabled="!hasAdminPerm('settings:edit')"
                     @click="() => whatsappQrInputRef?.click()"
                   />
                 </div>
@@ -191,6 +193,7 @@
                     variant="outline"
                     icon="ph:upload-simple"
                     :loading="isUploading.telegram_qr"
+                    :disabled="!hasAdminPerm('settings:edit')"
                     @click="() => telegramQrInputRef?.click()"
                   />
                 </div>
@@ -212,6 +215,7 @@ const props = defineProps<{
 }>()
 
 const toast = useToast()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const wechatQrInputRef = ref<HTMLInputElement | null>(null)
 const whatsappQrInputRef = ref<HTMLInputElement | null>(null)

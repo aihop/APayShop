@@ -6,6 +6,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.posts.subtitle') }}</p>
       </div>
       <UButton
+        v-if="hasAdminPerm('posts:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -105,6 +106,7 @@
                 icon="ph:pencil-simple"
                 size="sm"
                 @click="openModal(row.original)"
+                :disabled="!hasAdminPerm('posts:edit')"
               />
               <UButton
                 color="red"
@@ -112,6 +114,7 @@
                 icon="ph:trash"
                 size="sm"
                 @click="deletePost(row.original.id)"
+                :disabled="!hasAdminPerm('posts:edit')"
               />
             </div>
           </template>
@@ -337,6 +340,7 @@
             variant="solid"
             @click="onSubmit"
             :loading="isSaving"
+            :disabled="!hasAdminPerm('posts:edit')"
           >
             {{ editingId ? 'Save' : 'Create' }}
           </UButton>
@@ -356,6 +360,7 @@ const { formatDate } = useFormatTime()
 const { confirm } = useConfirm()
 const { settings } = useSettings()
 const { localePath } = useLocaleRouter()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 // Language and Tabs Configuration
 const supportedLocales = computed(() => {

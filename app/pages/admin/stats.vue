@@ -267,7 +267,7 @@
         color="error"
         variant="outline"
         :loading="isCleaningUp"
-        :disabled="isCleaningUp"
+        :disabled="isCleaningUp || !hasAdminPerm('stats:edit')"
         @click="confirmCleanup"
       >
         {{ isCleaningUp ? t('admin.dataCleanup.cleaningUp') : t('admin.dataCleanup.cleanupBtn') }}
@@ -782,6 +782,7 @@ const cleanupDays = ref(90)
 const isCleaningUp = ref(false)
 
 const { confirm } = useConfirm()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 async function confirmCleanup() {
   const confirmed = await confirm({

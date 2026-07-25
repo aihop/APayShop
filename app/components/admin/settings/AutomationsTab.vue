@@ -6,6 +6,7 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">配置某个事件发生后自动执行的动作,例如「用户注册成功 → 发放积分奖励」。</p>
       </div>
       <UButton
+        v-if="hasAdminPerm('settings:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white shrink-0"
         icon="ph:plus-bold"
@@ -42,11 +43,11 @@
             <td class="py-3 px-5 text-gray-700 dark:text-gray-200">{{ actionLabel(rule.action) }}</td>
             <td class="py-3 px-5 text-gray-500 dark:text-gray-400">{{ configSummary(rule) }}</td>
             <td class="py-3 px-5">
-              <USwitch :model-value="rule.enabled" @update:model-value="(v) => toggleEnabled(rule, v)" />
+              <USwitch :model-value="rule.enabled" :disabled="!hasAdminPerm('settings:edit')" @update:model-value="(v) => toggleEnabled(rule, v)" />
             </td>
             <td class="py-3 px-5 text-right">
-              <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" size="sm" @click="openEdit(rule)" />
-              <UButton color="error" variant="ghost" icon="ph:trash" size="sm" @click="removeRule(rule)" />
+              <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" size="sm" @click="openEdit(rule)" :disabled="!hasAdminPerm('settings:edit')" />
+              <UButton color="error" variant="ghost" icon="ph:trash" size="sm" @click="removeRule(rule)" :disabled="!hasAdminPerm('settings:edit')" />
             </td>
           </tr>
         </tbody>
@@ -95,7 +96,7 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <UButton color="neutral" variant="ghost" @click="modalOpen = false">取消</UButton>
-            <UButton color="primary" :loading="saving" @click="save">保存</UButton>
+            <UButton color="primary" :loading="saving" :disabled="!hasAdminPerm('settings:edit')" @click="save">保存</UButton>
           </div>
         </div>
       </template>
@@ -106,6 +107,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { useFetch } from '#imports'
+
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const eventOptions = [
   { label: '用户注册成功', value: 'user.registered' },

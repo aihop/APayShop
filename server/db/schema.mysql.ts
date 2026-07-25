@@ -1,4 +1,4 @@
-import { mysqlTable, text, int, real, uniqueIndex, boolean, timestamp, json, bigint, varchar } from 'drizzle-orm/mysql-core'
+import { mysqlTable, text, int, real, index, uniqueIndex, boolean, timestamp, json, bigint, varchar } from 'drizzle-orm/mysql-core'
 import { sql } from 'drizzle-orm'
 
 // ==========================================
@@ -298,6 +298,33 @@ export const accessLogs = mysqlTable('access_logs', {
   userId: int('user_id').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
+
+// Audit trail: who changed what in the admin panel. Deliberately NOT merged
+// into `logs` — that table is free-text and has a user-facing "clear all"
+// button, which would let anyone erase their own tracks.
+// The indexed string columns are varchar rather than text: MySQL cannot index
+// a TEXT column without a prefix length.
+export const operationLogs = mysqlTable('operation_logs', {
+  id: int('id').autoincrement().primaryKey(),
+  actorType: varchar('actor_type', { length: 32 }).notNull().default('admin'), // admin | user | system
+  actorId: int('actor_id'), // no FK: the record must outlive a deleted actor
+  actorName: varchar('actor_name', { length: 191 }), // snapshot — still readable after a rename/delete
+  action: varchar('action', { length: 64 }).notNull(), // create | update | delete | login | logout | ...
+  resource: varchar('resource', { length: 64 }).notNull(), // products | orders | admins | settings | ...
+  resourceId: varchar('resource_id', { length: 191 }), // varchar, not int: orders.id is a string
+  summary: text('summary'),
+  details: text('details'), // JSON string
+  path: text('path').notNull(),
+  method: varchar('method', { length: 16 }).notNull(),
+  statusCode: int('status_code'), // 401/403 included — denied attempts matter
+  ip: varchar('ip', { length: 64 }),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').notNull().defaultNow()
+}, (table) => ({
+  createdAtIdx: index('operation_logs_created_at_idx').on(table.createdAt),
+  actorIdx: index('operation_logs_actor_idx').on(table.actorId, table.createdAt),
+  resourceIdx: index('operation_logs_resource_idx').on(table.resource, table.resourceId)
+}))
 
 export const posts = mysqlTable('posts', {
   id: int('id').autoincrement().primaryKey(),

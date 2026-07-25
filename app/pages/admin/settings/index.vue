@@ -18,6 +18,7 @@
           type="button"
           @click="saveSettings"
           :loading="isSaving"
+          :disabled="!hasAdminPerm('settings:edit')"
         >
           <template #leading>
             <UIcon
@@ -83,12 +84,13 @@
                   size="lg"
                   class="rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 justify-center"
                   :loading="isUploadingFavicon"
+                  :disabled="!hasAdminPerm('settings:edit')"
                   @click="triggerFaviconPick"
                 >
                   {{ $t('admin.settings.general.upload_favicon') }}
                 </UButton>
                 <UButton
-                  v-if="dynamicForm.site_favicon"
+                  v-if="dynamicForm.site_favicon && hasAdminPerm('settings:edit')"
                   type="button"
                   size="lg"
                   variant="outline"
@@ -154,6 +156,7 @@
               class="bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] rounded-full h-14 px-6"
               type="submit"
               :loading="isSaving"
+              :disabled="!hasAdminPerm('settings:edit')"
             >
               <template #leading>
                 <UIcon
@@ -204,6 +207,7 @@ definePageMeta({ title: 'System Settings', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const route = useRoute()
 const activeTab = ref(isSettingsTabId(route.query.tab) ? route.query.tab : 'general')

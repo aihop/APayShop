@@ -841,6 +841,69 @@
         "refresh": "Refresh"
       }
     },
+    "operationLogs": {
+      "page": {
+        "title": "Operation Logs",
+        "subtitle": "Admin audit trail: who changed what, and when."
+      },
+      "table": {
+        "actor": "Actor",
+        "action": "Action",
+        "resource": "Resource",
+        "target": "Target",
+        "status": "Status",
+        "ip": "IP",
+        "time": "Time",
+        "actions": "Details"
+      },
+      "filter": {
+        "search": "Search actor, target or path...",
+        "allActors": "All Actors",
+        "allActions": "All Actions",
+        "allResources": "All Resources",
+        "refresh": "Refresh",
+        "cleanup": "Prune Old"
+      },
+      "actor": {
+        "admin": "Admin",
+        "user": "User",
+        "system": "System",
+        "unknown": "Unknown"
+      },
+      "action": {
+        "create": "Create",
+        "update": "Update",
+        "delete": "Delete",
+        "login": "Login",
+        "login.failed": "Login Failed",
+        "logout": "Logout",
+        "setup": "Setup",
+        "cleanup": "Cleanup",
+        "clear": "Clear",
+        "reorder": "Reorder"
+      },
+      "detail": {
+        "title": "Operation Detail",
+        "summary": "Summary",
+        "actor": "Actor",
+        "request": "Request",
+        "payload": "Changes",
+        "ip": "IP",
+        "userAgent": "User Agent",
+        "time": "Time",
+        "noDetails": "No details recorded"
+      },
+      "cleanup": {
+        "title": "Prune Operation Logs",
+        "desc": "Deletes records older than the retention window (minimum 30 days). There is deliberately no \"clear all\".",
+        "keepDays": "Keep days",
+        "confirmTitle": "Prune Operation Logs",
+        "confirmMessage": "Delete operation logs older than {days} days? This cannot be undone.",
+        "success": "Pruned {count} record(s)",
+        "error": "Prune failed"
+      },
+      "empty": "No operations recorded yet"
+    },
     "payments": {
       "page": {
         "title": "Payment Methods",

@@ -100,11 +100,18 @@ export const useAdminExtensions = () => {
     return themeBuild.themeAdminPageModules[page.componentPath] || null
   }
 
+  // One permission per extension page, namespaced to the active theme so a
+  // stored code stays inert (matches nothing) if the theme is later switched.
+  const extensionPermissionDefs = computed(() =>
+    buildThemeExtensionPermissionDefs(activeTheme.value, extensionPages.value)
+  )
+
   return {
     activeTheme,
     manifest,
     themeSectionTitle,
     extensionPages,
+    extensionPermissionDefs,
     findExtensionPage,
     resolveExtensionComponent,
   }

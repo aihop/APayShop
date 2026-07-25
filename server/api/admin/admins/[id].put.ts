@@ -3,6 +3,7 @@ import { eq, ne, and } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { isSuperAdmin, normalizePermissions } from '../../../utils/adminPermissions'
+import { setAuditMeta } from '../../../utils/auditLog'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -79,7 +80,19 @@ export default defineEventHandler(async (event) => {
     await db.update(admins)
       .set(updateData)
       .where(eq(admins.id, Number(id)))
-      
+
+    setAuditMeta(event, {
+      summary: `Updated admin "${current.username}"`,
+      details: {
+        before: { username: current.username, permissions: (current as any).permissions ?? null },
+        after: {
+          username,
+          permissions: 'permissions' in updateData ? updateData.permissions : (current as any).permissions ?? null,
+        },
+        passwordChanged: Boolean(password),
+      },
+    })
+
     return { code: 0, message: messages.updated }
   } catch (error: any) {
     throw createError({

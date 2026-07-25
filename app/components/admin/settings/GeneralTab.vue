@@ -64,6 +64,7 @@
             variant="outline"
             icon="ph:upload-simple"
             :loading="isUploadingLogo"
+            :disabled="!hasAdminPerm('settings:edit')"
             @click="() => logoInputRef?.click()"
           >
             {{ $t('admin.settings.general.upload') }}
@@ -147,6 +148,7 @@ const props = defineProps<{
 }>()
 
 const toast = useToast()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const logoInputRef = ref<HTMLInputElement | null>(null)
 const isUploadingLogo = ref(false)
 

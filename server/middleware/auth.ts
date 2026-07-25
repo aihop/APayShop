@@ -8,6 +8,8 @@ import {
   ADMIN_PUBLIC_PATHS,
   isSuperAdmin,
   hasAllPermissions,
+  moduleViewCode,
+  moduleEditCode,
 } from '../utils/adminPermissions'
 
 async function isMultiDeviceLoginDisabled(): Promise<boolean> {
@@ -113,6 +115,12 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // 先挂到 context 再做权限校验：越权被拒(403)时也要能追溯到是谁在尝试，
+  // 审计插件在 afterResponse 里正是从 context.admin 取操作人的。
+  event.context.user = session.user
+  event.context.admin = session.admin
+  event.context.authenticatedFromToken = authenticatedFromToken
+
   // 6. 后台路径权限校验
   if (isAdminPath && !isAuthPath) {
     if (!session.admin) {
@@ -123,10 +131,16 @@ export default defineEventHandler(async (event) => {
     }
     const required = matchPermissionForApiPath(pathname)
     if (required) {
-      if (!adminHasPermission(session.admin, required)) {
+      // GET/HEAD only need the "view" tier; any mutating method needs "edit".
+      // adminHasPermission() also honors a legacy bare grant (e.g. "orders",
+      // predating this split) as full access to both tiers.
+      const method = (event.method || 'GET').toUpperCase()
+      const isMutating = method !== 'GET' && method !== 'HEAD'
+      const requiredTiered = isMutating ? moduleEditCode(required) : moduleViewCode(required)
+      if (!adminHasPermission(session.admin, requiredTiered)) {
         throw createError({
           statusCode: 403,
-          statusMessage: `Forbidden: requires permission "${required}"`
+          statusMessage: `Forbidden: requires permission "${requiredTiered}"`
         })
       }
     } else if (
@@ -141,8 +155,4 @@ export default defineEventHandler(async (event) => {
       })
     }
   }
-
-  event.context.user = session.user
-  event.context.admin = session.admin
-  event.context.authenticatedFromToken = authenticatedFromToken
 })

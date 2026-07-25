@@ -283,14 +283,14 @@
               <USelect
                 v-model="selectedOrder.status"
                 class="min-w-[150px]"
-                :items="['none', 'processing', 'active', 'delivered', 'expired', 'failed', 'completed']"
+                :items="orderStatusOptions"
               />
             </UFormField>
             <UFormField :label="$t('admin.orders.modal.update_payment')">
               <USelect
                 v-model="selectedOrder.payStatus"
                 class="min-w-[150px]"
-                :items="['pending', 'paid', 'failed', 'refunded']"
+                :items="payStatusOptions"
               />
             </UFormField>
             <UFormField :label="$t('admin.orders.modal.delivery_info')">
@@ -301,6 +301,7 @@
               />
             </UFormField>
             <UButton
+              v-if="hasAdminPerm('orders:edit')"
               color="primary"
               :loading="isSaving"
               @click="saveOrder"
@@ -323,6 +324,7 @@ definePageMeta({ title: 'Orders Management', layout: 'admin' })
 
 const toast = useToast()
 const requestUrl = useRequestURL()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.orders.id') },
@@ -366,6 +368,12 @@ const frontendOrigin = computed(() => requestUrl.origin.replace(/\/$/, ''))
 const isModalOpen = ref(false)
 const selectedOrder = ref<any>(null)
 const isSaving = ref(false)
+
+const orderStatusValues = ['none', 'processing', 'active', 'delivered', 'expired', 'failed', 'completed'] as const
+const orderStatusOptions = computed(() => orderStatusValues.map(value => ({ value, label: t(`admin.orders.status_${value}`) })))
+
+const payStatusValues = ['pending', 'paid', 'failed', 'refunded'] as const
+const payStatusOptions = computed(() => payStatusValues.map(value => ({ value, label: t(`admin.orders.pay_status_${value}`) })))
 
 const formatMetaData = (metaData: any) => {
   if (!metaData) return ''

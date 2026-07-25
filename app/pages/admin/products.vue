@@ -7,6 +7,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.products.subtitle') }}</p>
       </div>
       <UButton
+        v-if="hasAdminPerm('products:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -146,12 +147,14 @@
                 variant="ghost"
                 icon="ph:pencil-simple"
                 @click="openModal(row.original)"
+                :disabled="!hasAdminPerm('products:edit')"
               />
               <UButton
                 color="error"
                 variant="ghost"
                 icon="ph:trash"
                 @click="deleteProduct(Number(row.original.id))"
+                :disabled="!hasAdminPerm('products:edit')"
               />
             </div>
           </template>
@@ -192,6 +195,7 @@ definePageMeta({ title: 'Products Management', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const columns = computed(() => [
   { accessorKey: 'drag', header: '' },

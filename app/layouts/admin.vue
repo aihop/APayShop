@@ -33,4 +33,16 @@ const sidebarCollapsed = useCookie<boolean>('admin_sidebar_collapsed', {
   default: () => false,
   maxAge: 31536000,
 })
+
+// 每个页面组件按钮级权限判断都会各自调用 useAdminPermissions() 的 hasPerm(),
+// 底层 admin 状态是 useState 共享的单例——这里在布局层统一触发一次加载
+// (loadAdmin 内部幂等),避免每个页面都要重复 onMounted + loadAdmin 样板代码。
+// 用 useAsyncData 而非裸 onMounted,让 SSR 首屏就能拿到正确的按钮可见性,
+// 不会先渲染出"全部隐藏"再水合后才显示。
+const { loadAdmin } = useAdminPermissions()
+// Explicit await (not fire-and-forget) so this is a real async setup()
+// Vue/Nuxt must wait on via Suspense — without it, nothing guarantees the
+// admin state is loaded before the page component's template (and its
+// hasAdminPerm() button checks) renders on the server.
+await useAsyncData('admin-permissions-bootstrap', () => loadAdmin())
 </script>

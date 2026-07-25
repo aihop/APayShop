@@ -2,6 +2,7 @@ import { admins } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { setAuditMeta } from '../../../utils/auditLog'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -38,7 +39,12 @@ export default defineEventHandler(async (event) => {
     }
     
     await db.delete(admins).where(eq(admins.id, Number(id)))
-    
+
+    setAuditMeta(event, {
+      summary: `Deleted admin "${user[0].username}"`,
+      details: { username: user[0].username, permissions: (user[0] as any).permissions ?? null },
+    })
+
     return { code: 0, message: messages.deleted }
   } catch (error: any) {
     throw createError({

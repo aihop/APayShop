@@ -2,6 +2,7 @@ import { admins } from "../../db/schema"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { checkIpRateLimit, resolveClientIp } from '../../utils/rateLimit'
+import { recordOperationFromEvent } from '../../utils/auditLog'
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{3,32}$/
 const MIN_PASSWORD_LEN = 10
@@ -111,6 +112,17 @@ export default defineEventHandler(async (event) => {
     }
     throw createError({ statusCode: 500, message: locale === 'zh' ? '初始化失败，请稍后重试' : 'Setup failed, please retry' })
   }
+
+  // Recorded as 'system': the very first admin is created before any session
+  // exists, so there is no acting identity to attribute this to.
+  await recordOperationFromEvent(event, {
+    actorType: 'system',
+    actorName: trimmedUsername,
+    action: 'setup',
+    resource: 'admins',
+    summary: `Initialized first admin "${trimmedUsername}"`,
+    statusCode: 200,
+  })
 
   return { success: true, message: locale === 'zh' ? '管理员初始化完成' : 'Admin initialized' }
 })

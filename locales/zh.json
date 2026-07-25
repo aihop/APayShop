@@ -840,6 +840,69 @@
         "refresh": "刷新"
       }
     },
+    "operationLogs": {
+      "page": {
+        "title": "操作日志",
+        "subtitle": "后台变更审计记录：谁、在什么时候、改了什么。"
+      },
+      "table": {
+        "actor": "操作人",
+        "action": "动作",
+        "resource": "对象",
+        "target": "目标",
+        "status": "状态",
+        "ip": "IP",
+        "time": "时间",
+        "actions": "详情"
+      },
+      "filter": {
+        "search": "搜索操作人、目标或路径...",
+        "allActors": "全部主体",
+        "allActions": "全部动作",
+        "allResources": "全部对象",
+        "refresh": "刷新",
+        "cleanup": "清理旧记录"
+      },
+      "actor": {
+        "admin": "管理员",
+        "user": "用户",
+        "system": "系统",
+        "unknown": "未知"
+      },
+      "action": {
+        "create": "新增",
+        "update": "修改",
+        "delete": "删除",
+        "login": "登录",
+        "login.failed": "登录失败",
+        "logout": "登出",
+        "setup": "初始化",
+        "cleanup": "清理",
+        "clear": "清空",
+        "reorder": "排序"
+      },
+      "detail": {
+        "title": "操作详情",
+        "summary": "摘要",
+        "actor": "操作人",
+        "request": "请求",
+        "payload": "变更内容",
+        "ip": "IP",
+        "userAgent": "客户端",
+        "time": "时间",
+        "noDetails": "无详细内容"
+      },
+      "cleanup": {
+        "title": "清理操作日志",
+        "desc": "仅删除早于保留天数的记录（最少保留 30 天）。审计日志不提供一键清空。",
+        "keepDays": "保留天数",
+        "confirmTitle": "清理操作日志",
+        "confirmMessage": "确定删除 {days} 天前的操作日志吗？此操作不可撤销。",
+        "success": "已清理 {count} 条记录",
+        "error": "清理失败"
+      },
+      "empty": "暂无操作记录"
+    },
     "payments": {
       "page": {
         "title": "支付方式",

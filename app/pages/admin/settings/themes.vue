@@ -65,7 +65,7 @@
               class="transition-all duration-300"
               @click="activateTheme(theme.id)"
               :loading="isActivating === theme.id"
-              :disabled="!!isActivating && isActivating !== theme.id"
+              :disabled="(!!isActivating && isActivating !== theme.id) || !hasAdminPerm('settings:edit')"
             >
               {{ isActivating === theme.id ? $t('admin.themes.card.activating') : $t('admin.themes.card.activate') }}
             </UButton>
@@ -101,6 +101,7 @@ const { t, te, tm } = useI18n()
 const { settings, getSetting, fetchSettings } = useSettings()
 
 const toast = useToast()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const isActivating = ref('')
 

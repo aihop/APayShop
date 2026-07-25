@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS `operation_logs` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`actor_type` varchar(32) NOT NULL DEFAULT 'admin',
+	`actor_id` int,
+	`actor_name` varchar(191),
+	`action` varchar(64) NOT NULL,
+	`resource` varchar(64) NOT NULL,
+	`resource_id` varchar(191),
+	`summary` text,
+	`details` text,
+	`path` text NOT NULL,
+	`method` varchar(16) NOT NULL,
+	`status_code` int,
+	`ip` varchar(64),
+	`user_agent` text,
+	`created_at` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `operation_logs_id` PRIMARY KEY(`id`),
+	INDEX `operation_logs_created_at_idx` (`created_at`),
+	INDEX `operation_logs_actor_idx` (`actor_id`,`created_at`),
+	INDEX `operation_logs_resource_idx` (`resource`,`resource_id`)
+);

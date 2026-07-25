@@ -6,6 +6,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.cards.subtitle') }}</p>
       </div>
       <UButton
+        v-if="hasAdminPerm('cards:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -57,7 +58,7 @@
                 variant="ghost"
                 icon="ph:trash"
                 size="sm"
-                :disabled="row.original.isUsed"
+                :disabled="row.original.isUsed || !hasAdminPerm('cards:edit')"
                 @click="deleteCard(row.original.id)"
               />
             </div>
@@ -153,7 +154,7 @@
                 color="primary"
                 class="bg-purple-600 hover:bg-purple-500"
                 :loading="isSaving"
-                :disabled="!state.productId || !state.cardData.trim()"
+                :disabled="!state.productId || !state.cardData.trim() || !hasAdminPerm('cards:edit')"
               >
                 {{ $t('admin.cards.import_button', { count: parsedCardCount }) }}
               </UButton>
@@ -174,6 +175,7 @@ const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.cards.col_id') },

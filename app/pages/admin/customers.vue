@@ -6,7 +6,7 @@
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.customers.subtitle') }}</p>
       </div>
       <UButton
-        v-if="activeTab === 'users'"
+        v-if="activeTab === 'users' && hasAdminPerm('customers:edit')"
         color="primary"
         class="bg-purple-600 hover:bg-purple-500 text-white"
         icon="ph:plus-bold"
@@ -111,7 +111,7 @@
                 variant="ghost"
                 icon="ph:pencil-simple"
                 @click="openModal(row.original)"
-                :disabled="row.original.username === 'admin'"
+                :disabled="row.original.username === 'admin' || !hasAdminPerm('customers:edit')"
                 :title="row.original.username === 'admin' ? 'Use Profile page to edit admin' : ''"
               />
               <UButton
@@ -119,7 +119,7 @@
                 variant="ghost"
                 icon="ph:trash"
                 @click="deleteUser(Number(row.original.id))"
-                :disabled="row.original.username === 'admin'"
+                :disabled="row.original.username === 'admin' || !hasAdminPerm('customers:edit')"
                 :title="row.original.username === 'admin' ? 'Cannot delete main admin' : ''"
               />
             </div>
@@ -192,6 +192,7 @@
                 color="primary"
                 class="bg-purple-600 hover:bg-purple-500 text-white"
                 :loading="isSaving"
+                :disabled="!hasAdminPerm('customers:edit')"
               >{{ $t('admin.common.save') }}</UButton>
             </div>
           </form>
@@ -210,6 +211,7 @@ const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
+const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const activeTab = ref('customers')
 

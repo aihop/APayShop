@@ -69,7 +69,7 @@ export const useAdminNav = () => {
     titleKey: 'admin.nav.store',
     items: [
       { to: '/admin', icon: 'ph:squares-four', labelKey: 'admin.nav.dashboard', exact: true, permission: 'dashboard' },
-      { to: '/admin/stats', icon: 'ph:chart-bar', labelKey: 'admin.nav.stats', permission: 'dashboard' },
+      { to: '/admin/stats', icon: 'ph:chart-bar', labelKey: 'admin.nav.stats', permission: 'stats' },
       { to: '/admin/orders', icon: 'ph:shopping-cart', labelKey: 'admin.nav.orders', permission: 'orders' },
       { to: '/admin/products', icon: 'ph:package', labelKey: 'admin.nav.products', permission: 'products' },
       { to: '/admin/customers', icon: 'ph:users', labelKey: 'admin.nav.customers', permission: 'customers' },
@@ -131,6 +131,7 @@ export const useAdminNav = () => {
     resolveSectionTitle,
     adminNavAdmin: admin,
     adminNavLoaded: loadedOnce,
+    hasPermissionFor,
   }
 }
 

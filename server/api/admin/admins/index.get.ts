@@ -26,11 +26,20 @@ export default defineEventHandler(async (event) => {
     .limit(pageSize)
     .offset(offset)
 
+    const moduleCodeSet = new Set(ADMIN_PERMISSIONS.map(p => p.code))
+
     const data = (rawResult as any[]).map((r: any) => {
       const perms = Array.isArray(r.permissions) ? r.permissions : null
+      // Count distinct MODULES with any access, not raw grants — a module
+      // granted both ":view" and ":edit" is still one module, not two.
+      const grantedModules = new Set(
+        (perms || [])
+          .map((p: string) => p.split(':')[0])
+          .filter((base: string) => moduleCodeSet.has(base))
+      )
       const summary = hasAllPermissions(perms)
         ? { all: true, count: ADMIN_PERMISSIONS.length }
-        : { all: false, count: (perms?.length) || 0 }
+        : { all: false, count: grantedModules.size }
       return {
         id: r.id,
         username: r.username,

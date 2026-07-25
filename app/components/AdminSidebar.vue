@@ -82,8 +82,8 @@ import { computed, onMounted } from 'vue'
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 
 const route = useRoute()
-const { extensionPages, themeSectionTitle } = useAdminExtensions()
-const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes } = useAdminNav()
+const { activeTheme, extensionPages, themeSectionTitle } = useAdminExtensions()
+const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes, hasPermissionFor } = useAdminNav()
 const { adminSectionTitleClass } = useAdminNavStyle()
 
 interface NavEntry {
@@ -105,11 +105,14 @@ const sections = computed(() => {
     },
   ]
 
-  if (extensionPages.value.length) {
+  const allowedExtensionPages = extensionPages.value.filter(page =>
+    hasPermissionFor(themeExtensionPermissionCode(activeTheme.value, page.key))
+  )
+  if (allowedExtensionPages.length) {
     list.push({
       key: 'extensions',
       title: themeSectionTitle.value,
-      entries: extensionPages.value.map(page => ({ to: page.route, icon: page.icon, label: page.title, exact: true })),
+      entries: allowedExtensionPages.map(page => ({ to: page.route, icon: page.icon, label: page.title, exact: true })),
     })
   }
 

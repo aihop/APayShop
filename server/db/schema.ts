@@ -56,6 +56,7 @@ export const {
   visitorProfiles,
   visitorEvents,
   accessLogs,
+  operationLogs,
   posts,
   subscriptions,
   notifications,
