@@ -61,6 +61,7 @@ export const {
   posts,
   subscriptions,
   notifications,
+  balanceLogs,
   promoMembers,
   promoInviteRelations,
   promoAgentRelations,

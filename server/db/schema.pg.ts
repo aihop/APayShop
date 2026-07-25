@@ -369,6 +369,34 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 
+
+// 余额变更流水（充值到账、后台直充/赠送、消费扣减…）。
+// 与 users.CashBalance / GrantBalance 同口径：金额放大 10^8 存储。
+//
+// 与 ainode 同名表的两点差异：
+//  1. 去掉 transaction_id 外键——apay 没有 transactions 表，溯源改用 sourceType/sourceId
+//     （如 order/<orderId>），语义更直接。
+//  2. 增加 eventId 唯一键做幂等。支付回调会重试、用户也可能重复触发，没有这道锁就会重复入账。
+//     入账一律先抢占 eventId，抢不到即视为已处理（见 server/utils/balance.ts）。
+export const balanceLogs = pgTable('balance_logs', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  balanceType: text('balance_type').notNull(), // cash | grant
+  actionType: text('action_type').notNull().default('topup'), // topup | admin_recharge | order_payment | refund | adjust
+  /** 本次变更金额，放大 10^8；正=入账，负=出账 */
+  amountCents: bigint('amount_cents', { mode: 'bigint' }).notNull(),
+  beforeBalanceCents: bigint('before_balance_cents', { mode: 'bigint' }).notNull(),
+  afterBalanceCents: bigint('after_balance_cents', { mode: 'bigint' }).notNull(),
+  /** 幂等键：同一 eventId 只入账一次 */
+  eventId: text('event_id').notNull().unique(),
+  sourceType: text('source_type').notNull().default('system'), // order | admin | system
+  sourceId: text('source_id'),
+  operatorAdminId: integer('operator_admin_id'),
+  operatorName: text('operator_name').notNull().default(''),
+  remark: text('remark').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+})
+
 export const promoAgentTiers = pgTable('promo_agent_tiers', {
   id: serial('id').primaryKey(),
   code: text('code').notNull().unique(),

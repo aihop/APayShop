@@ -371,6 +371,32 @@ export const notifications = mysqlTable('notifications', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
+
+// 余额变更流水（充值到账、后台直充/赠送、消费扣减…）。
+// 与 users.CashBalance / GrantBalance 同口径：金额放大 10^8 存储。
+//
+// 与 ainode 同名表的两点差异：
+//  1. 去掉 transaction_id 外键——apay 没有 transactions 表，溯源改用 sourceType/sourceId
+//     （如 order/<orderId>），语义更直接。
+//  2. 增加 eventId 唯一键做幂等。支付回调会重试、用户也可能重复触发，没有这道锁就会重复入账。
+//     入账一律先抢占 eventId，抢不到即视为已处理（见 server/utils/balance.ts）。
+export const balanceLogs = mysqlTable('balance_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  userId: int('user_id').notNull().references(() => users.id),
+  balanceType: varchar('balance_type', { length: 20 }).notNull(),
+  actionType: varchar('action_type', { length: 50 }).notNull().default('topup'),
+  amountCents: bigint('amount_cents', { mode: 'bigint' }).notNull(),
+  beforeBalanceCents: bigint('before_balance_cents', { mode: 'bigint' }).notNull(),
+  afterBalanceCents: bigint('after_balance_cents', { mode: 'bigint' }).notNull(),
+  eventId: varchar('event_id', { length: 191 }).notNull().unique(),
+  sourceType: varchar('source_type', { length: 32 }).notNull().default('system'),
+  sourceId: varchar('source_id', { length: 191 }),
+  operatorAdminId: int('operator_admin_id'),
+  operatorName: varchar('operator_name', { length: 100 }).notNull().default(''),
+  remark: text('remark'),
+  createdAt: timestamp('created_at').notNull().defaultNow()
+})
+
 export const promoAgentTiers = mysqlTable('promo_agent_tiers', {
   id: int('id').autoincrement().primaryKey(),
   code: varchar('code', { length: 191 }).notNull().unique(),

@@ -5,6 +5,7 @@ import { db } from '../db/runtime'
 import { sendHttpWebhook } from './eventBus'
 import { getWebhookSubscriptionUrl, getIntegrationToken } from './externalProxy'
 import { createNotification } from './notifications'
+import { creditBalance, topupEventId } from './balance'
 import { getAffectedRows } from './dbResult'
 
 
@@ -229,6 +230,33 @@ export async function fulfillOrder(orderId: string) {
       const unit = String(
         (orderMeta as any).display_unit || (productMeta as any).display_unit || 'credits',
       ).trim()
+      // 本地入账:余额的权威账本在 apay 自己的 users.CashBalance + balance_logs。
+      // 幂等键取订单号,支付回调重试/用户重复触发都只会到账一次(见 utils/balance.ts)。
+      // 到账额度用订单上服务端算好的 recharge_amount(记账币种),不是实付原币金额。
+      if (order.userId && rechargeAmount > 0) {
+        try {
+          const credited = await creditBalance({
+            userId: Number(order.userId),
+            balanceType: String((orderMeta as any).balance_type || (productMeta as any).balance_type || 'cash') === 'grant'
+              ? 'grant'
+              : 'cash',
+            amount: rechargeAmount,
+            eventId: topupEventId(orderId),
+            actionType: 'topup',
+            sourceType: 'order',
+            sourceId: orderId,
+            remark: `充值订单 ${orderId}`,
+          })
+          if (!credited.applied) {
+            console.log(`[Balance] topup ${orderId} already credited, skipped`)
+          }
+        } catch (error) {
+          // 入账失败不能吞掉:钱已经收了,必须让调用方看到(履约整体会记录失败)
+          console.error(`[Balance] failed to credit topup order ${orderId}:`, error)
+          throw error
+        }
+      }
+
       deliveryInfo = (productMeta as any).delivery_message
         || `Top-up payment confirmed. ${rechargeAmount} ${unit} will be credited to your account.`
       await createNotification({
