@@ -9,10 +9,17 @@ export interface AdminPermissionDef {
 export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
   {
     code: 'dashboard',
-    label: 'Dashboard & Analytics',
-    labelZh: '仪表盘与统计',
-    apiPrefixes: ['dashboard', 'stats'],
-    routes: ['/admin', '/admin/stats'],
+    label: 'Dashboard',
+    labelZh: '仪表盘',
+    apiPrefixes: ['dashboard'],
+    routes: ['/admin/dashboard'],
+  },
+  {
+    code: 'stats',
+    label: 'Statistics',
+    labelZh: '访客统计',
+    apiPrefixes: ['stats'],
+    routes: ['/admin/stats'],
   },
   {
     code: 'products',
@@ -90,13 +97,6 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
     labelZh: '管理员管理',
     apiPrefixes: ['admins'],
     routes: ['/admin/settings/manages'],
-  },
-  {
-    code: 'system',
-    label: 'System Operations (Rebuild, Upload, Scheduler)',
-    labelZh: '系统操作（重建、上传、调度）',
-    apiPrefixes: ['system', 'upload', 'scheduler'],
-    routes: [],
   },
 ]
 
