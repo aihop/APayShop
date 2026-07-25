@@ -163,12 +163,6 @@ CREATE TABLE "subscriptions" (
         CONSTRAINT "subscriptions_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action
 );
 --> statement-breakpoint
-CREATE TABLE "theme_settings" (
-        "theme_name" text PRIMARY KEY NOT NULL,
-        "config" text NOT NULL,
-        "updated_at" timestamp with time zone DEFAULT now()
-);
---> statement-breakpoint
 CREATE TABLE "webhooks" (
         "id" serial PRIMARY KEY NOT NULL,
         "name" text NOT NULL,

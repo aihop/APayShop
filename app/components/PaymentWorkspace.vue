@@ -13,7 +13,7 @@
         v-if="closable"
         color="neutral"
         variant="ghost"
-        icon="i-heroicons-x-mark-20-solid"
+        icon="ph:x-bold"
         class="rounded-xl text-gray-400 dark:text-white/20 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
         @click="$emit('close')"
       />

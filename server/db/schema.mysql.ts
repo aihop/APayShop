@@ -170,13 +170,6 @@ export const settings = mysqlTable('settings', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-// New table to store theme-specific configurations (JSON format)
-export const themeSettings = mysqlTable('theme_settings', {
-  themeName: text('theme_name').primaryKey(),
-  config: text('config').notNull(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-})
-
 export const paymentFailures = mysqlTable('payment_failures', {
   id: int('id').autoincrement().primaryKey(),
   orderId: text('order_id').notNull(),

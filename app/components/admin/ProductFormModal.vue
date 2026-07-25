@@ -74,6 +74,25 @@
       </div>
 
       <div
+        class="grid grid-cols-2 gap-4"
+        v-if="currentTabLocale === defaultLocale"
+      >
+        <UFormField :label="$t('admin.products.form.per_user_limit.label')">
+          <UInput
+            v-model.number="form.metaData.perUserLimit"
+            type="number"
+            min="0"
+            step="1"
+            class="text-gray-900 dark:text-white w-full"
+            :placeholder="$t('admin.products.form.per_user_limit.placeholder')"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            {{ $t('admin.products.form.per_user_limit.help') }}
+          </p>
+        </UFormField>
+      </div>
+
+      <div
         v-if="(form.type === 'subscription' || form.type === 'topup') && currentTabLocale === defaultLocale"
         class="p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-[#1a1a1c]"
       >

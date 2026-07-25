@@ -176,6 +176,7 @@ const {
   data: order,
   status,
   error: fetchError,
+  refresh,
 } = await useFetch<any>('/api/orders/detail', {
   headers: useRequestHeaders(['cookie']),
   lazy: true,
@@ -183,6 +184,43 @@ const {
 })
 
 const pending = computed(() => status.value === 'pending')
+const isCompletingFree = ref(false)
+
+const tryCompleteFreeOrder = async () => {
+  const currentOrder = order.value
+  if (!currentOrder || isCompletingFree.value) return
+  const amount = Number(currentOrder.amount ?? 0)
+  const payStatus = String(currentOrder.payStatus || currentOrder.status || '')
+  if (amount > 0) return
+  if (payStatus === 'paid' || payStatus === 'delivered') {
+    await navigateTo(localePath(`/callback/${currentOrder.id}`), { replace: true })
+    return
+  }
+  if (payStatus !== 'pending' && payStatus !== '') return
+  isCompletingFree.value = true
+  try {
+    const res: any = await $fetch('/api/orders/complete-free', {
+      method: 'POST',
+      body: { orderId: currentOrder.id },
+    })
+    if (res?.code === 0) {
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new CustomEvent('order-success', {
+            detail: { orderId: currentOrder.id },
+          }))
+        } catch (e) {
+          console.warn('[payment] dispatch order-success failed:', e)
+        }
+      }
+      await navigateTo(localePath(`/callback/${currentOrder.id}`), { replace: true })
+    }
+  } catch (e: any) {
+    console.warn('[payment] complete-free failed, falling back to normal flow:', e)
+  } finally {
+    isCompletingFree.value = false
+  }
+}
 
 const resolveProductTypeLabel = (productType?: string) => {
   if (productType === 'key') return t('site.payment.productTypeKey')
@@ -319,6 +357,15 @@ watch(
     if (payStatus === 'paid' || payStatus === 'delivered') {
       await navigateTo(localePath(`/callback/${orderId}`), { replace: true })
     }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => [order.value, status.value],
+  () => {
+    if (status.value !== 'success') return
+    tryCompleteFreeOrder()
   },
   { immediate: true }
 )

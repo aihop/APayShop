@@ -377,6 +377,11 @@
         "display_unit": "Display Unit (Optional)",
         "display_placeholder": "e.g., Credits / USD / Tokens",
         "display_help": "Used only for storefront copy. It does not affect the final credited amount.",
+        "per_user_limit": {
+          "label": "Purchase Limit Per User (Optional)",
+          "placeholder": "Unlimited (leave empty for paid items)",
+          "help": "Maximum number of times a single user / visitor can pay for this product. For $0 products, leaving it empty defaults to 1 (prevent free items from being redeemed repeatedly). Enter 0 explicitly to lift the limit."
+        },
         "features_title": "Pricing Plan Features",
         "features_label": "Features ({locale})",
         "feature_icon_placeholder": "Icon (e.g. ph:check)",
@@ -756,14 +761,7 @@
       "page": {
         "title": "Themes",
         "subtitle": "Manage your storefront appearance and layout.",
-        "ai_builder": "AI Theme Builder",
         "meta_title": "Themes"
-      },
-      "active_theme": {
-        "title": "Active Theme Configuration",
-        "desc": "Customize layout, colors, and features for your currently active theme",
-        "configure": "Configure Active Theme",
-        "not_needed": "No theme needed — using system default rendering"
       },
       "card": {
         "active": "Active",

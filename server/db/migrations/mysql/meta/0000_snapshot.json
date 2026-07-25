@@ -1066,45 +1066,6 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "theme_settings": {
-      "name": "theme_settings",
-      "columns": {
-        "theme_name": {
-          "name": "theme_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "config": {
-          "name": "config",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "(now())"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "theme_settings_theme_name": {
-          "name": "theme_settings_theme_name",
-          "columns": [
-            "theme_name"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
     "users": {
       "name": "users",
       "columns": {

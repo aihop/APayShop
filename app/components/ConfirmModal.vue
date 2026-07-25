@@ -7,7 +7,7 @@
           <UButton
             color="neutral"
             variant="ghost"
-            icon="i-heroicons-x-mark-20-solid"
+            icon="ph:x-bold"
             class="-my-1"
             @click="cancel"
           />

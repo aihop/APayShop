@@ -1,6 +1,7 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-07-25`: 新增 0 元订单直通过账机制 + 每用户购买次数上限。`/api/orders/checkout` 当 `totalAmount <= 0` 时直接 `payStatus=PAID` 并调用 `fulfillOrder` 履约，返回 `isFreeOrder=true`；前端 `useCheckout` 据此跳过 PaymentWorkspace 弹窗直接 dispatch `order-success` 并跳转 `/callback/{orderId}`。同时通过 `products.metaData.perUserLimit` 支持自定义每用户购买上限；若该字段未配置且商品为 0 元，则默认限制为 1 次（防薅），显式写入 `0` 视为不限。后台商品编辑页新增对应输入框，见 Section 4。
 > `2026-05-29`: 修正 Section 6 章节编号 (A→B→C→D→E→F→G)；补充测试策略与本节说明。
 > `2026-05-30`: 新增 Section 9 Git 提交流程约束。
 > `2026-05-30`: 补充后台日志/列表时间字段的跨环境归一化约定，见 Section 6.A。

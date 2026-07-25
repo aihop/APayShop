@@ -165,13 +165,6 @@ export const settings = sqliteTable('settings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch() * 1000)`),
 })
 
-// New table to store theme-specific configurations (JSON format)
-export const themeSettings = sqliteTable('theme_settings', {
-  themeName: text('theme_name').primaryKey(),
-  config: text('config').notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch() * 1000)`),
-})
-
 export const paymentFailures = sqliteTable('payment_failures', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   orderId: text('order_id').notNull(),

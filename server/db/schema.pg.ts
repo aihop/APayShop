@@ -170,13 +170,6 @@ export const settings = pgTable('settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
-// New table to store theme-specific configurations (JSON format)
-export const themeSettings = pgTable('theme_settings', {
-  themeName: text('theme_name').primaryKey(),
-  config: text('config').notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
-
 export const paymentFailures = pgTable('payment_failures', {
   id: serial('id').primaryKey(),
   orderId: text('order_id').notNull(),

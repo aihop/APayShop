@@ -22,7 +22,6 @@ export default defineConfig({
     "payment_methods",
     "products",
     "settings",
-    "theme_settings",
     "webhooks",
     "subscriptions",
     "visitor_profiles",

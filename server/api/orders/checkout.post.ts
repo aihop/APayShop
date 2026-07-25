@@ -10,6 +10,7 @@ import { sendEmail } from '../../utils/email'
 import { createNotification } from '../../utils/notifications'
 import { stripReservedOrderMeta } from '../../utils/orderMetaData'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { fulfillOrder } from '../../utils/fulfillment'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -118,6 +119,8 @@ export default defineEventHandler(async (event) => {
           productNotFound: '商品不存在',
           productUnavailable: '商品当前不可售',
           activeSubscriptionExists: '您当前已拥有同级有效订阅，请升级到更高等级的套餐。',
+          purchaseLimitExceeded: '您已达到该商品的购买上限，无法再次购买。',
+          purchaseLimitExceededWithCount: '该商品每人最多可购买 {limit} 次，您已购买过 {count} 次。',
           orderCreated: '订单创建成功',
           createOrderFailed: '创建订单失败：',
         }
@@ -129,6 +132,8 @@ export default defineEventHandler(async (event) => {
           productNotFound: 'Product not found',
           productUnavailable: 'Product is not available for sale',
           activeSubscriptionExists: 'You already have an active subscription at this tier. Please upgrade to a higher plan.',
+          purchaseLimitExceeded: 'You have reached the purchase limit for this product.',
+          purchaseLimitExceededWithCount: 'This product can only be purchased {limit} time(s) per user. You have already purchased it {count} time(s).',
           orderCreated: 'Order created successfully',
           createOrderFailed: 'Failed to create order: ',
         }
@@ -272,6 +277,56 @@ export default defineEventHandler(async (event) => {
     const totalAmount = product.price * productNum
 
     // ==========================================
+    // 每用户购买次数限制 (Per-User Purchase Limit)
+    // ==========================================
+    // 规则优先级:
+    //   1) metaData.perUserLimit: 正整数 → 显式限制为 N 次
+    //   2) metaData.perUserLimit === 0 或其他 falsy 且未配置 → 不限制
+    //   3) 但若商品为 0 元(totalAmount <= 0)且未显式设置 perUserLimit → 默认限制为 1 次
+    //      (防止免费/试用商品被同一人反复刷订单触发履约)
+    // 计数口径: 同一 productId 下,对该用户(userId 优先, 退化到 visitorId 兜底)
+    //           payStatus == PAID 的订单总数;复用中的 pending 单不计入已购次数。
+    {
+      const rawLimit = (productMetaData as any)?.perUserLimit
+      const explicitLimit = Number.isFinite(Number(rawLimit)) ? Number(rawLimit) : null
+      const effectiveLimit: number | null =
+        explicitLimit !== null && explicitLimit > 0
+          ? Math.floor(explicitLimit)
+          : (explicitLimit !== null && explicitLimit === 0
+              ? null
+              : (totalAmount <= 0 ? 1 : null))
+
+      if (effectiveLimit !== null && effectiveLimit > 0) {
+        const paidCountQuery = db
+          .select({ id: orders.id })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.payStatus, ORDER_PAY_STATUS.PAID),
+              eq(orders.productId, productId),
+              userId
+                ? eq(orders.userId, userId)
+                : eq(orders.visitorId, visitorId),
+            ),
+          )
+        const paidRows = await paidCountQuery
+        const paidCount = paidRows.length
+
+        if (paidCount >= effectiveLimit) {
+          const message =
+            locale === 'zh'
+              ? `该商品每人最多可购买 ${effectiveLimit} 次，您已购买过 ${paidCount} 次。`
+              : `This product can only be purchased ${effectiveLimit} time(s) per user. You have already purchased it ${paidCount} time(s).`
+          throw createError({
+            statusCode: 409,
+            message,
+          })
+        }
+      }
+    }
+    // ==========================================
+
+    // ==========================================
     // 订单复用逻辑 (Order Reuse Logic)
     // ==========================================
     // 查找该用户（根据 visitorId 或 email）针对该商品，最近是否有未支付（pending）的订单
@@ -322,13 +377,30 @@ export default defineEventHandler(async (event) => {
           eventName: 'begin_checkout',
         })
 
-        await sendPendingOrderEmail(event, {
-          email: parsedBody.email || userEmail || pendingOrder.contactEmail,
-          nickname: userNickname,
-          orderId: pendingOrder.id,
-          productName: product.name,
-          amount: totalAmount,
-        })
+        // ==========================================
+        // 0 元订单直接放行：标记已支付 + 立即履约，跳过支付网关
+        // ==========================================
+        let isFreeOrder = false
+        if (totalAmount <= 0) {
+          await db.update(orders)
+            .set({
+              payStatus: ORDER_PAY_STATUS.PAID,
+              paidAt: new Date(),
+            })
+            .where(eq(orders.id, pendingOrder.id))
+          await fulfillOrder(pendingOrder.id).catch((e) =>
+            console.error('[Checkout] Free order reuse fulfill failed:', pendingOrder.id, e),
+          )
+          isFreeOrder = true
+        } else {
+          await sendPendingOrderEmail(event, {
+            email: parsedBody.email || userEmail || pendingOrder.contactEmail,
+            nickname: userNickname,
+            orderId: pendingOrder.id,
+            productName: product.name,
+            amount: totalAmount,
+          })
+        }
 
         return {
           code: 0,
@@ -336,7 +408,8 @@ export default defineEventHandler(async (event) => {
           data: {
             id: pendingOrder.id, // using orderId as checkoutId for now
             amount: totalAmount,
-            currency: 'USD'
+            currency: 'USD',
+            isFreeOrder,
           }
         }
       }
@@ -359,13 +432,16 @@ export default defineEventHandler(async (event) => {
     
     const orderId = `${productTypePrefix}${dateStr}${timeSuffix}${randomHex}`
     
+    const isFreeOrder = totalAmount <= 0
+
     // Create checkout order
     const orderData = {
       id: orderId,
       productId,
       amount: totalAmount,
       status: ORDER_STATUS.NONE, // Fulfillment status
-      payStatus: ORDER_PAY_STATUS.PENDING, // Payment status
+      payStatus: isFreeOrder ? ORDER_PAY_STATUS.PAID : ORDER_PAY_STATUS.PENDING, // 0 元直接视为已支付
+      paidAt: isFreeOrder ? new Date() : null,
       contactEmail: contactEmail,
       payMethod: parsedBody.payMethod || 'none', // Ensure payMethod is set here so Webhook can find it later
       visitorId: visitorId,
@@ -390,21 +466,28 @@ export default defineEventHandler(async (event) => {
       eventName: 'begin_checkout',
     })
 
-    await createPendingOrderNotification(event, {
-      userId,
-      visitorId,
-      orderId,
-      productName: product.name,
-      amount: totalAmount,
-    })
+    if (isFreeOrder) {
+      // 0 元单：直接履约，跳过"待支付"邮件/通知
+      await fulfillOrder(orderId).catch((e) =>
+        console.error('[Checkout] Free order fulfill failed:', orderId, e),
+      )
+    } else {
+      await createPendingOrderNotification(event, {
+        userId,
+        visitorId,
+        orderId,
+        productName: product.name,
+        amount: totalAmount,
+      })
 
-    await sendPendingOrderEmail(event, {
-      email: parsedBody.email || userEmail || contactEmail,
-      nickname: userNickname,
-      orderId,
-      productName: product.name,
-      amount: totalAmount,
-    })
+      await sendPendingOrderEmail(event, {
+        email: parsedBody.email || userEmail || contactEmail,
+        nickname: userNickname,
+        orderId,
+        productName: product.name,
+        amount: totalAmount,
+      })
+    }
     
     return {
       code: 0,
@@ -412,7 +495,8 @@ export default defineEventHandler(async (event) => {
       data: {
         id: orderId, // using orderId as checkoutId for now
         amount: totalAmount,
-        currency: 'USD'
+        currency: 'USD',
+        isFreeOrder,
       }
     }
   } catch (error: any) {

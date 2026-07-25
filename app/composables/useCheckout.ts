@@ -2,16 +2,71 @@ import { ref } from 'vue'
 import { useToast, useRouter } from '#imports'
 import { useSettings } from '~/composables/useSettings'
 import { useCustomerAuth } from '~/composables/useCustomerAuth'
+import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
 export const useCheckout = () => {
   const toast = useToast()
   const router = useRouter()
   const { getSetting } = useSettings()
   const { loggedIn } = useCustomerAuth()
+  const { localePath } = useLocaleRouter()
   
   const isCreatingOrder = ref(false)
   const isOrderModalOpen = ref(false)
   const orderId = ref<string | null>(null)
+
+  // 0 元/免费订单：直接视为支付成功，跳过 PaymentWorkspace，走 callback 展示成功页
+  const handleFreeOrderSuccess = (targetOrderId: string) => {
+    orderId.value = targetOrderId
+    isCreatingOrder.value = false
+    isOrderModalOpen.value = false
+
+    // 触发全局 order-success 事件（让订阅签发、tenant-keys sync 等 side effect 照常运行）
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('order-success', {
+          detail: { orderId: targetOrderId },
+        }))
+      } catch (e) {
+        console.warn('[useCheckout] dispatch order-success failed:', e)
+      }
+    }
+
+    toast.add({
+      title: 'Payment Successful',
+      description: `Order ${targetOrderId} has been completed.`,
+      color: 'success',
+      icon: 'ph:check-circle-bold',
+    })
+
+    // 与 PaymentWorkspace redirectOnSuccess 行为保持一致：跳转 /callback/{orderId}
+    router.push(localePath(`/callback/${targetOrderId}`))
+  }
+
+  // 对"历史/遗留的 pending 0 元订单"做兜底补单 + 跳转
+  const completeFreeOrder = async (targetOrderId: string) => {
+    try {
+      isCreatingOrder.value = true
+      const res: any = await $fetch('/api/orders/complete-free', {
+        method: 'POST',
+        body: { orderId: targetOrderId },
+      })
+      if (res?.code === 0) {
+        handleFreeOrderSuccess(targetOrderId)
+        return true
+      }
+      throw new Error(res?.message || 'Failed to complete free order')
+    } catch (e: any) {
+      toast.add({
+        title: 'Checkout Failed',
+        description: e.message || e.data?.message || 'Failed to complete free order',
+        color: 'error',
+      })
+      return false
+    } finally {
+      if (isCreatingOrder.value) isCreatingOrder.value = false
+    }
+  }
 
   // body 滚动锁交给 UModal(reka-ui DialogRoot modal=true)托管:
   // 手动锁会被遮罩点击/ESC 这些不经过 closeCheckoutModal 的关闭路径绕过,把页面永久锁死
@@ -23,7 +78,7 @@ export const useCheckout = () => {
         title: 'Authentication Required',
         description: 'Guest checkout is disabled. Please log in to continue your purchase.',
         color: 'warning',
-        icon: 'i-heroicons-lock-closed',
+        icon: 'ph:lock-key-bold',
       })
       router.push('/auth/login')
       return
@@ -47,7 +102,16 @@ export const useCheckout = () => {
       })
 
       if (res && res.code === 0) {
-        orderId.value = res.data?.id || ''
+        const newOrderId = res.data?.id || ''
+        const amount = Number(res.data?.amount ?? 0)
+        const isFreeOrder = Boolean(res.data?.isFreeOrder) || amount <= 0
+
+        if (isFreeOrder && newOrderId) {
+          handleFreeOrderSuccess(newOrderId)
+          return
+        }
+
+        orderId.value = newOrderId
         isOrderModalOpen.value = true
       } else {
         throw new Error(res?.message || 'Failed to create order')
@@ -59,7 +123,10 @@ export const useCheckout = () => {
         color: 'error',
       })
     } finally {
-      isCreatingOrder.value = false
+      // 0 元单已在 handleFreeOrderSuccess 中关闭 loading，其他路径统一在 finally 兜底释放
+      if (isCreatingOrder.value) {
+        isCreatingOrder.value = false
+      }
     }
   }
 
@@ -72,7 +139,7 @@ export const useCheckout = () => {
         title: 'Authentication Required',
         description: 'Guest checkout is disabled. Please log in to continue your purchase.',
         color: 'warning',
-        icon: 'i-heroicons-lock-closed',
+        icon: 'ph:lock-key-bold',
       })
       router.push('/auth/login')
       return
@@ -88,9 +155,33 @@ export const useCheckout = () => {
         description: 'Please create an order first',
         color: 'error',
       })
-    } else {
-      isOrderModalOpen.value = true
+      return
     }
+
+    // 先查订单详情，若是 0 元 pending → 自动补单并跳成功页，避免 PaymentWorkspace 死胡同
+    try {
+      isCreatingOrder.value = true
+      const detail: any = await $fetch('/api/orders/detail', {
+        query: { orderId: orderId.value },
+        headers: typeof document !== 'undefined' ? useRequestHeaders(['cookie']) : undefined,
+      })
+      const amount = Number(detail?.amount ?? 0)
+      const payStatus = String(detail?.payStatus || detail?.status || '')
+      if (amount <= 0 && (payStatus === 'pending' || payStatus === '')) {
+        await completeFreeOrder(orderId.value)
+        return
+      }
+      if (amount <= 0 && (payStatus === 'paid' || payStatus === 'delivered')) {
+        handleFreeOrderSuccess(orderId.value)
+        return
+      }
+    } catch (e) {
+      console.warn('[useCheckout] continuePayment pre-check failed, fallback to modal:', e)
+    } finally {
+      if (isCreatingOrder.value) isCreatingOrder.value = false
+    }
+
+    isOrderModalOpen.value = true
   }
 
   const closeCheckoutModal = () => {
@@ -105,5 +196,7 @@ export const useCheckout = () => {
     openCheckoutModal,
     closeCheckoutModal,
     continuePayment,
+    completeFreeOrder,
+    handleFreeOrderSuccess,
   }
 }

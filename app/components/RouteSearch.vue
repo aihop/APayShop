@@ -98,7 +98,7 @@ const routes = computed(() => {
     {
       id: 'admin-posts',
       label: t('admin.nav.blogs'),
-      icon: 'lucide:newspaper',
+      icon: 'ph:newspaper-duotone',
       to: '/admin/posts',
     },
     {
@@ -140,7 +140,7 @@ const routes = computed(() => {
     {
       id: 'admin-themes',
       label: t('admin.nav.themes'),
-      icon: 'i-heroicons-sparkles',
+      icon: 'ph:sparkles-duotone',
       to: '/admin/themes',
     },
     {

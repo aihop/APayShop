@@ -377,6 +377,11 @@
         "display_unit": "显示单位（可选）",
         "display_placeholder": "例如：额度 / USD / Tokens",
         "display_help": "仅用于前端展示文案，不影响最终入账金额",
+        "per_user_limit": {
+          "label": "每用户购买次数上限（可选）",
+          "placeholder": "不限制（付费商品留空即可）",
+          "help": "同一用户/访客购买此商品的已支付订单上限。免费商品（0 元）若未显式填写则默认限制为 1 次，防止反复薅免费权益。若想显式取消限制，请填写 0。"
+        },
         "features_title": "定价方案特性",
         "features_label": "特性（{locale}）",
         "feature_icon_placeholder": "图标（如 ph:check）",
@@ -755,14 +760,7 @@
       "page": {
         "title": "主题管理",
         "subtitle": "管理您的商店外观和布局",
-        "ai_builder": "AI 主题构建器",
         "meta_title": "主题管理"
-      },
-      "active_theme": {
-        "title": "当前主题配置",
-        "desc": "自定义当前激活主题的布局、颜色和功能",
-        "configure": "配置当前主题",
-        "not_needed": "无需主题 — 使用系统默认渲染"
       },
       "card": {
         "active": "已激活",
@@ -976,14 +974,14 @@
       "viewOrderDetails": "查看订单详情",
       "returnToShop": "返回商店",
       "paymentSuccessful": "支付成功!",
-      "paymentSuccessfulTips": "感谢您的购买。您的订单已确认",
+      "paymentSuccessfulTips": "感谢您的购买，您的订单已确认",
       "redirectingAfterPayment": "支付已确认，正在返回来源页面...",
       "productDetails": "您的产品详情",
       "paymentFailed": "支付失败",
       "paymentFailedTips": "很遗憾，您的支付失败",
       "redirectingToSource": "正在返回来源页面...",
       "paymentCancelled": "支付已取消",
-      "paymentCancelledTips": "您已取消本次结账流程，请放心，系统不会向您的账户扣费。",
+      "paymentCancelledTips": "您已取消本次结账流程，请放心，系统不会向您的账户扣费",
       "continueShopping": "继续购物",
       "viewMyOrders": "查看我的订单",
       "payNow": "立即支付",

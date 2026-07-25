@@ -5,57 +5,11 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.themes.page.title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.themes.page.subtitle') }}</p>
       </div>
-      <UButton
-        to="/admin/themes/builder"
-        color="primary"
-        variant="solid"
-        icon="i-heroicons-sparkles"
-        class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg"
-      >
-        {{ $t('admin.themes.page.ai_builder') }}
-      </UButton>
+
     </div>
 
     <!-- Active Theme Settings Link -->
-    <div
-      id="active-theme-section"
-      class="bg-white dark:bg-[#121214] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-700"
-    >
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
-          <UIcon
-            name="ph:paint-brush-broad-fill"
-            class="w-6 h-6"
-          />
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.themes.active_theme.title') }}</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.themes.active_theme.desc') }}</p>
-        </div>
-      </div>
-      <UButton
-        v-if="getSetting('active_theme')"
-        :to="`/admin/themes/${getSetting('active_theme')}`"
-        color="primary"
-        variant="outline"
-        class="shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_25px_rgba(147,51,234,0.5)] transition-all"
-        size="lg"
-      >
-        {{ $t('admin.themes.active_theme.configure') }}
-        <template #trailing>
-          <UIcon name="ph:sliders-horizontal" />
-        </template>
-      </UButton>
-      <UBadge
-        v-else
-        color="neutral"
-        variant="subtle"
-        class="text-gray-500 dark:text-gray-400"
-      >
-        {{ $t('admin.themes.active_theme.not_needed') }}
-      </UBadge>
-    </div>
-
+ 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       <div
         v-for="theme in themes || []"

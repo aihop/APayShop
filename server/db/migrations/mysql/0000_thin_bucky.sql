@@ -151,13 +151,6 @@ CREATE TABLE `subscriptions` (
 	CONSTRAINT `subscriptions_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `theme_settings` (
-	`theme_name` text NOT NULL,
-	`config` text NOT NULL,
-	`updated_at` timestamp DEFAULT (now()),
-	CONSTRAINT `theme_settings_theme_name` PRIMARY KEY(`theme_name`)
-);
---> statement-breakpoint
 CREATE TABLE `users` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`email` text NOT NULL,

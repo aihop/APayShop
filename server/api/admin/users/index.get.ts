@@ -1,5 +1,5 @@
 import { users } from "../../../db/schema"
-import { count, desc } from "drizzle-orm"
+import { count, desc, like, or, sql } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
 
@@ -9,12 +9,26 @@ export default defineEventHandler(async (event) => {
   const page = parseInt(query.page as string) || 1
   const pageSize = parseInt(query.pageSize as string) || 15
   const offset = (page - 1) * pageSize
+  const keyword = String(query.q || query.keyword || '').trim()
 
-  const totalResult = await db.select({ value: count() }).from(users)
+  const likePattern = keyword ? `%${keyword.toLowerCase()}%` : ''
+
+  const emailLower = sql`lower(${users.email})`
+  const nicknameLower = sql`lower(coalesce(${users.nickname}, ''))`
+  const idLower = sql`lower(cast(${users.id} as text))`
+
+  const totalBase = db.select({ value: count() }).from(users)
+  const totalResult = keyword
+    ? await totalBase.where(or(
+        like(emailLower, likePattern),
+        like(nicknameLower, likePattern),
+        like(idLower, likePattern),
+      ))
+    : await totalBase
   const total = totalResult[0]?.value || 0
 
   try {
-    const result = await db.select({
+    let baseQuery = db.select({
       id: users.id,
       username: users.email,
       email: users.email,
@@ -23,6 +37,16 @@ export default defineEventHandler(async (event) => {
       status: users.status,
     })
       .from(users)
+
+    if (keyword) {
+      baseQuery = baseQuery.where(or(
+        like(emailLower, likePattern),
+        like(nicknameLower, likePattern),
+        like(idLower, likePattern),
+      )) as any
+    }
+
+    const result = await baseQuery
       .orderBy(desc(users.createdAt))
       .limit(pageSize)
       .offset(offset)
