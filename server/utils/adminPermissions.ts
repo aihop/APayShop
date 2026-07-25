@@ -8,7 +8,7 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
   { code: 'products', apiPrefixes: ['products'] },
   { code: 'orders', apiPrefixes: ['orders'] },
   { code: 'payments', apiPrefixes: ['payments'] },
-  { code: 'customers', apiPrefixes: ['customers'] },
+  { code: 'customers', apiPrefixes: ['customers', 'users'] },
   { code: 'cards', apiPrefixes: ['cards'] },
   { code: 'subscriptions', apiPrefixes: ['subscriptions'] },
   { code: 'posts', apiPrefixes: ['posts'] },
@@ -30,8 +30,10 @@ for (const p of ADMIN_PERMISSIONS) {
 
 export const isSuperAdmin = (username: string | null | undefined) => username === 'admin'
 
+// null/undefined = legacy/unset row => full access (back-compat).
+// An explicit [] means "no permissions" and must NOT be treated as full access.
 export const hasAllPermissions = (permissions: string[] | null | undefined) =>
-  !permissions || permissions.length === 0 || permissions.includes('*')
+  !permissions || permissions.includes('*')
 
 export const adminHasPermission = (
   admin: { username?: string | null; permissions?: string[] | null } | null | undefined,
@@ -81,5 +83,7 @@ export const normalizePermissions = (
     }
   }
   if (result.includes('*')) return ['*']
-  return result.length ? result : null
+  // Preserve an explicit empty array as "no permissions" — collapsing it to
+  // null would make hasAllPermissions() treat it as full access.
+  return result
 }

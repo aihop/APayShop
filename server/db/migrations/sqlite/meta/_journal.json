@@ -85,6 +85,13 @@
       "when": 1785300003003,
       "tag": "0011_add_auth_and_event_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785300003005,
+      "tag": "0012_add_admin_permissions",
+      "breakpoints": true
     }
   ]
 }

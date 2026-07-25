@@ -39,21 +39,15 @@ export default defineEventHandler(async (event) => {
     }
     
     const hashedPassword = await hashPassword(password)
-    const normalizedPerms = normalizePermissions(permissions, { allowAll: true })
+    // A newly created admin defaults to no access unless permissions are
+    // explicitly provided ('*' for full access, or a list of codes).
+    const normalizedPerms = normalizePermissions(permissions, { allowAll: true }) ?? []
 
-    const insertValues: any = {
+    await db.insert(admins).values({
       username,
       passwordHash: hashedPassword,
-    }
-    if (normalizedPerms !== null) {
-      insertValues.permissions = process.env.NUXT_HUB_DATABASE
-        ? normalizedPerms
-        : JSON.stringify(normalizedPerms)
-    } else {
-      insertValues.permissions = null
-    }
-    
-    await db.insert(admins).values(insertValues)
+      permissions: normalizedPerms,
+    })
     
     return { code: 0, message: messages.created }
   } catch (error: any) {

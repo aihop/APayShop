@@ -105,6 +105,8 @@
 </template>
 
 <script setup lang="ts">
+import { firstAllowedAdminRoute } from '~/composables/useAdminPermissions'
+
 const { settings, fetchSettings, getSetting } = useSettings()
 
 definePageMeta({
@@ -142,10 +144,17 @@ const handleLogin = async () => {
       body: form,
     })
 
-    const redirectTarget =
-      typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')
-        ? route.query.redirect
-        : '/admin'
+    let redirectTarget = '/admin'
+    if (typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')) {
+      redirectTarget = route.query.redirect
+    } else {
+      // Don't assume '/admin' (dashboard) is reachable — an admin without
+      // the 'dashboard' permission needs to land on their first allowed page.
+      try {
+        const res: any = await $fetch('/api/admin/session')
+        redirectTarget = firstAllowedAdminRoute(res?.admin) || '/admin/profile'
+      } catch {}
+    }
 
     router.push(redirectTarget)
   } catch (e: any) {

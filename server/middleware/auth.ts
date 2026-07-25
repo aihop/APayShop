@@ -6,6 +6,8 @@ import {
   matchPermissionForApiPath,
   adminHasPermission,
   ADMIN_PUBLIC_PATHS,
+  isSuperAdmin,
+  hasAllPermissions,
 } from '../utils/adminPermissions'
 
 async function isMultiDeviceLoginDisabled(): Promise<boolean> {
@@ -120,10 +122,22 @@ export default defineEventHandler(async (event) => {
       })
     }
     const required = matchPermissionForApiPath(pathname)
-    if (required && !adminHasPermission(session.admin, required)) {
+    if (required) {
+      if (!adminHasPermission(session.admin, required)) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: `Forbidden: requires permission "${required}"`
+        })
+      }
+    } else if (
+      // Path has no known permission mapping (e.g. a new or theme-added
+      // admin API). Deny by default instead of letting any admin through.
+      !isSuperAdmin(session.admin?.username) &&
+      !hasAllPermissions(session.admin?.permissions)
+    ) {
       throw createError({
         statusCode: 403,
-        statusMessage: `Forbidden: requires permission "${required}"`
+        statusMessage: 'Forbidden: no permission mapping for this admin route'
       })
     }
   }

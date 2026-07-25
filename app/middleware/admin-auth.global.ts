@@ -1,4 +1,4 @@
-import { isRouteAllowedForAdmin, adminHasAnyRouteAccess } from '~/composables/useAdminPermissions'
+import { isRouteAllowedForAdmin, adminHasAnyRouteAccess, firstAllowedAdminRoute } from '~/composables/useAdminPermissions'
 
 let sessionCache: any = null
 let lastFetchAt = 0
@@ -62,6 +62,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   if (!isRouteAllowedForAdmin(path, admin)) {
-    return navigateTo('/admin', { replace: true })
+    // Fall back to a route this admin can actually reach — '/admin' itself
+    // requires the 'dashboard' permission, so redirecting there unconditionally
+    // would bounce an admin lacking it right back through this same check.
+    return navigateTo(firstAllowedAdminRoute(admin) || '/admin/profile', { replace: true })
   }
 })

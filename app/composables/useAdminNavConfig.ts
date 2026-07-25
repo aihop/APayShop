@@ -90,8 +90,7 @@ export const useAdminNav = () => {
       { to: '/admin/promo', icon: 'ph:megaphone-simple', labelKey: 'admin.nav.promo', permission: 'promo' },
       { to: '/admin/payments', icon: 'ph:credit-card', labelKey: 'admin.nav.payments', permission: 'payments' },
       { to: '/admin/logs', icon: 'ph:log', labelKey: 'admin.nav.logs', permission: 'logs' },
-      { to: '/admin/settings', icon: 'ph:gear', labelKey: 'admin.nav.settings', permission: 'settings' },
-      { to: '/admin/settings/manages', icon: 'ph:users-three', labelFallback: 'Admins', permission: 'admins' },
+      { to: '/admin/settings', icon: 'ph:gear', labelKey: 'admin.nav.settings', permission: 'settings' }
     ],
   }
 

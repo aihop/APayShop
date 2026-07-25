@@ -99,6 +99,13 @@
       "when": 1785300003000,
       "tag": "0013_add_payment_failures",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785300003006,
+      "tag": "0014_add_admin_permissions",
+      "breakpoints": true
     }
   ]
 }

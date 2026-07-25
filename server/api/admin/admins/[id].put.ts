@@ -36,6 +36,14 @@ export default defineEventHandler(async (event) => {
     const current = currentList[0]
     const editingMain = isSuperAdmin(current.username)
 
+    // Defense in depth: the UI hides edit controls for the main admin unless
+    // the acting account IS the main admin, but that's client-side only.
+    // Any admin holding the "admins" permission could otherwise call this
+    // endpoint directly and take over the main account's username/password.
+    if (editingMain && !isSuperAdmin(event.context.admin?.username)) {
+      throw createError({ statusCode: 403, message: messages.cannotEditMain })
+    }
+
     const body = await readBody(event)
     const { username, password, permissions } = body
     
@@ -60,15 +68,12 @@ export default defineEventHandler(async (event) => {
       updateData.passwordHash = await hashPassword(password)
     }
 
-    if (!editingMain) {
-      const normalizedPerms = normalizePermissions(permissions, { allowAll: true })
-      if (normalizedPerms !== null) {
-        updateData.permissions = process.env.NUXT_HUB_DATABASE
-          ? normalizedPerms
-          : JSON.stringify(normalizedPerms)
-      } else {
-        updateData.permissions = null
-      }
+    if (!editingMain && permissions !== undefined) {
+      // Explicit value only: omitting the field leaves existing permissions
+      // untouched. Any provided value (including []) is normalized, with
+      // invalid/garbage input safely falling back to "no access" rather
+      // than being treated as unset (which would mean full access).
+      updateData.permissions = normalizePermissions(permissions, { allowAll: true }) ?? []
     }
     
     await db.update(admins)

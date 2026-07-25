@@ -1,15 +1,15 @@
 <template>
-  <div class="min-h-screen bg-white dark:bg-[#09090b] p-4 md:p-8">
-    <div class="mb-10">
+  <div class="min-h-[calc(100vh-8rem)] flex flex-col gap-8">
+    <div>
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.dashboard.title') }}</h1>
       <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.dashboard.subtitle') }}</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-gray-800/50 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+        class="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
       >
         <div class="flex justify-between items-start mb-4">
           <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">{{ stat.label }}</span>
@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div class="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-gray-800/50 shadow-sm">
+    <div class="bg-white dark:bg-[#121214] p-6 md:p-8 rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm">
       <div class="flex items-center justify-between mb-12">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.dashboard.revenueOverview') }}</h2>
 

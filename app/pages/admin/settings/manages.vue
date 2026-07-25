@@ -326,8 +326,10 @@ const openModal = (user?: any) => {
     form.id = user.id
     form.username = user.username
     form.password = ''
+    // null = legacy/unset row (full access); an explicit [] means the admin
+    // was deliberately given zero permissions and must show as unchecked.
     const perms = Array.isArray(user.permissions) ? user.permissions : null
-    if (!perms || perms.length === 0 || perms.includes('*')) {
+    if (perms === null || perms.includes('*')) {
       formPermissions.value = ADMIN_PERMISSIONS.map(p => p.code)
     } else {
       formPermissions.value = [...perms]

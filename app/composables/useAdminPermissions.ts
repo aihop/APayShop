@@ -39,7 +39,7 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
     code: 'customers',
     label: 'Customers Management',
     labelZh: '客户管理',
-    apiPrefixes: ['customers'],
+    apiPrefixes: ['customers', 'users'],
     routes: ['/admin/customers'],
   },
   {
@@ -105,8 +105,10 @@ export const ADMIN_PERMISSION_MAP: Record<string, AdminPermissionDef> =
 
 export const isSuperAdmin = (username: string | null | undefined) => username === 'admin'
 
+// null/undefined = legacy/unset row => full access (back-compat).
+// An explicit [] means "no permissions" and must NOT be treated as full access.
 export const hasAllPermissions = (permissions: string[] | null | undefined) =>
-  !permissions || permissions.length === 0 || permissions.includes('*')
+  !permissions || permissions.includes('*')
 
 export const adminHasPermission = (
   admin: { username?: string | null; permissions?: string[] | null } | null | undefined,
@@ -149,6 +151,23 @@ export const isRouteAllowedForAdmin = (
     return true
   }
   return false
+}
+
+// Picks the first route this admin is actually allowed to land on, in
+// ADMIN_PERMISSIONS priority order. Used as the post-login/fallback target
+// instead of a hardcoded '/admin' — an admin without the 'dashboard'
+// permission can't access '/admin', so redirecting there unconditionally
+// causes an infinite bounce against isRouteAllowedForAdmin.
+export const firstAllowedAdminRoute = (
+  admin: { username?: string | null; permissions?: string[] | null } | null | undefined,
+): string | null => {
+  if (!admin) return null
+  if (isSuperAdmin(admin.username) || hasAllPermissions(admin.permissions)) {
+    return ADMIN_PERMISSIONS.find(p => p.routes.length)?.routes[0] || null
+  }
+  const perms = Array.isArray(admin.permissions) ? admin.permissions : []
+  const match = ADMIN_PERMISSIONS.find(p => perms.includes(p.code) && p.routes.length)
+  return match?.routes[0] || null
 }
 
 export const useAdminPermissions = () => {

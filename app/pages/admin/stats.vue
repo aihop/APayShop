@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white dark:bg-[#09090b] p-4 md:p-8">
+  <div class="min-h-screen bg-white dark:bg-[#09090b] p-4 md:p-8 rounded-3xl">
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ t('admin.stats.title') }}</h1>
