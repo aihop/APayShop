@@ -24,12 +24,19 @@ export default defineEventHandler(async (event) => {
         updated: 'Admin updated successfully',
         failed: 'Failed to update admin',
       }
+  if (event.context.authenticatedFromToken) {
+    throw createError({
+      statusCode: 403,
+      message: locale === 'zh' ? '请使用登录会话管理管理员账号，不能用系统 Token 操作' : 'Manage admin accounts from a logged-in session, not via a system token',
+    })
+  }
+
   try {
     const id = getRouterParam(event, 'id')
     if (!id) {
       throw createError({ statusCode: 400, message: messages.adminIdRequired })
     }
-    
+
     const currentList = await db.select().from(admins).where(eq(admins.id, Number(id))).limit(1)
     if (currentList.length === 0) {
       throw createError({ statusCode: 404, message: messages.failed })

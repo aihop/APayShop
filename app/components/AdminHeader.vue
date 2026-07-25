@@ -103,6 +103,12 @@
 const { getSetting } = useSettings()
 const { locale, locales, t } = useI18n()
 const colorMode = useColorMode()
+// Resolved here, in the synchronous setup context. Calling this inside the
+// async logout() — i.e. after an `await` — loses the component instance, and
+// useAdminPermissions() reaches useI18n(), which throws "Must be called at the
+// top of a `setup` function" there. That threw before navigateTo() ran, which
+// is why logging out left you sitting on the same page.
+const { resetAdmin } = useAdminSession()
 
 defineEmits(['open-mobile-menu'])
 
@@ -128,10 +134,18 @@ const switchLocale = async (newLocale: 'en' | 'zh') => {
 }
 
 const logout = async () => {
-  await $fetch('/api/admin/logout', {
-    method: 'POST',
-  })
-  navigateTo('/admin/login')
+  try {
+    await $fetch('/api/admin/logout', { method: 'POST' })
+  } catch (e) {
+    // A failed logout request must not strand the user in a half-logged-out
+    // admin UI — clear local state and leave anyway.
+    console.error('[admin-logout] request failed:', e)
+  }
+  // Without this, the shared admin state (and therefore every hasPerm()
+  // check across the app) keeps showing this account's permissions until a
+  // hard refresh — including to whoever logs in next in this same tab.
+  resetAdmin()
+  await navigateTo('/admin/login')
 }
 
 const userMenuItems = computed(() => [

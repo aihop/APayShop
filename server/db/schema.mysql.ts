@@ -53,6 +53,22 @@ export const admins = mysqlTable('admins', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
+// System-level API tokens for scripted /api/admin/* access. Scoped
+// independently of the creating admin's own permissions (see
+// server/middleware/auth.ts) — null/['*'] means full access, same
+// convention as admins.permissions.
+export const adminTokens = mysqlTable('admin_tokens', {
+  id: int('id').autoincrement().primaryKey(),
+  adminId: int('admin_id').notNull().references(() => admins.id),
+  token: text('token').notNull().unique(),
+  name: text('name'),
+  permissions: json('permissions').$type<string[]>(),
+  expiresAt: timestamp('expires_at'),
+  lastUsedAt: timestamp('last_used_at'),
+  revoked: boolean('revoked').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow()
+})
+
 export const oauthAccounts = mysqlTable('oauth_accounts', {
   id: int('id').autoincrement().primaryKey(),
   userId: int('user_id').notNull().references(() => users.id),

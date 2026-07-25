@@ -20,10 +20,17 @@ export default defineEventHandler(async (event) => {
         created: 'Admin created successfully',
         failed: 'Failed to create admin',
       }
+  if (event.context.authenticatedFromToken) {
+    throw createError({
+      statusCode: 403,
+      message: locale === 'zh' ? '请使用登录会话管理管理员账号，不能用系统 Token 操作' : 'Manage admin accounts from a logged-in session, not via a system token',
+    })
+  }
+
   try {
     const body = await readBody(event)
     const { username, password, permissions } = body
-    
+
     if (!username || !password) {
       throw createError({
         statusCode: 400,

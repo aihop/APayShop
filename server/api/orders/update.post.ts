@@ -36,8 +36,18 @@ export default defineEventHandler(async (event) => {
       return { code: 1, message: messages.alreadyPaid }
     }
 
+    // tradeNo is intentionally NOT written here: it's meant to be
+    // gateway-authoritative (set only by the signature-verified webhook in
+    // server/api/webhooks/[order_id].post.ts), which never trusts or reads
+    // back whatever value was here beforehand — it just overwrites it. There
+    // was no legitimate reason for the order owner to be able to set this
+    // pre-payment, so this endpoint still requires `tradeNo` in the request
+    // (kept for API-contract compatibility) but silently no-ops on writing
+    // it. payMethod stays client-writable — checkout already lets the buyer
+    // pick it freely with no validation, so allowing them to switch it here
+    // (e.g. retrying with a different payment method) adds no new exposure.
     await db.update(orders)
-      .set({ tradeNo: tradeNo, payMethod: payMethod })
+      .set({ payMethod: payMethod })
       .where(eq(orders.id, order.id))
 
     return { code: 0, message: messages.success }

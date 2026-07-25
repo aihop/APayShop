@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { and, eq, gte, isNull } from 'drizzle-orm'
 import { operationLogs } from '../db/schema'
 import { db } from '../db/runtime'
 
@@ -41,6 +42,13 @@ export interface RecordOperationInput {
   statusCode?: number | null
   ip?: string | null
   userAgent?: string | null
+  /**
+   * Collapse repeats: skip the write when an identical actor + action +
+   * resource + ip record already exists inside this window. Used for admin
+   * logins, where a dev hot-reload or a session renewal would otherwise bury
+   * the actual changes under a wall of near-identical rows.
+   */
+  dedupeWindowMs?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -231,19 +239,39 @@ export const getParsedRequestBody = (event: H3Event): unknown => {
 /** Never throws: an audit failure must not take down the request it describes. */
 export const recordOperation = async (input: RecordOperationInput) => {
   try {
+    const actorId = input.actorId ?? null
+    const action = String(input.action).slice(0, 64)
+    const resource = String(input.resource).slice(0, 64)
+    const ip = input.ip ? String(input.ip).slice(0, 64) : null
+
+    if (input.dedupeWindowMs && input.dedupeWindowMs > 0) {
+      const since = new Date(Date.now() - input.dedupeWindowMs)
+      const recent = await db.select({ id: operationLogs.id })
+        .from(operationLogs)
+        .where(and(
+          eq(operationLogs.action, action),
+          eq(operationLogs.resource, resource),
+          actorId != null ? eq(operationLogs.actorId, actorId) : isNull(operationLogs.actorId),
+          ip != null ? eq(operationLogs.ip, ip) : isNull(operationLogs.ip),
+          gte(operationLogs.createdAt, since),
+        ))
+        .limit(1)
+      if (recent.length > 0) return
+    }
+
     await db.insert(operationLogs).values({
       actorType: input.actorType || 'admin',
-      actorId: input.actorId ?? null,
+      actorId,
       actorName: input.actorName ? String(input.actorName).slice(0, 190) : null,
-      action: String(input.action).slice(0, 64),
-      resource: String(input.resource).slice(0, 64),
+      action,
+      resource,
       resourceId: input.resourceId != null ? String(input.resourceId).slice(0, 190) : null,
       summary: input.summary ? String(input.summary).slice(0, 500) : null,
       details: serializeAuditDetails(input.details),
       path: input.path,
       method: String(input.method || '').toUpperCase().slice(0, 16),
       statusCode: input.statusCode ?? null,
-      ip: input.ip ? String(input.ip).slice(0, 64) : null,
+      ip,
       userAgent: input.userAgent ? String(input.userAgent).slice(0, 500) : null,
       createdAt: new Date(),
     } as any)

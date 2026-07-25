@@ -250,12 +250,19 @@ export const firstAllowedAdminRoute = (
   return match?.routes[0] || null
 }
 
-export const useAdminPermissions = () => {
-  const { locale } = useI18n()
+// The shared admin session state, deliberately kept free of any composable
+// that requires a Vue component setup context (useI18n() in particular:
+// vue-i18n throws "Must be called at the top of a `setup` function" if it's
+// invoked anywhere else). Route middleware is NOT a component setup — it's
+// a plain async function — so admin-auth.global.ts calls this directly
+// rather than the full useAdminPermissions() below, which layers useI18n()
+// (needed only for labelFor(), which only actual page/component code uses)
+// on top of this same state.
+export const useAdminSession = () => {
   // Shared across every call site (useState, not a local ref) — button-level
   // permission checks are sprinkled across many independent page components,
-  // and each one calling useAdminPermissions() must see the SAME loaded
-  // admin, not silently read an unpopulated local copy of its own.
+  // and each one calling this must see the SAME loaded admin, not silently
+  // read an unpopulated local copy of its own.
   const adminRef = useState<any>('admin-permissions-session', () => null)
   const loadedRef = useState<boolean>('admin-permissions-loaded', () => false)
 
@@ -278,6 +285,23 @@ export const useAdminPermissions = () => {
     }
   }
 
+  // Clears the shared state so a stale admin (from before a logout, or from
+  // whoever was logged in before the current one in this same browser tab)
+  // never leaks into the account that's active now. loadAdmin() is a
+  // permanent cache once loaded — nothing else invalidates it automatically,
+  // so login/logout must call this explicitly.
+  const resetAdmin = () => {
+    adminRef.value = null
+    loadedRef.value = false
+  }
+
+  return { admin: adminRef, loadAdmin, resetAdmin }
+}
+
+export const useAdminPermissions = () => {
+  const { locale } = useI18n()
+  const { admin: adminRef, loadAdmin, resetAdmin } = useAdminSession()
+
   const permissions = computed(() => adminRef.value?.permissions as string[] | undefined)
   const isSuper = computed(() => isSuperAdmin(adminRef.value?.username))
   const allPermissions = computed(() => hasAllPermissions(permissions.value))
@@ -293,6 +317,7 @@ export const useAdminPermissions = () => {
     isSuper,
     allPermissions,
     loadAdmin,
+    resetAdmin,
     hasPerm,
     labelFor,
   }

@@ -12,12 +12,22 @@ import {
 const AUDITED_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 // Instrumented by hand inside the handlers instead — the acting identity is
-// only known there (login establishes it, logout has already cleared it).
+// only known there (login establishes it). Logout is intentionally not
+// recorded at all; see logout.post.ts.
 const MANUALLY_AUDITED_PATHS = new Set([
   '/api/admin/login',
   '/api/admin/logout',
   '/api/admin/setup',
 ])
+
+// High-frequency, low-value routes. An upload is only meaningful through the
+// entity that ends up referencing the file, and that entity's own update
+// record already captures the resulting URLs — recording each upload turns one
+// product edit with eight images into nine rows. A test email changes nothing.
+const SKIPPED_PREFIXES = [
+  '/api/admin/upload',
+  '/api/admin/email/test',
+]
 
 const RECORDED_FLAG = '__auditRecorded'
 
@@ -37,6 +47,7 @@ const capture = async (event: H3Event, error?: any) => {
   // Compare without the query string so `?foo=1` can't bypass the skip list.
   const pathname = path.split('?')[0]!
   if (MANUALLY_AUDITED_PATHS.has(pathname)) return
+  if (SKIPPED_PREFIXES.some(prefix => pathname.startsWith(prefix))) return
 
   const meta = getAuditMeta(event)
   if (meta?.skip) return

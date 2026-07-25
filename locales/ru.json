@@ -458,12 +458,12 @@
         "nav_localization": "Локализация",
         "nav_seo": "SEO",
         "nav_checkout": "Оформление",
-        "nav_integration": "Интеграция",
         "nav_email": "Email",
         "nav_company": "Данные компании",
         "nav_automations": "Правила событий",
         "nav_scheduler": "Запланированные задачи",
-        "nav_topup": "Пополнение"
+        "nav_topup": "Пополнение",
+        "nav_authorization": "Авторизация"
       },
       "general": {
         "title": "Общая информация",
@@ -871,7 +871,7 @@
         "update": "Изменение",
         "delete": "Удаление",
         "login": "Вход",
-        "login.failed": "Ошибка входа",
+        "loginFailed": "Ошибка входа",
         "logout": "Выход",
         "setup": "Инициализация",
         "cleanup": "Очистка",

@@ -1,41 +1,4 @@
-import { isRouteAllowedForAdmin, adminHasAnyRouteAccess, firstAllowedAdminRoute } from '~/composables/useAdminPermissions'
-
-// Module-scope cache — safe ONLY on the client, where each browser tab gets
-// its own JS runtime/module instance. On the server, a Nitro/Node process
-// handles requests from MANY different logged-in admins concurrently, so a
-// process-wide variable here would leak one admin's session (and therefore
-// their route/permission decisions) into another admin's request within the
-// same TTL window. Server-side always fetches fresh; never reads or writes
-// this cache.
-let sessionCache: any = null
-let lastFetchAt = 0
-const CACHE_TTL_MS = 15_000
-
-async function loadAdminSession(): Promise<any> {
-  if (import.meta.client) {
-    const now = Date.now()
-    if (sessionCache && now - lastFetchAt < CACHE_TTL_MS) {
-      return sessionCache
-    }
-  }
-  try {
-    const res: any = await $fetch('/api/admin/session', {
-      headers: import.meta.server ? useRequestHeaders(['cookie']) : undefined,
-    })
-    const admin = res?.admin || null
-    if (import.meta.client) {
-      sessionCache = admin
-      lastFetchAt = Date.now()
-    }
-    return admin
-  } catch (e) {
-    if (import.meta.client) {
-      sessionCache = null
-      lastFetchAt = Date.now()
-    }
-    throw e
-  }
-}
+import { isRouteAllowedForAdmin, adminHasAnyRouteAccess, firstAllowedAdminRoute, useAdminSession } from '~/composables/useAdminPermissions'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const path = stripLocalePrefix(to.path)
@@ -48,17 +11,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (!isAdminRoute) return
 
-  let admin: any = null
-  try {
-    admin = await loadAdminSession()
-  } catch {
-    if (isPublicAdminRoute) return
-    return navigateTo({
-      path: '/admin/login',
-      query: { redirect: to.fullPath },
-      replace: true,
-    })
-  }
+  // Single shared source of truth (see loadAdmin/resetAdmin in
+  // useAdminSession) — this used to keep its own separate session cache,
+  // which meant two independent caches had to be kept in sync and both
+  // invalidated on login/logout. They drifted: login/logout only ever reset
+  // one of them, so switching accounts in the same tab kept showing the
+  // previous admin's permissions until a hard refresh. One cache means one
+  // thing to invalidate, which login.vue / AdminHeader.vue now do via
+  // loadAdmin(true) / resetAdmin(). Uses useAdminSession(), NOT the full
+  // useAdminPermissions() — that one calls useI18n(), which throws outside
+  // a component setup context, and route middleware isn't one.
+  const { admin: adminRef, loadAdmin } = useAdminSession()
+  await loadAdmin()
+  const admin = adminRef.value
 
   if (!admin) {
     if (isPublicAdminRoute) return

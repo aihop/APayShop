@@ -309,7 +309,7 @@ const getActionColor = (action?: string): 'success' | 'warning' | 'error' | 'pri
     case 'delete':
     case 'clear':
     case 'cleanup':
-    case 'login.failed': return 'error'
+    case 'loginFailed': return 'error'
     case 'login':
     case 'logout': return 'primary'
     default: return 'neutral'

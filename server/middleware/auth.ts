@@ -1,4 +1,4 @@
-import { users, usersTokens, settings } from "../db/schema"
+import { users, usersTokens, admins, adminTokens, settings } from "../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from '../utils/auth'
@@ -77,13 +77,64 @@ export default defineEventHandler(async (event) => {
     }
 
     // 5. 如果有 token，验证 token（API token 不限制多设备）
-    if (token) {
+    // 系统级(管理员) token 用独立前缀区分，避免和用户 token 混查两张表。
+    if (token && token.startsWith('apay_admin_')) {
+      const foundAdminTokens = await db.select()
+        .from(adminTokens)
+        .where(eq(adminTokens.token, token))
+        .limit(1)
+
+      if (foundAdminTokens.length > 0) {
+        const tokenRecord = foundAdminTokens[0]
+        const now = new Date()
+        const isRevoked = tokenRecord.revoked === true || (tokenRecord.revoked as any) === 1
+        const isExpired = tokenRecord.expiresAt && new Date(tokenRecord.expiresAt) < now
+
+        if (!isRevoked && !isExpired) {
+          const foundAdmins = await db.select().from(admins).where(eq(admins.id, tokenRecord.adminId)).limit(1)
+          if (foundAdmins.length > 0) {
+            const admin = foundAdmins[0]
+            session.admin = {
+              id: admin.id,
+              // Deliberately NOT the real username: isSuperAdmin() does a
+              // literal `=== 'admin'` check, which would let a token minted
+              // by the superadmin bypass its own chosen scope (permissions
+              // below) and get unconditional full access. The token's scope
+              // must come only from its own `permissions` column.
+              username: `${admin.username}:token:${tokenRecord.id}`,
+              role: 'admin',
+              permissions: tokenRecord.permissions,
+            }
+            authenticatedFromToken = true
+
+            // See the matching comment on the user-token path below: route
+            // handlers read getUserSession()/requireUserSession(), which
+            // only look at h3's own session cache — this bridges into it.
+            const runtimeConfig = useRuntimeConfig(event)
+            const sessionName = (runtimeConfig.session as any)?.name || 'nuxt-session'
+            event.context.sessions = event.context.sessions || Object.create(null)
+            ;(event.context.sessions as any)[sessionName] = {
+              id: `admin-token:${tokenRecord.id}`,
+              createdAt: Date.now(),
+              data: { user: undefined, admin: session.admin },
+            }
+
+            // Throttled: a scripted caller hitting this every request would
+            // otherwise turn "record last use" into a write on every request.
+            const lastUsed = tokenRecord.lastUsedAt ? new Date(tokenRecord.lastUsedAt).getTime() : 0
+            if (now.getTime() - lastUsed > 60_000) {
+              await db.update(adminTokens).set({ lastUsedAt: now }).where(eq(adminTokens.id, tokenRecord.id))
+            }
+          }
+        }
+      }
+    } else if (token) {
       // 从 users_tokens 表查找 token
       const foundTokens = await db.select()
         .from(usersTokens)
         .where(eq(usersTokens.token, token))
         .limit(1)
-      
+
       if (foundTokens.length > 0) {
         const tokenRecord = foundTokens[0]
         
@@ -106,7 +157,28 @@ export default defineEventHandler(async (event) => {
               avatarUrl: user.avatarUrl
             }
             authenticatedFromToken = true
-            
+
+            // event.context.user (set below) is NOT what route handlers
+            // actually read — every handler in server/api/ calls
+            // getUserSession()/requireUserSession() from nuxt-auth-utils,
+            // which only looks at h3's own per-request session cache
+            // (event.context.sessions[name]), never event.context.user.
+            // Without this, a token-authenticated request would pass this
+            // middleware but then 401 on every single route handler —
+            // the Bearer/X-Api-Key path never actually worked without it.
+            // h3's getSession() returns this cache immediately if present,
+            // before consulting cookies — and since `id` is non-empty, it
+            // also skips the "mint a new session + Set-Cookie" branch, so a
+            // token-only request never picks up a session cookie either.
+            const runtimeConfig = useRuntimeConfig(event)
+            const sessionName = (runtimeConfig.session as any)?.name || 'nuxt-session'
+            event.context.sessions = event.context.sessions || Object.create(null)
+            ;(event.context.sessions as any)[sessionName] = {
+              id: `token:${tokenRecord.id}`,
+              createdAt: Date.now(),
+              data: { user: session.user, admin: undefined },
+            }
+
             // 更新 lastUsedAt
             await db.update(usersTokens).set({ lastUsedAt: now }).where(eq(usersTokens.id, tokenRecord.id))
           }

@@ -1,39 +1,7 @@
 import { logs } from "../../../db/schema"
 import { desc, count } from "drizzle-orm"
 import { db } from '../../../db/runtime'
-
-const normalizeCreatedAt = (value: unknown) => {
-  if (!value) return ''
-
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? '' : value.toISOString()
-  }
-
-  if (typeof value === 'number') {
-    const timestamp = value < 1e12 ? value * 1000 : value
-    const date = new Date(timestamp)
-    return Number.isNaN(date.getTime()) ? '' : date.toISOString()
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) return ''
-
-    if (/^\d+$/.test(trimmed)) {
-      const numeric = Number(trimmed)
-      const date = new Date(trimmed.length <= 10 ? numeric * 1000 : numeric)
-      return Number.isNaN(date.getTime()) ? trimmed : date.toISOString()
-    }
-
-    const sqliteTimestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
-      ? `${trimmed.replace(' ', 'T')}Z`
-      : trimmed
-    const date = new Date(sqliteTimestamp)
-    return Number.isNaN(date.getTime()) ? trimmed : date.toISOString()
-  }
-
-  return ''
-}
+import { toIsoTimestamp } from '../../../utils/dbTime'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -61,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
   const normalizedLogs = result.map((log: typeof result[number]) => ({
     ...log,
-    createdAt: normalizeCreatedAt(log.createdAt),
+    createdAt: toIsoTimestamp(log.createdAt),
   }))
 
   return {

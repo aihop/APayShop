@@ -78,6 +78,13 @@
       "when": 1785300004007,
       "tag": "0010_add_operation_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785300005002,
+      "tag": "0011_add_admin_tokens",
+      "breakpoints": true
     }
   ]
 }

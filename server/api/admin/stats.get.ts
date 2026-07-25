@@ -1,21 +1,13 @@
 import { and, desc, gte, lt, sql } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { visitorEvents, visitorProfiles } from '../../db/schema'
-import { parseStatsRange } from '../../utils/adminStats'
+import { parseStatsRange, shiftZonedDay, toZonedDateKey } from '../../utils/adminStats'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { getConfiguredTimezone } from '../../utils/timezone'
 
 const toDate = (value: any) => {
   if (value instanceof Date) return value
   return new Date(value)
-}
-
-const toDateKey = (value: any) => {
-  const date = toDate(value)
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 const formatLabel = (dateKey: string) => {
@@ -61,6 +53,7 @@ export default defineEventHandler(async (event) => {
   const events = await db.select({
     id: visitorEvents.id,
     visitorId: visitorEvents.visitorId,
+    ip: visitorEvents.ip,
     userId: visitorEvents.userId,
     orderId: visitorEvents.orderId,
     productId: visitorEvents.productId,
@@ -99,12 +92,16 @@ export default defineEventHandler(async (event) => {
     .where(and(gte(visitorProfiles.lastSeenAt, rangeStart), lt(visitorProfiles.lastSeenAt, rangeEnd)))
     .orderBy(desc(visitorProfiles.lastSeenAt))
 
-  const todayKey = toDateKey(new Date())
-  const dateKeys = Array.from({ length: days }).map((_, index) => {
-    const date = new Date(rangeStart)
-    date.setDate(rangeStart.getDate() + index)
-    return toDateKey(date)
-  })
+  // Reuse the SAME range the drill-down uses (/api/admin/stats/events is called
+  // with preset=today) instead of deriving a separate date key here. Two
+  // independent notions of "today" is exactly how the card and the list end up
+  // disagreeing.
+  const { rangeStart: todayStart, rangeEnd: todayEnd } = parseStatsRange({ preset: 'today' }, tz)
+
+  // 按配置时区的日历推进,而不是 setDate()(本地时区方法)配 UTC 的 key ——
+  // 那两者混用会让分桶 key 和事件 key 差一天。
+  const dateKeys = Array.from({ length: days }).map((_, index) =>
+    toZonedDateKey(shiftZonedDay(rangeStart, index, tz), tz))
 
   const trendMap = new Map<string, {
     label: string
@@ -135,7 +132,13 @@ export default defineEventHandler(async (event) => {
   const authVisitors = new Set<string>()
   const loginVisitors = new Set<string>()
   const registerVisitors = new Set<string>()
-  const todayVisitors = new Set<string>()
+  // Distinct IPs, not visitors — the card is labelled "今日IP" and its drill-down
+  // (/api/admin/stats/events) groups by ip. Counting visitorId here is what made
+  // the card read 3 while the list showed 1.
+  const todayIps = new Set<string>()
+  // GROUP BY ip yields one row for the NULL bucket, so mirror that here or the
+  // two numbers drift apart again whenever an IP couldn't be resolved.
+  let todayHasUnknownIp = false
   const externalVisitors = new Set<string>()
   const campaignVisitors = new Set<string>()
   const firstTouchSourceMap: Record<string, number> = {}
@@ -177,7 +180,7 @@ export default defineEventHandler(async (event) => {
   }
 
   for (const item of events as any[]) {
-    const dateKey = toDateKey(item.createdAt)
+    const dateKey = toZonedDateKey(toDate(item.createdAt), tz)
     const trendItem = trendMap.get(dateKey)
     const stats = visitorEventStats.get(item.visitorId) || {
       pageViews: 0,
@@ -242,8 +245,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    if (dateKey === todayKey) {
-      todayVisitors.add(item.visitorId)
+    const createdAt = toDate(item.createdAt)
+    if (createdAt >= todayStart && createdAt < todayEnd) {
+      if (item.ip) todayIps.add(item.ip)
+      else todayHasUnknownIp = true
     }
 
     visitorEventStats.set(item.visitorId, stats)
@@ -289,7 +294,10 @@ export default defineEventHandler(async (event) => {
     overview: {
       pageViews: events.filter((item: any) => item.eventName === 'page_view').length,
       uniqueVisitors: pageViewVisitors.size,
-      todayVisitors: todayVisitors.size,
+      // Field name kept for compatibility with the existing card binding; the
+      // metric is distinct IPs (see todayIps), matching the "今日IP" label and
+      // the GROUP BY ip drill-down.
+      todayVisitors: todayIps.size + (todayHasUnknownIp ? 1 : 0),
       productVisitors: productVisitors.size,
       checkoutVisitors: checkoutVisitors.size,
       paidVisitors: paidVisitors.size,

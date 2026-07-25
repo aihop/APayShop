@@ -52,6 +52,22 @@ export const admins = sqliteTable('admins', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
+// System-level API tokens for scripted /api/admin/* access. Scoped
+// independently of the creating admin's own permissions (see
+// server/middleware/auth.ts) — null/['*'] means full access, same
+// convention as admins.permissions.
+export const adminTokens = sqliteTable('admin_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  adminId: integer('admin_id').notNull().references(() => admins.id),
+  token: text('token').notNull().unique(),
+  name: text('name'),
+  permissions: text('permissions', { mode: 'json' }).$type<string[]>(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+  revoked: integer('revoked').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
 export const oauthAccounts = sqliteTable('oauth_accounts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),

@@ -39,6 +39,13 @@ interface OAuthProfile {
   email: string;   // The user's email
   name?: string;   // The user's display name
   avatar?: string; // The user's profile picture URL
+  // Whether the PROVIDER confirmed this email belongs to the authenticating
+  // person. Must be true before we ever auto-link to an existing account —
+  // GitHub's public profile `email` field in particular is NOT verified
+  // (anyone can put any address there), so trusting a bare email match here
+  // would let an attacker take over any account by setting their GitHub
+  // profile email to the victim's and clicking "Sign in with GitHub".
+  emailVerified?: boolean;
 }
 
 /**
@@ -79,6 +86,15 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
     const existingUserByEmail = await db.select().from(users).where(eq(users.email, profile.email)).limit(1)
 
     if (existingUserByEmail.length > 0) {
+      // Refuse to auto-link onto an existing account unless the provider
+      // itself vouches that this email is verified. Without this check, an
+      // unverified email match is enough to silently take over any account
+      // (all orders, balance, subscription) — see the note on
+      // OAuthProfile.emailVerified above for the concrete GitHub exploit.
+      if (!profile.emailVerified) {
+        return sendRedirect(event, '/auth/login?error=oauth_email_unverified')
+      }
+
       // Link this OAuth account to the existing user
       finalUserId = existingUserByEmail[0].id
       finalUserEmail = existingUserByEmail[0].email

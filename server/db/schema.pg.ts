@@ -53,6 +53,22 @@ export const admins = pgTable('admins', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 
+// System-level API tokens for scripted /api/admin/* access. Scoped
+// independently of the creating admin's own permissions (see
+// server/middleware/auth.ts) — null/['*'] means full access, same
+// convention as admins.permissions.
+export const adminTokens = pgTable('admin_tokens', {
+  id: serial('id').primaryKey(),
+  adminId: integer('admin_id').notNull().references(() => admins.id),
+  token: text('token').notNull().unique(),
+  name: text('name'),
+  permissions: jsonb('permissions').$type<string[]>(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revoked: boolean('revoked').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+})
+
 export const oauthAccounts = pgTable('oauth_accounts', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),

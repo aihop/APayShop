@@ -4,6 +4,8 @@ import { db } from '../../db/runtime'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { recordOperationFromEvent } from '../../utils/auditLog'
 
+const ADMIN_LOGIN_AUDIT_DEDUPE_MS = 30 * 60 * 1000
+
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
   const body = await readBody(event)
@@ -16,7 +18,7 @@ export default defineEventHandler(async (event) => {
     recordOperationFromEvent(event, {
       actorId: admin?.id ?? null,
       actorName: admin?.username ?? (typeof username === 'string' ? username.slice(0, 190) : null),
-      action: 'login.failed',
+      action: 'loginFailed',
       resource: 'auth',
       details: { reason },
       statusCode: 401,
@@ -57,12 +59,16 @@ export default defineEventHandler(async (event) => {
     loggedInAt: new Date()
   })
 
+  // Deduped: repeated logins from the same admin+IP inside the window collapse
+  // to one row. Failures above are never deduped — every attempt matters when
+  // you're looking at a brute-force pattern.
   await recordOperationFromEvent(event, {
     actorId: user.id,
     actorName: user.username,
     action: 'login',
     resource: 'auth',
     statusCode: 200,
+    dedupeWindowMs: ADMIN_LOGIN_AUDIT_DEDUPE_MS,
   })
 
   return { message: locale === 'zh' ? '登录成功' : 'Login successful' }

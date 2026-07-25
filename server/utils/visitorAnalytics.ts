@@ -85,9 +85,16 @@ const readIp = (event: any) => {
 
   if (ip && !isLocalIp(ip)) return ip
 
-  // Fallback to raw socket IP, but only if it's a real (non-local) IP
-  const remoteIp = getRequestIP(event, { xForwardedFor: true })
-  return remoteIp && !isLocalIp(remoteIp) ? remoteIp : null
+  const remoteIp = normalizeValue(getRequestIP(event, { xForwardedFor: true }))
+  if (remoteIp && !isLocalIp(remoteIp)) return remoteIp
+
+  // No public IP available — local dev, LAN, or a proxy that isn't forwarding.
+  // Store whatever we do have rather than null, matching access_logs. Dropping
+  // it made every visitor collapse into a single NULL bucket under GROUP BY ip,
+  // so the "today IP" list showed one row no matter how many visitors there
+  // were. Geo lookup still skips these (see resolveGeoFromIp/isLocalIp), so
+  // this costs no external calls.
+  return ip || remoteIp || null
 }
 
 const readCity = (event: any) =>

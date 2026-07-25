@@ -71,6 +71,15 @@
           <template #lastOrderAt-cell="{ row }">
             <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(Number(row.original.lastOrderAt || 0)) }}</span>
           </template>
+
+          <template #actions-cell="{ row }">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="ph:eye"
+              @click="openCustomerDetail(row.original)"
+            />
+          </template>
         </UTable>
       </div>
 
@@ -106,6 +115,12 @@
 
           <template #actions-cell="{ row }">
             <div class="flex items-center gap-2">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="ph:eye"
+                @click="openUserDetail(Number(row.original.id))"
+              />
               <UButton
                 color="neutral"
                 variant="ghost"
@@ -199,6 +214,18 @@
         </div>
       </template>
     </UModal>
+
+    <AdminCustomersCustomerDetailModal
+      v-model="isCustomerDetailOpen"
+      :email="customerDetailEmail"
+      :visitor-id="customerDetailVisitorId"
+      @view-user="handleViewRegisteredUser"
+    />
+
+    <AdminCustomersUserDetailModal
+      v-model="isUserDetailOpen"
+      :user-id="userDetailId"
+    />
   </div>
 </template>
 
@@ -230,6 +257,7 @@ const columns = computed(() => [
   { accessorKey: 'totalSpent', header: t('admin.customers.totalSpent') },
   { accessorKey: 'totalOrders', header: t('admin.customers.orders') },
   { accessorKey: 'lastOrderAt', header: t('admin.customers.lastActive') },
+  { accessorKey: 'actions', header: t('admin.users.actions') },
 ])
 
 const { page, pageSize: pageCount, onPageChange } = usePagination(15)
@@ -262,6 +290,32 @@ const copyVisitorId = (id: string) => {
     description: 'Visitor ID copied to clipboard',
     color: 'success',
   })
+}
+
+// --- Detail modals ---
+
+const isCustomerDetailOpen = ref(false)
+const customerDetailEmail = ref<string | null>(null)
+const customerDetailVisitorId = ref<string | null>(null)
+
+const openCustomerDetail = (row: any) => {
+  customerDetailEmail.value = row.email
+  customerDetailVisitorId.value = row.visitorId || null
+  isCustomerDetailOpen.value = true
+}
+
+const isUserDetailOpen = ref(false)
+const userDetailId = ref<number | null>(null)
+
+const openUserDetail = (id: number) => {
+  userDetailId.value = id
+  isUserDetailOpen.value = true
+}
+
+// Jump from a customer's order history straight to their registered account.
+const handleViewRegisteredUser = (id: number) => {
+  isCustomerDetailOpen.value = false
+  openUserDetail(id)
 }
 
 // --- Users (Registered) Logic ---

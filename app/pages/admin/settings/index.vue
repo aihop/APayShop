@@ -128,10 +128,6 @@
             v-if="activeTab === 'topup'"
             :form="dynamicForm"
           />
-          <AdminSettingsIntegrationTab
-            v-if="activeTab === 'integration'"
-            :form="dynamicForm"
-          />
           <AdminSettingsEmailTab
             v-if="activeTab === 'email'"
             :form="dynamicForm"
@@ -233,8 +229,6 @@ const DEFAULT_FORM: Record<string, any> = {
   company_name: '',
   company_phone: '',
   company_address: '',
-  webhook_url: '',
-  integration_token: '',
 }
 
 const buildFormFromStore = (store: Record<string, string>): Record<string, any> => {

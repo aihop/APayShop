@@ -371,14 +371,14 @@ const deleteProduct = async (id: number) => {
     })
     await refresh()
     toast.add({
-      title: 'Success',
-      description: 'Product deleted successfully',
+      title: t('admin.common.success'),
+      description: t('admin.products.deleteSuccess'),
       color: 'success',
     })
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to delete product',
+      title: t('admin.common.error'),
+      description: e.data?.message || t('admin.products.deleteFailed'),
       color: 'error',
     })
   }

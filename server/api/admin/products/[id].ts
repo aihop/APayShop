@@ -51,7 +51,20 @@ export default defineEventHandler(async (event) => {
     const updateData = { ...body }
     delete updateData.id // don't update ID
     delete updateData.createdAt // don't update creation time
-    
+
+    // price = 0 is intentional (free/promo products skip the payment gateway
+    // and auto-fulfill — see server/api/orders/checkout.post.ts). A negative
+    // price has no legitimate use and was previously unchecked.
+    if (updateData.price !== undefined) {
+      const price = Number(updateData.price)
+      if (!Number.isFinite(price) || price < 0) {
+        throw createError({
+          statusCode: 400,
+          message: locale === 'zh' ? '价格不能为负数' : 'Price cannot be negative',
+        })
+      }
+    }
+
     if (!updateData.slug && updateData.name) {
       updateData.slug = updateData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
     }

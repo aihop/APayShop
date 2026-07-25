@@ -44,7 +44,12 @@ const isOpen = ref(false)
 const selected = ref<any>(null)
 const router = useRouter()
 const { t } = useI18n()
-const { extensionPages } = useAdminExtensions()
+const { activeTheme, extensionPages } = useAdminExtensions()
+const { hasPerm: hasAdminPerm, loadAdmin } = useAdminPermissions()
+
+onMounted(async () => {
+  await loadAdmin()
+})
 
 // Define keyboard shortcut to open palette
 defineShortcuts({
@@ -54,7 +59,7 @@ defineShortcuts({
 })
 
 const routes = computed(() => {
-  const coreRoutes = [
+  const publicRoutes = [
     { id: 'home', label: t('site.nav.home'), icon: 'ph:house', to: '/' },
     { id: 'products', label: t('site.nav.products'), icon: 'ph:package', to: '/products' },
     {
@@ -65,100 +70,38 @@ const routes = computed(() => {
     },
     { id: 'about', label: t('site.nav.about'), icon: 'ph:info', to: '/about' },
     { id: 'contact', label: t('site.nav.contact'), icon: 'ph:envelope', to: '/contact' },
-    {
-      id: 'admin-dashboard',
-      label: t('admin.nav.dashboard'),
-      icon: 'ph:squares-four',
-      to: '/admin',
-    },
-    {
-      id: 'admin-orders',
-      label: t('admin.nav.orders'),
-      icon: 'ph:shopping-cart',
-      to: '/admin/orders',
-    },
-    {
-      id: 'admin-stats',
-      label: t('admin.nav.stats'),
-      icon: 'ph:chart-bar',
-      to: '/admin/stats',
-    },
-    {
-      id: 'admin-products',
-      label: t('admin.nav.products'),
-      icon: 'ph:package',
-      to: '/admin/products',
-    },
-    {
-      id: 'admin-customers',
-      label: t('admin.nav.customers'),
-      icon: 'ph:users',
-      to: '/admin/customers',
-    },
-    {
-      id: 'admin-posts',
-      label: t('admin.nav.blogs'),
-      icon: 'ph:newspaper-duotone',
-      to: '/admin/posts',
-    },
-    {
-      id: 'admin-cards',
-      label: t('admin.nav.cards'),
-      icon: 'ph:barcode',
-      to: '/admin/cards',
-    },
-    {
-      id: 'admin-subscriptions',
-      label: t('admin.nav.subscriptions'),
-      icon: 'ph:calendar-check',
-      to: '/admin/subscriptions',
-    },
-    {
-      id: 'admin-promo',
-      label: t('admin.nav.promo'),
-      icon: 'ph:megaphone-simple',
-      to: '/admin/promo',
-    },
-    {
-      id: 'admin-payments',
-      label: t('admin.nav.payments'),
-      icon: 'ph:credit-card',
-      to: '/admin/payments',
-    },
-    {
-      id: 'admin-manages',
-      label: t('admin.nav.manages'),
-      icon: 'ph:users-three',
-      to: '/admin/settings/manages',
-    },
-    {
-      id: 'admin-logs',
-      label: t('admin.nav.logs'),
-      icon: 'ph:log',
-      to: '/admin/logs',
-    },
-    {
-      id: 'admin-themes',
-      label: t('admin.nav.themes'),
-      icon: 'ph:sparkle-duotone',
-      to: '/admin/settings/themes',
-    },
-    {
-      id: 'admin-settings',
-      label: t('admin.nav.general'),
-      icon: 'ph:gear',
-      to: '/admin/settings',
-    },
   ]
 
-  const themeRoutes = extensionPages.value.map((page: any) => ({
-    id: `theme-extension-${page.key}`,
-    label: page.title,
-    icon: page.icon,
-    to: page.route,
-  }))
+  // Each entry names the permission code that gates its route — same codes
+  // as ADMIN_PERMISSIONS/useAdminNavConfig, so results here always match
+  // what's actually reachable, not just what's visible in the sidebar.
+  const adminRoutes = [
+    { id: 'admin-dashboard', label: t('admin.nav.dashboard'), icon: 'ph:squares-four', to: '/admin', permission: 'dashboard' },
+    { id: 'admin-orders', label: t('admin.nav.orders'), icon: 'ph:shopping-cart', to: '/admin/orders', permission: 'orders' },
+    { id: 'admin-stats', label: t('admin.nav.stats'), icon: 'ph:chart-bar', to: '/admin/stats', permission: 'stats' },
+    { id: 'admin-products', label: t('admin.nav.products'), icon: 'ph:package', to: '/admin/products', permission: 'products' },
+    { id: 'admin-customers', label: t('admin.nav.customers'), icon: 'ph:users', to: '/admin/customers', permission: 'customers' },
+    { id: 'admin-posts', label: t('admin.nav.blogs'), icon: 'ph:newspaper-duotone', to: '/admin/posts', permission: 'posts' },
+    { id: 'admin-cards', label: t('admin.nav.cards'), icon: 'ph:barcode', to: '/admin/cards', permission: 'cards' },
+    { id: 'admin-subscriptions', label: t('admin.nav.subscriptions'), icon: 'ph:calendar-check', to: '/admin/subscriptions', permission: 'subscriptions' },
+    { id: 'admin-promo', label: t('admin.nav.promo'), icon: 'ph:megaphone-simple', to: '/admin/promo', permission: 'promo' },
+    { id: 'admin-payments', label: t('admin.nav.payments'), icon: 'ph:credit-card', to: '/admin/payments', permission: 'payments' },
+    { id: 'admin-manages', label: t('admin.nav.manages'), icon: 'ph:users-three', to: '/admin/settings/manages', permission: 'admins' },
+    { id: 'admin-logs', label: t('admin.nav.logs'), icon: 'ph:log', to: '/admin/logs', permission: 'logs' },
+    { id: 'admin-themes', label: t('admin.nav.themes'), icon: 'ph:sparkle-duotone', to: '/admin/settings/themes', permission: 'settings' },
+    { id: 'admin-settings', label: t('admin.nav.general'), icon: 'ph:gear', to: '/admin/settings', permission: 'settings' },
+  ].filter(route => hasAdminPerm(route.permission))
 
-  return [...coreRoutes, ...themeRoutes]
+  const themeRoutes = extensionPages.value
+    .filter((page: any) => hasAdminPerm(themeExtensionPermissionCode(activeTheme.value, page.key)))
+    .map((page: any) => ({
+      id: `theme-extension-${page.key}`,
+      label: page.title,
+      icon: page.icon,
+      to: page.route,
+    }))
+
+  return [...publicRoutes, ...adminRoutes, ...themeRoutes]
 })
 
 const groups = computed(() => [

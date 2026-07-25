@@ -16,12 +16,12 @@ export const SETTINGS_NAV_TABS: SettingsNavTab[] = [
   { id: 'seo', labelKey: 'admin.settings.page.nav_seo', icon: 'ph:magnifying-glass-fill' },
   { id: 'checkout', labelKey: 'admin.settings.page.nav_checkout', icon: 'ph:shopping-cart-fill' },
   { id: 'topup', labelKey: 'admin.settings.page.nav_topup', icon: 'ph:wallet-fill' },
-  { id: 'integration', labelKey: 'admin.settings.page.nav_integration', icon: 'ph:shuffle-fill' },
   { id: 'email', labelKey: 'admin.settings.page.nav_email', icon: 'ph:envelope-fill' },
   { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
   { id: 'automations', labelKey: 'admin.settings.page.nav_automations', icon: 'ph:lightning-fill' },
   { id: 'scheduler', labelKey: 'admin.settings.page.nav_scheduler', icon: 'ph:clock-countdown-fill' },
   { id: 'users', labelKey: 'admin.nav.manages', icon: 'ph:users-four', route: '/admin/settings/manages' },
+  { id: 'authorization', labelKey: 'admin.settings.page.nav_authorization', icon: 'ph:key-fill', route: '/admin/settings/authorization' },
   { id: 'themes', labelKey: 'admin.nav.themes', icon: 'ph:sparkle-duotone', route: '/admin/settings/themes' },
 ]
 

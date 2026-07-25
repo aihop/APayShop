@@ -105,9 +105,19 @@
 </template>
 
 <script setup lang="ts">
-import { firstAllowedAdminRoute } from '~/composables/useAdminPermissions'
+import { firstAllowedAdminRoute, useAdminSession } from '~/composables/useAdminPermissions'
 
 const { settings, fetchSettings, getSetting } = useSettings()
+
+// Resolved HERE, in the synchronous setup context — never inside handleLogin().
+// Past the first `await` the component instance is gone, and useI18n() (which
+// useAdminPermissions layers on for labelFor()) throws "Must be called at the
+// top of a `setup` function". That error carries no `.data`, so it surfaced as
+// a bogus "Invalid credentials" on an otherwise successful login while the
+// redirect silently never ran. useAdminSession is the i18n-free half, which is
+// all the login page needs.
+const { admin, loadAdmin } = useAdminSession()
+const { extensionPermissionDefs } = useAdminExtensions()
 
 definePageMeta({
   layout: false, // Use no layout to take full screen control
@@ -143,26 +153,38 @@ const handleLogin = async () => {
       method: 'POST',
       body: form,
     })
+  } catch (e: any) {
+    // Only a genuine credential rejection reaches here now.
+    errorMsg.value = e.data?.message || e.data?.statusMessage || 'Invalid credentials'
+    isLoading.value = false
+    return
+  }
 
-    let redirectTarget = '/admin'
+  // Credentials were accepted. Nothing below may block the redirect — working
+  // out the *best* landing page is a nice-to-have, being stranded on the login
+  // form after a successful login is not. '/admin/profile' is the safe floor:
+  // isRouteAllowedForAdmin() permits it for every admin regardless of grants.
+  let redirectTarget = '/admin/profile'
+  try {
     if (typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')) {
       redirectTarget = route.query.redirect
     } else {
+      // Force-refresh the shared admin state so it reflects the account that
+      // JUST logged in, not whatever this browser tab had cached (e.g. a
+      // previous admin who logged out in this same tab, or this account's own
+      // permissions from before they were last changed).
+      await loadAdmin(true)
+      await fetchSettings()
       // Don't assume '/admin' (dashboard) is reachable — an admin without
       // the 'dashboard' permission needs to land on their first allowed page.
-      try {
-        const res: any = await $fetch('/api/admin/session')
-        await fetchSettings()
-        const { extensionPermissionDefs } = useAdminExtensions()
-        redirectTarget = firstAllowedAdminRoute(res?.admin, extensionPermissionDefs.value) || '/admin/profile'
-      } catch {}
+      redirectTarget = firstAllowedAdminRoute(admin.value, extensionPermissionDefs.value) || '/admin/profile'
     }
-
-    router.push(redirectTarget)
-  } catch (e: any) {
-    errorMsg.value = e.data?.message || 'Invalid credentials'
+  } catch (e) {
+    console.error('[admin-login] could not resolve the post-login landing page:', e)
   } finally {
     isLoading.value = false
   }
+
+  router.push(redirectTarget)
 }
 </script>

@@ -1,6 +1,7 @@
 import { products } from "../../../db/schema"
 import { db } from '../../../db/runtime'
 import { count, desc } from "drizzle-orm"
+import { getRequestLocale } from '../../../utils/requestLocale'
 
 const normalizeImageUrls = (value: unknown) => {
   if (value === null || value === undefined || value === '') {
@@ -66,6 +67,20 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     // Remove id from body to let SQLite auto-increment
     const { id, ...insertData } = body
+
+    // price = 0 is intentional (free/promo products skip the payment gateway
+    // and auto-fulfill — see server/api/orders/checkout.post.ts). A negative
+    // price has no legitimate use and was previously unchecked: any visitor
+    // could discover a mispriced product and farm free fulfillments from it.
+    if (insertData.price !== undefined) {
+      const price = Number(insertData.price)
+      if (!Number.isFinite(price) || price < 0) {
+        throw createError({
+          statusCode: 400,
+          message: getRequestLocale(event) === 'zh' ? '价格不能为负数' : 'Price cannot be negative',
+        })
+      }
+    }
 
     if (!insertData.slug && insertData.name) {
       insertData.slug = insertData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')

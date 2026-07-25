@@ -311,6 +311,8 @@
       "viewPage": "View Product Page",
       "pricingPlan": "Shown as pricing plan on frontend",
       "confirmDelete": "Are you sure you want to delete this product?",
+      "deleteSuccess": "Product deleted successfully",
+      "deleteFailed": "Failed to delete product",
       "form": {
         "type": "Type",
         "type_basic": "Basic (No extra data)",
@@ -458,12 +460,12 @@
         "nav_localization": "Localization",
         "nav_seo": "SEO",
         "nav_checkout": "Checkout",
-        "nav_integration": "Integration",
         "nav_email": "Email",
         "nav_company": "Company Details",
         "nav_automations": "Event Rules",
         "nav_scheduler": "Scheduled Tasks",
-        "nav_topup": "Top-up"
+        "nav_topup": "Top-up",
+        "nav_authorization": "Authorization"
       },
       "general": {
         "title": "General Information",

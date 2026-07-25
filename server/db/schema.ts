@@ -41,6 +41,7 @@ export const {
   users,
   usersTokens,
   admins,
+  adminTokens,
   oauthAccounts,
   products,
   cards,

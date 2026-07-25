@@ -75,7 +75,12 @@ export default defineEventHandler(async (event) => {
         and(
           gte(visitorEvents.createdAt, rangeStart),
           lt(visitorEvents.createdAt, rangeEnd),
-          sql`${visitorEvents.referrer} IS NOT NULL AND ${visitorEvents.referrer} != '' AND ${visitorEvents.referrer} NOT LIKE '%${sql.raw(host)}%'`
+          // sql.raw() would splice `host` (attacker-controllable via the Host
+          // request header) directly into the query text — a SQL injection
+          // primitive. Interpolating it as a normal template value instead
+          // lets drizzle bind it as a parameter, which is safe regardless of
+          // what characters it contains.
+          sql`${visitorEvents.referrer} IS NOT NULL AND ${visitorEvents.referrer} != '' AND ${visitorEvents.referrer} NOT LIKE ${`%${host}%`}`
         )
       )
       .groupBy(visitorEvents.visitorId)

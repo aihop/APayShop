@@ -4,6 +4,7 @@ import { visitorEvents } from '../../../db/schema'
 import { clampStatsPage, clampStatsPageSize, parseStatsRange } from '../../../utils/adminStats'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { getConfiguredTimezone } from '../../../utils/timezone'
+import { toIsoTimestampOrEpoch } from '../../../utils/dbTime'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -17,9 +18,16 @@ export default defineEventHandler(async (event) => {
 
   const timeFilter = and(gte(visitorEvents.createdAt, rangeStart), lt(visitorEvents.createdAt, rangeEnd))
 
-  // Count distinct IPs for pagination
+  // Count of GROUP BY ip buckets, which is NOT COUNT(DISTINCT ip): SQL skips
+  // NULL in COUNT(DISTINCT), while GROUP BY emits one row for it. That mismatch
+  // reported totalItems=0 for a page that actually returned a row. The MAX(CASE…)
+  // form adds the NULL bucket back and works on Postgres, SQLite and MySQL alike
+  // (FILTER / COUNT(*) OVER would not).
   const [{ value: totalItems }] = await db
-    .select({ value: sql<number>`COUNT(DISTINCT ${visitorEvents.ip})` })
+    .select({
+      value: sql<number>`COUNT(DISTINCT ${visitorEvents.ip})
+        + COALESCE(MAX(CASE WHEN ${visitorEvents.ip} IS NULL THEN 1 ELSE 0 END), 0)`,
+    })
     .from(visitorEvents)
     .where(timeFilter)
 
@@ -46,13 +54,6 @@ export default defineEventHandler(async (event) => {
     .limit(pageSize)
     .offset(offset)
 
-  // Normalize timestamps: SQLite MIN/MAX returns seconds, convert to ISO string
-  const toIso = (val: any): string => {
-    if (!val && val !== 0) return new Date(0).toISOString()
-    const ms = typeof val === 'number' && val < 1e12 ? val * 1000 : Number(val)
-    return new Date(ms).toISOString()
-  }
-
   return {
     range: {
       preset,
@@ -78,8 +79,10 @@ export default defineEventHandler(async (event) => {
       deviceType: item.deviceType || unknownLabel,
       browser: item.browser || null,
       os: item.os || null,
-      firstSeenAt: toIso(item.firstSeenAt),
-      lastSeenAt: toIso(item.lastSeenAt),
+      // MIN/MAX are raw sql`` fragments, so no drizzle column mapper runs and
+      // the value arrives dialect-shaped (Postgres string / SQLite seconds).
+      firstSeenAt: toIsoTimestampOrEpoch(item.firstSeenAt),
+      lastSeenAt: toIsoTimestampOrEpoch(item.lastSeenAt),
     })),
   }
 })

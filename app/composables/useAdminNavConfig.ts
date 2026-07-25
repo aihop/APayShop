@@ -20,22 +20,19 @@ export const useAdminNav = () => {
   const hasKeyProducts = ref(false)
   const hasSubscriptionProducts = ref(false)
 
-  const { admin, isSuper, allPermissions, hasPerm, loadAdmin } = useAdminPermissions()
-  const loadedOnce = ref(false)
-  const ensureAdmin = async () => {
-    if (!loadedOnce.value) {
-      loadedOnce.value = true
-      try {
-        await loadAdmin()
-      } catch {}
-    }
-  }
+  const { admin, hasPerm, loadAdmin } = useAdminPermissions()
 
+  // No "still loading" fallback here on purpose: layouts/admin.vue awaits
+  // loadAdmin() before any of the layout's children (this composable's
+  // consumers included) render at all, on both server and client. By the
+  // time hasPermissionFor() is ever called, admin state is already
+  // resolved — so hasPerm()'s normal fail-closed behavior (no admin loaded
+  // yet = no access) is exactly right, with nothing left to fail closed on.
+  // An earlier version returned `true` while "not yet loaded", which showed
+  // every nav item — including ones the admin has zero access to — for a
+  // beat on every single page load before narrowing down after hydration.
   const hasPermissionFor = (perm: string | undefined) => {
     if (!perm) return true
-    if (!loadedOnce.value) return true
-    if (isSuper.value) return true
-    if (allPermissions.value) return true
     return hasPerm(perm)
   }
 
@@ -47,10 +44,11 @@ export const useAdminNav = () => {
         hasKeyProducts.value = types.includes('key')
         hasSubscriptionProducts.value = types.includes('subscription')
       })()
-      const adminP = ensureAdmin()
-      await Promise.all([typesP, adminP])
+      // Idempotent — layouts/admin.vue already loaded this; this is just a
+      // safety net if useAdminNav() is ever used somewhere that bypasses it.
+      await Promise.all([typesP, loadAdmin()])
     } catch (e) {
-      await ensureAdmin()
+      await loadAdmin()
     }
   }
 
@@ -130,7 +128,6 @@ export const useAdminNav = () => {
     resolveLabel,
     resolveSectionTitle,
     adminNavAdmin: admin,
-    adminNavLoaded: loadedOnce,
     hasPermissionFor,
   }
 }

@@ -12,6 +12,7 @@ export default defineConfig({
     "users_tokens",
     "posts",
     "admins",
+    "admin_tokens",
     "cards",
     "payment_failures",
     "logs",

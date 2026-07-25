@@ -11,7 +11,9 @@ export default defineOAuthGoogleEventHandler({
       id: user.sub, // Google's unique ID for the user
       email: user.email || '',
       name: user.name || '',
-      avatar: user.picture || ''
+      avatar: user.picture || '',
+      // Google's userinfo endpoint returns this per the OIDC standard claim set.
+      emailVerified: (user as any).email_verified === true || (user as any).email_verified === 'true',
     })
   },
   // Optional: Handle errors
