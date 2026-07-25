@@ -1,25 +1,67 @@
-// 语言前缀归一走 app/utils/admin-route.ts 单点(auto-import),
-// 公开页排除集(login/setup)是鉴权自己的语义,留在本文件表达
+import { isRouteAllowedForAdmin, adminHasAnyRouteAccess } from '~/composables/useAdminPermissions'
+
+let sessionCache: any = null
+let lastFetchAt = 0
+const CACHE_TTL_MS = 15_000
+
+async function loadAdminSession(): Promise<any> {
+  const now = Date.now()
+  if (sessionCache && now - lastFetchAt < CACHE_TTL_MS) {
+    return sessionCache
+  }
+  try {
+    const res: any = await $fetch('/api/admin/session', {
+      headers: import.meta.server ? useRequestHeaders(['cookie']) : undefined,
+    })
+    sessionCache = res?.admin || null
+  } catch (e) {
+    sessionCache = null
+    lastFetchAt = now
+    throw e
+  }
+  lastFetchAt = now
+  return sessionCache
+}
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const path = stripLocalePrefix(to.path)
   const isAdminRoute = path.startsWith('/admin')
-  const isPublicAdminRoute = path === '/admin/login' || path === '/admin/setup'
+  const isPublicAdminRoute =
+    path === '/admin/login' ||
+    path === '/admin/setup' ||
+    path === '/admin/logout' ||
+    path === '/admin/profile'
 
-  if (!isAdminRoute || isPublicAdminRoute) {
-    return
-  }
+  if (!isAdminRoute) return
 
+  let admin: any = null
   try {
-    await $fetch('/api/admin/session', {
-      headers: import.meta.server ? useRequestHeaders(['cookie']) : undefined,
-    })
+    admin = await loadAdminSession()
   } catch {
+    if (isPublicAdminRoute) return
     return navigateTo({
       path: '/admin/login',
-      query: {
-        redirect: to.fullPath,
-      },
+      query: { redirect: to.fullPath },
       replace: true,
     })
+  }
+
+  if (!admin) {
+    if (isPublicAdminRoute) return
+    return navigateTo({
+      path: '/admin/login',
+      query: { redirect: to.fullPath },
+      replace: true,
+    })
+  }
+
+  if (isPublicAdminRoute) return
+
+  if (!adminHasAnyRouteAccess(admin)) {
+    return navigateTo('/admin/profile', { replace: true })
+  }
+
+  if (!isRouteAllowedForAdmin(path, admin)) {
+    return navigateTo('/admin', { replace: true })
   }
 })

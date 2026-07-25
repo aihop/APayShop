@@ -49,6 +49,7 @@ export const admins = mysqlTable('admins', {
   id: int('id').autoincrement().primaryKey(),
   username: varchar('username', { length: 191 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  permissions: json('permissions').$type<string[]>(),
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 

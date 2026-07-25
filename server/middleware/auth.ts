@@ -2,6 +2,11 @@ import { users, usersTokens, settings } from "../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from '../utils/auth'
+import {
+  matchPermissionForApiPath,
+  adminHasPermission,
+  ADMIN_PUBLIC_PATHS,
+} from '../utils/adminPermissions'
 
 async function isMultiDeviceLoginDisabled(): Promise<boolean> {
   try {
@@ -19,19 +24,10 @@ export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
   const pathname = url.pathname
 
-  // 1. 定义受保护的后台路径
   const isAdminPath = pathname.startsWith("/api/admin")
-  // 排除不需要校验的路径——必须精确匹配:此前用 pathname.includes 子串判断,
-  // 任何路径名带 setup/login 等单词的后台新接口都会意外绕过鉴权
-  const ADMIN_PUBLIC_PATHS = new Set([
-    "/api/admin/setup",
-    "/api/admin/setup/check",
-    "/api/admin/login",
-    "/api/admin/logout",
-  ])
   const isAuthPath = ADMIN_PUBLIC_PATHS.has(pathname)
 
-  let session: any = { user: null, admin: null }
+  let session: any = { user: undefined, admin: undefined }
   let authenticatedFromToken = false
 
   try {
@@ -121,6 +117,13 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 401,
         statusMessage: "Unauthorized: Admin access required"
+      })
+    }
+    const required = matchPermissionForApiPath(pathname)
+    if (required && !adminHasPermission(session.admin, required)) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: `Forbidden: requires permission "${required}"`
       })
     }
   }

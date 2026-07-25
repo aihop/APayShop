@@ -2,6 +2,7 @@ import { admins } from "../../../db/schema"
 import { desc,count } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { hasAllPermissions, ADMIN_PERMISSIONS } from '../../../utils/adminPermissions'
  
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -14,18 +15,37 @@ export default defineEventHandler(async (event) => {
   const total = totalResult[0]?.value || 0
   
   try {
-    const result = await db.select({
+    const rawResult = await db.select({
       id:  admins.id,
       username: admins.username,
+      permissions: admins.permissions,
       createdAt: admins.createdAt
     })
     .from(admins)
     .orderBy(desc(admins.createdAt))
     .limit(pageSize)
     .offset(offset)
+
+    const data = (rawResult as any[]).map((r: any) => {
+      const perms = Array.isArray(r.permissions) ? r.permissions : null
+      const summary = hasAllPermissions(perms)
+        ? { all: true, count: ADMIN_PERMISSIONS.length }
+        : { all: false, count: (perms?.length) || 0 }
+      return {
+        id: r.id,
+        username: r.username,
+        permissions: perms,
+        permissionSummary: summary,
+        createdAt: r.createdAt instanceof Date
+          ? r.createdAt.toISOString()
+          : r.createdAt
+            ? new Date(r.createdAt as any).toISOString()
+            : null,
+      }
+    })
     
     return {
-      data: result,
+      data,
       total,
       page,
       pageSize

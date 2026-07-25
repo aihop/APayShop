@@ -666,11 +666,11 @@
       "topup": {
         "title": "充值(快捷充值)",
         "enabled": "启用快捷充值",
-        "enabled_desc": "关闭后前台隐藏充值入口，下单接口也会直接拒绝。",
+        "enabled_desc": "关闭后前台隐藏充值入口，下单接口也会直接拒绝",
         "accounting_currency": "记账币种",
-        "accounting_currency_desc": "余额所使用的单位。实付金额会按下方汇率折算成该币种入账。",
+        "accounting_currency_desc": "余额所使用的单位。实付金额会按下方汇率折算成该币种入账",
         "currencies": "支付币种",
-        "currencies_desc": "每个币种有各自的金额区间与折算汇率。只有列出的币种才能用于充值。",
+        "currencies_desc": "每个币种有各自的金额区间与折算汇率。只有列出的币种才能用于充值",
         "add_currency": "添加币种",
         "remove_currency": "删除币种",
         "no_currency": "尚未配置币种，充值将回落到内置默认值。",
@@ -688,7 +688,7 @@
         "issue_max": "{currency}：最大金额不能小于最小金额。",
         "issue_rate": "{currency}：汇率必须大于 0。",
         "issue_self_rate": "{currency} 是记账币种，汇率必须为 1。",
-        "issue_accounting_missing": "记账币种 {currency} 不在支付币种列表中，用户无法用它充值。"
+        "issue_accounting_missing": "记账币种 {currency} 不在支付币种列表中，用户无法用它充值"
       }
     },
     "common": {

@@ -5,6 +5,7 @@ export interface AdminNavItem {
   labelFallback?: string
   exact?: boolean
   conditional?: () => boolean
+  permission?: string
 }
 
 export interface AdminNavSection {
@@ -19,39 +20,84 @@ export const useAdminNav = () => {
   const hasKeyProducts = ref(false)
   const hasSubscriptionProducts = ref(false)
 
-  const loadProductTypes = async () => {
-    try {
-      const res: any = await $fetch('/api/products/types')
-      const types = res.data || []
-      hasKeyProducts.value = types.includes('key')
-      hasSubscriptionProducts.value = types.includes('subscription')
-    } catch (e) {
-      // ignore
+  const { admin, isSuper, allPermissions, hasPerm, loadAdmin } = useAdminPermissions()
+  const loadedOnce = ref(false)
+  const ensureAdmin = async () => {
+    if (!loadedOnce.value) {
+      loadedOnce.value = true
+      try {
+        await loadAdmin()
+      } catch {}
     }
   }
 
-  const storeSection: AdminNavSection = {
+  const hasPermissionFor = (perm: string | undefined) => {
+    if (!perm) return true
+    if (!loadedOnce.value) return true
+    if (isSuper.value) return true
+    if (allPermissions.value) return true
+    return hasPerm(perm)
+  }
+
+  const loadProductTypes = async () => {
+    try {
+      const typesP = (async () => {
+        const res: any = await $fetch('/api/products/types')
+        const types = res.data || []
+        hasKeyProducts.value = types.includes('key')
+        hasSubscriptionProducts.value = types.includes('subscription')
+      })()
+      const adminP = ensureAdmin()
+      await Promise.all([typesP, adminP])
+    } catch (e) {
+      await ensureAdmin()
+    }
+  }
+
+  const makeItem = (item: AdminNavItem): AdminNavItem => {
+    const existing = item.conditional
+    if (item.permission) {
+      return {
+        ...item,
+        conditional: () => hasPermissionFor(item.permission!) && (!existing || existing()),
+      }
+    }
+    return item
+  }
+
+  const storeSectionBase: AdminNavSection = {
     titleKey: 'admin.nav.store',
     items: [
-      { to: '/admin', icon: 'ph:squares-four', labelKey: 'admin.nav.dashboard', exact: true },
-      { to: '/admin/stats', icon: 'ph:chart-bar', labelKey: 'admin.nav.stats' },
-      { to: '/admin/orders', icon: 'ph:shopping-cart', labelKey: 'admin.nav.orders' },
-      { to: '/admin/products', icon: 'ph:package', labelKey: 'admin.nav.products' },
-      { to: '/admin/customers', icon: 'ph:users', labelKey: 'admin.nav.customers' },
-      { to: '/admin/posts', icon: 'ph:newspaper-duotone', labelKey: 'admin.nav.blogs' },
-      { to: '/admin/cards', icon: 'ph:barcode', labelFallback: 'Cards', conditional: () => hasKeyProducts.value },
-      { to: '/admin/subscriptions', icon: 'ph:calendar-check', labelKey: 'admin.nav.subscriptions', conditional: () => hasSubscriptionProducts.value },
+      { to: '/admin', icon: 'ph:squares-four', labelKey: 'admin.nav.dashboard', exact: true, permission: 'dashboard' },
+      { to: '/admin/stats', icon: 'ph:chart-bar', labelKey: 'admin.nav.stats', permission: 'dashboard' },
+      { to: '/admin/orders', icon: 'ph:shopping-cart', labelKey: 'admin.nav.orders', permission: 'orders' },
+      { to: '/admin/products', icon: 'ph:package', labelKey: 'admin.nav.products', permission: 'products' },
+      { to: '/admin/customers', icon: 'ph:users', labelKey: 'admin.nav.customers', permission: 'customers' },
+      { to: '/admin/posts', icon: 'ph:newspaper-duotone', labelKey: 'admin.nav.blogs', permission: 'posts' },
+      { to: '/admin/cards', icon: 'ph:barcode', labelFallback: 'Cards', permission: 'cards', conditional: () => hasKeyProducts.value },
+      { to: '/admin/subscriptions', icon: 'ph:calendar-check', labelKey: 'admin.nav.subscriptions', permission: 'subscriptions', conditional: () => hasSubscriptionProducts.value },
+    ],
+  }
+
+  const storeSection: AdminNavSection = {
+    ...storeSectionBase,
+    items: storeSectionBase.items.map(makeItem),
+  }
+
+  const configSectionBase: AdminNavSection = {
+    titleKey: 'admin.nav.configs',
+    items: [
+      { to: '/admin/promo', icon: 'ph:megaphone-simple', labelKey: 'admin.nav.promo', permission: 'promo' },
+      { to: '/admin/payments', icon: 'ph:credit-card', labelKey: 'admin.nav.payments', permission: 'payments' },
+      { to: '/admin/logs', icon: 'ph:log', labelKey: 'admin.nav.logs', permission: 'logs' },
+      { to: '/admin/settings', icon: 'ph:gear', labelKey: 'admin.nav.settings', permission: 'settings' },
+      { to: '/admin/settings/manages', icon: 'ph:users-three', labelFallback: 'Admins', permission: 'admins' },
     ],
   }
 
   const configSection: AdminNavSection = {
-    titleKey: 'admin.nav.configs',
-    items: [
-      { to: '/admin/promo', icon: 'ph:megaphone-simple', labelKey: 'admin.nav.promo' },
-      { to: '/admin/payments', icon: 'ph:credit-card', labelKey: 'admin.nav.payments' },
-      { to: '/admin/logs', icon: 'ph:log', labelKey: 'admin.nav.logs' },
-      { to: '/admin/settings', icon: 'ph:gear', labelKey: 'admin.nav.settings' },
-    ],
+    ...configSectionBase,
+    items: configSectionBase.items.map(makeItem),
   }
 
   const resolveLabel = (item: AdminNavItem): string => {
@@ -84,6 +130,8 @@ export const useAdminNav = () => {
     hasSubscriptionProducts,
     resolveLabel,
     resolveSectionTitle,
+    adminNavAdmin: admin,
+    adminNavLoaded: loadedOnce,
   }
 }
 

@@ -27,13 +27,17 @@ export default defineEventHandler(async (event) => {
 
   // 3. 设置用户会话 (取代 jwt.sign)
   // 这会自动创建一个加密的 HttpOnly Cookie，存储在浏览器中
+  const permsRaw = (user as any).permissions
+  const permissions = Array.isArray(permsRaw) ? permsRaw : undefined
+
   await setUserSession(event, {
     admin: {
       id: user.id,
       username: user.username,
-      role: 'admin' // 你可以按需添加字段
+      role: 'admin',
+      permissions,
     },
-    user: null,
+    user: undefined,
     loggedInAt: new Date()
   })
 

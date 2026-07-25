@@ -49,6 +49,7 @@ export const admins = pgTable('admins', {
   id: serial('id').primaryKey(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  permissions: jsonb('permissions').$type<string[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 

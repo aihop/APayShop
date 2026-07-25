@@ -2,6 +2,7 @@ import { admins } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { normalizePermissions } from '../../../utils/adminPermissions'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
       }
   try {
     const body = await readBody(event)
-    const { username, password } = body
+    const { username, password, permissions } = body
     
     if (!username || !password) {
       throw createError({
@@ -29,7 +30,6 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    // Check if admin already exists
     const existingAdmin = await db.select().from(admins).where(eq(admins.username, username))
     if (existingAdmin.length > 0) {
       throw createError({
@@ -39,11 +39,21 @@ export default defineEventHandler(async (event) => {
     }
     
     const hashedPassword = await hashPassword(password)
-    
-    await db.insert(admins).values({
+    const normalizedPerms = normalizePermissions(permissions, { allowAll: true })
+
+    const insertValues: any = {
       username,
-      passwordHash: hashedPassword
-    })
+      passwordHash: hashedPassword,
+    }
+    if (normalizedPerms !== null) {
+      insertValues.permissions = process.env.NUXT_HUB_DATABASE
+        ? normalizedPerms
+        : JSON.stringify(normalizedPerms)
+    } else {
+      insertValues.permissions = null
+    }
+    
+    await db.insert(admins).values(insertValues)
     
     return { code: 0, message: messages.created }
   } catch (error: any) {
