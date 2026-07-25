@@ -204,7 +204,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 
-definePageMeta({ title: 'Customers & Users' })
+definePageMeta({ title: 'Customers & Users', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()

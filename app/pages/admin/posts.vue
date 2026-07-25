@@ -349,7 +349,7 @@
 <script setup lang="ts">
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
-definePageMeta({ title: 'Posts Management' })
+definePageMeta({ title: 'Posts Management', layout: 'admin' })
 
 const toast = useToast()
 const { formatDate } = useFormatTime()

@@ -89,7 +89,7 @@
 import { ref } from 'vue'
 import { useToast, definePageMeta, useI18n } from '#imports'
 
-definePageMeta({ title: 'Themes' })
+definePageMeta({ title: 'Themes', layout: 'admin' })
 
 const { t } = useI18n()
 

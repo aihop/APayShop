@@ -105,7 +105,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-definePageMeta({ title: 'Subscriptions Management' })
+definePageMeta({ title: 'Subscriptions Management', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDate } = useFormatTime()

@@ -278,7 +278,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-definePageMeta({ title: 'Logs' })
+definePageMeta({ title: 'Logs', layout: 'admin' })
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 const toast = useToast()

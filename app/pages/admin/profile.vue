@@ -72,7 +72,7 @@ import { ref, reactive, computed } from 'vue'
 
 const { t } = useI18n()
 
-definePageMeta({ title: 'Profile Settings' })
+definePageMeta({ title: 'Profile Settings', layout: 'admin' })
 
 const toast = useToast()
 const isSaving = ref(false)

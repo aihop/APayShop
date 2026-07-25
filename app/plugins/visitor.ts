@@ -26,13 +26,8 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   const route = useRoute()
 
-  const normalizeAdminPath = (path: string) =>
-    path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
-
-  const shouldTrack = (path: string) => {
-    const normalizedPath = normalizeAdminPath(path)
-    return !!path && !normalizedPath.startsWith('/admin')
-  }
+  // 访客统计排除整个 /admin 命名空间(含 login/setup);判定走 utils 单点
+  const shouldTrack = (path: string) => !!path && !isAdminPath(path)
 
   const getRouteSegments = (path: string) => {
     const pathname = path.split('?')[0] || ''

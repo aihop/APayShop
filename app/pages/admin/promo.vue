@@ -353,7 +353,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-definePageMeta({ title: 'Promo Management' })
+definePageMeta({ title: 'Promo Management', layout: 'admin' })
 
 const { t } = useI18n()
 const toast = useToast()

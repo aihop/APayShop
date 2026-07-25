@@ -245,7 +245,7 @@ const { fetchSettings } = useSettings()
 
 const { t } = useI18n()
 
-definePageMeta({ title: 'System Settings' })
+definePageMeta({ title: 'System Settings', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()

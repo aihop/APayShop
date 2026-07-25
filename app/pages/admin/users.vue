@@ -128,7 +128,7 @@ import { ref, reactive, computed } from 'vue'
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 
-definePageMeta({ title: 'Users Management' })
+definePageMeta({ title: 'Users Management', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()

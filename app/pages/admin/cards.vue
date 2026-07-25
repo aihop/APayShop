@@ -168,7 +168,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-definePageMeta({ title: 'Cards Management' })
+definePageMeta({ title: 'Cards Management', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()

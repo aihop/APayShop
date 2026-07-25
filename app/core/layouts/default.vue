@@ -4,31 +4,19 @@
 
     <AppMobileMenu v-model:open="isMobileMenuOpen" />
 
-    <div :class="isAdminRoute ? 'flex flex-1 max-w-[1440px] w-full px-6 lg:px-12 mx-auto' : ''">
-      <AdminSidebar v-if="isAdminRoute" />
+    <main>
+      <slot />
+    </main>
 
-      <main :class="isAdminRoute ? 'flex-1 min-w-0 py-10 pl-4 pr-4 md:pl-12 lg:pr-8' : ''">
-        <div :class="isAdminRoute ? 'max-w-[1000px] mx-auto w-full' : ''">
-          <slot />
-        </div>
-      </main>
-    </div>
-
-    <AppFooter v-if="!isAdminRoute" />
+    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+// 纯前台兜底布局:仅在未激活任何主题时使用(7 个主题各有自带 layout)。
+// admin 已走独立的 layouts/admin.vue(2026-07 拆分),本文件不再做
+// isAdminRoute 分支/AdminSidebar 条件挂载。
+import { ref } from 'vue'
 
-const route = useRoute()
 const isMobileMenuOpen = ref(false)
-
-const normalizeAdminPath = (path: string) =>
-  path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
-
-const isAdminRoute = computed(() => {
-  const path = normalizeAdminPath(route.path)
-  return path.startsWith('/admin') && path !== '/admin/login'
-})
 </script>

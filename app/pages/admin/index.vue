@@ -212,7 +212,7 @@ import {
   useRouter,
 } from '#imports'
 
-definePageMeta({ title: 'Dashboard' })
+definePageMeta({ title: 'Dashboard', layout: 'admin' })
 
 const { t } = useI18n()
 const router = useRouter() 

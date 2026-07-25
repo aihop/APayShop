@@ -319,7 +319,7 @@ import { definePageMeta, useToast, useFetch, useRouter, useI18n, useRequestURL }
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 
-definePageMeta({ title: 'Orders Management' })
+definePageMeta({ title: 'Orders Management', layout: 'admin' })
 
 const toast = useToast()
 const requestUrl = useRequestURL()

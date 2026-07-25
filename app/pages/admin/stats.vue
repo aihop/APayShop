@@ -431,7 +431,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ title: 'Visitor Stats' })
+definePageMeta({ title: 'Visitor Stats', layout: 'admin' })
 
 const { t, locale } = useI18n()
 const { formatDateTime } = useFormatTime()

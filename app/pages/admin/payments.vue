@@ -400,7 +400,7 @@ import {
   useI18n,
 } from '#imports'
 
-definePageMeta({ title: 'Payment Methods' })
+definePageMeta({ title: 'Payment Methods', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()

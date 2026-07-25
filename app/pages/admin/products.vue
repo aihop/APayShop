@@ -188,7 +188,7 @@ import { useSortable } from '@vueuse/integrations/useSortable'
 
 const { t, locale } = useI18n()
 
-definePageMeta({ title: 'Products Management' })
+definePageMeta({ title: 'Products Management', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()

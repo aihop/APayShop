@@ -36,6 +36,8 @@ import {
   themeAdminLocaleZhModules,
 } from '~/generated/theme-build'
 
+definePageMeta({ layout: 'admin' })
+
 const route = useRoute()
 const { activeTheme, findExtensionPage, resolveExtensionComponent } = useAdminExtensions()
 const { mergeLocaleMessage } = useI18n()

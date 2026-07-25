@@ -8,38 +8,21 @@
 </template>
 
 <script setup lang="ts">
+// 前台主题分发器:按 active_theme 动态加载主题 layout,失败/未激活时
+// 兜底 core 布局。admin 页面已通过 definePageMeta({ layout: 'admin' })
+// 直连 layouts/admin.vue(2026-07 拆分),不再进入本分发器。
 import { computed, defineAsyncComponent } from 'vue'
-import { useRoute } from 'vue-router'
 import * as themeBuild from '~/generated/theme-build'
 
 const { getSetting } = useSettings()
-
-const route = useRoute()
-
-const normalizeAdminPath = (path: string) =>
-  path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
 
 const activeTheme = computed(() => {
   const theme = getSetting('active_theme') || ''
   return themeBuild.publishedOptionalThemeSet.has(theme) ? theme : ''
 })
 
-const isAdminRoute = computed(
-  () => {
-    const path = normalizeAdminPath(route.path)
-    return path.startsWith('/admin') && path !== '/admin/login'
-  }
-)
-
 // Dynamic layout loader
 const activeLayout = computed(() => {
-  // Always use the core layout for admin routes
-  if (isAdminRoute.value) {
-    return defineAsyncComponent(
-      () => import('../core/layouts/default.vue')
-    )
-  }
-
   return defineAsyncComponent(() => {
     if (!activeTheme.value) return import('../core/layouts/default.vue')
     const loadThemeLayout = themeBuild.themeLayoutLoaders[activeTheme.value] as
