@@ -11,6 +11,7 @@ import { createNotification } from '../../utils/notifications'
 import { stripReservedOrderMeta } from '../../utils/orderMetaData'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { fulfillOrder } from '../../utils/fulfillment'
+import { dispatchEvent } from '../../utils/eventBus'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -388,9 +389,14 @@ export default defineEventHandler(async (event) => {
               paidAt: new Date(),
             })
             .where(eq(orders.id, pendingOrder.id))
-          await fulfillOrder(pendingOrder.id).catch((e) =>
-            console.error('[Checkout] Free order reuse fulfill failed:', pendingOrder.id, e),
-          )
+          // 履约后必须派发 order.paid:integration.transaction(如试用商品的送钱)
+          // 只经这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,
+          // 不在这里发就永远不入账(试用开通"送钱"断链的真实事故)
+          await fulfillOrder(pendingOrder.id)
+            .then((fulfilled) => (fulfilled ? dispatchEvent('order.paid', fulfilled) : undefined))
+            .catch((e) =>
+              console.error('[Checkout] Free order reuse fulfill failed:', pendingOrder.id, e),
+            )
           isFreeOrder = true
         } else {
           await sendPendingOrderEmail(event, {
@@ -467,10 +473,15 @@ export default defineEventHandler(async (event) => {
     })
 
     if (isFreeOrder) {
-      // 0 元单：直接履约，跳过"待支付"邮件/通知
-      await fulfillOrder(orderId).catch((e) =>
-        console.error('[Checkout] Free order fulfill failed:', orderId, e),
-      )
+      // 0 元单：直接履约，跳过"待支付"邮件/通知。
+      // 履约后必须派发 order.paid:integration.transaction(如试用商品的送钱)只经
+      // 这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,这里不发就
+      // 永远不入账(试用开通"送钱"断链的真实事故)
+      await fulfillOrder(orderId)
+        .then((fulfilled) => (fulfilled ? dispatchEvent('order.paid', fulfilled) : undefined))
+        .catch((e) =>
+          console.error('[Checkout] Free order fulfill failed:', orderId, e),
+        )
     } else {
       await createPendingOrderNotification(event, {
         userId,
