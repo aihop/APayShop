@@ -1,6 +1,7 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-07-25`: 加固 Admin Setup 链路安全：`/api/admin/setup` 改为 `onConflictDoNothing` + `unique constraint violation` 兜底的原子写入，消除竞态条件下的重复管理员风险；新增用户名格式白名单正则（3-32 位 `[a-zA-Z0-9_.-]`）与密码强度校验（≥10 位 + 大小写/数字至少两类 + 常见弱口令黑名单）；新增 `/api/admin/setup/check` 只读接口与对应中间件白名单；新增 `server/utils/rateLimit.ts` 提供进程内 IP 滑动窗口限流并接入 setup/check 两个公开端点；前端 `admin/setup.vue` 在 `onMounted` 中预先检查 initialized，已初始化时重定向至登录页，并新增密码强度进度条、规则清单、可见性切换与提交前校验。
 > `2026-07-25`: 新增 0 元订单直通过账机制 + 每用户购买次数上限。`/api/orders/checkout` 当 `totalAmount <= 0` 时直接 `payStatus=PAID` 并调用 `fulfillOrder` 履约，返回 `isFreeOrder=true`；前端 `useCheckout` 据此跳过 PaymentWorkspace 弹窗直接 dispatch `order-success` 并跳转 `/callback/{orderId}`。同时通过 `products.metaData.perUserLimit` 支持自定义每用户购买上限；若该字段未配置且商品为 0 元，则默认限制为 1 次（防薅），显式写入 `0` 视为不限。后台商品编辑页新增对应输入框，见 Section 4。
 > `2026-05-29`: 修正 Section 6 章节编号 (A→B→C→D→E→F→G)；补充测试策略与本节说明。
 > `2026-05-30`: 新增 Section 9 Git 提交流程约束。

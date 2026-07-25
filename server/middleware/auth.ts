@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
   // 任何路径名带 setup/login 等单词的后台新接口都会意外绕过鉴权
   const ADMIN_PUBLIC_PATHS = new Set([
     "/api/admin/setup",
+    "/api/admin/setup/check",
     "/api/admin/login",
     "/api/admin/logout",
   ])
