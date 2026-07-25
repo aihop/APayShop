@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white dark:bg-[#09090b] p-4 md:p-8 rounded-3xl">
+  <div class="min-h-[calc(100vh-8rem)]">
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ t('admin.stats.title') }}</h1>
@@ -32,7 +32,7 @@
       <div
         v-for="card in overviewCards"
         :key="card.label"
-        class="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-gray-200 dark:border-gray-800/50 transition-all"
+        class="bg-white dark:bg-[#121214] p-5 rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm transition-all"
         :class="card.clickable ? 'cursor-pointer hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5' : ''"
         @click="card.clickable && openModal(card.modalKey)"
       >
@@ -50,7 +50,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6 mb-8">
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.trafficTrend') }}</h2>
@@ -99,7 +99,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <div>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.funnel') }}</h2>
           <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.funnelSubtitle') }}</p>
@@ -126,7 +126,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.firstTouch') }}</h2>
@@ -151,7 +151,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.lastTouch') }}</h2>
@@ -178,7 +178,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.sourceCategories') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.sourceCategoriesSubtitle') }}</p>
         <div class="mt-5 space-y-3">
@@ -193,7 +193,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.externalSources') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.externalSourcesSubtitle') }}</p>
         <div class="mt-5 space-y-3">
@@ -210,7 +210,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.regions') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.regionsSubtitle') }}</p>
         <div class="mt-5 space-y-3">
@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200 dark:border-gray-800/50 p-6">
+      <div class="bg-white dark:bg-[#121214] rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.stats.devices') }}</h2>
         <p class="text-sm text-gray-500 mt-1">{{ t('admin.stats.devicesSubtitle') }}</p>
         <div class="mt-5 space-y-3">

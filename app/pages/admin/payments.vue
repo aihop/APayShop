@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex justify-between items-end mb-6">
+    <div class="flex justify-between items-end mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.payments.page.title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.payments.page.subtitle') }}</p>
@@ -22,7 +22,7 @@
 
     <!-- Methods Tab -->
     <div v-if="activeTab === 'methods'">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden">
         <UTable
           :columns="columns"
           :data="methods || []"
@@ -250,7 +250,7 @@
 
     <!-- Failures Tab -->
     <div v-if="activeTab === 'failures'">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden">
         <UTable
           :columns="failuresColumns"
           :data="failures || []"

@@ -37,7 +37,7 @@
       <div
         v-for="card in overviewCards"
         :key="card.label"
-        class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5"
+        class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5"
       >
         <div class="text-sm text-gray-500 dark:text-gray-400">{{ card.label }}</div>
         <div class="mt-3 text-3xl font-bold text-gray-900 dark:text-white">{{ card.value }}</div>
@@ -45,7 +45,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 min-h-0">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-[24rem] max-h-[32rem] overflow-hidden">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-[24rem] max-h-[32rem] overflow-hidden">
         <div class="flex items-center justify-between mb-4 shrink-0">
           <div>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.tiersTitle') }}</h2>
@@ -70,7 +70,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="flex items-center justify-between mb-4 shrink-0">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.agentsTitle') }}</h2>
           <UButton color="primary" variant="soft" icon="ph:user-plus" @click="agentModalOpen = true">
@@ -94,7 +94,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1 min-h-0">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="mb-4 shrink-0">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.relationsTitle') }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.promo.relationsSubtitle') }}</p>
@@ -126,7 +126,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="flex items-center justify-between mb-4 shrink-0">
           <div>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.teamReportTitle') }}</h2>
@@ -166,7 +166,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1 min-h-0">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="mb-4 shrink-0">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.commissionsTitle') }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.promo.commissionsSubtitle') }}</p>
@@ -185,7 +185,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-1 gap-6 flex-1 min-h-0">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="mb-4 shrink-0">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.teamOrdersTitle') }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.promo.teamOrdersSubtitle') }}</p>
@@ -202,7 +202,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5 flex flex-col min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 shadow-sm rounded-2xl p-5 flex flex-col min-h-0">
         <div class="mb-4 shrink-0">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t('admin.promo.attributionsTitle') }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.promo.attributionsSubtitle') }}</p>

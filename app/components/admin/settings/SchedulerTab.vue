@@ -4,7 +4,7 @@
       <div>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">定时任务</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          到点对站内路径发起请求的定时 Webhook，独立于上方「事件规则」——事件规则是"事情发生时"触发，这里是"到时间了"触发。目标端点自带鉴权且必须幂等。
+          到点对站内路径发起请求的定时 Webhook，独立于上方「事件规则」——事件规则是"事情发生时"触发，这里是"到时间了"触发。目标端点自带鉴权且必须幂等
         </p>
       </div>
       <UButton
@@ -22,7 +22,7 @@
       <div v-else-if="!jobs.length" class="p-12 text-center">
         <UIcon name="ph:clock-countdown-duotone" class="w-10 h-10 text-purple-400 mx-auto mb-3" />
         <p class="text-gray-600 dark:text-gray-300">还没有定时任务</p>
-        <p class="text-xs text-gray-400 mt-1">点击「新建任务」，例如每天检查订阅到期并发提醒邮件。</p>
+        <p class="text-xs text-gray-400 mt-1">点击「新建任务」，例如每天检查订阅到期并发提醒邮件</p>
       </div>
       <table v-else class="w-full text-sm">
         <thead>

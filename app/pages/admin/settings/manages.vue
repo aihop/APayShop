@@ -27,7 +27,7 @@
       />
 
       <div class="lg:col-span-9">
-        <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden flex flex-col min-h-[calc(100vh-18rem)]">
+        <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[calc(100vh-18rem)]">
           <div class="flex-1 overflow-auto">
             <UTable
               :data="paginatedUsers"

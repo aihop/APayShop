@@ -1,6 +1,6 @@
 <template>
   <div class="h-[calc(100vh-10rem)] flex flex-col">
-    <div class="flex justify-between items-end mb-6 shrink-0">
+    <div class="flex justify-between items-end mb-8 shrink-0">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ headerTitle }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ headerSubtitle }}</p>
@@ -19,7 +19,7 @@
 
     <!-- ============ System Logs ============ -->
     <template v-if="tab === 'system'">
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
         <div class="flex-1 overflow-auto">
           <UTable
             :data="systemLogs"
@@ -194,7 +194,7 @@
         >{{ $t('admin.accessLogs.filter.refresh') }}</UButton>
       </div>
 
-      <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0">
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
         <div class="flex-1 overflow-auto">
           <UTable
             :data="accessLogs"
