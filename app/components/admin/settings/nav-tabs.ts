@@ -1,7 +1,7 @@
 // 设置族页面的左栏导航单点:settings 页内 tab + 带独立路由的成员页。
-// settings.vue(query 校验)与 AdminSettingsNav(渲染)共同消费,防两处清单漂移。
-// 2026-07 themes 从侧栏一级入口收编为设置族成员:视觉并入设置导航,
-// 但保留 /admin/themes 独立路由(书签/RouteSearch/文档链接不破坏)。
+// settings/index.vue(query 校验)与 AdminSettingsNav(渲染)共同消费,防两处清单漂移。
+// 2026-07 themes 从侧栏一级入口收编为设置族成员,物理路径也收编到 /admin/settings/themes,
+// URL 层级与视觉层级对齐,未来加单主题详情页可直接放 settings/themes/[id].vue。
 export interface SettingsNavTab {
   id: string
   labelKey: string
@@ -21,7 +21,8 @@ export const SETTINGS_NAV_TABS: SettingsNavTab[] = [
   { id: 'company', labelKey: 'admin.settings.page.nav_company', icon: 'ph:buildings-fill' },
   { id: 'automations', labelKey: 'admin.settings.page.nav_automations', icon: 'ph:lightning-fill' },
   { id: 'scheduler', labelKey: 'admin.settings.page.nav_scheduler', icon: 'ph:clock-countdown-fill' },
-  { id: 'themes', labelKey: 'admin.nav.themes', icon: 'ph:sparkles-duotone', route: '/admin/themes' },
+  { id: 'users', labelKey: 'admin.nav.manages', icon: 'ph:users-four', route: '/admin/settings/manages' },
+  { id: 'themes', labelKey: 'admin.nav.themes', icon: 'ph:sparkle-duotone', route: '/admin/settings/themes' },
 ]
 
 /** 是否为 settings 页内合法 tab id(路由型成员不算——它们不由 activeTab 渲染) */

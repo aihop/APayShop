@@ -5,7 +5,7 @@
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
           <UIcon
-            name="ph:sparkles-duotone"
+            name="ph:sparkle-duotone"
             class="w-8 h-8 text-purple-500"
           />
           {{ $t('admin.themes.page.title') }}
@@ -23,7 +23,7 @@
       <div class="lg:col-span-9">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <div
-        v-for="theme in themes || []"
+        v-for="theme in themes"
         :key="theme.id"
         class="group bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 rounded-2xl overflow-hidden hover:border-purple-500/30 transition-colors flex flex-col"
         :class="{ 'ring-2 ring-purple-500 border-transparent': getSetting('active_theme') === theme.id }"
@@ -80,15 +80,6 @@
             >
               {{ $t('admin.themes.card.currently_active') }}
             </UButton>
-
-            <UButton
-              :to="`/admin/themes/${theme.id}`"
-              color="neutral"
-              variant="ghost"
-              icon="ph:sliders-horizontal"
-              size="sm"
-              class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-            />
           </div>
         </div>
       </div>
@@ -99,12 +90,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useToast, definePageMeta, useI18n, navigateTo } from '#imports'
+import { publishedOptionalThemes } from '~/generated/theme-build'
 
 definePageMeta({ title: 'Themes', layout: 'admin' })
 
-const { t } = useI18n()
+const { t, te, tm } = useI18n()
 
 const { settings, getSetting, fetchSettings } = useSettings()
 
@@ -117,12 +109,85 @@ const goToSettingsTab = (tabId: string) => {
   navigateTo({ path: '/admin/settings', query: { tab: tabId } })
 }
 
-const { data: themes } = await useFetch<any[]>('/api/admin/theme')
+const DEFAULT_THEME_META: Record<string, { name: string; description: string; image?: string }> = {
+  ainode: {
+    name: 'AIHop AI Gateway',
+    description: '面向 AI 开发者的极简风格订阅与计费门户，带流量报表和团队管理入口。',
+  },
+  design: {
+    name: 'Design Portfolio',
+    description: '设计作品/素材类虚拟商品售卖模板，强调大图预览、案例展示和毛玻璃质感。',
+  },
+  minimal: {
+    name: 'Minimal Storefront',
+    description: '极客风极简独立站，适用于软件 License、API Key、数字文件等卡密型商品。',
+  },
+  nft: {
+    name: 'NFT Drops',
+    description: '数字藏品 / NFT 风格落地页模板，适合限时发售、稀有度分级与空投活动。',
+  },
+  official: {
+    name: 'Official SaaS',
+    description: '企业级 SaaS 订阅官网，适配组件库、服务订阅、年费授权等标准收费场景。',
+  },
+  panel: {
+    name: 'Analytics Panel',
+    description: '数据仪表盘导向的官网主题，强调统计、报表、安装与升级分布等后台化呈现。',
+  },
+  qingpu: {
+    name: 'Qingpu AI 轻铺',
+    description: 'AI 跨境铺货工作台官网主题，集中展示铺货能力、工具页、素材中心与创作中心。',
+  },
+}
+
+const themeMetaMap = computed(() => {
+  const keyFromI18n = (k: string) => `admin.themes.meta.${k}`
+  return publishedOptionalThemes.reduce(
+    (acc, key) => {
+      const i18nKey = keyFromI18n(key)
+      if (te(i18nKey)) {
+        const meta = tm(i18nKey) as { name?: string; description?: string; image?: string }
+        if (meta?.name || meta?.description || meta?.image) {
+          acc[key] = {
+            name: meta.name || DEFAULT_THEME_META[key]?.name || key,
+            description: meta.description || DEFAULT_THEME_META[key]?.description || '',
+            image: meta.image || DEFAULT_THEME_META[key]?.image,
+          }
+          return acc
+        }
+      }
+      acc[key] = {
+        name: DEFAULT_THEME_META[key]?.name || key,
+        description: DEFAULT_THEME_META[key]?.description || '',
+        image: DEFAULT_THEME_META[key]?.image,
+      }
+      return acc
+    },
+    {} as Record<string, { name: string; description: string; image?: string }>,
+  )
+})
+
+const themes = computed(() =>
+  publishedOptionalThemes.map((id) => {
+    const meta = themeMetaMap.value[id] || DEFAULT_THEME_META[id] || { name: id, description: '' }
+    return { id, name: meta.name, description: meta.description, image: meta.image }
+  }),
+)
+
+const themeNameMap = computed(() =>
+  publishedOptionalThemes.reduce(
+    (acc, id) => {
+      const meta = themeMetaMap.value[id] || DEFAULT_THEME_META[id]
+      acc[id] = meta?.name || id
+      return acc
+    },
+    {} as Record<string, string>,
+  ),
+)
 
 const activateTheme = async (theme: string) => {
   isActivating.value = theme
   try {
-    // Artificial delay to make the UX smoother and feel like a real processing task
     await new Promise((resolve) => setTimeout(resolve, 800))
 
     const updatedSettings = {
@@ -135,10 +200,9 @@ const activateTheme = async (theme: string) => {
       body: updatedSettings,
     })
 
-    // Force refresh settings to update the UI reactively
     await fetchSettings(true)
 
-    const themeName = themes.value?.find((t: any) => t.id === theme)?.name || theme
+    const themeName = themeNameMap.value[theme] || theme
 
     toast.add({
       title: t('admin.themes.toast.activated'),
@@ -146,24 +210,22 @@ const activateTheme = async (theme: string) => {
       color: 'success',
     })
 
-    // Scroll to the top active theme configuration section to shift user focus
     setTimeout(() => {
       const el = document.getElementById('active-theme-section')
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        // Add a temporary highlight effect
         el.classList.add(
           'ring-2',
           'ring-purple-500',
           'ring-offset-2',
-          'ring-offset-[#050505]'
+          'ring-offset-[#050505]',
         )
         setTimeout(() => {
           el.classList.remove(
             'ring-2',
             'ring-purple-500',
             'ring-offset-2',
-            'ring-offset-[#050505]'
+            'ring-offset-[#050505]',
           )
         }, 1500)
       }

@@ -16,7 +16,7 @@
       <p class="text-gray-400 mt-3">{{ description }}</p>
       <div class="flex items-center justify-center gap-3 mt-6">
         <UButton
-          to="/admin/themes"
+          to="/admin/settings/themes"
           color="neutral"
           variant="outline"
         >Theme Center</UButton>

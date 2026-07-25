@@ -1,8 +1,15 @@
 <template>
-  <div class="h-[calc(100vh-10rem)] flex flex-col">
-    <div class="flex justify-between items-end mb-6 shrink-0">
+  <!-- 设置族成员页:套 settings 同款外壳与共享左栏导航,自身保留独立路由 -->
+  <div class="max-w-5xl mx-auto pb-12">
+    <div class="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.users.title') }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+          <UIcon
+            name="ph:users-four"
+            class="w-8 h-8 text-purple-500"
+          />
+          {{ $t('admin.users.title') }}
+        </h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.users.subtitle') }}</p>
       </div>
       <UButton
@@ -13,52 +20,60 @@
       >{{ $t('admin.users.add') }}</UButton>
     </div>
 
-    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50  flex flex-col flex-1 min-h-0">
-      <div class="flex-1 overflow-auto">
-        <UTable
-          :data="paginatedUsers"
-          :columns="columns"
-          :loading="pending"
-          class="min-w-full"
-        >
-          <template #createdAt-cell="{ row }">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.createdAt) }}</span>
-          </template>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <AdminSettingsNav
+        active="users"
+        @select="goToSettingsTab"
+      />
 
-          <template #actions-cell="{ row }">
-            <div class="flex items-center gap-2">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="ph:pencil-simple"
-                @click="openModal(row.original)"
-                :disabled="row.original.username === 'admin'"
-                :title="row.original.username === 'admin' ? 'Use Profile page to edit admin' : ''"
-              />
-              <UButton
-                color="error"
-                variant="ghost"
-                icon="ph:trash"
-                @click="deleteUser(Number(row.original.id))"
-                :disabled="row.original.username === 'admin'"
-                :title="row.original.username === 'admin' ? 'Cannot delete main admin' : ''"
-              />
+      <div class="lg:col-span-9">
+        <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/50 rounded-2xl overflow-hidden flex flex-col min-h-[calc(100vh-18rem)]">
+          <div class="flex-1 overflow-auto">
+            <UTable
+              :data="paginatedUsers"
+              :columns="columns"
+              :loading="pending"
+              class="min-w-full"
+            >
+              <template #createdAt-cell="{ row }">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.createdAt) }}</span>
+              </template>
+
+              <template #actions-cell="{ row }">
+                <div class="flex items-center gap-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    icon="ph:pencil-simple"
+                    @click="openModal(row.original)"
+                    :disabled="row.original.username === 'admin'"
+                    :title="row.original.username === 'admin' ? 'Use Profile page to edit admin' : ''"
+                  />
+                  <UButton
+                    color="error"
+                    variant="ghost"
+                    icon="ph:trash"
+                    @click="deleteUser(Number(row.original.id))"
+                    :disabled="row.original.username === 'admin'"
+                    :title="row.original.username === 'admin' ? 'Cannot delete main admin' : ''"
+                  />
+                </div>
+              </template>
+            </UTable>
+          </div>
+
+          <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+              <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
             </div>
-          </template>
-        </UTable>
-      </div>
-
-      <!-- Pagination -->
-      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
-        <div class="text-sm text-gray-500 dark:text-gray-400">
-          <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
+            <UPagination
+              v-model="page"
+              :total="totalItems"
+              :page-count="pageCount"
+              @update:page="(val) => onPageChange(val, () => refresh())"
+            />
+          </div>
         </div>
-        <UPagination
-          v-model="page"
-          :total="totalItems"
-          :page-count="pageCount"
-          @update:page="(val) => onPageChange(val, () => refresh())"
-        />
       </div>
     </div>
 
@@ -124,6 +139,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
+import { definePageMeta, useI18n, useToast, useConfirm, useFetch, useRouter, navigateTo } from '#imports'
+import { isSettingsTabId } from '~/components/admin/settings/nav-tabs'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
@@ -132,6 +149,13 @@ definePageMeta({ title: 'Users Management', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()
+
+// 共享导航上点了 settings 页内 tab → 跳回 settings 并落到对应 tab(?tab= 由 settings 解析)
+const goToSettingsTab = (tabId: string) => {
+  if (isSettingsTabId(tabId)) {
+    navigateTo({ path: '/admin/settings', query: { tab: tabId } })
+  }
+}
 
 const columns = computed(() => [
   { accessorKey: 'id', header: 'ID' },
@@ -146,7 +170,6 @@ const {
   data: usersData,
   pending,
   refresh,
-  error,
 } = await useFetch<any>('/api/admin/admins', {
   query: {
     page,
@@ -178,7 +201,7 @@ const openModal = (user?: any) => {
   if (user) {
     form.id = user.id
     form.username = user.username
-    form.password = '' // Don't show password hash
+    form.password = ''
   } else {
     form.id = null
     form.username = ''
@@ -193,7 +216,6 @@ const saveUser = async () => {
     const url = form.id ? `/api/admin/admins/${form.id}` : '/api/admin/admins'
     const method = form.id ? 'PUT' : 'POST'
 
-    // Only send password if it was filled out (important for PUT requests)
     const payload: any = { username: form.username }
     if (form.password) {
       payload.password = form.password

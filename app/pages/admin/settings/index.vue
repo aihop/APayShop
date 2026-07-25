@@ -193,34 +193,26 @@
 import {
   definePageMeta,
   useToast,
-  useFetch,
   useRoute,
-  useRouter,
   useI18n,
 } from '#imports'
 import { isSettingsTabId } from '~/components/admin/settings/nav-tabs'
-const { fetchSettings } = useSettings()
-
+const { settings: settingsStore, fetchSettings } = useSettings()
 const { t } = useI18n()
 
 definePageMeta({ title: 'System Settings', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()
-const router = useRouter()
 
-// tab 清单已收口到 components/admin/settings/nav-tabs.ts(与 AdminSettingsNav 共用);
-// 支持 ?tab=xxx 直达——themes 等路由型成员页跳回时靠它落到指定 tab
 const route = useRoute()
 const activeTab = ref(isSettingsTabId(route.query.tab) ? route.query.tab : 'general')
 
-const {
-  data: settings,
-  error: settingsError,
-  refresh,
-} = useFetch('/api/admin/settings')
+const refresh = async () => { await fetchSettings(true) }
 
-const form = reactive({
+onMounted(() => { if (!settingsStore.value) void fetchSettings(false) })
+
+const DEFAULT_FORM: Record<string, any> = {
   site_title: '',
   site_description: '',
   site_name: '',
@@ -239,81 +231,50 @@ const form = reactive({
   company_address: '',
   webhook_url: '',
   integration_token: '',
-})
+}
 
-// Dynamically handle form properties initialized from API
-const dynamicForm = reactive<Record<string, any>>({ ...form })
+const buildFormFromStore = (store: Record<string, string>): Record<string, any> => {
+  const next: Record<string, any> = { ...DEFAULT_FORM }
+  for (const [key, raw] of Object.entries(store)) {
+    if (key === 'allow_guest_checkout' || key === 'disable_multi_device_login') {
+      next[key] = (String(raw) === 'true' || raw === true) as any
+    } else {
+      next[key] = raw as any
+    }
+  }
+  return next
+}
+
+// dynamicForm 必须用 ref 而不是 reactive:
+// 如果用 reactive + 逐个 key 赋值,每个 setter 都会同步 trigger 已经订阅了 v-model 的 8 个 Tab
+// 子组件重渲染 / computed 级联,20 个 key 写入就会放大成几百次更新,主线程直接卡死。
+// ref 整对象替换只会 trigger 1 次全局通知,子组件合并同一帧 patch,首帧秒开。
+const dynamicForm = ref<Record<string, any>>(
+  settingsStore.value ? buildFormFromStore(settingsStore.value) : { ...DEFAULT_FORM },
+)
 
 const isSaving = ref(false)
-const isRebuilding = ref(false)
 const isUploadingFavicon = ref(false)
 const faviconInput = ref<HTMLInputElement | null>(null)
 
-// Create a reactive flag to track if form is initialized
-const isInitialized = ref(false)
+const isInitialized = ref(!!settingsStore.value)
 
-// Populate form with existing settings once when data loads
-watchEffect(() => {
-  const err: any = settingsError.value
-  if (err?.statusCode === 401 || err?.data?.statusCode === 401) {
-    router.push('/admin/login')
-    return
-  }
-  if (settings.value && Array.isArray(settings.value) && !isInitialized.value) {
-    settings.value.forEach((s: any) => {
-      // Allow dynamic keys (like zh_site_title) to be populated as well
-      if (s.key === 'allow_guest_checkout' || s.key === 'disable_multi_device_login') {
-        dynamicForm[s.key] =
-          s.value === 'true' || s.value === true
-      } else {
-        // Initialize form with API data
-        dynamicForm[s.key] = s.value
-      }
-    })
+watch(
+  () => settingsStore.value,
+  (store) => {
+    if (!store || isInitialized.value) return
+    dynamicForm.value = buildFormFromStore(store)
     isInitialized.value = true
-  }
-})
-
-const triggerRebuild = async () => {
-  const isConfirmed = await confirm({
-    title: t('admin.settings.integration.confirm_rebuild_title'),
-    description: t('admin.settings.integration.confirm_rebuild_desc'),
-  })
-
-  if (!isConfirmed) return
-
-  isRebuilding.value = true
-  try {
-    const res: any = await $fetch('/api/admin/system/rebuild', {
-      method: 'POST',
-    })
-
-    toast.add({
-      title: t('admin.settings.integration.toast_rebuild_initiated'),
-      description:
-        res.message ||
-        t('admin.settings.integration.toast_rebuild_desc'),
-      color: 'success',
-      duration: 10000,
-    })
-  } catch (e: any) {
-    toast.add({
-      title: t('admin.settings.integration.toast_rebuild_failed'),
-      description:
-        e.data?.message || e.message || t('admin.settings.integration.toast_rebuild_failed_desc'),
-      color: 'error',
-    })
-  } finally {
-    isRebuilding.value = false
-  }
-}
+  },
+  { once: true, flush: 'post' },
+)
 
 const saveSettings = async () => {
   isSaving.value = true
   try {
     await $fetch('/api/admin/settings', {
       method: 'POST',
-      body: dynamicForm,
+      body: dynamicForm.value,
     })
     toast.add({
       title: t('admin.settings.general.toast_success'),
@@ -321,8 +282,6 @@ const saveSettings = async () => {
       color: 'success',
     })
     await refresh()
-
-    // Update global store so changes reflect immediately on frontend
     await fetchSettings()
   } catch (e: any) {
     toast.add({
@@ -353,7 +312,7 @@ const handleFaviconSelected = async (e: Event) => {
       method: 'POST',
       body: formData,
     })
-    dynamicForm.site_favicon = res.url
+    dynamicForm.value.site_favicon = res.url
     toast.add({
       title: t('admin.settings.general.toast_success'),
       description: t('admin.settings.general.toast_favicon_uploaded'),

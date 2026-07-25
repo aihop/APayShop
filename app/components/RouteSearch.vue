@@ -126,10 +126,10 @@ const routes = computed(() => {
       to: '/admin/payments',
     },
     {
-      id: 'admin-users',
-      label: t('admin.nav.admins'),
+      id: 'admin-manages',
+      label: t('admin.nav.manages'),
       icon: 'ph:users-three',
-      to: '/admin/users',
+      to: '/admin/settings/manages',
     },
     {
       id: 'admin-logs',
@@ -140,8 +140,8 @@ const routes = computed(() => {
     {
       id: 'admin-themes',
       label: t('admin.nav.themes'),
-      icon: 'ph:sparkles-duotone',
-      to: '/admin/themes',
+      icon: 'ph:sparkle-duotone',
+      to: '/admin/settings/themes',
     },
     {
       id: 'admin-settings',

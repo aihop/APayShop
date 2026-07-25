@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import type { EmailTemplate, EmailTemplateDraft, EmailTestResult } from '~/app/components/admin/settings/email/shared'
+import type { EmailTemplate, EmailTemplateDraft, EmailTestResult } from '../components/admin/settings/email/shared'
 
 interface UseEmailTemplateManagerOptions {
   form: Record<string, any>
