@@ -199,7 +199,7 @@ const tryCompleteFreeOrder = async () => {
   if (payStatus !== 'pending' && payStatus !== '') return
   isCompletingFree.value = true
   try {
-    const res: any = await $fetch('/api/orders/complete-free', {
+    const res: any = await $fetch('/api/minimal/admin/checkout/orders/complete-free', {
       method: 'POST',
       body: { orderId: currentOrder.id },
     })

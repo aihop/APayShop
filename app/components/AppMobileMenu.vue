@@ -18,98 +18,15 @@
               {{ getSetting('site_name') }}
             </span>
           </div>
-          <div class="flex items-center gap-1">
-            <ClientOnly>
-              <UButton
-                v-if="isAdminRoute"
-                color="neutral"
-                variant="ghost"
-                :icon="isDark ? 'ph:sun-dim-bold' : 'ph:moon-bold'"
-                :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-                @click="toggleColorMode"
-              />
-            </ClientOnly>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="ph:x-bold"
-              @click="closeMenu"
-            />
-          </div>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="ph:x-bold"
+            @click="closeMenu"
+          />
         </div>
 
-        <nav
-          v-if="isAdminRoute"
-          class="flex flex-col gap-4"
-        >
-          <div class="space-y-1">
-            <h3 :class="adminSectionTitleClass">{{ resolveSectionTitle(storeSection) }}</h3>
-            <template v-for="item in storeSection.items" :key="item.to">
-              <NuxtLink
-                v-if="!item.conditional || item.conditional()"
-                :to="item.to"
-                :class="adminMobileNavItemClass"
-                @click="closeMenu"
-              >
-                <div class="flex items-center gap-2">
-                  <Icon
-                    :name="item.icon"
-                    class="w-5 h-5"
-                    :class="item.to === '/admin/themes' ? 'text-purple-400' : ''"
-                  />
-                  {{ resolveLabel(item) }}
-                </div>
-              </NuxtLink>
-            </template>
-          </div>
-
-          <div
-            v-if="extensionPages.length"
-            class="space-y-1 mt-4"
-          >
-            <h3 :class="adminSectionTitleClass">{{ themeSectionTitle }}</h3>
-            <NuxtLink
-              v-for="page in extensionPages"
-              :key="page.key"
-              :to="page.route"
-              :class="adminMobileNavItemClass"
-              @click="closeMenu"
-            >
-              <div class="flex items-center gap-2">
-                <UIcon
-                  :name="page.icon"
-                  class="w-5 h-5"
-                />
-                {{ page.title }}
-              </div>
-            </NuxtLink>
-          </div>
-
-          <div class="space-y-1 mt-4">
-            <h3 :class="adminSectionTitleClass">{{ resolveSectionTitle(configSection) }}</h3>
-            <NuxtLink
-              v-for="item in configSection.items"
-              :key="item.to"
-              :to="item.to"
-              :class="adminMobileNavItemClass"
-              @click="closeMenu"
-            >
-              <div class="flex items-center gap-2">
-                <Icon
-                  :name="item.icon"
-                  class="w-5 h-5"
-                  :class="item.to === '/admin/themes' ? 'text-purple-400' : ''"
-                />
-                {{ resolveLabel(item) }}
-              </div>
-            </NuxtLink>
-          </div>
-        </nav>
-
-        <nav
-          v-else
-          class="flex flex-col flex-1"
-        >
+        <nav class="flex flex-col flex-1">
           <NuxtLink
             to="/"
             class="rounded-xl px-4 py-3 text-lg font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
@@ -159,8 +76,9 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
-
+// 前台兜底商城移动菜单(未激活主题时由 core 布局使用)。
+// 2026-07 拆分:后台导航抽屉移入 AdminMobileMenu,本组件不再依赖
+// useAdminNav/useAdminExtensions,也不做 isAdminRoute 分支判断。
 const props = defineProps<{
   open: boolean
 }>()
@@ -170,42 +88,13 @@ const emit = defineEmits<{
 }>()
 
 const { getSetting } = useSettings()
-const { extensionPages, themeSectionTitle } = useAdminExtensions()
-const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes } = useAdminNav()
-const { adminSectionTitleClass, adminMobileNavItemClass } = useAdminNavStyle()
-const colorMode = useColorMode()
-const route = useRoute()
 
 const innerOpen = computed({
   get: () => props.open,
   set: (val) => emit('update:open', val),
 })
 
-const isDark = computed(() => colorMode.value === 'dark')
-
-const normalizeAdminPath = (path: string) =>
-  path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
-
-const isAdminRoute = computed(() => {
-  const path = normalizeAdminPath(route.path)
-  return path.startsWith('/admin') && path !== '/admin/login'
-})
-
-const toggleColorMode = () => {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
-}
-
 const closeMenu = () => {
   innerOpen.value = false
 }
-
-watch(
-  () => isAdminRoute.value,
-  async (val) => {
-    if (val) {
-      await loadProductTypes()
-    }
-  },
-  { immediate: true }
-)
 </script>

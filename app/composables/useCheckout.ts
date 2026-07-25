@@ -47,7 +47,7 @@ export const useCheckout = () => {
   const completeFreeOrder = async (targetOrderId: string) => {
     try {
       isCreatingOrder.value = true
-      const res: any = await $fetch('/api/orders/complete-free', {
+      const res: any = await $fetch('/api/minimal/admin/checkout/orders/complete-free', {
         method: 'POST',
         body: { orderId: targetOrderId },
       })
