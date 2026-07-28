@@ -167,6 +167,11 @@
         "email": "Email", "nickname": "Имя", "accountStatus": "Статус аккаунта", "statusActive": "Активен", "statusDisabled": "Отключён", "registeredAt": "Дата регистрации", "city": "Город", "locale": "Язык",
         "currency": "Валюта", "userAgent": "Полный User Agent", "sourceType": "Тип источника", "medium": "Канал", "campaign": "Кампания", "content": "Контент",
         "term": "Поисковый запрос", "orderId": "Номер заказа", "product": "Товар", "amount": "Сумма", "status": "Статус"
+      },
+      "ipDetail": {
+        "title": "Данные IP", "view": "Просмотреть данные IP", "loadError": "Не удалось загрузить данные IP", "local": "Локальный / неизвестный IP", "overview": "Обзор IP",
+        "uniqueVisitors": "Уникальные посетители", "registeredUsers": "Зарегистрированные пользователи", "observedContexts": "Наблюдаемые среды", "visitors": "Посетители", "account": "Аккаунт",
+        "visitorLimit": "Показаны только последние {count} посетителей"
       }
     },
     "dataCleanup": {

@@ -379,9 +379,9 @@
         <thead class="sticky top-0 bg-white dark:bg-[#121214]">
           <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-800">
             <th class="py-3 px-4 whitespace-nowrap">{{ t('admin.stats.ip') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.visitor') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.ipDetail.uniqueVisitors') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.visits') }}</th>
-            <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.registered') || 'Registered' }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.ipDetail.registeredUsers') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.country') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.regionCity') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.device') }}</th>
@@ -389,6 +389,7 @@
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.os') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.firstSeen') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.lastSeen') }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.visitorDetail.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -398,10 +399,10 @@
             class="border-b border-gray-100 dark:border-gray-900/80"
           >
             <td class="py-3 px-4 text-gray-700 dark:text-gray-200 font-mono text-xs">{{ item.ip || 'Local' }}</td>
-            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 font-mono text-xs">{{ shortVisitor(item.visitorId) }}</td>
+            <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 text-right tabular-nums">{{ formatNumber(item.visitorCount) }}</td>
             <td class="py-3 pr-4 text-gray-900 dark:text-white text-right tabular-nums">{{ formatNumber(item.visitCount) }}</td>
-            <td class="py-3 pr-4">
-              <UBadge :color="item.isRegistered ? 'success' : 'neutral'" variant="subtle" size="xs">{{ item.isRegistered ? 'Yes' : 'No' }}</UBadge>
+            <td class="py-3 pr-4 text-right tabular-nums">
+              <UBadge :color="item.registeredUserCount > 0 ? 'success' : 'neutral'" variant="subtle" size="xs">{{ formatNumber(item.registeredUserCount) }}</UBadge>
             </td>
             <td class="py-3 pr-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ item.country }}</td>
             <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatRegionCity(item) }}</td>
@@ -410,9 +411,12 @@
             <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs">{{ item.os || '-' }}</td>
             <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.firstSeenAt) }}</td>
             <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.lastSeenAt) }}</td>
+            <td class="py-3 pr-4 text-right">
+              <UButton color="neutral" variant="ghost" icon="ph:eye" size="sm" :title="t('admin.stats.ipDetail.view')" @click="openIpDetail(item.ip)" />
+            </td>
           </tr>
           <tr v-if="!modalPending && modalRows.length === 0">
-            <td colspan="11" class="px-4 py-10 text-center text-gray-500">-</td>
+            <td colspan="12" class="px-4 py-10 text-center text-gray-500">-</td>
           </tr>
         </tbody>
       </table>
@@ -442,6 +446,13 @@
   <AdminStatsVisitorDetailModal
     v-model:open="isVisitorDetailOpen"
     :visitor-id="selectedVisitorId"
+  />
+  <AdminStatsIpDetailModal
+    v-model:open="isIpDetailOpen"
+    :ip="selectedIp"
+    :preset="preset"
+    :days="rangeDays"
+    @view-visitor="openVisitorFromIp"
   />
 </template>
 
@@ -496,10 +507,22 @@ const modalEventType = ref('')
 const modalSourceType = ref('')
 const isVisitorDetailOpen = ref(false)
 const selectedVisitorId = ref<string | null>(null)
+const isIpDetailOpen = ref(false)
+const selectedIp = ref<string | null>(null)
 
 function openVisitorDetail(visitorId: string) {
   selectedVisitorId.value = visitorId
   isVisitorDetailOpen.value = true
+}
+
+function openIpDetail(ip: string | null) {
+  selectedIp.value = ip
+  isIpDetailOpen.value = true
+}
+
+function openVisitorFromIp(visitorId: string) {
+  isIpDetailOpen.value = false
+  openVisitorDetail(visitorId)
 }
 
 function openModal(key: string) {

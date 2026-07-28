@@ -167,6 +167,11 @@
         "email": "邮箱", "nickname": "昵称", "accountStatus": "账号状态", "statusActive": "正常", "statusDisabled": "禁用", "registeredAt": "账号注册时间", "city": "城市", "locale": "语言",
         "currency": "币种", "userAgent": "完整 User Agent", "sourceType": "来源类型", "medium": "媒介", "campaign": "活动", "content": "广告内容",
         "term": "搜索词", "orderId": "订单号", "product": "商品", "amount": "金额", "status": "状态"
+      },
+      "ipDetail": {
+        "title": "IP 详情", "view": "查看 IP 详情", "loadError": "加载 IP 详情失败", "local": "本地 / 未知 IP", "overview": "IP 概览",
+        "uniqueVisitors": "独立访客数", "registeredUsers": "注册用户数", "observedContexts": "观测环境数", "visitors": "关联访客", "account": "关联账号",
+        "visitorLimit": "仅展示最近 {count} 个访客"
       }
     },
     "dataCleanup": {

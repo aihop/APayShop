@@ -167,6 +167,11 @@
         "email": "Email", "nickname": "Nickname", "accountStatus": "Account Status", "statusActive": "Active", "statusDisabled": "Disabled", "registeredAt": "Registered At", "city": "City", "locale": "Locale",
         "currency": "Currency", "userAgent": "Full User Agent", "sourceType": "Source Type", "medium": "Medium", "campaign": "Campaign", "content": "Content",
         "term": "Term", "orderId": "Order ID", "product": "Product", "amount": "Amount", "status": "Status"
+      },
+      "ipDetail": {
+        "title": "IP Details", "view": "View IP details", "loadError": "Failed to load IP details", "local": "Local / unknown IP", "overview": "IP Overview",
+        "uniqueVisitors": "Unique Visitors", "registeredUsers": "Registered Users", "observedContexts": "Observed Contexts", "visitors": "Visitors", "account": "Account",
+        "visitorLimit": "Showing the latest {count} visitors only"
       }
     },
     "dataCleanup": {
