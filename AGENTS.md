@@ -1,6 +1,7 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-07-29`: Qingpu 网页铺货 SKU 表新增单条 SKU 与复制能力；手工 SKU 落 `listingWorkspace.manualOverrides.manualVariants`，共享引擎统一合并展示/发布，复制保留价格、库存、包装和平台规格覆盖但使用独立空图片槽，见 Section 6.L。
 > `2026-07-28`: 修正主题后台 API 注册命名空间：`minimal/api/admin/**` 统一注册到受全局管理员中间件保护的 `/api/admin/minimal/**`，不再意外暴露为 `/api/minimal/admin/**`；Qingpu 既有自鉴权地址保留兼容并新增标准安全别名，见 Section 6.D。
 > `2026-07-28`: 将 `minimal` 收口为 APay 唯一支付中转层：所有 Qingpu 商品、订阅、试用与钱包充值订单统一按 relay topup 记录实际支付金额/币种、来源金额/币种、汇率及最终充值口径；新增 `orders.source + external_order_id` 唯一幂等键，中转订单不执行 APay 本地商品履约，付款后只通过专用 notify 或旧事件兜底中的一个通道通知 Qingpu，见 Section 2.E、Section 3 与 Section 6.F。
 > `2026-07-28`: 新增语言绑定普通商品结算币种与汇率：全局 `currency` 作为基础/兜底币种，`locale_currency_bindings` 按语言覆盖；订单保存实际支付金额/币种，订阅、履约、外部入账与推广结佣统一使用锁定的基础币种金额；支付方式按订单币种过滤并在发起时二次校验，见 Section 6.F。
@@ -293,6 +294,7 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
 - **通用工具任务约定**: Qingpu 主题下 text-to-image / image-to-image / text-to-video 这类非 listing 专属 AI 工具，统一复用 `qingpu_tasks` 作为异步任务账本；任务类型按能力命名（如 `tool_image_generate`），不要继续创建 `qingpu_listing_tasks` 或工具专属任务表。工具产物统一落 `qingpu_assets`，并通过 `meta.source / meta.toolLabel / meta.prompt` 与“我的创作”联通。
 - **1688 直抓原始协议约定**: Qingpu 铺货服务端直抓 1688 商品时，统一以 ainode `/ai/crawl` 返回 payload 作为 `canonical.extra.raw.payload` 的权威原始档，`canonical.extra.raw.provider` 固定标记为 `ainode-crawl-1688`；不得再在业务层把 ainode 返回重包成 OneBound 风格 `props_list / prop_imgs / skus.sku` 兼容结构。规格值图、SKU 维度与 fallback 聚合应直接基于 ainode raw 的 `specs / skus / detail_images / raw.skuList` 派生（`raw.skuList` 是每 SKU 包装尺寸/毛重的权威来源——`skus[].packaging` 实测常年为空，归一逻辑按 `spec_combination` 关联回填，唯一产线归口在引擎 `normalizeAinodeCrawl1688Product`，业务层不得再手写这层解析，见 qingpu-ai@332a7d9c / vendor v0.7.21）。
 - **SKU 即时编辑与跨端一致性**: 网页工作台必须与 `qingpu-ai/entrypoints/dash` 保持同一 mutation 语义：前端先更新本地行模型，再串行提交；POST 携带商品 `baseRevision`，服务端每次读取最新 aggregate 后重放单个 mutation，并在同一事务内校验 revision、写 workspace、推进 revision。`409` 只允许基于服务端 `currentRevision` 自动重试一次，旧 revision 响应不得回退新状态。SKU “删除”只写 `listingWorkspace.manualOverrides.excludedSkuIds`，保留 canonical 采集变体；至少保留一条的校验按未排除 SKU 计算。
+- **手工 SKU 与复制语义**: 网页新增/复制的 SKU 属于工作区人工加工结果，统一写 `listingWorkspace.manualOverrides.manualVariants`，不得伪装成 canonical 采集事实；展示、定价、图片槽和渠道发布必须通过共享引擎的有效变体口径消费。复制必须生成新的稳定 ID 与 `offerSeq`，复制价格、库存、包装和规格轴覆盖，但不得继承来源 SKU 图片，图片使用 `manual::<variantId>` 独立槽；规格组合必须在采集与手工 SKU 全集中唯一。
 - **渠道佣金自动匹配与快照复用**: Qingpu listing 的渠道佣金规则统一通过 `server/listing/commission` 下的 matcher factory 按渠道分发，不得把 Ozon 匹配逻辑继续散落在页面或 workspace query 中。选择平台类目后，规则包存在 mapping 时优先按精确 `categoryId:typeId`（再回退 type/category id）匹配，随后使用显式映射与置信度阈值名称匹配，并把渠道、平台类目标识、佣金 path/labels、价格档、费率、规则版本与来源保存为 `workspace.pricing.commissionBinding` 快照；相同类目必须复用自动或人工绑定，类目变化才重匹配，价格变化只在已绑定子类内重选档位。前端已绑定时默认收起人工选择器，仅在匹配失败或用户主动修改时展开；人工修改也必须走 revision-safe 串行提交与一次 `409 currentRevision` 重试。
 - **密钥存储规则**: 主题私有授权 Key 表只保存 `api_key_hash` 与前缀/预览信息，原始明文 Key 仅允许在“创建 / 轮换”接口返回一次，不得持久化入库。
 - **订阅关联建议**: 主题私有授权 Key 可以保存 APay 核心订阅 `subscriptionId`，并额外保存 `subscriptionSnapshot` 快照，避免后续套餐名称、金额或周期变更时丢失签发时上下文。
