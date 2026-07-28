@@ -158,7 +158,16 @@
       "browser": "Browser",
       "os": "OS",
       "firstSeen": "First Seen",
-      "referrer": "Referrer"
+      "referrer": "Referrer",
+      "visitorDetail": {
+        "title": "Visitor Details", "view": "View visitor details", "actions": "Actions", "registered": "Registered", "anonymous": "Anonymous",
+        "copy": "Click to copy", "copied": "Copied", "loadError": "Failed to load visitor details", "identity": "Identity & Visit Times", "locationDevice": "Location & Device",
+        "firstTouch": "First Touch", "lastTouch": "Last Touch", "orders": "Related Orders", "timeline": "Recent Event Timeline", "timelineLimit": "Showing the latest {count} events only",
+        "noOrders": "No related orders", "noEvents": "No events recorded", "totalEvents": "Total Events", "visitorId": "Full Visitor ID", "userId": "User ID",
+        "email": "Email", "nickname": "Nickname", "accountStatus": "Account Status", "statusActive": "Active", "statusDisabled": "Disabled", "registeredAt": "Registered At", "city": "City", "locale": "Locale",
+        "currency": "Currency", "userAgent": "Full User Agent", "sourceType": "Source Type", "medium": "Medium", "campaign": "Campaign", "content": "Content",
+        "term": "Term", "orderId": "Order ID", "product": "Product", "amount": "Amount", "status": "Status"
+      }
     },
     "dataCleanup": {
       "title": "Data Cleanup",

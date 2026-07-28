@@ -294,6 +294,7 @@
             <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.paid') }}</th>
             <th class="py-3 pr-4 whitespace-nowrap text-right">Auth</th>
             <th class="py-3 pr-4 whitespace-nowrap">{{ t('admin.stats.lastSeen') || 'Last Seen' }}</th>
+            <th class="py-3 pr-4 whitespace-nowrap text-right">{{ t('admin.stats.visitorDetail.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -319,9 +320,19 @@
             <td class="py-3 pr-4 text-emerald-600 dark:text-emerald-300 text-right tabular-nums">{{ formatNumber(item.paid) }}</td>
             <td class="py-3 pr-4 text-pink-600 dark:text-pink-300 text-right tabular-nums">{{ formatNumber(item.auth) }}</td>
             <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{{ formatDateTime(item.lastSeenAt) }}</td>
+            <td class="py-3 pr-4 text-right">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="ph:eye"
+                size="sm"
+                :title="t('admin.stats.visitorDetail.view')"
+                @click="openVisitorDetail(item.visitorId)"
+              />
+            </td>
           </tr>
           <tr v-if="!modalPending && modalRows.length === 0">
-            <td colspan="12" class="px-4 py-10 text-center text-gray-500">-</td>
+            <td colspan="13" class="px-4 py-10 text-center text-gray-500">-</td>
           </tr>
         </tbody>
       </table>
@@ -428,6 +439,10 @@
       </div>
     </template>
   </FullScreenModal>
+  <AdminStatsVisitorDetailModal
+    v-model:open="isVisitorDetailOpen"
+    :visitor-id="selectedVisitorId"
+  />
 </template>
 
 <script setup lang="ts">
@@ -479,6 +494,13 @@ const modalTitle = ref('')
 const modalSource = ref<'visitors' | 'events' | 'pageVisits'>('visitors')
 const modalEventType = ref('')
 const modalSourceType = ref('')
+const isVisitorDetailOpen = ref(false)
+const selectedVisitorId = ref<string | null>(null)
+
+function openVisitorDetail(visitorId: string) {
+  selectedVisitorId.value = visitorId
+  isVisitorDetailOpen.value = true
+}
 
 function openModal(key: string) {
   modalSourceType.value = ''

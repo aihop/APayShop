@@ -158,7 +158,16 @@
       "browser": "Браузер",
       "os": "ОС",
       "firstSeen": "Первое посещение",
-      "referrer": "Реферер"
+      "referrer": "Реферер",
+      "visitorDetail": {
+        "title": "Данные посетителя", "view": "Просмотреть данные посетителя", "actions": "Действия", "registered": "Зарегистрирован", "anonymous": "Анонимный",
+        "copy": "Нажмите, чтобы скопировать", "copied": "Скопировано", "loadError": "Не удалось загрузить данные посетителя", "identity": "Личность и время посещений", "locationDevice": "Местоположение и устройство",
+        "firstTouch": "Первый контакт", "lastTouch": "Последний контакт", "orders": "Связанные заказы", "timeline": "Последние события", "timelineLimit": "Показаны только последние {count} событий",
+        "noOrders": "Нет связанных заказов", "noEvents": "События отсутствуют", "totalEvents": "Всего событий", "visitorId": "Полный ID посетителя", "userId": "ID пользователя",
+        "email": "Email", "nickname": "Имя", "accountStatus": "Статус аккаунта", "statusActive": "Активен", "statusDisabled": "Отключён", "registeredAt": "Дата регистрации", "city": "Город", "locale": "Язык",
+        "currency": "Валюта", "userAgent": "Полный User Agent", "sourceType": "Тип источника", "medium": "Канал", "campaign": "Кампания", "content": "Контент",
+        "term": "Поисковый запрос", "orderId": "Номер заказа", "product": "Товар", "amount": "Сумма", "status": "Статус"
+      }
     },
     "dataCleanup": {
       "title": "Очистка данных",

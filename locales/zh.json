@@ -158,7 +158,16 @@
       "browser": "浏览器",
       "os": "操作系统",
       "firstSeen": "首次访问",
-      "referrer": "来源"
+      "referrer": "来源",
+      "visitorDetail": {
+        "title": "访客详情", "view": "查看访客详情", "actions": "操作", "registered": "已注册", "anonymous": "匿名访客",
+        "copy": "点击复制", "copied": "已复制", "loadError": "加载访客详情失败", "identity": "身份与访问时间", "locationDevice": "地域与设备",
+        "firstTouch": "首次触点", "lastTouch": "末次触点", "orders": "关联订单", "timeline": "最近事件时间线", "timelineLimit": "仅展示最近 {count} 条事件",
+        "noOrders": "暂无关联订单", "noEvents": "暂无事件记录", "totalEvents": "事件总数", "visitorId": "完整访客 ID", "userId": "用户 ID",
+        "email": "邮箱", "nickname": "昵称", "accountStatus": "账号状态", "statusActive": "正常", "statusDisabled": "禁用", "registeredAt": "账号注册时间", "city": "城市", "locale": "语言",
+        "currency": "币种", "userAgent": "完整 User Agent", "sourceType": "来源类型", "medium": "媒介", "campaign": "活动", "content": "广告内容",
+        "term": "搜索词", "orderId": "订单号", "product": "商品", "amount": "金额", "status": "状态"
+      }
     },
     "dataCleanup": {
       "title": "数据清理",
