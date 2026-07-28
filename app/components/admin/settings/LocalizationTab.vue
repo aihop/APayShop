@@ -103,6 +103,55 @@
           </div>
         </div>
       </UFormField>
+
+      <USeparator
+        :label="$t('admin.settings.localization.locale_currency_bindings')"
+        class="py-4"
+      />
+
+      <div class="space-y-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {{ $t('admin.settings.localization.locale_currency_bindings_desc', { currency: baseCurrency }) }}
+        </p>
+        <div
+          v-for="locale in selectedLocaleOptions"
+          :key="locale.code"
+          class="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800/60 dark:bg-[#09090b] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)] sm:items-end"
+        >
+          <div>
+            <div class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ locale.label }}</div>
+            <div class="text-xs uppercase text-gray-500">{{ locale.code }}</div>
+          </div>
+          <UCheckbox
+            :model-value="hasLocaleBinding(locale.code)"
+            :label="$t('admin.settings.localization.custom_binding')"
+            class="pb-2"
+            @update:model-value="value => toggleLocaleBinding(locale.code, Boolean(value))"
+          />
+          <UFormField :label="$t('admin.settings.localization.binding_currency')">
+            <USelectMenu
+              :model-value="getLocaleBinding(locale.code).currency"
+              :items="availableCurrencies"
+              value-key="code"
+              create-item
+              :disabled="!hasLocaleBinding(locale.code)"
+              class="w-full"
+              @update:model-value="value => updateLocaleBinding(locale.code, 'currency', value)"
+            />
+          </UFormField>
+          <UFormField :label="$t('admin.settings.localization.exchange_rate')">
+            <UInput
+              :model-value="getLocaleBinding(locale.code).rate"
+              type="number"
+              min="0.000001"
+              step="any"
+              :disabled="!hasLocaleBinding(locale.code) || getLocaleBinding(locale.code).currency === baseCurrency"
+              class="w-full"
+              @update:model-value="value => updateLocaleBinding(locale.code, 'rate', value)"
+            />
+          </UFormField>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -239,7 +288,73 @@ const availableCurrencies = [
   { code: 'CAD', label: 'Canadian Dollar (C$)' },
   { code: 'SGD', label: 'Singapore Dollar (S$)' },
   { code: 'HKD', label: 'Hong Kong Dollar (HK$)' },
+  { code: 'RUB', label: 'Russian Ruble (₽)' },
 ]
+
+interface CurrencyBinding {
+  currency: string
+  rate: number
+}
+
+const parseBindings = (): Record<string, CurrencyBinding> => {
+  try {
+    const parsed = JSON.parse(props.form.locale_currency_bindings || '{}')
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const baseCurrency = computed(() => String(props.form.currency || 'USD').trim().toUpperCase() || 'USD')
+
+const hasLocaleBinding = (locale: string) => Boolean(parseBindings()[locale])
+
+const getLocaleBinding = (locale: string): CurrencyBinding => {
+  const binding = parseBindings()[locale]
+  const currency = String(binding?.currency || baseCurrency.value).trim().toUpperCase()
+  const rate = currency === baseCurrency.value ? 1 : Number(binding?.rate || 1)
+  return { currency, rate: Number.isFinite(rate) && rate > 0 ? rate : 1 }
+}
+
+const updateLocaleBinding = (locale: string, field: keyof CurrencyBinding, value: unknown) => {
+  const bindings = parseBindings()
+  const current = getLocaleBinding(locale)
+  if (field === 'currency') {
+    current.currency = String(value || baseCurrency.value).trim().toUpperCase()
+    if (current.currency === baseCurrency.value) current.rate = 1
+  } else {
+    const rate = Number(value)
+    current.rate = Number.isFinite(rate) && rate > 0 ? rate : 1
+  }
+  bindings[locale] = current
+  props.form.locale_currency_bindings = JSON.stringify(bindings)
+}
+
+const toggleLocaleBinding = (locale: string, enabled: boolean) => {
+  const bindings = parseBindings()
+  if (enabled) {
+    bindings[locale] = { currency: baseCurrency.value, rate: 1 }
+  } else {
+    delete bindings[locale]
+  }
+  props.form.locale_currency_bindings = JSON.stringify(bindings)
+}
+
+watch([selectedLocales, baseCurrency], ([locales]) => {
+  const bindings = parseBindings()
+  const next: Record<string, CurrencyBinding> = {}
+  for (const locale of locales) {
+    const binding = bindings[locale]
+    if (!binding) continue
+    const currency = String(binding.currency || baseCurrency.value).trim().toUpperCase()
+    const rate = currency === baseCurrency.value ? 1 : Number(binding?.rate || 1)
+    next[locale] = {
+      currency,
+      rate: Number.isFinite(rate) && rate > 0 ? rate : 1,
+    }
+  }
+  props.form.locale_currency_bindings = JSON.stringify(next)
+}, { immediate: true })
 
 // ---- Timezones ----
 

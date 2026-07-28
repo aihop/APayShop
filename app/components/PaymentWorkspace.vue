@@ -1,13 +1,13 @@
 <template>
-  <div class="p-8 relative overflow-hidden group">
+  <div class="relative overflow-hidden p-4 sm:p-6 lg:p-8 group">
     <div class="absolute -right-20 -top-20 w-64 h-64 bg-[#6d4cff]/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-1000 group-hover:bg-[#6d4cff]/10"></div>
 
-    <div class="flex justify-between items-center mb-10 relative z-10">
+    <div class="relative z-10 mb-6 flex items-center justify-between sm:mb-8 lg:mb-10">
       <div class="flex items-center gap-4">
         <div class="w-12 h-12 rounded-2xl bg-[#6d4cff]/10 flex items-center justify-center text-[#6d4cff] shadow-inner border border-[#6d4cff]/20 group-hover:rotate-12 transition-transform">
           <UIcon name="ph:credit-card-duotone" class="w-6 h-6"></UIcon>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('site.payment.workspaceTitle') }}</h3>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight sm:text-2xl">{{ $t('site.payment.workspaceTitle') }}</h3>
       </div>
       <UButton
         v-if="closable"
@@ -25,7 +25,7 @@
           <div class="flex justify-between items-end mb-5">
             <div>
               <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-2">{{ $t('site.payment.workspaceTotalPayable') }}</p>
-              <p class="text-5xl font-bold text-gray-900 dark:text-white tracking-tighter group-hover/summary:scale-105 transition-transform origin-left">{{ displayCurrency }} {{ amount.toFixed(2) }}</p>
+              <p class="break-words text-4xl font-bold text-gray-900 dark:text-white group-hover/summary:scale-105 transition-transform origin-left sm:text-5xl">{{ formattedPayableAmount }}</p>
             </div>
             <div class="text-right">
               <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/20 mb-2">{{ $t('site.payment.workspaceQuantity') }}</p>
@@ -222,6 +222,7 @@ import { useLocaleRouter } from '~/composables/useLocaleRouter'
 const props = withDefaults(defineProps<{
   orderId: string
   amount: number
+  currency?: string
   quantity?: number
   closable?: boolean
   redirectOnSuccess?: boolean
@@ -240,11 +241,21 @@ const { t, locale } = useI18n()
 const toast = useToast()
 const router = useRouter()
 const { localePath } = useLocaleRouter()
-const { getSetting } = useSettings()
 const requestHeaders = useRequestHeaders(['cookie'])
-const displayCurrency = computed(() => {
-  const currency = String(getSetting('currency', 'USD') || 'USD').trim().toUpperCase()
-  return currency || 'USD'
+const authoritativeAmount = ref<number | null>(null)
+const authoritativeCurrency = ref('')
+const displayAmount = computed(() => authoritativeAmount.value ?? props.amount)
+const displayCurrency = computed(() => authoritativeCurrency.value || String(props.currency || 'USD').trim().toUpperCase() || 'USD')
+const formattedPayableAmount = computed(() => {
+  const amount = Number(displayAmount.value || 0)
+  try {
+    return new Intl.NumberFormat(locale.value, {
+      style: 'currency',
+      currency: displayCurrency.value,
+    }).format(amount)
+  } catch {
+    return `${displayCurrency.value} ${amount.toFixed(2)}`
+  }
 })
 
 const isFetchingPaymentInfo = ref(false)
@@ -283,6 +294,8 @@ const clearQrCodeState = () => {
 const resetWorkspace = () => {
   clearInjectedScripts()
   clearQrCodeState()
+  authoritativeAmount.value = null
+  authoritativeCurrency.value = ''
   availablePaymentMethods.value = []
   selectedPaymentMethod.value = ''
   paymentInfoContent.value = ''
@@ -340,16 +353,22 @@ const fetchPaymentInfo = async (orderId: string) => {
       },
     })
 
+    if (res?.code !== 0) {
+      throw new Error(res?.message || t('site.payment.workspaceLoadGatewayFailed'))
+    }
+
     const methods = res?.data?.methods || []
+    authoritativeAmount.value = Number(res?.data?.amount ?? props.amount)
+    authoritativeCurrency.value = String(res?.data?.currency || props.currency || 'USD').trim().toUpperCase()
     availablePaymentMethods.value = methods
     if (methods.length > 0) {
       switchPaymentMethod(methods[0].code)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch payment info:', error)
     toast.add({
       title: t('site.payment.workspaceNetworkError'),
-      description: t('site.payment.workspaceLoadGatewayFailed'),
+      description: error?.data?.message || error?.message || t('site.payment.workspaceLoadGatewayFailed'),
       color: 'error',
     })
   } finally {

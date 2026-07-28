@@ -8,7 +8,9 @@ import { fulfillOrder } from './fulfillment'
 import { dispatchEvent } from './eventBus'
 import { trackVisitorEvent } from './visitorAnalytics'
 import { createOrderAttribution, settlePromoCommission } from '../promo/service'
-import { sendMinimalCheckoutPaidNotification } from '../../app/themes/minimal/server/checkout/notify'
+import { deliverMinimalCheckoutPaid } from '../../app/themes/minimal/server/checkout/notify'
+import { readMinimalCheckoutBridgeMeta } from '../../app/themes/minimal/server/checkout/bridge'
+import { fulfillMinimalCheckoutRelay } from '../../app/themes/minimal/server/checkout/fulfillment'
 
 export type MarkOrderPaidOutcome =
   | 'paid'          // 本次调用真正完成了置为已支付 + 履约
@@ -106,11 +108,18 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
     createdAt: paidAt,
   })
 
-  const fulfilledOrder = await fulfillOrder(orderId)
+  const orderMeta = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
+  const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(orderMeta))
+  const fulfilledOrder = isMinimalRelay
+    ? await fulfillMinimalCheckoutRelay(orderId)
+    : await fulfillOrder(orderId)
   if (fulfilledOrder) {
     await settlePromoCommission(orderId)
-    await sendMinimalCheckoutPaidNotification(fulfilledOrder)
-    await dispatchEvent('order.paid', fulfilledOrder)
+    if (isMinimalRelay) {
+      await deliverMinimalCheckoutPaid(fulfilledOrder)
+    } else {
+      await dispatchEvent('order.paid', fulfilledOrder)
+    }
   }
 
   return { outcome: 'paid', order: fulfilledOrder || order }

@@ -127,6 +127,13 @@
       "when": 1785300006000,
       "tag": "0017_add_balance_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785300007000,
+      "tag": "0018_add_order_source_idempotency",
+      "breakpoints": true
     }
   ]
 }

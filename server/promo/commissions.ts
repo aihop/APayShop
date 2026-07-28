@@ -3,6 +3,7 @@ import { db } from '../db/runtime'
 import { orders, products, promoCommissions, promoOrderAttributions, settings } from '../db/schema'
 import { getActiveTier } from './agents'
 import { ensurePromoMember } from './members'
+import { resolveOrderCurrencyAmounts } from '../utils/orderCurrency'
 import {
   firstPositiveNumber,
   normalizeJson,
@@ -33,10 +34,12 @@ export async function settlePromoCommission(orderId: string) {
   const attributionRows = await db.select().from(promoOrderAttributions).where(eq(promoOrderAttributions.orderId, orderId)).limit(1)
   if (!attributionRows.length) return []
 
-  const attribution = attributionRows[0]
+  const attribution = attributionRows[0]!
   const orderRows = await db.select({
     id: orders.id,
     amount: orders.amount,
+    currency: orders.currency,
+    metaData: orders.metaData,
     userId: orders.userId,
     payStatus: orders.payStatus,
     productMetaData: products.metaData,
@@ -46,8 +49,9 @@ export async function settlePromoCommission(orderId: string) {
     .where(eq(orders.id, orderId))
     .limit(1)
 
-  if (!orderRows.length || orderRows[0].payStatus !== 'paid') return []
-  const order = orderRows[0]
+  if (!orderRows.length || orderRows[0]!.payStatus !== 'paid') return []
+  const order = orderRows[0]!
+  const currencyAmounts = resolveOrderCurrencyAmounts(order)
 
   const existing = await db.select().from(promoCommissions).where(eq(promoCommissions.orderId, orderId))
   const created: any[] = []
@@ -66,7 +70,10 @@ export async function settlePromoCommission(orderId: string) {
         rate: null,
         status: PROMO_COMMISSION_STATUS.AVAILABLE,
         remark: '邀请推荐奖励',
-        metaData: toJsonValue({ buyerUserId: attribution.buyerUserId }),
+        metaData: toJsonValue({
+          buyerUserId: attribution.buyerUserId,
+          currency: currencyAmounts.accountingCurrency,
+        }),
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -82,7 +89,7 @@ export async function settlePromoCommission(orderId: string) {
     )
     if (baseRate > 0 && baseRate < 1) {
       const ownerMember = await ensurePromoMember(attribution.agentUserId, PROMO_ROLE.AGENT)
-      const amount = Number((Number(order.amount) * (1 - baseRate)).toFixed(4))
+      const amount = Number((currencyAmounts.accountingAmount * (1 - baseRate)).toFixed(4))
       if (amount > 0) {
         const inserted = await insertCommissionIgnoreDuplicate({
           orderId,
@@ -98,6 +105,9 @@ export async function settlePromoCommission(orderId: string) {
             buyerUserId: attribution.buyerUserId,
             tierId: attribution.agentTierIdSnapshot,
             tierName: attribution.agentTierNameSnapshot,
+            currency: currencyAmounts.accountingCurrency,
+            paymentAmount: currencyAmounts.paymentAmount,
+            paymentCurrency: currencyAmounts.paymentCurrency,
           }),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -116,7 +126,7 @@ export async function settlePromoCommission(orderId: string) {
     )
     if (rate > 0 && rate < 1 && attribution.masterAgentUserId !== attribution.agentUserId) {
       const ownerMember = await ensurePromoMember(attribution.masterAgentUserId, PROMO_ROLE.MASTER_AGENT)
-      const amount = Number((Number(order.amount) * (1 - rate)).toFixed(4))
+      const amount = Number((currencyAmounts.accountingAmount * (1 - rate)).toFixed(4))
       if (amount > 0) {
         const inserted = await insertCommissionIgnoreDuplicate({
           orderId,
@@ -131,6 +141,9 @@ export async function settlePromoCommission(orderId: string) {
           metaData: toJsonValue({
             buyerUserId: attribution.buyerUserId,
             childAgentUserId: attribution.agentUserId,
+            currency: currencyAmounts.accountingCurrency,
+            paymentAmount: currencyAmounts.paymentAmount,
+            paymentCurrency: currencyAmounts.paymentCurrency,
           }),
           createdAt: new Date(),
           updatedAt: new Date(),

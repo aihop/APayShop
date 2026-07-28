@@ -75,7 +75,7 @@
               <div class="mb-8">
                 <h3 class="text-2xl font-bold text-white mb-4">{{ plan.name }}</h3>
                 <div class="flex items-baseline gap-1 mb-4">
-                  <span class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">${{ plan.price.toFixed(2) }}</span>
+                  <span class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">{{ formatAmount(plan.price) }}</span>
                   <span class="text-gray-500 font-medium">{{ $t('site.core.pricing.forever') }}</span>
                 </div>
                 <p class="text-gray-400 text-sm min-h-[40px]">{{ plan.description || $t('site.core.pricing.defaultDesc') }}</p>
@@ -145,6 +145,7 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { formatAmount } = useLocaleCurrency()
 
 useHead({
   title: 'Simple, Transparent Pricing',

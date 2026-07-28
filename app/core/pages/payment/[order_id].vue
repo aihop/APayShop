@@ -76,7 +76,7 @@
 
           <div class="rounded-[20px] border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] p-5 mb-7">
             <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/45 mb-2">{{ $t('site.payment.amountLabel') }}</p>
-            <p class="text-[44px] font-bold leading-none tracking-tight text-gray-900 dark:text-white">${{ Number(order.amount || 0).toFixed(2) }}</p>
+            <p class="text-[44px] font-bold leading-none tracking-tight text-gray-900 dark:text-white">{{ order.currency || 'USD' }} {{ Number(order.amount || 0).toFixed(2) }}</p>
           </div>
 
           <div class="space-y-4 text-sm">
@@ -143,6 +143,7 @@
             v-else
             :order-id="order.id"
             :amount="Number(order.amount || 0)"
+            :currency="order.currency || 'USD'"
             redirect-on-success
           />
         </section>

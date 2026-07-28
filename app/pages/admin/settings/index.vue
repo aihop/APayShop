@@ -223,6 +223,7 @@ const DEFAULT_FORM: Record<string, any> = {
   supported_locales: 'en,zh',
   default_locale: 'en',
   currency: 'USD',
+  locale_currency_bindings: '{}',
   timezone: '',
   allow_guest_checkout: true,
   disable_multi_device_login: false,

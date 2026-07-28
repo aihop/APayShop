@@ -10,8 +10,16 @@ import { sendEmail } from '../../utils/email'
 import { createNotification } from '../../utils/notifications'
 import { stripReservedOrderMeta } from '../../utils/orderMetaData'
 import { getRequestLocale } from '../../utils/requestLocale'
-import { fulfillOrder } from '../../utils/fulfillment'
-import { dispatchEvent } from '../../utils/eventBus'
+import { buildLocaleCurrencyQuote } from '../../utils/localeCurrency'
+import { getSiteLocaleConfig, resolveRequestLocale } from '../../utils/paymentMethodLocales'
+import {
+  buildMinimalCheckoutBridgeMeta,
+  getMinimalCheckoutAdminConfig,
+  mergeMinimalCheckoutMeta,
+  prepareOrderMetaForInsert,
+} from '../../../app/themes/minimal/server/checkout/bridge'
+import { fulfillMinimalCheckoutRelay } from '../../../app/themes/minimal/server/checkout/fulfillment'
+import { deliverMinimalCheckoutPaid } from '../../../app/themes/minimal/server/checkout/notify'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -26,6 +34,7 @@ const metaDataSchema = z.record(z.string(), z.any())
 const orderSchema = z.object({
   email: z.string().email("Invalid email format").optional(),
   payMethod: z.string().optional(),
+  locale: z.string().trim().min(1).max(35).optional(),
   metaData: metaDataSchema.optional(), // For service form answers or other custom data
   items: z.array(z.object({
     productId: z.number().int().positive(),
@@ -45,12 +54,36 @@ const isDeliverableEmail = (value?: string | null) => {
 
 const getPreferredLocale = (event: any) => getRequestLocale(event)
 
+const parseOrderMetaData = (value: unknown): Record<string, any> => {
+  if (!value) return {}
+  if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const matchesCurrencySnapshot = (value: unknown, snapshot: Record<string, any>) => {
+  const current = parseOrderMetaData(value).currencySnapshot
+  if (!current || typeof current !== 'object') return false
+  return current.locale === snapshot.locale
+    && current.baseCurrency === snapshot.baseCurrency
+    && Number(current.baseAmount) === Number(snapshot.baseAmount)
+    && current.currency === snapshot.currency
+    && Number(current.exchangeRate) === Number(snapshot.exchangeRate)
+    && Number(current.amount) === Number(snapshot.amount)
+    && current.source === snapshot.source
+}
+
 const sendPendingOrderEmail = async (event: any, input: {
   email?: string | null
   nickname?: string | null
   orderId: string
   productName: string
   amount: number
+  currency: string
 }) => {
   if (!isDeliverableEmail(input.email)) return
 
@@ -71,7 +104,8 @@ const sendPendingOrderEmail = async (event: any, input: {
       nickname,
       order_id: input.orderId,
       product_name: input.productName,
-      amount: Number(input.amount || 0).toFixed(2),
+      amount: `${Number(input.amount || 0).toFixed(2)} ${input.currency}`,
+      currency: input.currency,
       site_name: siteName,
       site_url: siteUrl,
       payment_link: `${siteUrl}/payment/${input.orderId}`,
@@ -87,12 +121,13 @@ const createPendingOrderNotification = async (event: any, input: {
   orderId: string
   productName: string
   amount: number
+  currency: string
 }) => {
   const locale = getPreferredLocale(event)
   const title = locale === 'zh' ? '订单待支付' : 'Payment Pending'
   const message = locale === 'zh'
-    ? `您的 ${input.productName} 订单已创建，当前待支付金额为 $${Number(input.amount || 0).toFixed(2)}。点击继续完成支付。`
-    : `Your ${input.productName} order has been created. $${Number(input.amount || 0).toFixed(2)} is still pending payment.`
+    ? `您的 ${input.productName} 订单已创建，当前待支付金额为 ${Number(input.amount || 0).toFixed(2)} ${input.currency}。点击继续完成支付。`
+    : `Your ${input.productName} order has been created. ${Number(input.amount || 0).toFixed(2)} ${input.currency} is still pending payment.`
 
   await createNotification({
     userId: input.userId ?? null,
@@ -243,17 +278,77 @@ export default defineEventHandler(async (event) => {
     // integration/plan_ids):这些字段决定发给 ainode 的入账金额与余额池,只能由
     // 服务端按商品配置写入。此前客户端 metaData 最后展开可整体覆盖,等于买家
     // 自定义到账额度,详见 utils/orderMetaData.ts。
-    const finalMetaData = {
+    const checkoutLocale = resolveRequestLocale(event, parsedBody.locale, await getSiteLocaleConfig())
+    const currencyQuote = await buildLocaleCurrencyQuote(
+      product.price * productNum,
+      checkoutLocale,
+    )
+    const totalAmount = currencyQuote.amount
+    const currencySnapshot = {
+      locale: currencyQuote.locale,
+      baseCurrency: currencyQuote.baseCurrency,
+      baseAmount: currencyQuote.baseAmount,
+      currency: currencyQuote.currency,
+      exchangeRate: currencyQuote.rate,
+      amount: currencyQuote.amount,
+      source: currencyQuote.source,
+    }
+    const minimalCheckoutConfig = await getMinimalCheckoutAdminConfig()
+    const finalMetaData: Record<string, any> = {
       ...stripReservedOrderMeta(parsedBody.metaData),
       ...(productMetaData.plan_ids ? { plan_ids: productMetaData.plan_ids } : {}),
       ...(promoTracking.inviteCode ? { inviteCode: promoTracking.inviteCode } : {}),
       ...(promoTracking.promoCode ? { promoCode: promoTracking.promoCode } : {}),
       ...(promoTracking.agentCode ? { agentCode: promoTracking.agentCode } : {}),
+      currencySnapshot,
     }
     
-    // 无条件回写:若客户端只传了保留键,剥离后 finalMetaData 为空,
-    // 带条件赋值会让原始未净化的 parsedBody.metaData 直接落库
-    parsedBody.metaData = Object.keys(finalMetaData).length > 0 ? finalMetaData : undefined
+    const buildRelayOrderMeta = (externalOrderId: string) => {
+      const configuredRechargeAmount = Number((productMetaData as any).recharge_amount || 0)
+      const rechargeAmount = configuredRechargeAmount > 0
+        ? configuredRechargeAmount
+        : currencyQuote.baseAmount
+      const rechargeCurrency = String(
+        (productMetaData as any).display_unit || currencyQuote.baseCurrency,
+      ).trim().toUpperCase()
+      const balanceType = String((productMetaData as any).balance_type || '').trim().toLowerCase() === 'grant'
+        ? 'grant'
+        : 'cash'
+      const bridgeMeta = buildMinimalCheckoutBridgeMeta({
+        externalOrderId,
+        sourceProductId: product.id,
+        amount: currencyQuote.amount,
+        currency: currencyQuote.currency,
+        sourceAmount: currencyQuote.baseAmount,
+        sourceCurrency: currencyQuote.baseCurrency,
+        exchangeRate: currencyQuote.rate,
+        rechargeAmount,
+        rechargeCurrency,
+        balanceType,
+        notifyUrl: minimalCheckoutConfig.defaultNotifyUrl || undefined,
+        returnUrl: minimalCheckoutConfig.defaultReturnUrl || undefined,
+        cancelUrl: minimalCheckoutConfig.defaultCancelUrl || undefined,
+        customerEmail: contactEmail,
+        attach: {
+          channel: 'qingpu-storefront',
+          businessType: product.type,
+          sourceProductId: product.id,
+          productName: product.name,
+          productDescription: product.description,
+          productImageUrl: product.imageUrl,
+          productMeta: productMetaData,
+          quantity: productNum,
+          userId,
+        },
+      })
+      return mergeMinimalCheckoutMeta(finalMetaData, bridgeMeta)
+    }
+
+    const fulfillFreeRelayOrder = async (targetOrderId: string) => {
+      const fulfilled = await fulfillMinimalCheckoutRelay(targetOrderId)
+      if (!fulfilled) return
+      await deliverMinimalCheckoutPaid(fulfilled)
+    }
 
     // ==========================================
     // 订阅升级校验 (Subscription Upgrade Check)
@@ -274,8 +369,6 @@ export default defineEventHandler(async (event) => {
       }
     }
     // ==========================================
-
-    const totalAmount = product.price * productNum
 
     // ==========================================
     // 每用户购买次数限制 (Per-User Purchase Limit)
@@ -351,12 +444,20 @@ export default defineEventHandler(async (event) => {
       const pendingOrder = existingPendingOrders[0]
       
       // 如果金额一致（防止这段时间内商品改价了），直接复用该订单
-      if (pendingOrder.amount === totalAmount) {
+      if (
+        pendingOrder.amount === totalAmount
+        && pendingOrder.currency === currencyQuote.currency
+        && matchesCurrencySnapshot(pendingOrder.metaData, currencySnapshot)
+      ) {
         // 可选：更新一下联系邮箱（如果用户换了邮箱）或用户ID（如果用户刚刚登录了）
-        const updates: any = {}
+        const relayOrderMeta = buildRelayOrderMeta(pendingOrder.id)
+        const updates: any = {
+          source: 'minimal_checkout',
+          externalOrderId: pendingOrder.id,
+          metaData: prepareOrderMetaForInsert(relayOrderMeta),
+        }
         if (pendingOrder.contactEmail !== contactEmail) updates.contactEmail = contactEmail
         if (userId && pendingOrder.userId !== userId) updates.userId = userId
-        if (parsedBody.metaData) updates.metaData = process.env.NUXT_HUB_DATABASE ? parsedBody.metaData : JSON.stringify(parsedBody.metaData) // Compat for Hub D1 vs local SQLite
         
         if (Object.keys(updates).length > 0) {
           await db.update(orders)
@@ -367,7 +468,7 @@ export default defineEventHandler(async (event) => {
         await createOrderAttribution({
           orderId: pendingOrder.id,
           buyerUserId: userId,
-          metaData: finalMetaData,
+          metaData: relayOrderMeta,
         })
 
         await trackVisitorEvent(event, {
@@ -392,11 +493,9 @@ export default defineEventHandler(async (event) => {
           // 履约后必须派发 order.paid:integration.transaction(如试用商品的送钱)
           // 只经这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,
           // 不在这里发就永远不入账(试用开通"送钱"断链的真实事故)
-          await fulfillOrder(pendingOrder.id)
-            .then((fulfilled) => (fulfilled ? dispatchEvent('order.paid', fulfilled) : undefined))
-            .catch((e) =>
-              console.error('[Checkout] Free order reuse fulfill failed:', pendingOrder.id, e),
-            )
+          await fulfillFreeRelayOrder(pendingOrder.id).catch((e) =>
+            console.error('[Checkout] Free relay order reuse fulfillment failed:', pendingOrder.id, e),
+          )
           isFreeOrder = true
         } else {
           await sendPendingOrderEmail(event, {
@@ -405,6 +504,7 @@ export default defineEventHandler(async (event) => {
             orderId: pendingOrder.id,
             productName: product.name,
             amount: totalAmount,
+            currency: currencyQuote.currency,
           })
         }
 
@@ -414,7 +514,7 @@ export default defineEventHandler(async (event) => {
           data: {
             id: pendingOrder.id, // using orderId as checkoutId for now
             amount: totalAmount,
-            currency: 'USD',
+            currency: currencyQuote.currency,
             isFreeOrder,
           }
         }
@@ -439,12 +539,16 @@ export default defineEventHandler(async (event) => {
     const orderId = `${productTypePrefix}${dateStr}${timeSuffix}${randomHex}`
     
     const isFreeOrder = totalAmount <= 0
+    const relayOrderMeta = buildRelayOrderMeta(orderId)
 
     // Create checkout order
     const orderData = {
       id: orderId,
       productId,
       amount: totalAmount,
+      currency: currencyQuote.currency,
+      source: 'minimal_checkout',
+      externalOrderId: orderId,
       status: ORDER_STATUS.NONE, // Fulfillment status
       payStatus: isFreeOrder ? ORDER_PAY_STATUS.PAID : ORDER_PAY_STATUS.PENDING, // 0 元直接视为已支付
       paidAt: isFreeOrder ? new Date() : null,
@@ -452,7 +556,7 @@ export default defineEventHandler(async (event) => {
       payMethod: parsedBody.payMethod || 'none', // Ensure payMethod is set here so Webhook can find it later
       visitorId: visitorId,
       userId: userId, // Link to registered user if logged in
-      metaData: parsedBody.metaData ? (process.env.NUXT_HUB_DATABASE ? parsedBody.metaData : JSON.stringify(parsedBody.metaData)) : null, // Compat for Hub D1 vs local SQLite
+      metaData: prepareOrderMetaForInsert(relayOrderMeta),
       createdAt: new Date()
     }
     
@@ -461,7 +565,7 @@ export default defineEventHandler(async (event) => {
     await createOrderAttribution({
       orderId,
       buyerUserId: userId,
-      metaData: finalMetaData,
+      metaData: relayOrderMeta,
     })
 
     await trackVisitorEvent(event, {
@@ -477,11 +581,9 @@ export default defineEventHandler(async (event) => {
       // 履约后必须派发 order.paid:integration.transaction(如试用商品的送钱)只经
       // 这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,这里不发就
       // 永远不入账(试用开通"送钱"断链的真实事故)
-      await fulfillOrder(orderId)
-        .then((fulfilled) => (fulfilled ? dispatchEvent('order.paid', fulfilled) : undefined))
-        .catch((e) =>
-          console.error('[Checkout] Free order fulfill failed:', orderId, e),
-        )
+      await fulfillFreeRelayOrder(orderId).catch((e) =>
+        console.error('[Checkout] Free relay order fulfillment failed:', orderId, e),
+      )
     } else {
       await createPendingOrderNotification(event, {
         userId,
@@ -489,6 +591,7 @@ export default defineEventHandler(async (event) => {
         orderId,
         productName: product.name,
         amount: totalAmount,
+        currency: currencyQuote.currency,
       })
 
       await sendPendingOrderEmail(event, {
@@ -497,6 +600,7 @@ export default defineEventHandler(async (event) => {
         orderId,
         productName: product.name,
         amount: totalAmount,
+        currency: currencyQuote.currency,
       })
     }
     
@@ -506,7 +610,7 @@ export default defineEventHandler(async (event) => {
       data: {
         id: orderId, // using orderId as checkoutId for now
         amount: totalAmount,
-        currency: 'USD',
+        currency: currencyQuote.currency,
         isFreeOrder,
       }
     }

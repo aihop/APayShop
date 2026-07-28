@@ -3,6 +3,7 @@ import { db } from '../db/runtime'
 import { orders, promoAgentRelations, promoAgentTiers, promoMembers, promoOrderAttributions, users } from '../db/schema'
 import { ensurePromoMember, resolveAgentMemberByCode } from './members'
 import { PROMO_ROLE } from './utils'
+import { resolveOrderCurrencyAmounts } from '../utils/orderCurrency'
 
 export async function bindAgentRelation(input: {
   agentUserId: number
@@ -191,13 +192,18 @@ export async function getActiveTier(roleScope: 'agent' | 'master_agent', salesAm
 
 export async function getPaidSalesAmount(agentUserId: number) {
   const result = await db.select({
-    amount: sql<number>`coalesce(sum(${orders.amount}), 0)`,
+    amount: orders.amount,
+    currency: orders.currency,
+    metaData: orders.metaData,
   })
     .from(promoOrderAttributions)
     .innerJoin(orders, eq(orders.id, promoOrderAttributions.orderId))
     .where(and(eq(promoOrderAttributions.agentUserId, agentUserId), eq(orders.payStatus, 'paid')))
 
-  return Number(result[0]?.amount || 0)
+  return result.reduce(
+    (total: number, order: any) => total + resolveOrderCurrencyAmounts(order).accountingAmount,
+    0,
+  )
 }
 
 export async function updatePromoAgentRelation(input: {

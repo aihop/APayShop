@@ -5,7 +5,9 @@ import { fulfillOrder } from '../../../utils/fulfillment'
 import { dispatchEvent } from '../../../utils/eventBus'
 import { ORDER_PAY_STATUS } from '../../../utils/constants'
 import { createOrderAttribution, settlePromoCommission } from '../../../promo/service'
-import { sendMinimalCheckoutPaidNotification } from '../../../../app/themes/minimal/server/checkout/notify'
+import { deliverMinimalCheckoutPaid } from '../../../../app/themes/minimal/server/checkout/notify'
+import { readMinimalCheckoutBridgeMeta } from '../../../../app/themes/minimal/server/checkout/bridge'
+import { fulfillMinimalCheckoutRelay } from '../../../../app/themes/minimal/server/checkout/fulfillment'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { setAuditMeta } from '../../../utils/auditLog'
 import { clawbackTopup } from '../../../utils/balance'
@@ -53,11 +55,17 @@ export default defineEventHandler(async (event) => {
       buyerUserId: updatedOrder?.userId,
       metaData: updatedOrder?.metaData,
     })
-    const fulfilledOrder = await fulfillOrder(id)
+    const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(updatedOrder?.metaData))
+    const fulfilledOrder = isMinimalRelay
+      ? await fulfillMinimalCheckoutRelay(id)
+      : await fulfillOrder(id)
     if (fulfilledOrder) {
       await settlePromoCommission(id)
-      await sendMinimalCheckoutPaidNotification(fulfilledOrder)
-      await dispatchEvent('order.paid', fulfilledOrder)
+      if (isMinimalRelay) {
+        await deliverMinimalCheckoutPaid(fulfilledOrder)
+      } else {
+        await dispatchEvent('order.paid', fulfilledOrder)
+      }
     }
   }
     

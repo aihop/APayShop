@@ -53,7 +53,7 @@
         <h1 class="text-4xl md:text-5xl font-bold text-white mb-6">{{ product.name }}</h1>
 
         <div class="border-l-4 border-purple-500 pl-4 mb-8">
-          <div class="text-5xl font-bold text-white">${{ product.price.toFixed(2) }}</div>
+          <div class="text-5xl font-bold text-white">{{ formatAmount(product.price) }}</div>
         </div>
 
         <div class="flex items-center gap-4 mb-8">
@@ -73,7 +73,7 @@
         <PaymentModal
           :product-id="product.id"
           :quantity="quantity"
-          :amount="product.price * quantity"
+          :amount="convertAmount(product.price * quantity)"
         >
           <template #trigger="{ loading, open }">
             <UButton
@@ -165,6 +165,7 @@ const route = useRoute()
 const quantity = ref(1)
 
 const { getLocalizedProduct } = useLocalizedProduct()
+const { convertAmount, formatAmount } = useLocaleCurrency()
 
 useHead({
   title: computed(() => product.value?.name ? `${product.value.name} - Buy Now` : 'Product Details'),

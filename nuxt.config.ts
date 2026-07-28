@@ -178,13 +178,30 @@ export default defineNuxtConfig({
                   method = methodMatch[1] as typeof method
                   route = route.slice(0, -methodMatch[0].length)
                 }
+                route = route
+                  .replace(/\/\[\.\.\.[^\]]+\]/g, '/**')
+                  .replace(/\/\[([^\]]+)\]/g, '/:$1')
                 
                 nitroConfig.handlers = nitroConfig.handlers || []
-                nitroConfig.handlers.push({
-                  route: `/api/${theme}${route}`,
-                  handler: file.replace(/\\/g, '/'),
-                  method,
-                })
+                const isThemeAdminApi = route === '/admin' || route.startsWith('/admin/')
+                const handlerRoutes = isThemeAdminApi
+                  ? [`/api/admin/${theme}${route.slice('/admin'.length)}`]
+                  : [`/api/${theme}${route}`]
+
+                // Qingpu's existing admin clients use /api/qingpu/admin/** and
+                // each handler enforces requireAdmin or a dedicated cron token.
+                // Keep that legacy route while exposing the standardized alias.
+                if (isThemeAdminApi && theme !== 'minimal') {
+                  handlerRoutes.push(`/api/${theme}${route}`)
+                }
+
+                for (const handlerRoute of handlerRoutes) {
+                  nitroConfig.handlers.push({
+                    route: handlerRoute,
+                    handler: file.replace(/\\/g, '/'),
+                    method,
+                  })
+                }
               }
             })
           }

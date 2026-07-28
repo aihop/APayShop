@@ -11,6 +11,8 @@ import {
   resolveRequestLocale,
 } from '../../utils/paymentMethodLocales'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { resolvePaymentMethodCurrency } from '../../utils/topup'
+import { resolvePaymentPluginConfig } from '../../utils/paymentPluginConfig'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -19,12 +21,14 @@ export default defineEventHandler(async (event) => {
         orderIdRequired: '订单 ID 不能为空',
         noActiveMethods: '当前没有可用的支付方式',
         emptyContent: '所有启用支付方式的支付说明内容均为空',
+        currencyUnsupported: (currency: string) => `当前没有支持 ${currency} 结算的支付方式`,
         internalError: '服务器内部错误',
       }
     : {
         orderIdRequired: 'Order ID is required',
         noActiveMethods: 'No active payment methods available',
         emptyContent: 'Payment info content is empty for all active methods',
+        currencyUnsupported: (currency: string) => `No payment method supports ${currency} settlement`,
         internalError: 'Internal server error',
       }
   try {
@@ -50,10 +54,21 @@ export default defineEventHandler(async (event) => {
 
     // 3. 组合所有激活支付方式的 HTML
     const availableMethods = []
+    let currencyMismatchCount = 0
+    let currencyCompatibleCount = 0
 
     for (const method of activeMethods) {
       const methodCode = method.code
       let rawHtml = ''
+      const configObj = resolvePaymentPluginConfig(methodCode, method.configJson)
+
+      const methodCurrency = resolvePaymentMethodCurrency(configObj)
+      const orderCurrency = String((order as any).currency || 'USD').trim().toUpperCase()
+      if (methodCurrency && methodCurrency !== orderCurrency) {
+        currencyMismatchCount++
+        continue
+      }
+      currencyCompatibleCount++
       
       rawHtml = method.info || ''
       if (!rawHtml.trim()) {
@@ -75,32 +90,10 @@ export default defineEventHandler(async (event) => {
       // 4. 变量替换逻辑
       let content = rawHtml.replace(/\{\$orderId\}/g, orderId)
       content = content.replace(/\{\$amount\}/g, order.amount.toString())
+      content = content.replace(/\{\$currency\}/g, String((order as any).currency || 'USD'))
       content = content.replace(/\{\$productId\}/g, order.productId.toString())
       
       // Replace custom config variables
-      let configObj = {}
-      try {
-        if (method.configJson) {
-          configObj = JSON.parse(method.configJson)
-        }
-      } catch (e) {
-        // ignore JSON parse error
-      }
-
-      if (!Object.keys(configObj).length) {
-        const localConfigPath = path.join(process.cwd(), 'payments', methodCode, 'config.json')
-        const localConfigLowerPath = path.join(process.cwd(), 'payments', String(methodCode).toLowerCase(), 'config.json')
-        try {
-          if (fs.existsSync(localConfigPath)) {
-            configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf-8'))
-          } else if (fs.existsSync(localConfigLowerPath)) {
-            configObj = JSON.parse(fs.readFileSync(localConfigLowerPath, 'utf-8'))
-          }
-        } catch (e) {
-          // ignore JSON parse error
-        }
-      }
-      
       for (const [key, value] of Object.entries(configObj)) {
         const regex = new RegExp(`\\{\\$config\\.${key}\\}`, 'g')
         content = content.replace(regex, String(value))
@@ -115,6 +108,9 @@ export default defineEventHandler(async (event) => {
     }
 
     if (availableMethods.length === 0) {
+      if (currencyCompatibleCount === 0 && currencyMismatchCount > 0) {
+        return { code: 1, message: messages.currencyUnsupported(String((order as any).currency || 'USD')) }
+      }
       return { code: 1, message: messages.emptyContent }
     }
 
@@ -125,6 +121,8 @@ export default defineEventHandler(async (event) => {
       code: 0,
       data: {
         methods: availableMethods,
+        amount: order.amount,
+        currency: String((order as any).currency || 'USD'),
         content: combinedContent // 保留这个字段，确保旧版 UI / 其它地方调用不报错
       }
     }

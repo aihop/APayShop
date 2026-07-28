@@ -9,6 +9,12 @@ import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readP
 import { createNotification } from '../../utils/notifications'
 import { buildTopupQuote, ensureTopupCarrierProduct, getTopupRules, TopupValidationError } from '../../utils/topup'
 import { getRequestLocale } from '../../utils/requestLocale'
+import {
+  buildMinimalCheckoutBridgeMeta,
+  getMinimalCheckoutAdminConfig,
+  mergeMinimalCheckoutMeta,
+  prepareOrderMetaForInsert,
+} from '../../../app/themes/minimal/server/checkout/bridge'
 
 /**
  * 快捷充值下单。
@@ -119,27 +125,69 @@ export default defineEventHandler(async (event) => {
   const date = new Date()
   const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`
   const orderId = `TU${dateStr}${String(Date.now()).slice(-6)}${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+  const exchangeRate = quote.rechargeAmount > 0
+    ? Math.round((quote.amount / quote.rechargeAmount) * 100000000) / 100000000
+    : 1
+  const minimalCheckoutConfig = await getMinimalCheckoutAdminConfig()
+  const bridgeMeta = buildMinimalCheckoutBridgeMeta({
+    externalOrderId: orderId,
+    sourceProductId: carrier.id,
+    amount: quote.amount,
+    currency: quote.currency,
+    sourceAmount: quote.rechargeAmount,
+    sourceCurrency: quote.accountingCurrency,
+    exchangeRate,
+    rechargeAmount: quote.rechargeAmount,
+    rechargeCurrency: quote.accountingCurrency,
+    balanceType: 'cash',
+    notifyUrl: minimalCheckoutConfig.defaultNotifyUrl || undefined,
+    returnUrl: minimalCheckoutConfig.defaultReturnUrl || undefined,
+    cancelUrl: minimalCheckoutConfig.defaultCancelUrl || undefined,
+    customerEmail: contactEmail,
+    attach: {
+      channel: 'qingpu-wallet',
+      businessType: 'topup',
+      sourceProductId: carrier.id,
+      productName: carrier.name,
+      productMeta: carrier.metaData,
+      userId,
+      topupRate: rules.options[quote.currency]?.rate ?? 1,
+      topupRateDirection: 'payment_to_recharge',
+    },
+  })
+  const relayOrderMeta = mergeMinimalCheckoutMeta({
+    ...orderMetaObj,
+    currencySnapshot: {
+      baseAmount: quote.rechargeAmount,
+      baseCurrency: quote.accountingCurrency,
+      amount: quote.amount,
+      currency: quote.currency,
+      exchangeRate,
+      source: 'qingpu-topup-rules',
+    },
+  }, bridgeMeta)
 
   await db.insert(orders).values({
     id: orderId,
     productId: carrier.id,
     amount: quote.amount,
     currency: quote.currency,
+    source: 'minimal_checkout',
+    externalOrderId: orderId,
     status: ORDER_STATUS.NONE,
     payStatus: ORDER_PAY_STATUS.PENDING,
     contactEmail,
     payMethod: 'none',
     visitorId,
     userId,
-    // D1 需原生对象,本地 SQLite 需字符串(AGENTS §6.A)
-    metaData: (process.env.NUXT_HUB_DATABASE ? orderMetaObj : JSON.stringify(orderMetaObj)) as any,
+    metaData: prepareOrderMetaForInsert(relayOrderMeta),
     createdAt: new Date(),
   })
 
   await createOrderAttribution({
     orderId,
     buyerUserId: userId,
-    metaData: orderMetaObj,
+    metaData: relayOrderMeta,
   })
 
   await trackVisitorEvent(event, {

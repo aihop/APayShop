@@ -136,6 +136,8 @@ export const orders = mysqlTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),
   currency: text('currency').notNull().default('USD'), // 实付币种(CNY/USD…);快捷充值按币种校验区间并折算到账额度
+  source: varchar('source', { length: 64 }), // minimal_checkout 等订单来源；与 external_order_id 组成外部幂等键
+  externalOrderId: varchar('external_order_id', { length: 128 }),
   productId: int('product_id').notNull().references(() => products.id),
   userId: int('user_id').references(() => users.id), // Link to C-end user
   contactEmail: text('contact_email').notNull(),
@@ -149,7 +151,9 @@ export const orders = mysqlTable('orders', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   paidAt: timestamp('paid_at'),
   payStatus: text('pay_status').notNull().default('pending') // pending, paid, failed, refunded
-})
+}, (table) => [
+  uniqueIndex('orders_source_external_order_unique').on(table.source, table.externalOrderId),
+])
 
 // ==========================================
 // Subscriptions Table (Adyen/PayPal Recurring)

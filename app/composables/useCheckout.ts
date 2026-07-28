@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { useToast, useRouter } from '#imports'
+import { useToast, useRouter, useI18n } from '#imports'
 import { useSettings } from '~/composables/useSettings'
 import { useCustomerAuth } from '~/composables/useCustomerAuth'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
@@ -10,10 +10,13 @@ export const useCheckout = () => {
   const { getSetting } = useSettings()
   const { loggedIn } = useCustomerAuth()
   const { localePath } = useLocaleRouter()
+  const { locale } = useI18n()
   
   const isCreatingOrder = ref(false)
   const isOrderModalOpen = ref(false)
   const orderId = ref<string | null>(null)
+  const orderAmount = ref(0)
+  const orderCurrency = ref('USD')
 
   // 0 元/免费订单：直接视为支付成功，跳过 PaymentWorkspace，走 callback 展示成功页
   const handleFreeOrderSuccess = (targetOrderId: string) => {
@@ -92,6 +95,7 @@ export const useCheckout = () => {
         method: 'POST',
         body: {
           metaData,
+          locale: locale.value,
           items: [
             {
               productId: productId,
@@ -104,6 +108,8 @@ export const useCheckout = () => {
       if (res && res.code === 0) {
         const newOrderId = res.data?.id || ''
         const amount = Number(res.data?.amount ?? 0)
+        orderAmount.value = amount
+        orderCurrency.value = String(res.data?.currency || 'USD').toUpperCase()
         const isFreeOrder = Boolean(res.data?.isFreeOrder) || amount <= 0
 
         if (isFreeOrder && newOrderId) {
@@ -166,6 +172,8 @@ export const useCheckout = () => {
         headers: typeof document !== 'undefined' ? useRequestHeaders(['cookie']) : undefined,
       })
       const amount = Number(detail?.amount ?? 0)
+      orderAmount.value = amount
+      orderCurrency.value = String(detail?.currency || 'USD').toUpperCase()
       const payStatus = String(detail?.payStatus || detail?.status || '')
       if (amount <= 0 && (payStatus === 'pending' || payStatus === '')) {
         await completeFreeOrder(orderId.value)
@@ -193,6 +201,8 @@ export const useCheckout = () => {
     isCreatingOrder,
     isOrderModalOpen,
     orderId,
+    orderAmount,
+    orderCurrency,
     openCheckoutModal,
     closeCheckoutModal,
     continuePayment,

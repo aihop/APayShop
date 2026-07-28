@@ -16,6 +16,7 @@ import {
 } from '../../utils/paymentMethodLocales'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { reconcileOrder } from '../../utils/orderReconcile'
+import { resolvePaymentPluginConfig } from '../../utils/paymentPluginConfig'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
           methodNotFound: '支付方式不存在或未启用',
           methodUnavailableForLocale: '当前语言下该支付方式不可用',
           createScriptMissing: (code: string) => `支付创建脚本缺失：${code}`,
-          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `该支付方式使用 ${methodCurrency} 结算，但充值订单币种为 ${orderCurrency}，请选择 ${orderCurrency} 支付方式。`,
+          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `该支付方式使用 ${methodCurrency} 结算，但订单币种为 ${orderCurrency}，请选择支持 ${orderCurrency} 的支付方式。`,
           initiateFailed: '发起支付失败',
           alreadyPaidSynced: '该订单已支付成功，状态已同步',
           initiated: '支付发起成功',
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
           methodNotFound: 'Payment method not found or inactive',
           methodUnavailableForLocale: 'Payment method is not available in current language',
           createScriptMissing: (code: string) => `Create script missing for ${code}`,
-          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `This payment method settles in ${methodCurrency}, but the top-up order is in ${orderCurrency}. Please choose a ${orderCurrency} method.`,
+          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `This payment method settles in ${methodCurrency}, but the order is in ${orderCurrency}. Please choose a method that supports ${orderCurrency}.`,
           initiateFailed: 'Failed to initiate payment',
           alreadyPaidSynced: 'This order was already paid; status has been synced',
           initiated: 'Payment initiated successfully',
@@ -91,41 +92,16 @@ export default defineEventHandler(async (event) => {
       return { code: 1, message: messages.createScriptMissing(method.code) }
     }
 
-    let configJson: Record<string, any> = {}
-    try {
-      if (method.configJson) {
-        configJson = JSON.parse(method.configJson)
-      }
-    } catch {}
+    const configJson = resolvePaymentPluginConfig(method.code, method.configJson)
 
-    if (!Object.keys(configJson).length) {
-      const localConfigPath = path.join(process.cwd(), 'payments', method.code, 'config.json')
-      const localConfigLowerPath = path.join(process.cwd(), 'payments', String(method.code).toLowerCase(), 'config.json')
-      try {
-        if (fs.existsSync(localConfigPath)) {
-          configJson = JSON.parse(fs.readFileSync(localConfigPath, 'utf-8'))
-        } else if (fs.existsSync(localConfigLowerPath)) {
-          configJson = JSON.parse(fs.readFileSync(localConfigLowerPath, 'utf-8'))
-        }
-      } catch {}
-    }
-
-    // 充值订单币种守卫:充值单的 amount 是用户自填的原币金额,若拿去给一个
-    // 结算币种不同的网关(如 CNY 单走 Stripe),会按同一个数字扣成美元。
-    // 仅作用于充值订单(metaData.topup),且只在能确定插件币种时才拦——普通
-    // 商品下单与未声明币种的插件行为保持不变。
-    let orderMetaObj: any = null
-    try {
-      orderMetaObj = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
-    } catch {}
-    if (orderMetaObj?.topup) {
-      const methodCurrency = resolvePaymentMethodCurrency(configJson)
-      const orderCurrency = String((order as any).currency || '').trim().toUpperCase()
-      if (methodCurrency && orderCurrency && methodCurrency !== orderCurrency) {
-        return {
-          code: 1,
-          message: messages.currencyMismatch(methodCurrency, orderCurrency),
-        }
+    // 所有订单都以创建时锁定的币种为准。插件声明结算币种时必须一致；
+    // 未声明币种的历史插件继续按兼容模式放行。
+    const methodCurrency = resolvePaymentMethodCurrency(configJson)
+    const orderCurrency = String((order as any).currency || '').trim().toUpperCase()
+    if (methodCurrency && orderCurrency && methodCurrency !== orderCurrency) {
+      return {
+        code: 1,
+        message: messages.currencyMismatch(methodCurrency, orderCurrency),
       }
     }
 
@@ -141,6 +117,7 @@ export default defineEventHandler(async (event) => {
       order: {
         id: order.id,
         amount: order.amount,
+        currency: orderCurrency,
         productId: order.productId,
         contactEmail: order.contactEmail,
         metaData: typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData

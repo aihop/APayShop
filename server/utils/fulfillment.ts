@@ -7,19 +7,21 @@ import { getWebhookSubscriptionUrl, getIntegrationToken } from './externalProxy'
 import { createNotification } from './notifications'
 import { creditBalance, topupEventId } from './balance'
 import { getAffectedRows } from './dbResult'
+import { resolveOrderCurrencyAmounts } from './orderCurrency'
 
 
 export async function fulfillOrder(orderId: string) {
   // 1. Get Order
   const orderRes = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
   if (!orderRes.length) return false
-  const order = orderRes[0]
+  const order = orderRes[0]!
   const orderMeta = normalizeMetaData(order.metaData)
+  const currencyAmounts = resolveOrderCurrencyAmounts(order)
   
   // 2. Get Product
   const productRes = await db.select().from(products).where(eq(products.id, order.productId)).limit(1)
   if (!productRes.length) return false
-  const product = productRes[0]
+  const product = productRes[0]!
   
   let deliveryInfo = product.resource || ""
   let newStatus = "delivered"
@@ -131,6 +133,8 @@ export async function fulfillOrder(orderId: string) {
          await db.update(subscriptions).set({
            currentPeriodEnd: endDate,
            status: 'active',
+           amount: currencyAmounts.accountingAmount,
+           currency: currencyAmounts.accountingCurrency,
            updatedAt: new Date()
          }).where(eq(subscriptions.id, subId))
       } else {
@@ -144,8 +148,8 @@ export async function fulfillOrder(orderId: string) {
            status: 'active',
            interval,
            intervalCount,
-           amount: order.amount,
-           currency: 'USD', // Could be dynamic if you support multi-currency
+           amount: currencyAmounts.accountingAmount,
+           currency: currencyAmounts.accountingCurrency,
            currentPeriodStart: startDate,
            currentPeriodEnd: endDate,
            createdAt: new Date()
@@ -182,7 +186,10 @@ export async function fulfillOrder(orderId: string) {
               data: {
                 eventId,
                 userId: Number(order.userId),
-                paidAmount: Number(order.amount) || 0,
+                paidAmount: currencyAmounts.accountingAmount,
+                paidCurrency: currencyAmounts.accountingCurrency,
+                paymentAmount: currencyAmounts.paymentAmount,
+                paymentCurrency: currencyAmounts.paymentCurrency,
                 grantAmount,
                 expiresAt: endDate.toISOString(),
                 tier: Number(subProductLevel || 0),
@@ -225,7 +232,7 @@ export async function fulfillOrder(orderId: string) {
       const rechargeAmount = firstPositiveNumber(
         (orderMeta as any).recharge_amount,
         (productMeta as any).recharge_amount,
-        order.amount,
+        currencyAmounts.accountingAmount,
       )
       const unit = String(
         (orderMeta as any).display_unit || (productMeta as any).display_unit || 'credits',
@@ -283,6 +290,8 @@ export async function fulfillOrder(orderId: string) {
   return {
     ...order,
     metaData: orderMeta,
+    accountingAmount: currencyAmounts.accountingAmount,
+    accountingCurrency: currencyAmounts.accountingCurrency,
     status: newStatus,
     deliveryInfo,
     product: {
@@ -295,7 +304,7 @@ export async function fulfillOrder(orderId: string) {
     },
     integration: buildOrderIntegration({
       orderId: order.id,
-      orderAmount: order.amount,
+      orderAmount: currencyAmounts.accountingAmount,
       productName: product.name,
       productType: product.type,
       orderMeta,
@@ -380,6 +389,10 @@ function buildOrderIntegration(input: {
       metadata: {
         order_id: input.orderId,
         product_type: input.productType,
+        accounting_currency: input.orderMeta?.currencySnapshot?.baseCurrency,
+        payment_amount: input.orderMeta?.currencySnapshot?.amount,
+        payment_currency: input.orderMeta?.currencySnapshot?.currency,
+        exchange_rate: input.orderMeta?.currencySnapshot?.exchangeRate,
         plan_ids: hasPlanIds ? input.productMeta.plan_ids : undefined,
       },
     },

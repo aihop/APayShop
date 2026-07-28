@@ -136,6 +136,8 @@ export const orders = pgTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),
   currency: text('currency').notNull().default('USD'), // 实付币种(CNY/USD…);快捷充值按币种校验区间并折算到账额度
+  source: text('source'), // minimal_checkout 等订单来源；与 external_order_id 组成外部幂等键
+  externalOrderId: text('external_order_id'),
   productId: integer('product_id').notNull().references(() => products.id),
   userId: integer('user_id').references(() => users.id), // Link to C-end user
   contactEmail: text('contact_email').notNull(),
@@ -149,7 +151,9 @@ export const orders = pgTable('orders', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   paidAt: timestamp('paid_at', { withTimezone: true }),
   payStatus: text('pay_status').notNull().default('pending') // pending, paid, failed, refunded
-})
+}, (table) => [
+  uniqueIndex('orders_source_external_order_unique').on(table.source, table.externalOrderId),
+])
 
 // ==========================================
 // Subscriptions Table (Adyen/PayPal Recurring)

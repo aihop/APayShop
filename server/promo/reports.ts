@@ -3,6 +3,7 @@ import { db } from '../db/runtime'
 import { orders, promoAgentRelations, promoCommissions, promoInviteRelations, promoMembers, promoOrderAttributions, users } from '../db/schema'
 import { PROMO_COMMISSION_STATUS, PROMO_ROLE } from './utils'
 import { ensurePromoMember } from './members'
+import { resolveOrderCurrencyAmounts } from '../utils/orderCurrency'
 
 export async function getPromoOverview() {
   const [membersCount, agentsCount, mastersCount, pendingCommissions, paidOrders] = await Promise.all([
@@ -209,6 +210,8 @@ export async function getMasterAgentTeamReport(masterAgentUserId: number) {
       agentUserId: promoOrderAttributions.agentUserId,
       orderId: promoOrderAttributions.orderId,
       amount: orders.amount,
+      currency: orders.currency,
+      metaData: orders.metaData,
       payStatus: orders.payStatus,
     })
       .from(promoOrderAttributions)
@@ -229,7 +232,10 @@ export async function getMasterAgentTeamReport(masterAgentUserId: number) {
   const rows = teamRows.map((item: any) => {
     const agentOrders = attributionRows.filter((order: any) => order.agentUserId === item.agentUserId && order.payStatus === 'paid')
     const agentCommissions = commissionRows.filter((commission: any) => commission.ownerUserId === item.agentUserId)
-    const totalSalesAmount = agentOrders.reduce((sum: number, order: any) => sum + Number(order.amount || 0), 0)
+    const totalSalesAmount = agentOrders.reduce(
+      (sum: number, order: any) => sum + resolveOrderCurrencyAmounts(order).accountingAmount,
+      0,
+    )
     const totalCommissionAmount = agentCommissions.reduce((sum: number, commission: any) => sum + Number(commission.amount || 0), 0)
 
     return {
@@ -262,6 +268,8 @@ export async function listMasterAgentTeamOrders(masterAgentUserId: number, limit
     discountRateSnapshot: promoOrderAttributions.discountRateSnapshot,
     createdAt: promoOrderAttributions.createdAt,
     amount: orders.amount,
+    currency: orders.currency,
+    metaData: orders.metaData,
     payStatus: orders.payStatus,
     orderStatus: orders.status,
   })
@@ -285,12 +293,19 @@ export async function listMasterAgentTeamOrders(masterAgentUserId: number, limit
 
   const userMap: Map<number, any> = new Map(userRows.map((item: any) => [item.id, item]))
 
-  return rows.map((item: any) => ({
-    ...item,
-    amount: Number(item.amount || 0),
-    buyerEmail: userMap.get(item.buyerUserId)?.email || null,
-    buyerNickname: userMap.get(item.buyerUserId)?.nickname || null,
-    agentEmail: userMap.get(item.agentUserId)?.email || null,
-    agentNickname: userMap.get(item.agentUserId)?.nickname || null,
-  }))
+  return rows.map((item: any) => {
+    const currencyAmounts = resolveOrderCurrencyAmounts(item)
+    const { metaData: _metaData, ...reportItem } = item
+    return {
+      ...reportItem,
+      amount: currencyAmounts.accountingAmount,
+      currency: currencyAmounts.accountingCurrency,
+      paymentAmount: currencyAmounts.paymentAmount,
+      paymentCurrency: currencyAmounts.paymentCurrency,
+      buyerEmail: userMap.get(item.buyerUserId)?.email || null,
+      buyerNickname: userMap.get(item.buyerUserId)?.nickname || null,
+      agentEmail: userMap.get(item.agentUserId)?.email || null,
+      agentNickname: userMap.get(item.agentUserId)?.nickname || null,
+    }
+  })
 }

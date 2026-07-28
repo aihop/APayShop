@@ -8,13 +8,16 @@
   <UModal
     v-model:open="isOrderModalOpen"
     scrollable
-    :ui="{ content: 'bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/10 rounded-[40px] shadow-2xl dark:shadow-[0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden' }"
+    :ui="{
+      content: 'w-[calc(100vw-1rem)] max-w-5xl sm:w-[calc(100vw-3rem)] bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/10 rounded-2xl sm:rounded-[32px] shadow-2xl dark:shadow-[0_32px_80px_rgba(0,0,0,0.8)] overflow-hidden',
+    }"
   >
     <template #content>
       <PaymentWorkspace
         v-if="activeOrderId"
         :order-id="activeOrderId"
-        :amount="amount"
+        :amount="activeAmount"
+        :currency="activeCurrency"
         :quantity="quantity"
         closable
         @close="closeCheckoutModal"
@@ -43,9 +46,13 @@ const {
   closeCheckoutModal,
   continuePayment,
   orderId: checkoutOrderId,
+  orderAmount,
+  orderCurrency,
 } = useCheckout()
 
 const activeOrderId = computed(() => checkoutOrderId.value || props.orderId || '')
+const activeAmount = computed(() => checkoutOrderId.value ? orderAmount.value : props.amount)
+const activeCurrency = computed(() => checkoutOrderId.value ? orderCurrency.value : '')
 
 const handleOpen = () => {
   if (props.productId && props.quantity) {

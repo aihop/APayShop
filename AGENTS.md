@@ -1,6 +1,9 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-07-28`: 修正主题后台 API 注册命名空间：`minimal/api/admin/**` 统一注册到受全局管理员中间件保护的 `/api/admin/minimal/**`，不再意外暴露为 `/api/minimal/admin/**`；Qingpu 既有自鉴权地址保留兼容并新增标准安全别名，见 Section 6.D。
+> `2026-07-28`: 将 `minimal` 收口为 APay 唯一支付中转层：所有 Qingpu 商品、订阅、试用与钱包充值订单统一按 relay topup 记录实际支付金额/币种、来源金额/币种、汇率及最终充值口径；新增 `orders.source + external_order_id` 唯一幂等键，中转订单不执行 APay 本地商品履约，付款后只通过专用 notify 或旧事件兜底中的一个通道通知 Qingpu，见 Section 2.E、Section 3 与 Section 6.F。
+> `2026-07-28`: 新增语言绑定普通商品结算币种与汇率：全局 `currency` 作为基础/兜底币种，`locale_currency_bindings` 按语言覆盖；订单保存实际支付金额/币种，订阅、履约、外部入账与推广结佣统一使用锁定的基础币种金额；支付方式按订单币种过滤并在发起时二次校验，见 Section 6.F。
 > `2026-07-28`: Qingpu 网页铺货新增渠道佣金匹配器工厂；Ozon 在选择平台类目后自动匹配并持久化佣金子类快照，已绑定时默认复用且不重复提示，匹配失败或用户主动纠正时才手动选择，见 Section 6.L。
 > `2026-07-28`: Qingpu 网页铺货 SKU 编辑与扩展端统一为 revision-safe 即时修改：本地先应用、HTTP 串行提交、服务端基于最新聚合重放 mutation，冲突时以 `currentRevision` 重试一次；SKU 删除统一写入 `manualOverrides.excludedSkuIds`，不删除 canonical 货源变体，见 Section 6.L。
 > `2026-07-25`: 加固 Admin Setup 链路安全：`/api/admin/setup` 改为 `onConflictDoNothing` + `unique constraint violation` 兜底的原子写入，消除竞态条件下的重复管理员风险；新增用户名格式白名单正则（3-32 位 `[a-zA-Z0-9_.-]`）与密码强度校验（≥10 位 + 大小写/数字至少两类 + 常见弱口令黑名单）；新增 `/api/admin/setup/check` 只读接口与对应中间件白名单；新增 `server/utils/rateLimit.ts` 提供进程内 IP 滑动窗口限流并接入 setup/check 两个公开端点；前端 `admin/setup.vue` 在 `onMounted` 中预先检查 initialized，已初始化时重定向至登录页，并新增密码强度进度条、规则清单、可见性切换与提交前校验。
@@ -61,6 +64,8 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
 ### E. 跨系统服务调度 (Webhook to Shoply)
 
 - **机制**: 当用户在 APay 成功支付 SaaS 订阅套餐后，APay 不直接操作底层业务数据库。而是利用 `payment_methods.callback` 中的沙盒代码，向 Shoply 后端发起 Webhook 通知（需携带用户手机号/UnionID 等凭证），由 Shoply 接管后续的“转正、生成独立小程序”等业务流。
+- **Minimal 支付中转边界**: Qingpu 发起的商品、订阅、试用、固定充值和自定义钱包充值一律在 `minimal` 中表示为 `minimal_checkout` relay topup。APay 只负责实际收款、换算快照、结佣和可靠通知，不执行本地发卡/订阅/余额变更；Qingpu 按 `externalOrderId` 幂等完成最终业务履约。
+- **单通道通知**: 中转订单配置 `notifyUrl` 时只发送签名 `minimal.checkout.paid`；未配置时才回退通用 `order.paid`。专用通知失败不得切换第二通道，避免接收成功但响应丢失时重复入账；失败状态与尝试次数写回订单，后台通过专用 retry-notify 接口按原 `externalOrderId` 补发。
 
 ### C. 访客与买家双轨制 (Guest & User)
 
@@ -85,7 +90,7 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
 1. **`admins`**: B端后台管理员。
 2. **`users`**: C端买家。
 3. **`products`**: 核心商品表。包含 `type`、`slug`、`metaData` (JSON 扩展字段)、`views` (浏览量) 等。
-4. **`orders`**: 订单表。包含 `status` (none, processing, active, delivered, expired, failed, completed)。
+4. **`orders`**: 订单表。包含 `status` (none, processing, active, delivered, expired, failed, completed)，`amount/currency` 保存实际支付口径；`source/externalOrderId` 标识外部来源并提供组合唯一幂等约束。
 5. **`cards`**: 虚拟资产表（卡密）。
 6. **`payment_methods`**: 支付插件配置。
 7. **`posts`**: 博客与系统文章。
@@ -175,6 +180,7 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
   </script>
   ```
 - **后台扩展入口接入规则**: 如果新增模板后台扩展页，除了 `theme.admin.json` 和主题组件本身，还要同步确认默认后台侧栏与 `app/components/RouteSearch.vue` 是否已通过统一注册逻辑自动接入；禁止再新增一套分散硬编码菜单。
+- **主题后台 API 命名空间**: `app/themes/[theme]/api/admin/**` 的标准路由是 `/api/admin/[theme]/**`，必须进入全局管理员鉴权；禁止把没有自身 `requireAdmin`/专用令牌校验的后台接口暴露为 `/api/[theme]/admin/**`。自定义 Nitro 扫描器必须把文件段 `[id]` 转成 `:id`、`[...slug]` 转成 `**`。Qingpu 历史地址因接口内已有鉴权暂时保留兼容，新主题和 minimal 只使用标准地址。
 - **主题后台扩展页国际化规则**: 主题后台扩展页的文案不要继续混塞在前台 `locales/en.ts`、`zh.ts` 中；优先放到 `app/themes/[theme]/locales/admin/en.ts` 与 `admin/zh.ts`，并由 `app/pages/admin/extensions/[...slug].vue` 统一 merge 到当前主题命名空间下，保持现有 `ainode.admin.*` 这类 key 兼容。
 - **模板后台直连 Golang 管理接口模式**: 主题后台扩展页如果需要直接调用 `ainode` 的管理接口，优先复用 `useExternalApi({ proxy: true})` 并在 `onMounted` 中发起请求，模式参照 `app/themes/aihop/pages/user/dashboard.vue` 的 `fetchGatewayStats`。统一经由 `server/api/proxy/external.ts` 转发，由服务端注入 `Authorization`，且该代理现在同时允许 `session.user` 与 `session.admin` 场景；适合 `/admin/extensions/*` 页面直接对接 Go 后台管理 API，例如 `models.vue`、`channels.vue` 这类 CRUD 页面直接对接 `/api/admin/models`、`/api/admin/channels`。
 - **官网微信登录收口规则**: APay 官网主题（如 `minimal`）的微信登录应优先走 Shoply `go-fast` 的统一认证入口 `/auth/connect`、`/auth/connect/signin`、`/auth/connect/callback`，由通用网关再触发 `plugins/app/Wechat` 应用；APay 侧只保留前端入口、同源代理和回调承接，不再直接承载微信登录核心业务。
@@ -185,6 +191,13 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
 - **绝对禁止**引入任何包含 C++ 或 Node 原生绑定的库（如 `bcryptjs`, `better-sqlite3`, `sqlite3`）。这会导致 Cloudflare 边缘节点打包直接崩溃。
 
 ### F. 本地支付插件目录约定
+
+- **Minimal relay topup**: 所有 Qingpu 支付唤醒统一写入 `metaData.checkoutBridge`（`processingMode=relay_topup`），同时锁定实际支付、来源换算和 `rechargeAmount/rechargeCurrency/balanceType`。外部 bridge 使用隐藏载体商品，站内 Qingpu 商品保留原 `productId` 供限购与报表，但支付完成都必须走 `fulfillMinimalCheckoutRelay()`，禁止进入普通 `fulfillOrder()`。
+- **中转幂等键**: `orders.source='minimal_checkout' + orders.externalOrderId` 必须唯一；外部创建接口以 Qingpu 业务单号作为 `externalOrderId`，并发重试复用已有订单。下游也必须以同一字段原子去重。
+- **语言结算币种**: 全局 `settings.currency` 是普通商品价格的基础币种与无绑定时的兜底币种；`settings.locale_currency_bindings` 保存 JSON 语言映射，汇率方向固定为 `1 基础币种 = rate 目标币种`。解析顺序为完整 locale → 主语言 → 全局默认，同币种汇率强制为 `1`。
+- **订单币种快照**: 普通商品下单必须把 locale、基础币种/金额、目标币种、汇率、转换后金额锁定到 `orders.metaData.currencySnapshot`，并将实付币种写入 `orders.currency`。支付展示与支付脚本必须读取订单快照，不得按最新 settings 重新换算历史订单。
+- **支付与记账口径分离**: `orders.amount / orders.currency` 是支付网关实际收取的金额与币种；订阅金额、履约 integration transaction、外部 `subscription.apply`、推广佣金和代理销售等级必须通过 `resolveOrderCurrencyAmounts()` 读取 `currencySnapshot.baseAmount / baseCurrency` 记账。不得把不同支付币种的 `orders.amount` 直接相加或直接用于内部入账；无快照历史订单才回退原订单金额与币种。
+- **支付方式币种守卫**: 支付插件可通过 `configJson.currency`（兼容 `sourceCurrency / priceCurrency`）声明结算币种；声明后只允许匹配相同 `orders.currency`，支付列表和发起接口都必须校验。未声明币种的历史插件按币种无关方式兼容。
 
 - `payments/[code]/` 目录下的 `create.js / callback.js / info.html / config.json` 会被后台支付管理页与支付发起/回调主链自动读取；适合沉淀本地默认插件模板。
 - `payments/wechat/` 当前按官网收费场景实现为 `PC 扫码(Native) + 手机 H5(MWEB)` 的微信支付 v3 插件：

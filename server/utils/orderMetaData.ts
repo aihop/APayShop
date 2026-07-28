@@ -15,6 +15,9 @@ export const RESERVED_ORDER_META_KEYS = [
   'balance_type',
   'integration',
   'plan_ids',
+  'currencySnapshot',
+  'checkoutBridge',
+  'display_unit',
 ] as const
 
 /** 剔除客户端不得自定义的记账字段(浅层即可:integration 整棵子树被整体丢弃) */

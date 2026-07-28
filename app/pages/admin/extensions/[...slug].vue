@@ -7,13 +7,13 @@
     v-else
     class="h-[calc(100vh-10rem)] flex items-center justify-center"
   >
-    <div class="max-w-xl w-full bg-[#121214] border border-gray-800/50 rounded-2xl p-8 text-center">
+    <div class="max-w-xl w-full rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800/50 dark:bg-[#121214]">
       <UIcon
         name="ph:puzzle-piece"
-        class="w-12 h-12 text-purple-400 mx-auto mb-4"
+        class="w-12 h-12 mx-auto mb-4 text-purple-500 dark:text-purple-400"
       />
-      <h1 class="text-2xl font-bold text-white">{{ title }}</h1>
-      <p class="text-gray-400 mt-3">{{ description }}</p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ title }}</h1>
+      <p class="mt-3 text-gray-500 dark:text-gray-400">{{ description }}</p>
       <div class="flex items-center justify-center gap-3 mt-6">
         <UButton
           to="/admin/settings/themes"
