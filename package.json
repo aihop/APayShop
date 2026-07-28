@@ -42,6 +42,7 @@
     "@vueuse/motion": "^3.0.3",
     "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.45.2",
+    "maxmind": "^5.0.6",
     "mysql2": "^3.22.3",
     "nuxt": "^4.4.2",
     "nuxt-auth-utils": "^0.5.29",

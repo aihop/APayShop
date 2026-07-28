@@ -12,6 +12,36 @@
 
     <div class="w-full max-w-md relative z-10">
 
+      <!-- 语言选择:登录前先选,选完这一页立即切,登录后的整个后台也跟着走 -->
+      <div
+        v-if="switchableLocales.length > 1"
+        class="mb-4 flex justify-end"
+      >
+        <div
+          class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/40 p-1 backdrop-blur-2xl"
+          role="group"
+          :aria-label="$t('admin.login.language')"
+        >
+          <UIcon
+            name="ph:translate-duotone"
+            class="w-4 h-4 ml-2 mr-0.5 text-gray-500"
+          />
+          <button
+            v-for="loc in switchableLocales"
+            :key="loc.code"
+            type="button"
+            class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+            :class="loc.code === locale
+              ? 'bg-white text-black'
+              : 'text-gray-400 hover:text-white hover:bg-white/10'"
+            :aria-pressed="loc.code === locale"
+            @click="switchLocale(loc.code)"
+          >
+            {{ loc.name || loc.code }}
+          </button>
+        </div>
+      </div>
+
       <!-- Login Card -->
       <div class="bg-black/40 backdrop-blur-2xl border border-white/10 p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
         <!-- Interactive gradient highlight on hover -->
@@ -19,7 +49,7 @@
 
         <div class="mb-10 text-center relative z-10">
           <h1 class="text-3xl font-medium tracking-tight text-white mb-2">{{ welcomeText }}</h1>
-          <p class="text-gray-400 text-sm">Please enter your details to sign in.</p>
+          <p class="text-gray-400 text-sm">{{ $t('admin.login.subtitle') }}</p>
         </div>
 
         <div
@@ -30,7 +60,7 @@
             name="ph:check-circle-fill"
             class="w-5 h-5"
           />
-          Setup complete. You can now sign in.
+          {{ $t('admin.login.setupSuccess') }}
         </div>
 
         <form
@@ -38,13 +68,13 @@
           class="space-y-6 relative z-10"
         >
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-300 block">Username</label>
+            <label class="text-sm font-medium text-gray-300 block">{{ $t('admin.login.username') }}</label>
             <div class="relative">
               <input
                 v-model="form.username"
                 type="text"
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all"
-                placeholder="Enter your username"
+                :placeholder="$t('admin.login.usernamePlaceholder')"
                 required
               />
             </div>
@@ -52,16 +82,30 @@
 
           <div class="space-y-1.5">
             <div class="flex justify-between items-center">
-              <label class="text-sm font-medium text-gray-300 block">Password</label>
+              <label class="text-sm font-medium text-gray-300 block">{{ $t('admin.login.password') }}</label>
             </div>
             <div class="relative">
               <input
                 v-model="form.password"
-                type="password"
-                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all"
+                :type="showPassword ? 'text' : 'password'"
+                class="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all"
                 placeholder="••••••••"
                 required
               />
+              <!-- tabindex=-1:Tab 应该从密码框直接到登录按钮,不该在这个开关上停一下 -->
+              <button
+                type="button"
+                tabindex="-1"
+                class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 hover:text-white transition-colors focus:outline-none"
+                :aria-label="showPassword ? $t('admin.login.hidePassword') : $t('admin.login.showPassword')"
+                :aria-pressed="showPassword"
+                @click="showPassword = !showPassword"
+              >
+                <UIcon
+                  :name="showPassword ? 'ph:eye-slash' : 'ph:eye'"
+                  class="w-5 h-5"
+                />
+              </button>
             </div>
           </div>
 
@@ -75,7 +119,7 @@
               name="ph:spinner-gap-bold"
               class="w-5 h-5 animate-spin"
             />
-            <span v-else>Sign In</span>
+            <span v-else>{{ $t('admin.login.submit') }}</span>
             <UIcon
               v-if="!isLoading"
               name="ph:arrow-right-bold"
@@ -98,7 +142,7 @@
 
       <!-- Footer text -->
       <div class="text-center mt-12 text-gray-600 text-xs font-medium tracking-wide">
-        SECURE ADMIN PORTAL &copy; {{ new Date().getFullYear() }}
+        {{ $t('admin.login.footer') }} &copy; {{ new Date().getFullYear() }}
       </div>
     </div>
   </div>
@@ -118,6 +162,8 @@ const { settings, fetchSettings, getSetting } = useSettings()
 // all the login page needs.
 const { admin, loadAdmin } = useAdminSession()
 const { extensionPermissionDefs } = useAdminExtensions()
+// 同理:useI18n() 也只能在这里取,handleLogin/switchLocale 里 await 之后就没实例了。
+const { t, locale, locales, setLocale } = useI18n()
 
 definePageMeta({
   layout: false, // Use no layout to take full screen control
@@ -132,11 +178,31 @@ const form = reactive({
 })
 const isLoading = ref(false)
 const errorMsg = ref('')
+const showPassword = ref(false)
 
 // Computed properties for customization
 const welcomeText = computed(() => {
-  return 'Welcome back'
+  return t('admin.login.title')
 })
+
+// 站点语言是构建期配置(nuxt.config 的 I18N_LOCALES),单语言站这里就只有一项,
+// 模板据此整个隐藏切换器
+const switchableLocales = computed(() =>
+  (unref(locales) || []).map((loc: any) => (typeof loc === 'string' ? { code: loc, name: loc } : loc)),
+)
+
+const switchLocale = async (code: string) => {
+  if (code === locale.value) return
+  // setLocale 负责懒加载该语言的消息包 + 写 i18n_redirected cookie(SSR 下次靠它)。
+  // admin 路由在 nuxt.config 的 i18n.pages 里被置为 false,没有语言前缀可跳,
+  // 所以这里只是就地换语言,不会导航、不会丢 ?redirect= 参数,也不用整页刷新。
+  await setLocale(code as any)
+  // localStorage 是本仓自己的持久化(locale-persist 插件下次启动读它),
+  // nuxt-i18n 不管这层,必须手动写——不写的话下次进后台又回到浏览器语言。
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('locale', code)
+  }
+}
 
 const backgroundStyle = computed(() => {
   return {
@@ -152,10 +218,13 @@ const handleLogin = async () => {
     await $fetch('/api/admin/login', {
       method: 'POST',
       body: form,
+      // 服务端的报错文案走 getRequestLocale(),它只看 accept-language。不带这个头
+      // 就是浏览器语言说了算:页面明明切成中文,「管理员不存在」却回英文。
+      headers: { 'accept-language': locale.value },
     })
   } catch (e: any) {
     // Only a genuine credential rejection reaches here now.
-    errorMsg.value = e.data?.message || e.data?.statusMessage || 'Invalid credentials'
+    errorMsg.value = e.data?.message || e.data?.statusMessage || t('admin.login.invalidCredentials')
     isLoading.value = false
     return
   }

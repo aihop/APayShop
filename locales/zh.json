@@ -1,5 +1,19 @@
 {
   "admin": {
+    "login": {
+      "title": "欢迎回来",
+      "subtitle": "请输入您的账号信息以登录",
+      "setupSuccess": "初始化已完成，现在可以登录了",
+      "username": "用户名",
+      "usernamePlaceholder": "请输入用户名",
+      "password": "密码",
+      "showPassword": "显示密码",
+      "hidePassword": "隐藏密码",
+      "submit": "登录",
+      "invalidCredentials": "登录凭据无效",
+      "language": "语言",
+      "footer": "安全管理后台"
+    },
     "nav": {
       "collapse": "收起",
       "dashboard": "仪表盘",
@@ -383,7 +397,7 @@
         "per_user_limit": {
           "label": "每用户购买次数上限（可选）",
           "placeholder": "不限制（付费商品留空即可）",
-          "help": "同一用户/访客购买此商品的已支付订单上限。免费商品（0 元）若未显式填写则默认限制为 1 次，防止反复薅免费权益。若想显式取消限制，请填写 0。"
+          "help": "同一用户/访客购买此商品的已支付订单上限。免费商品（0 元）若未显式填写则默认限制为 1 次，防止反复薅免费权益。若想显式取消限制，请填写 0"
         },
         "features_title": "定价方案特性",
         "features_label": "特性（{locale}）",

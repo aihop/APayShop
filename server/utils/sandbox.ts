@@ -55,6 +55,16 @@ export interface CreatePaymentResult {
   message?: string;
 }
 
+export interface QueryOrderResult {
+  ok: boolean
+  /** paid / unpaid / closed / unknown —— 只有 paid 会触发置账 */
+  status: 'paid' | 'unpaid' | 'closed' | 'unknown'
+  tradeNo?: string
+  amount?: number
+  raw?: any
+  message?: string
+}
+
 export async function executeCallbackScript(
   scriptCode: string, 
   payload: {
@@ -257,5 +267,106 @@ export async function executeCreateScript(
   } catch (error: any) {
     console.error("Failed to execute create script:", error)
     throw new Error(`Create Sandbox Error: ${error.message}`)
+  }
+}
+
+
+/**
+ * 主动查单:向网关查询某笔订单的真实支付状态,用于回调丢失/验签失败后的补偿。
+ * 沙箱能力与 create 相同(同样需要签名、发 HTTP 请求)。
+ */
+export async function executeQueryScript(
+  scriptCode: string,
+  payload: Record<string, any>,
+  configJson: any
+): Promise<QueryOrderResult> {
+  try {
+    if (/\bimport\s*\(/.test(scriptCode)) throw new Error('Dynamic import is not allowed in sandbox scripts')
+    const sandboxEnv = {
+      payload,
+      config: configJson,
+      crypto: {
+        md5: (str: string) => crypto.createHash('md5').update(str, 'utf8').digest('hex'),
+        sha1: (str: string) => crypto.createHash('sha1').update(str, 'utf8').digest('hex'),
+        sha256: (str: string) => crypto.createHash('sha256').update(str, 'utf8').digest('hex'),
+        hmacSha256: (str: string, key: string) => crypto.createHmac('sha256', key).update(str, 'utf8').digest('hex'),
+        hmacSha512: (str: string, key: string) => crypto.createHmac('sha512', key).update(str, 'utf8').digest('hex'),
+        randomString: (length = 32) => crypto.randomBytes(Math.max(16, Math.ceil(length / 2))).toString('hex').slice(0, length),
+        rsaSha256Sign: (content: string, privateKey: string) => {
+          const signer = crypto.createSign('RSA-SHA256')
+          signer.update(content, 'utf8')
+          signer.end()
+          return signer.sign(privateKey, 'base64')
+        },
+        rsaSha256Verify: (content: string, signature: string, publicKey: string) => {
+          const verifier = crypto.createVerify('RSA-SHA256')
+          verifier.update(content, 'utf8')
+          verifier.end()
+          return verifier.verify(publicKey, signature, 'base64')
+        },
+        aes256GcmDecrypt: (
+          ciphertextBase64: string,
+          key: string,
+          nonce: string,
+          associatedData = '',
+        ) => {
+          const decipher = crypto.createDecipheriv(
+            'aes-256-gcm',
+            Buffer.from(key, 'utf8'),
+            Buffer.from(nonce, 'utf8'),
+          )
+          if (associatedData) {
+            decipher.setAAD(Buffer.from(associatedData, 'utf8'))
+          }
+          const ciphertext = Buffer.from(ciphertextBase64, 'base64')
+          const authTag = ciphertext.subarray(ciphertext.length - 16)
+          const encrypted = ciphertext.subarray(0, ciphertext.length - 16)
+          decipher.setAuthTag(authTag)
+          const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()])
+          return decrypted.toString('utf8')
+        },
+        createHash: (algo: string) => crypto.createHash(algo),
+        createHmac: (algo: string, key: any) => crypto.createHmac(algo, key)
+      },
+      URLSearchParams,
+      fetch: createSandboxFetch(),
+      console: {
+        log: (...args: any[]) => console.log('[Query Sandbox]', ...args),
+        error: (...args: any[]) => console.error('[Query Sandbox Error]', ...args)
+      }
+    }
+
+    // 危险全局遮蔽,同 executeCallbackScript 的说明:非完整隔离,仅防"顺手"越权
+    const wrapper = `
+      return (async function(process, globalThis, global, require, module, exports, __dirname, __filename, Function, AsyncFunction) {
+        const { payload, config, crypto, URLSearchParams, fetch, console } = sandboxEnv;
+        ${scriptCode}
+      })(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+    `
+
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+    const fn = new AsyncFunction('sandboxEnv', wrapper)
+    const result = await withTimeout(fn(sandboxEnv), DEFAULT_SCRIPT_TIMEOUT_MS)
+
+    if (!result || typeof result !== 'object') {
+      throw new Error("Query script did not return a valid object")
+    }
+    const r = result as Record<string, any>
+
+    const status = ['paid', 'unpaid', 'closed', 'unknown'].includes(String(r.status))
+      ? (String(r.status) as QueryOrderResult['status'])
+      : 'unknown'
+
+    return {
+      ok: !!r.ok,
+      status,
+      tradeNo: r.tradeNo ? String(r.tradeNo) : undefined,
+      amount: r.amount != null && Number.isFinite(Number(r.amount)) ? Number(r.amount) : undefined,
+      raw: r.raw,
+      message: r.message ? String(r.message) : undefined
+    }
+  } catch (error: any) {
+    console.error("Failed to execute query script:", error)
+    throw new Error(`Query Sandbox Error: ${error.message}`)
   }
 }

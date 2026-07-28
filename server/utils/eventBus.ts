@@ -1,6 +1,7 @@
 import { webhooks, settings } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { db } from '../db/runtime'
+import { logger } from './logger'
 
 /**
  * Low-level HTTP webhook sender with exponential backoff retry.
@@ -18,6 +19,9 @@ export async function sendHttpWebhook(
   const maxRetries = options?.retries ?? 3
   const timeout = options?.timeout ?? 8000
   const bodyStr = JSON.stringify(body)
+  // 记住最后一次的 HTTP 状态,重试耗尽后一并返回——否则调用方只知道"失败了",
+  // 落到系统日志里就是 status: undefined,排查时看不出是 5xx 还是网络不通。
+  let lastStatus: number | undefined
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -43,6 +47,7 @@ export async function sendHttpWebhook(
       }
 
       // 5xx: retry
+      lastStatus = response.status
       console.warn(`[EventBus] 5xx POST ${url} (${response.status}), attempt ${attempt + 1}/${maxRetries}`)
       if (attempt < maxRetries) {
         await sleep(Math.min(1000 * Math.pow(2, attempt), 10000))
@@ -60,7 +65,7 @@ export async function sendHttpWebhook(
   }
 
   console.error(`[EventBus] All ${maxRetries} retries exhausted for POST ${url}`)
-  return { ok: false }
+  return { ok: false, status: lastStatus }
 }
 
 function sleep(ms: number) {
@@ -120,10 +125,6 @@ export async function dispatchEvent(eventName: string, payload: any) {
           timestamp,
           data: payload
         }
-        const body = JSON.stringify(rawPayload)
-
-        console.log(`[EventBus] Dispatching ${eventName} to ${webhook.name} (${webhook.url})`)
-        console.log('[EventBus] Payload:', JSON.stringify(rawPayload, null, 2))
 
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
@@ -136,23 +137,43 @@ export async function dispatchEvent(eventName: string, payload: any) {
           headers['Authorization'] = `Bearer ${webhook.token}`
         }
 
-        console.log('[EventBus] Headers:', JSON.stringify(headers, null, 2))
+        console.log(`[EventBus] Dispatching ${eventName} to ${webhook.name} (${webhook.url})`)
+        console.log('[EventBus] Payload:', JSON.stringify(rawPayload, null, 2))
+        // 只打印头名,不打印值:Authorization 里是集成 token,原样输出等于把长期
+        // 凭据写进 stdout / 日志归集 / 工单截图。
+        console.log('[EventBus] Headers:', Object.keys(headers).join(', '))
 
-        const response = await fetch(webhook.url, {
-          method: 'POST',
+        // 走带重试的 sendHttpWebhook,而不是裸 fetch:接收方 5xx(重启、部署、
+        // 偶发故障)在这里是很常见的,单发一次失败就等于永久丢事件——order.paid
+        // 丢掉意味着用户付了钱但下游余额/权益不到账,且没有任何补偿路径。
+        const result = await sendHttpWebhook(webhook.url, rawPayload, {
           headers,
-          body,
-          // Set a timeout so misbehaving webhooks don't hang connections
-          signal: AbortSignal.timeout(5000) 
+          retries: 3,
+          timeout: 8000,
         })
 
-        if (!response.ok) {
-          console.warn(`[EventBus] Webhook delivery failed for ${webhook.name} (${webhook.url}). Status: ${response.status}`)
+        if (!result.ok) {
+          console.warn(`[EventBus] Webhook delivery failed for ${webhook.name} (${webhook.url}). Status: ${result.status}`)
+          // 同时落系统日志:只写 stdout 的话,丢掉的事件在后台完全看不见,
+          // 事后根本无从得知哪些订单没通知到下游。
+          await logger.error(`Webhook delivery failed: ${eventName} → ${webhook.name}`, {
+            source: 'eventbus',
+            details: {
+              event: eventName,
+              url: webhook.url,
+              status: result.status,
+              orderId: (payload as any)?.id,
+            },
+          })
         } else {
           console.log(`[EventBus] Successfully delivered ${eventName} to ${webhook.name}`)
         }
       } catch (err: any) {
         console.error(`[EventBus] Webhook delivery error for ${webhook.name} (${webhook.url}):`, err.message)
+        await logger.error(`Webhook delivery error: ${eventName} → ${webhook.name}`, {
+          source: 'eventbus',
+          details: { event: eventName, url: webhook.url, message: err?.message, orderId: (payload as any)?.id },
+        }).catch(() => {})
       }
     }))
   } catch (error) {

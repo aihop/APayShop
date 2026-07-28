@@ -1,4 +1,8 @@
 import { logs } from '../db/schema'
+// 必须显式导入:此前这里直接用裸 `db`,靠 Nitro 自动导入解析,实际拿到的并不是
+// server/db/runtime 的连接,于是 insert 既不报错也不落库——全站 logger.* 的写入
+// 被静默吞掉,系统日志里只剩下少数几处显式 import 了 db 的调用方。
+import { db } from '../db/runtime'
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug'
 

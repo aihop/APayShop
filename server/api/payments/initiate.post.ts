@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { getRequestIP } from 'h3'
 import { db } from '../../db/runtime'
 import { orders, paymentMethods } from '../../db/schema'
@@ -15,6 +15,7 @@ import {
   resolveRequestLocale,
 } from '../../utils/paymentMethodLocales'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { reconcileOrder } from '../../utils/orderReconcile'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
@@ -37,6 +38,7 @@ export default defineEventHandler(async (event) => {
           createScriptMissing: (code: string) => `支付创建脚本缺失：${code}`,
           currencyMismatch: (methodCurrency: string, orderCurrency: string) => `该支付方式使用 ${methodCurrency} 结算，但充值订单币种为 ${orderCurrency}，请选择 ${orderCurrency} 支付方式。`,
           initiateFailed: '发起支付失败',
+          alreadyPaidSynced: '该订单已支付成功，状态已同步',
           initiated: '支付发起成功',
           internalError: '服务器内部错误',
         }
@@ -48,6 +50,7 @@ export default defineEventHandler(async (event) => {
           createScriptMissing: (code: string) => `Create script missing for ${code}`,
           currencyMismatch: (methodCurrency: string, orderCurrency: string) => `This payment method settles in ${methodCurrency}, but the top-up order is in ${orderCurrency}. Please choose a ${orderCurrency} method.`,
           initiateFailed: 'Failed to initiate payment',
+          alreadyPaidSynced: 'This order was already paid; status has been synced',
           initiated: 'Payment initiated successfully',
           internalError: 'Internal server error',
         }
@@ -153,6 +156,26 @@ export default defineEventHandler(async (event) => {
       cancelUrl
     }, configJson)
     if (!result.ok || (!result.paymentUrl && !result.qrCodeText)) {
+      // 下单失败最常见的一种情况是这笔单其实已经付过了(微信返回 ORDERPAID
+      // /「订单已支付」),而回调没送达或验签失败,本地还停在未支付。此时直接把
+      // 失败抛给用户会让订单永远卡住,只能人工改状态。所以先向网关查一次真实
+      // 状态——只认网关的回答,查到已支付就补置账 + 履约。
+      //
+      // 订单上此刻还没有 payMethod(下面才写),先补上再查,否则 reconcileOrder
+      // 不知道该问哪个网关。
+      await db.update(orders)
+        .set({ payMethod: method.code })
+        .where(and(eq(orders.id, order.id), ne(orders.payStatus, ORDER_PAY_STATUS.PAID)))
+
+      const reconciled = await reconcileOrder(order.id, 'initiate-retry')
+      if (reconciled.outcome === 'paid' || reconciled.outcome === 'already_paid') {
+        return {
+          code: 0,
+          message: messages.alreadyPaidSynced,
+          data: { alreadyPaid: true, tradeNo: reconciled.tradeNo },
+        }
+      }
+
       return { code: 1, message: result.message || messages.initiateFailed }
     }
     const updateData: any = { payMethod: method.code }

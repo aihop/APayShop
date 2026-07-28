@@ -4,6 +4,7 @@ import { getAffectedRows } from "../../utils/dbResult"
 import { executeCallbackScript } from "../../utils/sandbox"
 import { dispatchEvent } from "../../utils/eventBus"
 import { fulfillOrder } from "../../utils/fulfillment"
+import { markOrderPaid } from "../../utils/orderPayment"
 import { logger } from "../../utils/logger"
 import { trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { createOrderAttribution, settlePromoCommission } from "../../promo/service"
@@ -188,72 +189,23 @@ export default defineEventHandler(async (event) => {
       if (existingOrders.length > 0) {
         const order = existingOrders[0]
         
-        // Optional: verify amount matches
-        if (result.amount && Math.abs(order.amount - result.amount) > 0.01) {
-          await logger.warn(`Amount mismatch for order ${order.id}`, { 
-            source: 'webhook', 
-            details: { expected: order.amount, got: result.amount, payload: logPayload, result } 
-          })
-          
-          await db.update(orders)
-            .set({ tradeNo: result.tradeNo })
-            .where(eq(orders.id, result.orderId))
-            
-          return "Amount Mismatch"
-        }
-
-        // Update order status if paid or failed
-        if (result.status === 'paid' && order.payStatus !== ORDER_PAY_STATUS.PAID) {
-          await logger.info(`Order ${order.id} paid via ${realMethodCode}`, { 
-            source: 'webhook', 
-            details: { tradeNo: result.tradeNo, amount: result.amount } 
-          })
-
-          const updateData: any = {
-            payStatus: ORDER_PAY_STATUS.PAID,
-            status: ORDER_STATUS.PROCESSING, // Temporarily set fulfillment to paid, fulfillment logic will update it further
+        // 置为已支付 + 履约走共享路径(server/utils/orderPayment.ts),
+        // 与主动查单补偿是同一份实现,金额校验/原子抢占/履约链都在里面。
+        if (result.status === 'paid') {
+          const marked = await markOrderPaid({
+            orderId: result.orderId,
+            tradeNo: result.tradeNo,
+            amount: result.amount,
             payMethod: realMethodCode,
-            paidAt: new Date()
-          }
-          if (result.tradeNo) updateData.tradeNo = result.tradeNo
-
-          // 原子抢占:仅当订单尚未支付时置为已支付。网关会并发/重试推送同一
-          // 回调,靠前面的内存快照判断挡不住竞争——只有真正改到行的那个请求
-          // 才继续履约,其余幂等返回,杜绝重复发卡/重复佣金/重复事件。
-          const claimResult = await db.update(orders)
-            .set(updateData)
-            .where(and(eq(orders.id, result.orderId), ne(orders.payStatus, ORDER_PAY_STATUS.PAID)))
-
-          if (getAffectedRows(claimResult) === 0) {
-            await logger.info(`Order ${order.id} already claimed by concurrent webhook, skipping fulfillment`, {
+            source: 'webhook',
+          })
+          if (marked.outcome === 'amount_mismatch') {
+            await logger.warn(`Amount mismatch for order ${order.id}`, {
               source: 'webhook',
-              details: { tradeNo: result.tradeNo }
+              details: { expected: order.amount, got: result.amount, payload: logPayload, result },
             })
-          } else {
-            await createOrderAttribution({
-              orderId: result.orderId,
-              buyerUserId: order.userId,
-              metaData: typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData,
-            })
-
-            await trackVisitorEvent(null, {
-              visitorId: order.visitorId,
-              userId: order.userId,
-              orderId: order.id,
-              productId: order.productId,
-              eventName: 'order_paid',
-              createdAt: updateData.paidAt,
-            })
-
-            // Trigger delivery logic here
-            const fulfilledOrder = await fulfillOrder(result.orderId)
-            if (fulfilledOrder) {
-               await settlePromoCommission(result.orderId)
-               await sendMinimalCheckoutPaidNotification(fulfilledOrder)
-               await dispatchEvent('order.paid', fulfilledOrder)
-            }
+            return "Amount Mismatch"
           }
-
         } else if (result.status === 'failed' && order.payStatus !== ORDER_PAY_STATUS.PAID) {
           await logger.warn(`Order ${order.id} failed via ${realMethodCode}`, { 
             source: 'webhook', 

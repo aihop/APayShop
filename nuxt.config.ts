@@ -8,6 +8,8 @@ const packageJson = JSON.parse(
 ) as { version?: string }
 
 const publicAppVersion = process.env.GOPANEL_PIPELINE_VERSION
+  || process.env.PIPELINE_VERSION
+  || process.env.VERSION
   || process.env.NUXT_PUBLIC_APP_VERSION
   || packageJson.version
   || '1.0.0'

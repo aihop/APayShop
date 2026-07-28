@@ -220,10 +220,15 @@ const columns = [
 
 const { page, pageSize, onPageChange } = usePagination(50)
 
+// Reka UI reserves the empty string for "clear the selection", so an option
+// with value: '' throws as soon as the dropdown is opened. Use a sentinel for
+// "no filter" and translate it back when building the query.
+const ALL = 'all'
+
 const search = ref('')
-const actorTypeFilter = ref('')
-const actionFilter = ref('')
-const resourceFilter = ref('')
+const actorTypeFilter = ref(ALL)
+const actionFilter = ref(ALL)
+const resourceFilter = ref(ALL)
 const isDetailsOpen = ref(false)
 const selected = ref<Record<string, any> | null>(null)
 const cleanupDays = ref(180)
@@ -247,9 +252,9 @@ const queryParams = computed(() => ({
   page: page.value,
   pageSize: pageSize.value,
   ...(search.value ? { search: search.value } : {}),
-  ...(actorTypeFilter.value ? { actorType: actorTypeFilter.value } : {}),
-  ...(actionFilter.value ? { action: actionFilter.value } : {}),
-  ...(resourceFilter.value ? { resource: resourceFilter.value } : {}),
+  ...(actorTypeFilter.value !== ALL ? { actorType: actorTypeFilter.value } : {}),
+  ...(actionFilter.value !== ALL ? { action: actionFilter.value } : {}),
+  ...(resourceFilter.value !== ALL ? { resource: resourceFilter.value } : {}),
 }))
 
 const { data, pending, refresh } = useFetch<any>('/api/admin/operation-logs', {
@@ -276,7 +281,7 @@ const actorTypeLabel = (actorType?: string) => {
 }
 
 const actorTypeOptions = computed(() => [
-  { label: t('admin.operationLogs.filter.allActors'), value: '' },
+  { label: t('admin.operationLogs.filter.allActors'), value: ALL },
   { label: t('admin.operationLogs.actor.admin'), value: 'admin' },
   { label: t('admin.operationLogs.actor.user'), value: 'user' },
   { label: t('admin.operationLogs.actor.system'), value: 'system' },
@@ -285,12 +290,12 @@ const actorTypeOptions = computed(() => [
 // Driven by what's actually recorded, so a new admin route appears in the
 // filters without a code change here.
 const resourceOptions = computed(() => [
-  { label: t('admin.operationLogs.filter.allResources'), value: '' },
+  { label: t('admin.operationLogs.filter.allResources'), value: ALL },
   ...(data.value?.facets?.resources || []).map((r: string) => ({ label: r, value: r })),
 ])
 
 const actionOptions = computed(() => [
-  { label: t('admin.operationLogs.filter.allActions'), value: '' },
+  { label: t('admin.operationLogs.filter.allActions'), value: ALL },
   ...(data.value?.facets?.actions || []).map((a: string) => ({ label: actionLabel(a), value: a })),
 ])
 

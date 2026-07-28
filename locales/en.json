@@ -1,5 +1,19 @@
 {
   "admin": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Please enter your details to sign in.",
+      "setupSuccess": "Setup complete. You can now sign in.",
+      "username": "Username",
+      "usernamePlaceholder": "Enter your username",
+      "password": "Password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "submit": "Sign In",
+      "invalidCredentials": "Invalid credentials",
+      "language": "Language",
+      "footer": "SECURE ADMIN PORTAL"
+    },
     "nav": {
       "collapse": "Collapse",
       "dashboard": "Dashboard",

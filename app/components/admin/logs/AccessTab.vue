@@ -107,12 +107,17 @@ const columns = [
 
 const { page, pageSize, onPageChange } = usePagination(50)
 
+// Reka UI reserves the empty string for "clear the selection", so an option
+// with value: '' throws as soon as the dropdown is opened. Use a sentinel for
+// "no filter" and translate it back when building the query.
+const ALL = 'all'
+
 const search = ref('')
-const methodFilter = ref('')
-const statusFilter = ref('')
+const methodFilter = ref(ALL)
+const statusFilter = ref(ALL)
 
 const methodOptions = [
-  { label: t('admin.accessLogs.filter.allMethods'), value: '' },
+  { label: t('admin.accessLogs.filter.allMethods'), value: ALL },
   { label: 'GET', value: 'GET' },
   { label: 'POST', value: 'POST' },
   { label: 'PUT', value: 'PUT' },
@@ -121,7 +126,7 @@ const methodOptions = [
 ]
 
 const statusOptions = [
-  { label: t('admin.accessLogs.filter.allStatus'), value: '' },
+  { label: t('admin.accessLogs.filter.allStatus'), value: ALL },
   { label: '2xx', value: '2' },
   { label: '3xx', value: '3' },
   { label: '4xx', value: '4' },
@@ -146,8 +151,8 @@ const queryParams = computed(() => ({
   page: page.value,
   pageSize: pageSize.value,
   ...(search.value ? { search: search.value } : {}),
-  ...(methodFilter.value ? { method: methodFilter.value } : {}),
-  ...(statusFilter.value ? { status: statusFilter.value } : {}),
+  ...(methodFilter.value !== ALL ? { method: methodFilter.value } : {}),
+  ...(statusFilter.value !== ALL ? { status: statusFilter.value } : {}),
 }))
 
 const { data, pending, refresh } = useFetch<any>('/api/admin/access-logs', {

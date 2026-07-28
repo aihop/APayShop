@@ -1,5 +1,19 @@
 {
   "admin": {
+    "login": {
+      "title": "С возвращением",
+      "subtitle": "Введите свои данные для входа.",
+      "setupSuccess": "Настройка завершена. Теперь вы можете войти.",
+      "username": "Имя пользователя",
+      "usernamePlaceholder": "Введите имя пользователя",
+      "password": "Пароль",
+      "showPassword": "Показать пароль",
+      "hidePassword": "Скрыть пароль",
+      "submit": "Войти",
+      "invalidCredentials": "Неверные учётные данные",
+      "language": "Язык",
+      "footer": "БЕЗОПАСНЫЙ АДМИН-ПОРТАЛ"
+    },
     "nav": {
       "collapse": "Свернуть",
       "dashboard": "Панель управления",
