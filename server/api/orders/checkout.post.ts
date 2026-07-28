@@ -8,6 +8,7 @@ import { ensureVisitorId, trackVisitorEvent } from '../../utils/visitorAnalytics
 import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readPromoTracking } from '../../promo/service'
 import { sendEmail } from '../../utils/email'
 import { createNotification } from '../../utils/notifications'
+import { getAffectedRows } from '../../utils/dbResult'
 import { stripReservedOrderMeta } from '../../utils/orderMetaData'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { buildLocaleCurrencyQuote } from '../../utils/localeCurrency'
@@ -484,18 +485,24 @@ export default defineEventHandler(async (event) => {
         // ==========================================
         let isFreeOrder = false
         if (totalAmount <= 0) {
-          await db.update(orders)
+          const claim = await db.update(orders)
             .set({
               payStatus: ORDER_PAY_STATUS.PAID,
+              status: ORDER_STATUS.PROCESSING,
               paidAt: new Date(),
             })
-            .where(eq(orders.id, pendingOrder.id))
+            .where(and(
+              eq(orders.id, pendingOrder.id),
+              eq(orders.payStatus, ORDER_PAY_STATUS.PENDING),
+            ))
           // 履约后必须派发 order.paid:integration.transaction(如试用商品的送钱)
           // 只经这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,
           // 不在这里发就永远不入账(试用开通"送钱"断链的真实事故)
-          await fulfillFreeRelayOrder(pendingOrder.id).catch((e) =>
-            console.error('[Checkout] Free relay order reuse fulfillment failed:', pendingOrder.id, e),
-          )
+          if (getAffectedRows(claim) > 0) {
+            await fulfillFreeRelayOrder(pendingOrder.id).catch((e) =>
+              console.error('[Checkout] Free relay order reuse fulfillment failed:', pendingOrder.id, e),
+            )
+          }
           isFreeOrder = true
         } else {
           await sendPendingOrderEmail(event, {
