@@ -1,4 +1,5 @@
-import { getRequestIP, getCookie, setCookie } from 'h3'
+import { getCookie, setCookie } from 'h3'
+import { resolveRequestGeo } from '../utils/requestGeo'
 
 // Map of ISO country codes to their default currency
 const countryCurrencyMap: Record<string, string> = {
@@ -12,9 +13,9 @@ const countryCurrencyMap: Record<string, string> = {
   'IT': 'EUR',
   'ES': 'EUR',
   'KR': 'KRW',
-  'AU': 'KRW',
-  'CA': 'AUD',
-  'SG': 'AUD',
+  'AU': 'AUD',
+  'CA': 'CAD',
+  'SG': 'SGD',
   // Add more as needed...
 }
 
@@ -50,18 +51,10 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get user IP (works behind Cloudflare/Vercel/Nginx if headers are set properly)
-    const ip = getRequestIP(event, { xForwardedFor: true })
-    
-    // In a real production environment, you would use maxmind or a service like ipapi.co
-    // Here we use a free public API for demonstration
-    if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-      // Mocking the IP lookup for now to prevent rate limits during dev
-      // const response = await fetch(`https://ipapi.co/${ip}/json/`)
-      // const data = await response.json()
-      // const countryCode = data.country_code
-      
-      const countryCode = 'US' // Mocking as US for dev
+    const geo = await resolveRequestGeo(event)
+
+    if (geo.country) {
+      const countryCode = geo.country
 
       if (!currency) {
         currency = countryCurrencyMap[countryCode] || 'USD'

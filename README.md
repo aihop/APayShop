@@ -78,6 +78,27 @@ If you use a multi-theme setup and want to ship only `default` + a selected them
 ./build.sh apay-site official
 ```
 
+### VPS GeoLite2 Visitor Location
+
+VPS deployments use `resource/GeoLite2-City.mmdb` to resolve visitor country, region, city, and timezone locally. Visitor IP addresses are not sent to a third-party GeoIP service. The project uses the pure JavaScript `maxmind` reader without native Node bindings.
+
+When Node runs behind Nginx, Caddy, or another trusted reverse proxy, configure:
+
+```env
+APAY_TRUST_PROXY=true
+# Optional; defaults to resource/GeoLite2-City.mmdb
+APAY_GEOLITE2_CITY_DB=/var/lib/GeoIP/GeoLite2-City.mmdb
+```
+
+The proxy must at least forward the real client IP:
+
+```nginx
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+Only enable `APAY_TRUST_PROXY` when the Node port is not publicly reachable and all requests pass through the trusted proxy. Update GeoLite2 regularly and restart APay after replacing the database so the in-memory reader reloads it.
+
 ---
 
 ## 🏗️ Architecture Highlights

@@ -207,6 +207,11 @@ run mkdir -p "${OUTPUT_DIR}"
 echo "==> Copying .output"
 copy_dir ".output" "${OUTPUT_DIR}/.output"
 
+if [[ -f "resource/GeoLite2-City.mmdb" ]]; then
+  echo "==> Copying GeoLite2 database"
+  copy_file "resource/GeoLite2-City.mmdb" "${OUTPUT_DIR}/resource/GeoLite2-City.mmdb"
+fi
+
 if [[ -f "Dockerfile" ]]; then
   echo "==> Copying Dockerfile"
   copy_file "Dockerfile" "${OUTPUT_DIR}/Dockerfile"

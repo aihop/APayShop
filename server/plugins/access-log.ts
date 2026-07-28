@@ -1,6 +1,7 @@
-import { getRequestPath, getMethod, getHeader, getRequestIP, getCookie } from 'h3'
+import { getRequestPath, getMethod, getHeader, getCookie } from 'h3'
 import { db } from '../db/runtime'
 import { accessLogs } from '../db/schema'
+import { resolveRequestGeo } from '../utils/requestGeo'
 
 const EXCLUDED_PREFIXES = [
   '/api/admin/access-logs',
@@ -42,12 +43,16 @@ export default defineNitroPlugin((nitroApp) => {
 
     try {
       const userAgent = getHeader(event, 'user-agent') || ''
+      const geo = await resolveRequestGeo(event)
       await db.insert(accessLogs).values({
         path,
         method: getMethod(event) || 'GET',
-        ip: getRequestIP(event, { xForwardedFor: true }) || null,
+        ip: geo.ip,
         userAgent: userAgent.slice(0, 500) || null,
         referrer: getHeader(event, 'referer')?.slice(0, 1000) || null,
+        country: geo.country,
+        region: geo.region,
+        city: geo.city,
         statusCode,
         duration,
         visitorId: getCookie(event, 'visitor_id') || null,

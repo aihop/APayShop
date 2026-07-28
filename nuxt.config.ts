@@ -121,6 +121,7 @@ export default defineNuxtConfig({
       // Cloudflare Workers 下 klona 默认入口会对无原型对象直接调用
       // x.hasOwnProperty(...)，在 app config 深拷贝时会崩。统一切到更稳的 full 版本。
       klona: path.resolve(__dirname, 'node_modules/klona/full/index.mjs'),
+      '#geoip-local': path.resolve(__dirname, 'server/runtime/geoipLocal.node.ts'),
     }
     if (fs.existsSync(themesDir)) {
       resolveBuildThemes().forEach(theme => {
@@ -136,6 +137,13 @@ export default defineNuxtConfig({
     'nitro:config'(nitroConfig) {
       const nitroAliases = nitroConfig.alias ||= {}
       nitroAliases.klona = path.resolve(__dirname, 'node_modules/klona/full/index.mjs')
+      const nitroPreset = String(nitroConfig.preset || process.env.NITRO_PRESET || '').toLowerCase()
+      nitroAliases['#geoip-local'] = path.resolve(
+        __dirname,
+        nitroPreset.includes('cloudflare')
+          ? 'server/runtime/geoipLocal.edge.ts'
+          : 'server/runtime/geoipLocal.node.ts'
+      )
 
       const themesDir = path.resolve(__dirname, 'app/themes')
       if (fs.existsSync(themesDir)) {

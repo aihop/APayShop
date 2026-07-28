@@ -78,6 +78,27 @@ node .output/server/index.mjs
 ./build.sh apay-site official
 ```
 
+### VPS GeoLite2 访客地域
+
+VPS 部署会使用 `resource/GeoLite2-City.mmdb` 在本机解析访客国家、省份、城市与时区，不会把 IP 发送给第三方服务。项目使用纯 JavaScript 的 `maxmind` 读取器，不包含原生 Node 绑定。
+
+如果 Node 运行在 Nginx、Caddy 等反向代理后，设置：
+
+```env
+APAY_TRUST_PROXY=true
+# 可选；未配置时读取 resource/GeoLite2-City.mmdb
+APAY_GEOLITE2_CITY_DB=/var/lib/GeoIP/GeoLite2-City.mmdb
+```
+
+反向代理至少需要覆盖真实 IP 头：
+
+```nginx
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+只有在 Node 端口不对公网开放、请求只能经过可信反向代理时才能启用 `APAY_TRUST_PROXY`。GeoLite2 数据库应定期更新；更新文件后重启 APay 进程，使内存中的数据库重新加载。
+
 ---
 
 ## 🏗️ 架构亮点
