@@ -1,6 +1,7 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-07-29`: 新增前台通知共享状态约定：导航、用户中心侧栏与通知列表统一消费 `useNotificationState()` 的全局未读数，已读操作即时同步并由服务端计数校准，见 Section 6.D。
 > `2026-07-29`: Qingpu 网页铺货 SKU 表新增单条 SKU 与复制能力；手工 SKU 落 `listingWorkspace.manualOverrides.manualVariants`，共享引擎统一合并展示/发布，复制保留价格、库存、包装和平台规格覆盖但使用独立空图片槽，见 Section 6.L。
 > `2026-07-28`: 修正主题后台 API 注册命名空间：`minimal/api/admin/**` 统一注册到受全局管理员中间件保护的 `/api/admin/minimal/**`，不再意外暴露为 `/api/minimal/admin/**`；Qingpu 既有自鉴权地址保留兼容并新增标准安全别名，见 Section 6.D。
 > `2026-07-28`: 将 `minimal` 收口为 APay 唯一支付中转层：所有 Qingpu 商品、订阅、试用与钱包充值订单统一按 relay topup 记录实际支付金额/币种、来源金额/币种、汇率及最终充值口径；新增 `orders.source + external_order_id` 唯一幂等键，中转订单不执行 APay 本地商品履约，付款后只通过专用 notify 或旧事件兜底中的一个通道通知 Qingpu，见 Section 2.E、Section 3 与 Section 6.F。
@@ -180,6 +181,7 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
   });
   </script>
   ```
+- **前台通知共享状态**: 顶部导航、用户中心侧栏与通知列表不得分别请求或基于当前分页临时计算全局未读数；统一通过 `useNotificationState()` 消费 `unreadCount`。单条/全部已读必须在服务端成功后即时更新共享状态，并异步调用计数接口校准；登录身份切换或退出时必须刷新或清空状态，避免跨用户泄漏旧计数。
 - **后台扩展入口接入规则**: 如果新增模板后台扩展页，除了 `theme.admin.json` 和主题组件本身，还要同步确认默认后台侧栏与 `app/components/RouteSearch.vue` 是否已通过统一注册逻辑自动接入；禁止再新增一套分散硬编码菜单。
 - **主题后台 API 命名空间**: `app/themes/[theme]/api/admin/**` 的标准路由是 `/api/admin/[theme]/**`，必须进入全局管理员鉴权；禁止把没有自身 `requireAdmin`/专用令牌校验的后台接口暴露为 `/api/[theme]/admin/**`。自定义 Nitro 扫描器必须把文件段 `[id]` 转成 `:id`、`[...slug]` 转成 `**`。Qingpu 历史地址因接口内已有鉴权暂时保留兼容，新主题和 minimal 只使用标准地址。
 - **主题后台扩展页国际化规则**: 主题后台扩展页的文案不要继续混塞在前台 `locales/en.ts`、`zh.ts` 中；优先放到 `app/themes/[theme]/locales/admin/en.ts` 与 `admin/zh.ts`，并由 `app/pages/admin/extensions/[...slug].vue` 统一 merge 到当前主题命名空间下，保持现有 `ainode.admin.*` 这类 key 兼容。

@@ -66,7 +66,7 @@
                 <div class="flex items-start justify-between mb-2">
                   <h3 class="text-lg font-bold text-white">{{ order.productName || 'Unknown Product' }}</h3>
                   <div class="text-right">
-                    <span class="text-lg font-bold text-white">${{ order.amount }}</span>
+                    <span class="text-lg font-bold text-white">{{ formatCurrencyAmount(order.amount, order.currency) }}</span>
                   </div>
                 </div>
 
@@ -218,6 +218,7 @@ import { computed, watch } from 'vue'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
 const { getSetting } = useSettings()
 const { formatDate } = useFormatTime()
+const { formatCurrencyAmount } = useCurrencyFormat()
 const { localePath } = useLocaleRouter()
 
 useHead({

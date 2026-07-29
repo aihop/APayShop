@@ -40,7 +40,7 @@
               </p>
             </div>
             <div class="flex items-center gap-3">
-              <span class="text-2xl font-bold text-emerald-400">{{ displayCurrency }} {{ order.amount }}</span>
+              <span class="text-2xl font-bold text-emerald-400">{{ formatCurrencyAmount(order.amount, order.currency) }}</span>
               <div class="flex gap-2">
                 <UBadge
                   v-if="order.payStatus === 'paid' || order.payStatus === 'delivered'"
@@ -287,13 +287,13 @@ import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyAmount } = useCurrencyFormat()
 const { localePath } = useLocaleRouter()
 const route = useRoute()
 const router = useRouter() 
 const orderId = route.params['slug']?.[2] as string
 
 const { getSetting } = useSettings()
-const displayCurrency = computed(() => getSetting('currency') || 'USD')
 
 useHead({
   title: `${t('site.payment.orderDetailPageTitle', { orderId })} - ${getSetting('site_name')}`,

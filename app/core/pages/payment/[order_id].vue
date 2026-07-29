@@ -76,7 +76,7 @@
 
           <div class="rounded-[20px] border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] p-5 mb-7">
             <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/45 mb-2">{{ $t('site.payment.amountLabel') }}</p>
-            <p class="text-[44px] font-bold leading-none tracking-tight text-gray-900 dark:text-white">{{ order.currency || 'USD' }} {{ Number(order.amount || 0).toFixed(2) }}</p>
+            <p class="text-[44px] font-bold leading-none tracking-tight text-gray-900 dark:text-white">{{ formattedPaymentAmount }}</p>
           </div>
 
           <div class="space-y-4 text-sm">
@@ -142,8 +142,8 @@
           <PaymentWorkspace
             v-else
             :order-id="order.id"
-            :amount="Number(order.amount || 0)"
-            :currency="order.currency || 'USD'"
+            :amount="paymentAmount"
+            :currency="paymentCurrency"
             redirect-on-success
           />
         </section>
@@ -156,10 +156,11 @@
 import { computed, watch } from 'vue'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { localePath } = useLocaleRouter()
 const { formatDateTime } = useFormatTime()
 const { getSetting } = useSettings()
+const { baseCurrency, currency: localeCurrency, convertAmount } = useLocaleCurrency()
 const route = useRoute()
 const orderId = route.params['slug']?.[1] as string
 
@@ -186,6 +187,38 @@ const {
 
 const pending = computed(() => status.value === 'pending')
 const isCompletingFree = ref(false)
+
+const orderMetaData = computed<Record<string, any>>(() => {
+  const value = order.value?.metaData
+  if (!value) return {}
+  if (typeof value === 'object' && !Array.isArray(value)) return value
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+})
+const usesLegacyBaseAmount = computed(() => {
+  if (orderMetaData.value.currencySnapshot) return false
+  return String(order.value?.currency || '').trim().toUpperCase() === baseCurrency.value
+})
+const paymentAmount = computed(() => usesLegacyBaseAmount.value
+  ? convertAmount(order.value?.amount)
+  : Number(order.value?.amount || 0))
+const paymentCurrency = computed(() => usesLegacyBaseAmount.value
+  ? localeCurrency.value
+  : String(order.value?.currency || 'USD').trim().toUpperCase())
+const formattedPaymentAmount = computed(() => {
+  try {
+    return new Intl.NumberFormat(locale.value, {
+      style: 'currency',
+      currency: paymentCurrency.value,
+    }).format(paymentAmount.value)
+  } catch {
+    return `${paymentCurrency.value} ${paymentAmount.value.toFixed(2)}`
+  }
+})
 
 const tryCompleteFreeOrder = async () => {
   const currentOrder = order.value

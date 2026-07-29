@@ -1,5 +1,5 @@
-import { paymentMethods } from "../../db/schema"
-import { eq } from "drizzle-orm"
+import { orders, paymentMethods } from "../../db/schema"
+import { and, eq } from "drizzle-orm"
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../db/runtime'
@@ -13,6 +13,66 @@ import {
 import { getRequestLocale } from '../../utils/requestLocale'
 import { resolvePaymentMethodCurrency } from '../../utils/topup'
 import { resolvePaymentPluginConfig } from '../../utils/paymentPluginConfig'
+import { buildLocaleCurrencyQuote, normalizeCurrencyCode } from '../../utils/localeCurrency'
+
+const normalizeOrderMetaData = (value: unknown): Record<string, any> => {
+  if (!value) return {}
+  if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const lockLegacyPendingOrderCurrency = async (order: any, locale: string) => {
+  const metaData = normalizeOrderMetaData(order.metaData)
+  if (order.payStatus !== 'pending' || metaData.currencySnapshot) return order
+
+  const quote = await buildLocaleCurrencyQuote(Number(order.amount || 0), locale)
+  if (normalizeCurrencyCode(order.currency, 'USD') !== quote.baseCurrency) return order
+
+  const currencySnapshot = {
+    locale: quote.locale,
+    baseCurrency: quote.baseCurrency,
+    baseAmount: quote.baseAmount,
+    currency: quote.currency,
+    exchangeRate: quote.rate,
+    amount: quote.amount,
+    source: quote.source,
+  }
+  const checkoutBridge = metaData.checkoutBridge && typeof metaData.checkoutBridge === 'object'
+    ? {
+        ...metaData.checkoutBridge,
+        amount: quote.amount,
+        currency: quote.currency,
+        sourceAmount: quote.baseAmount,
+        sourceCurrency: quote.baseCurrency,
+        exchangeRate: quote.rate,
+      }
+    : undefined
+  const nextMetaData = {
+    ...metaData,
+    currencySnapshot,
+    ...(checkoutBridge ? { checkoutBridge } : {}),
+  }
+  await db.update(orders)
+    .set({
+      amount: quote.amount,
+      currency: quote.currency,
+      metaData: process.env.NUXT_HUB_DATABASE ? nextMetaData : JSON.stringify(nextMetaData),
+    })
+    .where(and(
+      eq(orders.id, order.id),
+      eq(orders.payStatus, 'pending'),
+      eq(orders.amount, order.amount),
+      eq(orders.currency, order.currency),
+    ))
+
+  const latestOrders = await db.select().from(orders).where(eq(orders.id, order.id)).limit(1)
+  return latestOrders[0] || order
+}
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -40,9 +100,10 @@ export default defineEventHandler(async (event) => {
     }
 
     // 1. 归属校验后获取订单——支付信息含金额与收款内容,只允许订单所有者查看
-    const order = await requireOrderOwnership(event, String(orderId))
+    let order = await requireOrderOwnership(event, String(orderId))
     const localeConfig = await getSiteLocaleConfig()
     const requestLocale = resolveRequestLocale(event, inputLocale, localeConfig)
+    order = await lockLegacyPendingOrderCurrency(order, requestLocale)
     
     // 2. 获取所有激活的支付方式
     const activeMethods = (await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true)))

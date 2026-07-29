@@ -31,7 +31,10 @@ export default defineEventHandler(async (event) => {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const recentOrders = await db.select({ amount: orders.amount as any }).from(orders as any)
+  const recentOrders = await db.select({
+    amount: orders.amount as any,
+    currency: orders.currency as any,
+  }).from(orders as any)
     .where(and(
       eq(orders.userId as any, userId),
       eq(orders.payStatus as any, 'paid'),
@@ -39,11 +42,17 @@ export default defineEventHandler(async (event) => {
     ))
 
   const monthlySpend = recentOrders.reduce((sum: number, order: any) => sum + Number(order.amount), 0)
+  const monthlySpendByCurrency = Object.entries(recentOrders.reduce((totals: Record<string, number>, order: any) => {
+    const currency = String(order.currency || 'USD').toUpperCase()
+    totals[currency] = (totals[currency] || 0) + Number(order.amount || 0)
+    return totals
+  }, {})).map(([currency, amount]) => ({ currency, amount: Number(amount) }))
 
   const wallet = {
     available: availableBalance,
     frozen: 0,
-    monthlySpend: monthlySpend
+    monthlySpend: monthlySpend,
+    monthlySpendByCurrency,
   }
 
   // 3. Determine payStatus filter based on tab
@@ -83,6 +92,7 @@ export default defineEventHandler(async (event) => {
       type: displayType,
       target: product?.name || (locale === 'zh' ? '未知商品' : 'Unknown Product'),
       amount: Number(order.amount),
+      currency: order.currency,
       status: order.payStatus,
       payMethod: order.payMethod || null
     }

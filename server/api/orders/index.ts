@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
     const result = await db.select({
       id: orders.id,
       amount: orders.amount,
+      currency: orders.currency,
       status: orders.status,
       contactEmail: orders.contactEmail,
       payMethod: orders.payMethod,

@@ -38,6 +38,7 @@ export default defineEventHandler(async (event) => {
   const existingOrders = await db.select({
     id: orders.id,
     amount: orders.amount,
+    currency: orders.currency,
     status: orders.status,
     payStatus: orders.payStatus,
     createdAt: orders.createdAt,
@@ -71,6 +72,7 @@ export default defineEventHandler(async (event) => {
     data: {
       id: order.id,
       amount: order.amount,
+      currency: order.currency,
       status: order.status,
       payStatus: order.payStatus,
       createdAt: order.createdAt,

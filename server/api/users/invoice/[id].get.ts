@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
     description: productDescription,
     qty: 1, // Defaulting to 1 for our current products
     rate: Number(order.amount), // Rate equals amount for qty=1
-    currency: 'USD', // You can dynamically change this based on DB later if needed
+    currency: order.currency,
     client: {
       name: order.contactEmail || session.user.email,
       email: order.contactEmail || session.user.email,
