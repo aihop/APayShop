@@ -1,39 +1,27 @@
 <template>
   <NuxtErrorBoundary>
-    <Transition
-      name="page-fade"
-      mode="out-in"
+    <component
+      v-if="activeComponent"
+      :is="activeComponent"
+      :key="(activeTheme || '_core_') + targetFile"
+    ></component>
+    <div
+      v-else
+      key="page-404"
+      class="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white px-6 transition-colors duration-300"
     >
-      <div
-        v-if="isLoading"
-        key="page-loading"
-        class="min-h-screen flex items-center justify-center bg-white text-gray-900 dark:bg-[#0A0A0A] dark:text-white transition-colors duration-300"
-      >
-        <div class="w-8 h-8 border-4 border-purple-500/80 dark:border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-      <component
-        v-else-if="activeComponent"
-        :is="activeComponent"
-        :key="(activeTheme || '_core_') + targetFile"
-      ></component>
-      <div
-        v-else
-        key="page-404"
-        class="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white px-6 transition-colors duration-300"
-      >
-        <UIcon
-          name="ph:file-dashed"
-          class="w-24 h-24 text-gray-300 dark:text-gray-700 mb-6 transition-colors duration-300"
-        ></UIcon>
-        <h1 class="text-4xl font-bold mb-4">{{ t('routeFallback.notFoundTitle') }}</h1>
-        <p class="text-gray-500 dark:text-gray-400 mb-8 text-center transition-colors duration-300">{{ t('routeFallback.notFoundDescription') }}</p>
-        <UButton
-          to="/"
-          color="primary"
-          class="bg-purple-600 hover:bg-purple-500 text-white dark:text-white"
-        >{{ t('routeFallback.returnHome') }}</UButton>
-      </div>
-    </Transition>
+      <UIcon
+        name="ph:file-dashed"
+        class="w-24 h-24 text-gray-300 dark:text-gray-700 mb-6 transition-colors duration-300"
+      ></UIcon>
+      <h1 class="text-4xl font-bold mb-4">{{ t('routeFallback.notFoundTitle') }}</h1>
+      <p class="text-gray-500 dark:text-gray-400 mb-8 text-center transition-colors duration-300">{{ t('routeFallback.notFoundDescription') }}</p>
+      <UButton
+        to="/"
+        color="primary"
+        class="bg-purple-600 hover:bg-purple-500 text-white dark:text-white"
+      >{{ t('routeFallback.returnHome') }}</UButton>
+    </div>
 
     <!-- Error Boundary Fallback -->
     <template #error="{ error, clearError }">
@@ -71,7 +59,7 @@
   </NuxtErrorBoundary>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import * as themeBuild from '~/generated/theme-build'
 
@@ -172,71 +160,4 @@ const activeComponent = computed(() => {
   // fallback 到 core
   return (themeBuild.corePageModules[`../core/pages/${file}`] as any)?.default || null
 })
-
-const isLoading = ref(false)
-const LOADING_DELAY = 120
-const MIN_VISIBLE = 240
-let loadingDelayTimer: ReturnType<typeof setTimeout> | null = null
-let loadingShownAt = 0
-let transitionToken = 0
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-watch(
-  () => [route.fullPath, activeTheme.value, targetFile.value],
-  async () => {
-    transitionToken += 1
-    const token = transitionToken
-
-    if (loadingDelayTimer) {
-      clearTimeout(loadingDelayTimer)
-      loadingDelayTimer = null
-    }
-
-    loadingDelayTimer = setTimeout(() => {
-      if (token !== transitionToken) return
-      isLoading.value = true
-      loadingShownAt = Date.now()
-    }, LOADING_DELAY)
-
-    await nextTick()
-    await wait(16)
-
-    if (token !== transitionToken) return
-
-    if (loadingDelayTimer) {
-      clearTimeout(loadingDelayTimer)
-      loadingDelayTimer = null
-    }
-
-    if (isLoading.value) {
-      const elapsed = Date.now() - loadingShownAt
-      if (elapsed < MIN_VISIBLE) {
-        await wait(MIN_VISIBLE - elapsed)
-      }
-    }
-
-    if (token !== transitionToken) return
-    isLoading.value = false
-  },
-  { immediate: true }
-)
-
-onBeforeUnmount(() => {
-  if (loadingDelayTimer) {
-    clearTimeout(loadingDelayTimer)
-  }
-})
 </script>
-
-<style scoped>
-.page-fade-enter-active,
-.page-fade-leave-active {
-  transition: opacity 0.18s ease;
-}
-
-.page-fade-enter-from,
-.page-fade-leave-to {
-  opacity: 0;
-}
-</style>
