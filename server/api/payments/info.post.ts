@@ -11,7 +11,7 @@ import {
   resolveRequestLocale,
 } from '../../utils/paymentMethodLocales'
 import { getRequestLocale } from '../../utils/requestLocale'
-import { resolvePaymentMethodCurrency } from '../../utils/topup'
+import { isPaymentMethodCurrencySupported } from '../../utils/topup'
 import { resolvePaymentPluginConfig } from '../../utils/paymentPluginConfig'
 import { buildLocaleCurrencyQuote, normalizeCurrencyCode } from '../../utils/localeCurrency'
 
@@ -123,9 +123,8 @@ export default defineEventHandler(async (event) => {
       let rawHtml = ''
       const configObj = resolvePaymentPluginConfig(methodCode, method.configJson)
 
-      const methodCurrency = resolvePaymentMethodCurrency(configObj)
       const orderCurrency = String((order as any).currency || 'USD').trim().toUpperCase()
-      if (methodCurrency && methodCurrency !== orderCurrency) {
+      if (!isPaymentMethodCurrencySupported(configObj, orderCurrency)) {
         currencyMismatchCount++
         continue
       }

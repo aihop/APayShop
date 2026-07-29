@@ -8,7 +8,7 @@ import { orders, paymentMethods } from '../../db/schema'
 import { executeCreateScript } from '../../utils/sandbox'
 import { ORDER_PAY_STATUS } from '../../utils/constants'
 import { requireOrderOwnership } from '../../utils/orderAccess'
-import { resolvePaymentMethodCurrency } from '../../utils/topup'
+import { isPaymentMethodCurrencySupported, resolvePaymentMethodCurrencies } from '../../utils/topup'
 import {
   getSiteLocaleConfig,
   isPaymentMethodAvailableForLocale,
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
           methodNotFound: '支付方式不存在或未启用',
           methodUnavailableForLocale: '当前语言下该支付方式不可用',
           createScriptMissing: (code: string) => `支付创建脚本缺失：${code}`,
-          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `该支付方式使用 ${methodCurrency} 结算，但订单币种为 ${orderCurrency}，请选择支持 ${orderCurrency} 的支付方式。`,
+          currencyMismatch: (methodCurrencies: string, orderCurrency: string) => `该支付方式支持 ${methodCurrencies}，但订单币种为 ${orderCurrency}，请选择支持 ${orderCurrency} 的支付方式。`,
           initiateFailed: '发起支付失败',
           alreadyPaidSynced: '该订单已支付成功，状态已同步',
           initiated: '支付发起成功',
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
           methodNotFound: 'Payment method not found or inactive',
           methodUnavailableForLocale: 'Payment method is not available in current language',
           createScriptMissing: (code: string) => `Create script missing for ${code}`,
-          currencyMismatch: (methodCurrency: string, orderCurrency: string) => `This payment method settles in ${methodCurrency}, but the order is in ${orderCurrency}. Please choose a method that supports ${orderCurrency}.`,
+          currencyMismatch: (methodCurrencies: string, orderCurrency: string) => `This payment method supports ${methodCurrencies}, but the order is in ${orderCurrency}. Please choose a method that supports ${orderCurrency}.`,
           initiateFailed: 'Failed to initiate payment',
           alreadyPaidSynced: 'This order was already paid; status has been synced',
           initiated: 'Payment initiated successfully',
@@ -94,14 +94,14 @@ export default defineEventHandler(async (event) => {
 
     const configJson = resolvePaymentPluginConfig(method.code, method.configJson)
 
-    // 所有订单都以创建时锁定的币种为准。插件声明结算币种时必须一致；
-    // 未声明币种的历史插件继续按兼容模式放行。
-    const methodCurrency = resolvePaymentMethodCurrency(configJson)
+    // 所有订单都以创建时锁定的币种为准。转换型插件可以同时接受源币种和
+    // 结算币种；未声明币种的历史插件继续按兼容模式放行。
+    const methodCurrencies = resolvePaymentMethodCurrencies(configJson)
     const orderCurrency = String((order as any).currency || '').trim().toUpperCase()
-    if (methodCurrency && orderCurrency && methodCurrency !== orderCurrency) {
+    if (orderCurrency && !isPaymentMethodCurrencySupported(configJson, orderCurrency)) {
       return {
         code: 1,
-        message: messages.currencyMismatch(methodCurrency, orderCurrency),
+        message: messages.currencyMismatch(methodCurrencies.join(' / '), orderCurrency),
       }
     }
 
@@ -112,6 +112,13 @@ export default defineEventHandler(async (event) => {
     const cancelUrl = body.cancelUrl || `${origin}/callback/cancel?orderId=${order.id}`
     const clientIp = getRequestIP(event, { xForwardedFor: true }) || event.node.req.socket.remoteAddress || ''
     const requestHeaders = getRequestHeaders(event)
+    let orderMetaData: Record<string, any> = {}
+    try {
+      const parsedMetaData = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
+      if (parsedMetaData && typeof parsedMetaData === 'object' && !Array.isArray(parsedMetaData)) {
+        orderMetaData = parsedMetaData
+      }
+    } catch {}
 
     const result = await executeCreateScript(createScript, {
       order: {
@@ -120,7 +127,10 @@ export default defineEventHandler(async (event) => {
         currency: orderCurrency,
         productId: order.productId,
         contactEmail: order.contactEmail,
-        metaData: typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
+        metaData: {
+          ...orderMetaData,
+          currency: orderCurrency,
+        },
       },
       input: body,
       request: {

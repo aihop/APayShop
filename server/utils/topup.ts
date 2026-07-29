@@ -209,17 +209,26 @@ export function buildTopupQuote(
 }
 
 /**
- * 从支付插件 configJson 推断结算币种。
+ * 从支付插件 configJson 推断可接受的订单币种。
  *
- * 各插件字段名不统一(currency / sourceCurrency / priceCurrency),且 alipay、
- * paypal、lemonsqueezy 等压根没声明。推断不出来时返回 null,调用方必须按
- * 「放行」处理——宁可漏拦也不能把没声明币种的插件全部锁死。
+ * 普通插件通常只声明 currency/sourceCurrency/priceCurrency 之一；转换型插件
+ * 还会声明 settlementCurrency，并可同时接受源币种和结算币种。未声明时继续
+ * 按历史兼容模式放行。
  */
-export function resolvePaymentMethodCurrency(configJson: any): string | null {
-  if (!configJson || typeof configJson !== 'object') return null
-  const raw = configJson.currency ?? configJson.sourceCurrency ?? configJson.priceCurrency
-  const normalized = normalizeCurrencyCode(raw)
-  return normalized || null
+export function resolvePaymentMethodCurrencies(configJson: any): string[] {
+  if (!configJson || typeof configJson !== 'object') return []
+  return Array.from(new Set([
+    configJson.currency,
+    configJson.sourceCurrency,
+    configJson.priceCurrency,
+    configJson.settlementCurrency,
+  ].map(normalizeCurrencyCode).filter(Boolean)))
+}
+
+export function isPaymentMethodCurrencySupported(configJson: any, orderCurrency: unknown): boolean {
+  const supportedCurrencies = resolvePaymentMethodCurrencies(configJson)
+  if (supportedCurrencies.length === 0) return true
+  return supportedCurrencies.includes(normalizeCurrencyCode(orderCurrency))
 }
 
 /**
