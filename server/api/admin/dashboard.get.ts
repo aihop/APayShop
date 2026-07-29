@@ -1,129 +1,105 @@
-import { orders } from "../../db/schema"
-import { sql } from "drizzle-orm"
+import { orders } from '../../db/schema'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS } from '../../utils/constants'
-import { getConfiguredTimezone, getStartOfDayUtc, getCurrentHour, getSqliteOffsetModifier, getMysqlOffsetStr } from '../../utils/timezone'
+import { buildLocaleCurrencyQuote } from '../../utils/localeCurrency'
+import { aggregateOrderAccountingTotals, getCurrencyTotal, resolveOrderCurrencyAmounts } from '../../utils/orderCurrency'
+import type { OrderCurrencyInput } from '../../utils/orderCurrency'
+import { getConfiguredTimezone, getStartOfDayUtc, getCurrentHour } from '../../utils/timezone'
 
-export default defineEventHandler(async (event) => {
+const getHourInTimezone = (value: unknown, timezone: string): string => {
+  const date = value instanceof Date ? value : new Date(value as any)
+  if (Number.isNaN(date.getTime())) return '00'
+  const part = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(date).find(item => item.type === 'hour')?.value
+  return part === '24' ? '00' : (part || '00')
+}
+
+interface DashboardOrderRow extends OrderCurrencyInput {
+  payStatus: string
+  createdAt: unknown
+}
+
+export default defineEventHandler(async () => {
   const explicitDialect = process.env.DB_DIALECT?.replace(/"/g, '').toLowerCase()
-  const connectionUrl =
-    process.env.DATABASE_URL
+  const connectionUrl = process.env.DATABASE_URL
     || process.env.MYSQL_URL
     || process.env.POSTGRES_URL
     || process.env.POSTGRESQL_URL
     || process.env.NUXT_DATABASE_URL
     || ''
-  const isPostgres =
-    explicitDialect === 'postgresql'
+  const isPostgres = explicitDialect === 'postgresql'
     || connectionUrl.startsWith('postgres://')
     || connectionUrl.startsWith('postgresql://')
-  const isMysql =
-    explicitDialect === 'mysql'
-    || connectionUrl.startsWith('mysql://')
+  const isMysql = explicitDialect === 'mysql' || connectionUrl.startsWith('mysql://')
 
-  // 按管理员配置的时区计算"今天"的 UTC 边界
-  const tz = await getConfiguredTimezone()
-  const startOfDay = getStartOfDayUtc(tz)
-  const startOfDayMs = startOfDay.ms
-  const startOfDaySec = startOfDay.sec
-  const startOfDayIso = startOfDay.iso
-  const startOfDayMysql = startOfDay.mysql
-
-  // 1. Get Summary Stats
-  const statsResult = isPostgres
-    ? await db.select({
-        totalOrders: sql<number>`count(*)`,
-        totalRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
-        todayOrders: sql<number>`coalesce(sum(case when ${orders.createdAt} >= ${startOfDayIso}::timestamptz then 1 else 0 end), 0)`,
-        todayRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} and ${orders.createdAt} >= ${startOfDayIso}::timestamptz then ${orders.amount} else 0 end), 0)`,
-      }).from(orders)
+  const timezone = await getConfiguredTimezone()
+  const startOfDay = getStartOfDayUtc(timezone)
+  const todayCondition = isPostgres
+    ? sql`${orders.createdAt} >= ${startOfDay.iso}::timestamptz`
     : isMysql
-    ? await db.select({
-        totalOrders: sql<number>`count(*)`,
-        totalRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
-        todayOrders: sql<number>`coalesce(sum(case when ${orders.createdAt} >= ${startOfDayMysql} then 1 else 0 end), 0)`,
-        todayRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} and ${orders.createdAt} >= ${startOfDayMysql} then ${orders.amount} else 0 end), 0)`,
-      }).from(orders)
-    : await db.select({
-        totalOrders: sql<number>`count(*)`,
-        totalRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
-        todayOrders: sql<number>`coalesce(sum(case when ${orders.createdAt} >= ${startOfDayMs} OR (${orders.createdAt} < 1000000000000 AND ${orders.createdAt} >= ${startOfDaySec}) then 1 else 0 end), 0)`,
-        todayRevenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} and (${orders.createdAt} >= ${startOfDayMs} OR (${orders.createdAt} < 1000000000000 AND ${orders.createdAt} >= ${startOfDaySec})) then ${orders.amount} else 0 end), 0)`,
-      }).from(orders)
+      ? sql`${orders.createdAt} >= ${startOfDay.mysql}`
+      : sql`${orders.createdAt} >= ${startOfDay.ms} OR (${orders.createdAt} < 1000000000000 AND ${orders.createdAt} >= ${startOfDay.sec})`
 
-  const stats = statsResult[0] || { totalOrders: 0, totalRevenue: 0, todayOrders: 0, todayRevenue: 0 }
+  const selectFields = {
+    amount: orders.amount,
+    currency: orders.currency,
+    metaData: orders.metaData,
+    payStatus: orders.payStatus,
+    createdAt: orders.createdAt,
+  }
+  const [rawPaidOrderRows, rawTodayOrderRows, totalOrderRows, baseQuote] = await Promise.all([
+    db.select(selectFields).from(orders).where(eq(orders.payStatus, ORDER_PAY_STATUS.PAID)),
+    db.select(selectFields).from(orders).where(todayCondition),
+    db.select({ count: sql<number>`count(*)` }).from(orders),
+    buildLocaleCurrencyQuote(0),
+  ])
+  const paidOrders = rawPaidOrderRows as DashboardOrderRow[]
+  const todayOrderRows = rawTodayOrderRows as DashboardOrderRow[]
 
-  // 2. Get Hourly Data for Today (only paid orders for revenue)
-  const sqliteOffset = getSqliteOffsetModifier(tz)
-  const mysqlOffset = getMysqlOffsetStr(tz)
+  const paidTodayOrders = todayOrderRows.filter(order => order.payStatus === ORDER_PAY_STATUS.PAID)
+  const totalRevenueByCurrency = aggregateOrderAccountingTotals(paidOrders)
+  const todayRevenueByCurrency = aggregateOrderAccountingTotals(paidTodayOrders)
+  const baseCurrency = baseQuote.baseCurrency
+  const hourlyRevenue = new Array<number>(24).fill(0)
+  const hourlyOrders = new Array<number>(24).fill(0)
 
-  const hourlyData = isPostgres
-    ? await db.select({
-        hour: sql<string>`to_char(date_trunc('hour', ${orders.createdAt} AT TIME ZONE ${tz}), 'HH24')`,
-        ordersCount: sql<number>`count(*)`,
-        revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
-      })
-        .from(orders)
-        .where(sql`${orders.createdAt} >= ${startOfDayIso}::timestamptz`)
-        .groupBy(sql`1`)
-    : isMysql
-    ? await db.select({
-        hour: sql<string>`DATE_FORMAT(CONVERT_TZ(${orders.createdAt}, '+00:00', ${mysqlOffset}), '%H')`,
-        ordersCount: sql<number>`count(*)`,
-        revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
-      })
-        .from(orders)
-        .where(sql`${orders.createdAt} >= ${startOfDayMysql}`)
-        .groupBy(sql`1`)
-    : await db.select({
-        hour: sql<string>`strftime('%H', datetime(CASE WHEN ${orders.createdAt} > 1000000000000 THEN ${orders.createdAt} / 1000 ELSE ${orders.createdAt} END, 'unixepoch', ${sqliteOffset}))`,
-        ordersCount: sql<number>`count(*)`,
-        revenue: sql<number>`coalesce(sum(case when ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} then ${orders.amount} else 0 end), 0)`,
-      })
-        .from(orders)
-        .where(sql`${orders.createdAt} >= ${startOfDayMs} OR (${orders.createdAt} < 1000000000000 AND ${orders.createdAt} >= ${startOfDaySec})`)
-        .groupBy(sql`1`)
-
-  // Format hourly data into a map for easy lookup
-  const hourlyMap = new Map()
-  hourlyData.forEach((item: any) => {
-    hourlyMap.set(item.hour, {
-      orders: item.ordersCount || 0,
-      revenue: item.revenue || 0
-    })
-  })
-
-  // Generate 24 hours data array
-  const currentHour = getCurrentHour(tz)
-  const labels = []
-  const hourlyOrders = []
-  const hourlyRevenue = []
-
-  for (let i = 0; i <= 23; i++) {
-    const hourStr = i.toString().padStart(2, '0')
-    labels.push(`${hourStr}:00`)
-    
-    if (i <= currentHour) {
-      const data = hourlyMap.get(hourStr) || { orders: 0, revenue: 0 }
-      hourlyOrders.push(data.orders)
-      hourlyRevenue.push(data.revenue)
-    } else {
-      hourlyOrders.push(0)
-      hourlyRevenue.push(0)
+  for (const order of todayOrderRows) {
+    const hour = Number(getHourInTimezone(order.createdAt, timezone))
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) continue
+    hourlyOrders[hour] = (hourlyOrders[hour] || 0) + 1
+    if (order.payStatus !== ORDER_PAY_STATUS.PAID) continue
+    const amounts = resolveOrderCurrencyAmounts(order)
+    if (amounts.accountingCurrency === baseCurrency) {
+      hourlyRevenue[hour] = (hourlyRevenue[hour] || 0) + amounts.accountingAmount
     }
+  }
+
+  const currentHour = getCurrentHour(timezone)
+  const labels = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`)
+  for (let hour = currentHour + 1; hour < 24; hour++) {
+    hourlyOrders[hour] = 0
+    hourlyRevenue[hour] = 0
   }
 
   return {
     stats: {
-      todayOrders: Number(stats.todayOrders || 0),
-      todayRevenue: Number(stats.todayRevenue || 0),
-      totalOrders: Number(stats.totalOrders || 0),
-      totalRevenue: Number(stats.totalRevenue || 0),
+      todayOrders: todayOrderRows.length,
+      todayRevenue: getCurrencyTotal(todayRevenueByCurrency, baseCurrency),
+      todayRevenueByCurrency,
+      totalOrders: Number(totalOrderRows[0]?.count || 0),
+      totalRevenue: getCurrencyTotal(totalRevenueByCurrency, baseCurrency),
+      totalRevenueByCurrency,
+      currency: baseCurrency,
     },
     chart: {
       labels,
       orders: hourlyOrders,
-      revenue: hourlyRevenue
-    }
+      revenue: hourlyRevenue,
+      currency: baseCurrency,
+    },
   }
 })

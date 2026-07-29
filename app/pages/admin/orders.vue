@@ -93,7 +93,7 @@
                   v-if="row.original.productType"
                   class="capitalize px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px]"
                 >{{ row.original.productType }}</span>
-                <span class="text-emerald-400 font-medium">${{ Number(row.original.amount || 0).toFixed(2) }}</span>
+                <span class="text-emerald-400 font-medium">{{ formatCurrencyAmount(row.original.amount, row.original.currency) }}</span>
               </div>
             </div>
           </div>
@@ -222,7 +222,7 @@
           </div>
           <div>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.amount') }}</p>
-            <p class="text-gray-900 dark:text-white">${{ Number(selectedOrder.amount).toFixed(2) }}</p>
+            <p class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(selectedOrder.amount, selectedOrder.currency) }}</p>
           </div>
           <div>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('admin.orders.modal.payment_method') }}</p>
@@ -319,6 +319,7 @@ import { definePageMeta, useToast, useFetch, useRouter, useI18n, useRequestURL }
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyAmount } = useCurrencyFormat()
 
 definePageMeta({ title: 'Orders Management', layout: 'admin' })
 

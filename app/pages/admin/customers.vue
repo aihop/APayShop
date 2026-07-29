@@ -54,7 +54,7 @@
           </template>
 
           <template #totalSpent-cell="{ row }">
-            <span class="text-emerald-400 font-medium">${{ Number(row.original.totalSpent || 0).toFixed(2) }}</span>
+            <span class="text-emerald-400 font-medium">{{ formatCurrencyTotals(row.original.totalSpentByCurrency) }}</span>
           </template>
 
           <template #totalOrders-cell="{ row }">
@@ -69,7 +69,7 @@
           </template>
 
           <template #lastOrderAt-cell="{ row }">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(Number(row.original.lastOrderAt || 0)) }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.lastOrderAt) }}</span>
           </template>
 
           <template #actions-cell="{ row }">
@@ -236,6 +236,7 @@ definePageMeta({ title: 'Customers & Users', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyTotals } = useCurrencyFormat()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()

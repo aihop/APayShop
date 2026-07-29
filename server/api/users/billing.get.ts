@@ -2,6 +2,8 @@ import { eq, desc, and, gte, inArray, ne } from 'drizzle-orm'
 import { db } from '../../db/runtime'
 import { users, orders, products } from '../../db/schema'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { aggregateOrderAccountingTotals } from '../../utils/orderCurrency'
+import { toIsoTimestamp } from '../../utils/dbTime'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -34,6 +36,7 @@ export default defineEventHandler(async (event) => {
   const recentOrders = await db.select({
     amount: orders.amount as any,
     currency: orders.currency as any,
+    metaData: orders.metaData as any,
   }).from(orders as any)
     .where(and(
       eq(orders.userId as any, userId),
@@ -41,12 +44,8 @@ export default defineEventHandler(async (event) => {
       gte(orders.paidAt as any, thirtyDaysAgo)
     ))
 
-  const monthlySpend = recentOrders.reduce((sum: number, order: any) => sum + Number(order.amount), 0)
-  const monthlySpendByCurrency = Object.entries(recentOrders.reduce((totals: Record<string, number>, order: any) => {
-    const currency = String(order.currency || 'USD').toUpperCase()
-    totals[currency] = (totals[currency] || 0) + Number(order.amount || 0)
-    return totals
-  }, {})).map(([currency, amount]) => ({ currency, amount: Number(amount) }))
+  const monthlySpendByCurrency = aggregateOrderAccountingTotals(recentOrders)
+  const monthlySpend = monthlySpendByCurrency.length === 1 ? (monthlySpendByCurrency[0]?.amount || 0) : 0
 
   const wallet = {
     available: availableBalance,
@@ -88,7 +87,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       id: order.id,
-      time: order.paidAt ? new Date(order.paidAt).toLocaleString() : new Date(order.createdAt).toLocaleString(),
+      time: toIsoTimestamp(order.paidAt || order.createdAt),
       type: displayType,
       target: product?.name || (locale === 'zh' ? '未知商品' : 'Unknown Product'),
       amount: Number(order.amount),

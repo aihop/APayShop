@@ -48,7 +48,7 @@
             </div>
           </template>
           <template #price-cell="{ row }">
-            ${{ Number(row.original.price || 0).toFixed(2) }}
+            {{ formatCurrencyAmount(row.original.price, baseCurrency) }}
           </template>
           <template #type-cell="{ row }">
             <div class="flex flex-col gap-2 min-w-[16rem] py-1">
@@ -196,6 +196,11 @@ definePageMeta({ title: 'Products Management', layout: 'admin' })
 const toast = useToast()
 const { confirm } = useConfirm()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
+const { formatCurrencyAmount } = useCurrencyFormat()
+const { getSetting, fetchSettings } = useSettings()
+
+await fetchSettings()
+const baseCurrency = computed(() => getSetting('currency', 'USD'))
 
 const columns = computed(() => [
   { accessorKey: 'drag', header: '' },

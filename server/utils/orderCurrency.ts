@@ -1,7 +1,12 @@
-interface OrderCurrencyInput {
+export interface OrderCurrencyInput {
   amount?: unknown
   currency?: unknown
   metaData?: unknown
+}
+
+export interface CurrencyAmountTotal {
+  currency: string
+  amount: number
 }
 
 const normalizeCurrency = (value: unknown, fallback = 'USD') => {
@@ -47,4 +52,19 @@ export function resolveOrderCurrencyAmounts(order: OrderCurrencyInput) {
     exchangeRate: Number.isFinite(exchangeRateValue) && exchangeRateValue > 0 ? exchangeRateValue : 1,
     hasSnapshot: Boolean(hasSnapshot),
   }
+}
+
+export function aggregateOrderAccountingTotals(orderRows: OrderCurrencyInput[]): CurrencyAmountTotal[] {
+  const totals = new Map<string, number>()
+  for (const order of orderRows) {
+    const { accountingAmount, accountingCurrency } = resolveOrderCurrencyAmounts(order)
+    totals.set(accountingCurrency, (totals.get(accountingCurrency) || 0) + accountingAmount)
+  }
+  return Array.from(totals, ([currency, amount]) => ({ currency, amount }))
+    .sort((left, right) => left.currency.localeCompare(right.currency))
+}
+
+export function getCurrencyTotal(totals: CurrencyAmountTotal[], currency: string): number {
+  const normalizedCurrency = normalizeCurrency(currency)
+  return totals.find(item => item.currency === normalizedCurrency)?.amount || 0
 }

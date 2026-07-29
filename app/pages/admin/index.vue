@@ -186,7 +186,7 @@
               <div class="flex items-center justify-between gap-4">
                 <span class="text-xs text-gray-500 dark:text-gray-300">Revenue</span>
                 <span class="text-xs font-bold text-gray-900 dark:text-white">
-                  ${{ dashboardData.chart.revenue[hoveredIndex].toLocaleString() }}
+                  {{ formatCurrencyAmount(dashboardData.chart.revenue[hoveredIndex], dashboardData.chart.currency) }}
                 </span>
               </div>
               <div class="flex items-center justify-between gap-4">
@@ -215,6 +215,7 @@ import {
 definePageMeta({ title: 'Dashboard', layout: 'admin' })
 
 const { t } = useI18n()
+const { formatCurrencyAmount, formatCurrencyTotals } = useCurrencyFormat()
 const router = useRouter() 
 const hoveredIndex = ref<number | null>(null)
 
@@ -260,12 +261,10 @@ const stats = computed(() => [
   },
   {
     label: t('admin.dashboard.todayRevenue'),
-    value: `$${(dashboardData.value?.stats?.todayRevenue || 0).toLocaleString(
-      undefined,
-      {
-        minimumFractionDigits: 2,
-      }
-    )}`,
+    value: formatCurrencyTotals(
+      dashboardData.value?.stats?.todayRevenueByCurrency,
+      dashboardData.value?.stats?.currency,
+    ),
     icon: 'ph:currency-dollar',
     color: 'green',
   },
@@ -277,12 +276,10 @@ const stats = computed(() => [
   },
   {
     label: t('admin.dashboard.totalRevenue'),
-    value: `$${(dashboardData.value?.stats?.totalRevenue || 0).toLocaleString(
-      undefined,
-      {
-        minimumFractionDigits: 2,
-      }
-    )}`,
+    value: formatCurrencyTotals(
+      dashboardData.value?.stats?.totalRevenueByCurrency,
+      dashboardData.value?.stats?.currency,
+    ),
     icon: 'ph:chart-line-up',
     color: 'orange',
   },

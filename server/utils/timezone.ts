@@ -30,6 +30,21 @@ function formatPartsInTz(d: Date, tz: string) {
   }).formatToParts(d)
 }
 
+function getTimezoneOffsetMs(date: Date, timezone: string): number {
+  const parts = formatPartsInTz(date, timezone)
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]))
+  const hour = values.hour === '24' ? 0 : Number(values.hour)
+  const representedUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    hour,
+    Number(values.minute),
+    Number(values.second),
+  )
+  return representedUtc - date.getTime()
+}
+
 /**
  * 返回目标时区「今天 00:00:00」对应的 UTC 毫秒、秒、ISO 字符串。
  */
@@ -40,7 +55,9 @@ export function getStartOfDayUtc(tz: string): { ms: number; sec: number; iso: st
   const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1
   const day = parseInt(parts.find(p => p.type === 'day')!.value)
 
-  const ms = Date.UTC(year, month, day, 0, 0, 0, 0)
+  const midnightAsUtc = Date.UTC(year, month, day, 0, 0, 0, 0)
+  let ms = midnightAsUtc - getTimezoneOffsetMs(new Date(midnightAsUtc), tz)
+  ms = midnightAsUtc - getTimezoneOffsetMs(new Date(ms), tz)
   const iso = new Date(ms).toISOString()
   return {
     ms,
@@ -55,16 +72,7 @@ export function getStartOfDayUtc(tz: string): { ms: number; sec: number; iso: st
  * 该偏移基于「今天午夜」计算，DST 过渡日会有 ±1 小时误差，可接受。
  */
 export function getTimezoneOffsetMinutes(tz: string): number {
-  const { ms } = getStartOfDayUtc(tz)
-  const parts = formatPartsInTz(new Date(ms), tz)
-  const hour = parseInt(parts.find(p => p.type === 'hour')!.value)
-  const minute = parseInt(parts.find(p => p.type === 'minute')!.value)
-
-  let offset = hour * 60 + minute
-  if (offset > 12 * 60) {
-    offset -= 24 * 60
-  }
-  return offset
+  return Math.round(getTimezoneOffsetMs(new Date(), tz) / 60000)
 }
 
 /**

@@ -20,5 +20,15 @@ export const useCurrencyFormat = () => {
     }
   }
 
-  return { formatCurrencyAmount }
+  const formatCurrencyTotals = (values: unknown, emptyCurrency?: unknown) => {
+    if (!Array.isArray(values) || values.length === 0) {
+      return emptyCurrency ? formatCurrencyAmount(0, emptyCurrency) : '—'
+    }
+    return values
+      .filter(item => item && typeof item === 'object')
+      .map(item => formatCurrencyAmount((item as any).amount, (item as any).currency))
+      .join(' + ')
+  }
+
+  return { formatCurrencyAmount, formatCurrencyTotals }
 }

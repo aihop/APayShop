@@ -116,7 +116,7 @@
               <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ order.id }}</div>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-gray-900 dark:text-white">${{ Number(order.amount || 0).toFixed(2) }}</div>
+              <div class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(order.amount, order.currency) }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatDateTime(order.createdAt) }}</div>
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0 w-24">
@@ -159,6 +159,7 @@ const emit = defineEmits<{
 
 const { locale } = useI18n()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyAmount, formatCurrencyTotals } = useCurrencyFormat()
 const toast = useToast()
 
 const isOpen = computed({
@@ -215,7 +216,7 @@ const statCards = computed(() => {
   const s = detail.value.stats
   return [
     { label: isZh.value ? '订单总数' : 'Total Orders', value: s.totalOrders },
-    { label: isZh.value ? '消费总额' : 'Total Spent', value: `$${Number(s.totalSpent || 0).toFixed(2)}`, class: 'text-emerald-500' },
+    { label: isZh.value ? '消费总额' : 'Total Spent', value: formatCurrencyTotals(s.totalSpentByCurrency), class: 'text-emerald-500' },
     { label: isZh.value ? '未支付' : 'Unpaid', value: s.unpaidOrders, class: s.unpaidOrders > 0 ? 'text-red-500' : undefined },
     {
       label: isZh.value ? '最近下单' : 'Last Order',

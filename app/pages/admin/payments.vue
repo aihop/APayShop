@@ -285,7 +285,7 @@
           </template>
 
           <template #amount-cell="{ row }">
-            ${{ Number(row.original.amount || 0).toFixed(2) }}
+            {{ formatCurrencyAmount(row.original.amount, row.original.currency) }}
           </template>
 
           <template #reason-cell="{ row }">
@@ -350,7 +350,7 @@
                 </div>
                 <div>
                   <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.amount') }}</span>
-                  <span class="text-gray-900 dark:text-white">${{ Number(selectedFailure.amount || 0).toFixed(2) }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(selectedFailure.amount, selectedFailure.currency) }}</span>
                 </div>
                 <div>
                   <span class="block text-xs text-gray-500 mb-1">{{ $t('admin.payments.failures.cardBin') }}</span>
@@ -407,6 +407,7 @@ definePageMeta({ title: 'Payment Methods', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyAmount } = useCurrencyFormat()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { settings: appSettings, fetchSettings } = useSettings()

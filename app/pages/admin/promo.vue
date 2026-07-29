@@ -63,7 +63,7 @@
               <span class="text-sm text-gray-900 dark:text-white">{{ formatDiscount(row.original.discountRate) }}</span>
             </template>
             <template #salesThreshold-cell="{ row }">
-              <span class="text-sm text-gray-500 dark:text-gray-400">${{ Number(row.original.salesThreshold || 0).toFixed(2) }}</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatCurrencyAmount(row.original.salesThreshold, baseCurrency) }}</span>
             </template>
             <template #actions-cell="{ row }">
               <UButton color="neutral" variant="ghost" icon="ph:pencil-simple" @click="openTierModal(row.original)" :disabled="!hasAdminPerm('promo:edit')" />
@@ -147,20 +147,20 @@
           </div>
           <div class="rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 p-4">
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('admin.promo.teamSalesAmount') }}</div>
-            <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">${{ Number(teamReport?.summary?.totalSalesAmount || 0).toFixed(2) }}</div>
+            <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{{ formatCurrencyAmount(teamReport?.summary?.totalSalesAmount, baseCurrency) }}</div>
           </div>
           <div class="rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 p-4">
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('admin.promo.teamCommissionAmount') }}</div>
-            <div class="mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">${{ Number(teamReport?.summary?.totalCommissionAmount || 0).toFixed(2) }}</div>
+            <div class="mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">{{ formatCurrencyAmount(teamReport?.summary?.totalCommissionAmount, baseCurrency) }}</div>
           </div>
         </div>
         <div class="flex-1 overflow-auto">
           <UTable :columns="teamReportColumns" :data="teamReport?.rows || []" :loading="teamReportPending" sticky>
             <template #totalSalesAmount-cell="{ row }">
-              <span class="text-sm text-gray-900 dark:text-white">${{ Number(row.original.totalSalesAmount || 0).toFixed(2) }}</span>
+              <span class="text-sm text-gray-900 dark:text-white">{{ formatCurrencyAmount(row.original.totalSalesAmount, baseCurrency) }}</span>
             </template>
             <template #totalCommissionAmount-cell="{ row }">
-              <span class="text-sm text-emerald-600 dark:text-emerald-400">${{ Number(row.original.totalCommissionAmount || 0).toFixed(2) }}</span>
+              <span class="text-sm text-emerald-600 dark:text-emerald-400">{{ formatCurrencyAmount(row.original.totalCommissionAmount, baseCurrency) }}</span>
             </template>
           </UTable>
         </div>
@@ -176,7 +176,7 @@
         <div class="flex-1 overflow-auto">
           <UTable :columns="commissionColumns" :data="commissions" :loading="overviewPending" sticky>
             <template #amount-cell="{ row }">
-              <span class="font-medium text-emerald-600 dark:text-emerald-400">${{ Number(row.original.amount || 0).toFixed(2) }}</span>
+              <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ formatCurrencyAmount(row.original.amount, baseCurrency) }}</span>
             </template>
             <template #createdAt-cell="{ row }">
               <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.createdAt) }}</span>
@@ -195,7 +195,7 @@
         <div class="flex-1 overflow-auto">
           <UTable :columns="teamOrderColumns" :data="teamOrders || []" :loading="teamOrdersPending" sticky>
             <template #amount-cell="{ row }">
-              <span class="font-medium text-gray-900 dark:text-white">${{ Number(row.original.amount || 0).toFixed(2) }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ formatCurrencyAmount(row.original.amount, row.original.currency || baseCurrency) }}</span>
             </template>
             <template #createdAt-cell="{ row }">
               <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(row.original.createdAt) }}</span>
@@ -360,7 +360,12 @@ definePageMeta({ title: 'Promo Management', layout: 'admin' })
 const { t } = useI18n()
 const toast = useToast()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyAmount } = useCurrencyFormat()
+const { getSetting, fetchSettings } = useSettings()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
+
+await fetchSettings()
+const baseCurrency = computed(() => getSetting('currency', 'USD'))
 
 const { data: overviewData, pending: overviewPending, refresh: refreshOverview } = await useFetch<any>('/api/admin/promo/overview')
 const { data: tiersData, pending: tiersPending, refresh: refreshTiers } = await useFetch<any[]>('/api/admin/promo/tiers')
@@ -398,7 +403,7 @@ const overviewCards = computed(() => {
     { label: t('admin.promo.overviewAgents'), value: overview.agents || 0 },
     { label: t('admin.promo.overviewMasterAgents'), value: overview.masterAgents || 0 },
     { label: t('admin.promo.overviewOrders'), value: overview.attributedOrders || 0 },
-    { label: t('admin.promo.overviewCommission'), value: `$${Number(overview.commissionAmount || 0).toFixed(2)}` },
+    { label: t('admin.promo.overviewCommission'), value: formatCurrencyAmount(overview.commissionAmount, baseCurrency.value) },
   ]
 })
 

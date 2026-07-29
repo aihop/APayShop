@@ -2,6 +2,8 @@ import { orders, products, users, visitorProfiles } from "../../../db/schema"
 import { eq, and, or, desc, isNull, sql } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { aggregateOrderAccountingTotals } from '../../../utils/orderCurrency'
+import type { OrderCurrencyInput } from '../../../utils/orderCurrency'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -33,6 +35,7 @@ export default defineEventHandler(async (event) => {
       id: orders.id,
       amount: orders.amount,
       currency: orders.currency,
+      metaData: orders.metaData,
       status: orders.status,
       payStatus: orders.payStatus,
       payMethod: orders.payMethod,
@@ -50,20 +53,20 @@ export default defineEventHandler(async (event) => {
       .where(orderWhere)
       .orderBy(desc(orders.createdAt))
 
-    const stats = orderRows.reduce(
-      (acc: { totalOrders: number; totalSpent: number; unpaidOrders: number }, o: (typeof orderRows)[number]) => {
-        acc.totalOrders += 1
-        if (o.payStatus === 'paid') acc.totalSpent += Number(o.amount || 0)
-        else acc.unpaidOrders += 1
-        return acc
-      },
-      { totalOrders: 0, totalSpent: 0, unpaidOrders: 0 },
-    )
+    const typedOrderRows = orderRows as Array<OrderCurrencyInput & Record<string, unknown> & { payStatus: string, visitorId: string | null }>
+    const paidOrders = typedOrderRows.filter(order => order.payStatus === 'paid')
+    const totalSpentByCurrency = aggregateOrderAccountingTotals(paidOrders)
+    const stats = {
+      totalOrders: typedOrderRows.length,
+      totalSpent: totalSpentByCurrency.length === 1 ? (totalSpentByCurrency[0]?.amount || 0) : 0,
+      totalSpentByCurrency,
+      unpaidOrders: typedOrderRows.length - paidOrders.length,
+    }
 
     // Attribution snapshot — prefer the visitorId this row was keyed by;
     // for named customers without one, fall back to whichever of their
     // orders has the most recent visitorId on file.
-    const attributionVisitorId = visitorId || orderRows.find((o: (typeof orderRows)[number]) => o.visitorId)?.visitorId || ''
+    const attributionVisitorId = visitorId || typedOrderRows.find(order => order.visitorId)?.visitorId || ''
     const profileRows = attributionVisitorId
       ? await db.select().from(visitorProfiles).where(eq(visitorProfiles.visitorId, attributionVisitorId)).limit(1)
       : []
@@ -78,6 +81,7 @@ export default defineEventHandler(async (event) => {
           status: users.status,
         }).from(users).where(eq(users.email, email)).limit(1)
       : []
+    const responseOrders = typedOrderRows.map(({ metaData: _metaData, ...order }) => order)
 
     return {
       identity: {
@@ -88,7 +92,7 @@ export default defineEventHandler(async (event) => {
       stats,
       profile: profileRows[0] || null,
       registeredUser: registeredUserRows[0] || null,
-      orders: orderRows,
+      orders: responseOrders,
     }
   } catch (error: any) {
     throw createError({

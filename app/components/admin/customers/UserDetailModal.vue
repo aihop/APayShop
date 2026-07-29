@@ -77,15 +77,15 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 text-sm">
           <div>
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ cashBalanceLabel }}</div>
-            <div class="text-gray-900 dark:text-white">${{ detail.user.cashBalance.toFixed(2) }}</div>
+            <div class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(detail.user.cashBalance, baseCurrency) }}</div>
           </div>
           <div>
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ grantBalanceLabel }}</div>
-            <div class="text-gray-900 dark:text-white">${{ detail.user.grantBalance.toFixed(2) }}</div>
+            <div class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(detail.user.grantBalance, baseCurrency) }}</div>
           </div>
           <div>
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ subBalanceLabel }}</div>
-            <div class="text-gray-900 dark:text-white">${{ detail.user.subBalance.toFixed(2) }}</div>
+            <div class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(detail.user.subBalance, baseCurrency) }}</div>
           </div>
           <div>
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ tierLabel }}</div>
@@ -167,7 +167,7 @@
           >
             <div class="min-w-0 flex-1 text-gray-900 dark:text-white truncate">{{ sub.productName || unknownProductLabel }}</div>
             <div class="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-              ${{ Number(sub.amount || 0).toFixed(2) }} / {{ sub.interval }}
+              {{ formatCurrencyAmount(sub.amount, sub.currency) }} / {{ sub.interval }}
             </div>
             <UBadge
               :color="sub.status === 'active' ? 'success' : sub.status === 'past_due' ? 'warning' : 'neutral'"
@@ -202,7 +202,7 @@
               <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ order.id }}</div>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-gray-900 dark:text-white">${{ Number(order.amount || 0).toFixed(2) }}</div>
+              <div class="text-gray-900 dark:text-white">{{ formatCurrencyAmount(order.amount, order.currency) }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatDateTime(order.createdAt) }}</div>
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0 w-24">
@@ -243,7 +243,12 @@ const emit = defineEmits<{
 
 const { locale } = useI18n()
 const { formatDateTime } = useFormatTime()
+const { formatCurrencyAmount, formatCurrencyTotals } = useCurrencyFormat()
+const { getSetting, fetchSettings } = useSettings()
 const toast = useToast()
+
+void fetchSettings()
+const baseCurrency = computed(() => getSetting('currency', 'USD'))
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -313,7 +318,7 @@ const statCards = computed(() => {
   const s = detail.value.stats
   return [
     { label: isZh.value ? '订单总数' : 'Total Orders', value: s.totalOrders },
-    { label: isZh.value ? '消费总额' : 'Total Spent', value: `$${Number(s.totalSpent || 0).toFixed(2)}`, class: 'text-emerald-500' },
+    { label: isZh.value ? '消费总额' : 'Total Spent', value: formatCurrencyTotals(s.totalSpentByCurrency), class: 'text-emerald-500' },
     { label: isZh.value ? '未支付' : 'Unpaid', value: s.unpaidOrders, class: s.unpaidOrders > 0 ? 'text-red-500' : undefined },
     {
       label: isZh.value ? '最近下单' : 'Last Order',

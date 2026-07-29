@@ -1,8 +1,26 @@
-import { orders } from "../../../db/schema"
-import { desc, sql, eq } from "drizzle-orm"
+import { orders } from '../../../db/schema'
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
-import { ORDER_PAY_STATUS } from "~~/server/utils/constants"
+import { toIsoTimestamp } from '../../../utils/dbTime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { aggregateOrderAccountingTotals } from '../../../utils/orderCurrency'
+
+interface CustomerGroupRow {
+  email: string | null
+  visitorId: string | null
+  totalOrders: number
+  firstOrderAt: unknown
+  lastOrderAt: unknown
+  unpaidOrders: number
+}
+
+interface CustomerPaidOrderRow {
+  email: string | null
+  visitorId: string | null
+  amount: number
+  currency: string
+  metaData: unknown
+}
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -11,59 +29,104 @@ export default defineEventHandler(async (event) => {
     const page = parseInt(query.page as string) || 1
     const pageSize = parseInt(query.pageSize as string) || 15
     const offset = (page - 1) * pageSize
-
-    // 由于 customers 数据是聚合查询（包括具名邮箱和匿名访客两部分），
-    // 要在数据库层面实现精确的全局分页比较复杂。
-    // 因此这里我们先查出所有的聚合结果，然后在内存中进行分页切片。
-    // 这对于管理后台的客户列表来说性能通常是可以接受的。
-
-    const data = await db.select({
+    const namedGroups = await db.select({
       email: orders.contactEmail,
-      visitorId: sql<string>`MAX(${orders.visitorId})`, 
+      visitorId: sql<string | null>`MAX(${orders.visitorId})`,
       totalOrders: sql<number>`COUNT(${orders.id})`,
-      totalSpent: sql<number>`SUM(CASE WHEN ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} THEN ${orders.amount} ELSE 0 END)`,
-      firstOrderAt: sql<number>`MIN(${orders.createdAt})`,
-      lastOrderAt: sql<number>`MAX(${orders.createdAt})`,
-      unpaidOrders: sql<number>`SUM(CASE WHEN ${orders.payStatus} != ${ORDER_PAY_STATUS.PAID} THEN 1 ELSE 0 END)`,
-    })
-    .from(orders)
-    .where(sql`${orders.contactEmail} IS NOT NULL AND ${orders.contactEmail} != ''`)
-    .groupBy(orders.contactEmail)
-    
-    const anonymousData = await db.select({
-      email: sql<string>`${locale === 'zh' ? '匿名访客' : 'Anonymous'}`,
+      firstOrderAt: sql<unknown>`MIN(${orders.createdAt})`,
+      lastOrderAt: sql<unknown>`MAX(${orders.createdAt})`,
+      unpaidOrders: sql<number>`SUM(CASE WHEN ${orders.payStatus} != 'paid' THEN 1 ELSE 0 END)`,
+    }).from(orders)
+      .where(sql`${orders.contactEmail} IS NOT NULL AND ${orders.contactEmail} != ''`)
+      .groupBy(orders.contactEmail) as CustomerGroupRow[]
+
+    const anonymousGroups = await db.select({
+      email: sql<string | null>`NULL`,
       visitorId: orders.visitorId,
       totalOrders: sql<number>`COUNT(${orders.id})`,
-      totalSpent: sql<number>`SUM(CASE WHEN ${orders.payStatus} = ${ORDER_PAY_STATUS.PAID} THEN ${orders.amount} ELSE 0 END)`,
-      firstOrderAt: sql<number>`MIN(${orders.createdAt})`,
-      lastOrderAt: sql<number>`MAX(${orders.createdAt})`,
-      unpaidOrders: sql<number>`SUM(CASE WHEN ${orders.payStatus} != ${ORDER_PAY_STATUS.PAID} THEN 1 ELSE 0 END)`,
-    })
-    .from(orders)
-    .where(sql`(${orders.contactEmail} IS NULL OR ${orders.contactEmail} = '') AND ${orders.visitorId} IS NOT NULL`)
-    .groupBy(orders.visitorId)
+      firstOrderAt: sql<unknown>`MIN(${orders.createdAt})`,
+      lastOrderAt: sql<unknown>`MAX(${orders.createdAt})`,
+      unpaidOrders: sql<number>`SUM(CASE WHEN ${orders.payStatus} != 'paid' THEN 1 ELSE 0 END)`,
+    }).from(orders)
+      .where(sql`(${orders.contactEmail} IS NULL OR ${orders.contactEmail} = '') AND ${orders.visitorId} IS NOT NULL`)
+      .groupBy(orders.visitorId) as CustomerGroupRow[]
 
-    // 合并并排序
-    const combinedData = [...data, ...anonymousData].sort((a, b) => {
-      const dateA = Number(a.lastOrderAt || 0)
-      const dateB = Number(b.lastOrderAt || 0)
-      return dateB - dateA
+    const groups = [...namedGroups, ...anonymousGroups]
+      .map(group => ({
+        ...group,
+        isAnonymous: !group.email,
+        email: group.email || (locale === 'zh' ? '匿名访客' : 'Anonymous'),
+        totalOrders: Number(group.totalOrders || 0),
+        firstOrderAt: toIsoTimestamp(group.firstOrderAt) || null,
+        lastOrderAt: toIsoTimestamp(group.lastOrderAt) || null,
+        unpaidOrders: Number(group.unpaidOrders || 0),
+      }))
+      .sort((left, right) => String(right.lastOrderAt || '').localeCompare(String(left.lastOrderAt || '')))
+    const paginatedGroups = groups.slice(offset, offset + pageSize)
+    const namedEmails = paginatedGroups
+      .filter(group => !group.isAnonymous)
+      .map(group => String(group.email || '').trim())
+      .filter(Boolean)
+    const anonymousVisitorIds = paginatedGroups
+      .filter(group => group.isAnonymous)
+      .map(group => String(group.visitorId || '').trim())
+      .filter(Boolean)
+    const identityConditions = []
+    if (namedEmails.length) identityConditions.push(inArray(orders.contactEmail, namedEmails))
+    if (anonymousVisitorIds.length) {
+      identityConditions.push(and(
+        or(isNull(orders.contactEmail), eq(orders.contactEmail, '')),
+        inArray(orders.visitorId, anonymousVisitorIds),
+      ))
+    }
+    const paidOrderRows: CustomerPaidOrderRow[] = identityConditions.length
+      ? await db.select({
+        email: orders.contactEmail,
+        visitorId: orders.visitorId,
+        amount: orders.amount,
+        currency: orders.currency,
+        metaData: orders.metaData,
+      }).from(orders).where(and(
+        eq(orders.payStatus, 'paid'),
+        or(...identityConditions),
+      ))
+      : []
+    const totalsByIdentity = new Map<string, ReturnType<typeof aggregateOrderAccountingTotals>>()
+    for (const group of paginatedGroups) {
+      const email = String(group.email || '').trim()
+      const matchingOrders = paidOrderRows.filter(order => group.isAnonymous
+        ? String(order.visitorId || '') === String(group.visitorId || '') && !String(order.email || '').trim()
+        : String(order.email || '').trim() === email)
+      const key = group.isAnonymous ? `visitor:${group.visitorId}` : `email:${email}`
+      totalsByIdentity.set(key, aggregateOrderAccountingTotals(matchingOrders))
+    }
+    const data = paginatedGroups.map((group) => {
+      const email = String(group.email || '').trim()
+      const key = group.isAnonymous ? `visitor:${group.visitorId}` : `email:${email}`
+      const totalSpentByCurrency = totalsByIdentity.get(key) || []
+      return {
+        email: group.email,
+        visitorId: group.visitorId,
+        totalOrders: group.totalOrders,
+        firstOrderAt: group.firstOrderAt,
+        lastOrderAt: group.lastOrderAt,
+        unpaidOrders: group.unpaidOrders,
+        totalSpent: totalSpentByCurrency.length === 1 ? (totalSpentByCurrency[0]?.amount || 0) : 0,
+        totalSpentByCurrency,
+      }
     })
-
-    const total = combinedData.length
-    const paginatedData = combinedData.slice(offset, offset + pageSize)
 
     return {
-      data: paginatedData,
-      total,
+      data,
+      total: groups.length,
       page,
-      pageSize
+      pageSize,
     }
   } catch (error: any) {
-    console.error("Fetch customers error:", error)
+    console.error('Fetch customers error:', error)
     throw createError({
       statusCode: 500,
-      message: error.message || (locale === 'zh' ? '获取客户列表失败' : 'Failed to fetch customers')
+      message: error.message || (locale === 'zh' ? '获取客户列表失败' : 'Failed to fetch customers'),
     })
   }
 })

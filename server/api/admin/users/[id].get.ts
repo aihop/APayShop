@@ -2,6 +2,8 @@ import { users, orders, products, subscriptions, oauthAccounts, usersTokens, vis
 import { eq, desc } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { aggregateOrderAccountingTotals } from '../../../utils/orderCurrency'
+import type { OrderCurrencyInput } from '../../../utils/orderCurrency'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -42,6 +44,7 @@ export default defineEventHandler(async (event) => {
         id: orders.id,
         amount: orders.amount,
         currency: orders.currency,
+        metaData: orders.metaData,
         status: orders.status,
         payStatus: orders.payStatus,
         payMethod: orders.payMethod,
@@ -106,7 +109,11 @@ export default defineEventHandler(async (event) => {
       }).from(promoMembers).where(eq(promoMembers.userId, userId)).limit(1),
     ])
 
-    const totalSpent = orderRows.reduce((sum: number, o: (typeof orderRows)[number]) => sum + (o.payStatus === 'paid' ? Number(o.amount || 0) : 0), 0)
+    const typedOrderRows = orderRows as Array<OrderCurrencyInput & Record<string, unknown> & { payStatus: string }>
+    const totalSpentByCurrency = aggregateOrderAccountingTotals(
+      typedOrderRows.filter(order => order.payStatus === 'paid'),
+    )
+    const responseOrders = typedOrderRows.map(({ metaData: _metaData, ...order }) => order)
 
     return {
       user: {
@@ -116,11 +123,12 @@ export default defineEventHandler(async (event) => {
         subBalance: toDisplayBalance(user.subBalance),
       },
       stats: {
-        totalOrders: orderRows.length,
-        totalSpent,
-        unpaidOrders: orderRows.filter((o: (typeof orderRows)[number]) => o.payStatus !== 'paid').length,
+        totalOrders: typedOrderRows.length,
+        totalSpent: totalSpentByCurrency.length === 1 ? (totalSpentByCurrency[0]?.amount || 0) : 0,
+        totalSpentByCurrency,
+        unpaidOrders: typedOrderRows.filter(order => order.payStatus !== 'paid').length,
       },
-      orders: orderRows,
+      orders: responseOrders,
       subscriptions: subscriptionRows,
       oauthAccounts: oauthRows,
       tokens: tokenRows,
