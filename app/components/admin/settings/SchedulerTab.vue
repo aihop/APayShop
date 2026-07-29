@@ -82,8 +82,8 @@
           </div>
 
           <div>
-            <label class="block text-xs text-gray-500 mb-1">路径（站内，可含 ?token=）</label>
-            <UInput v-model="form.path" placeholder="/api/qingpu/admin/maintenance?token=..." class="w-full font-mono" />
+            <label class="block text-xs text-gray-500 mb-1">路径（站内，不要在 URL 中放置密钥）</label>
+            <UInput v-model="form.path" placeholder="/api/cron/process-subscriptions" class="w-full font-mono" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -101,6 +101,14 @@
             <USwitch v-model="form.enabled" />
             <span class="text-sm text-gray-600 dark:text-gray-300">启用</span>
           </div>
+
+          <div class="flex items-center gap-2">
+            <USwitch v-model="form.useCronSecret" />
+            <span class="text-sm text-gray-600 dark:text-gray-300">使用服务器 CRON_SECRET 鉴权</span>
+          </div>
+          <p v-if="form.useCronSecret" class="text-xs text-gray-400">
+            执行时自动发送 Authorization: Bearer 请求头；密钥不会保存到数据库。
+          </p>
 
           <div v-if="formError" class="text-xs text-red-400">{{ formError }}</div>
 
@@ -126,6 +134,7 @@ interface JobRow {
   method?: string
   schedule: string | number
   enabled?: boolean
+  useCronSecret?: boolean
   lastRun?: number | null
   lastResult?: string | null
 }
@@ -140,6 +149,7 @@ const scheduleOptions = [
   { label: '每周', value: 'weekly' },
   { label: '每 30 分钟', value: 30 },
   { label: '每 10 分钟', value: 10 },
+  { label: '每 5 分钟', value: 5 },
 ]
 const scheduleLabel = (v: string | number) => scheduleOptions.find(o => o.value === v)?.label || String(v)
 
@@ -157,10 +167,11 @@ const form = reactive<any>({
   method: 'POST',
   schedule: 'daily',
   enabled: true,
+  useCronSecret: false,
 })
 
 const openCreate = () => {
-  Object.assign(form, { originalName: null, name: '', path: '', method: 'POST', schedule: 'daily', enabled: true })
+  Object.assign(form, { originalName: null, name: '', path: '', method: 'POST', schedule: 'daily', enabled: true, useCronSecret: false })
   formError.value = ''
   modalOpen.value = true
 }
@@ -173,6 +184,7 @@ const openEdit = (job: JobRow) => {
     method: job.method || 'POST',
     schedule: job.schedule,
     enabled: job.enabled !== false,
+    useCronSecret: job.useCronSecret === true,
   })
   formError.value = ''
   modalOpen.value = true
@@ -218,6 +230,7 @@ const save = async () => {
     method: form.method,
     schedule: form.schedule,
     enabled: form.enabled,
+    useCronSecret: form.useCronSecret,
   }
 
   const next = form.originalName

@@ -8,15 +8,16 @@ import {
  * 核心定时 Webhook 调度器（平台能力，所有主题共用）。
  *
  * 配置在 /admin/scheduler 管理页维护（落 settings 表 scheduled_webhooks）：
- *   [{ "name": "qingpu-maintenance",
- *      "path": "/api/qingpu/admin/maintenance?token=xxx",
- *      "method": "POST",                  // 可省略，默认 POST
+ *   [{ "name": "process-subscriptions",
+ *      "path": "/api/cron/process-subscriptions",
+ *      "method": "GET",                   // 可省略，默认 POST
  *      "schedule": "daily",               // hourly | daily | weekly | 数字（分钟）
+ *      "useCronSecret": true,               // 运行时注入 CRON_SECRET Bearer 头
  *      "enabled": true }]
  *
  * 设计约束：
- * - 核心不认识任何主题：只按配置到点对自己内部路径发一次请求，鉴权语义
- *   （如 token 参数）由目标端点自带，调度器不引入新的信任假设；
+ * - 核心不认识任何主题：只按配置到点对自己内部路径发一次请求；需要通用 cron
+ *   鉴权时可从运行环境注入 CRON_SECRET，不把密钥落库或拼入 URL；
  * - 目标任务必须幂等：多实例抢占是两阶段校验，存在极小双触发窗口；
  * - 仅长驻 node 进程启用：serverless 预设下定时器不可靠，直接不启动，
  *   那类部署用外部 cron 直调目标端点。

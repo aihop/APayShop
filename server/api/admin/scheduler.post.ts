@@ -35,6 +35,10 @@ export default defineEventHandler(async (event) => {
       if (!path.startsWith('/')) {
         throw createError({ statusCode: 400, message: locale === 'zh' ? `路径必须以 / 开头：${name}` : `Path must start with /: ${name}` })
       }
+      const method = String(raw?.method || 'POST').toUpperCase()
+      if (method !== 'GET' && method !== 'POST') {
+        throw createError({ statusCode: 400, message: locale === 'zh' ? `请求方法不合法：${name}` : `Invalid method: ${name}` })
+      }
       const validSchedule = schedule === 'hourly' || schedule === 'daily' || schedule === 'weekly'
         || (typeof schedule === 'number' && Number.isFinite(schedule) && schedule >= 1)
       if (!validSchedule) {
@@ -45,8 +49,9 @@ export default defineEventHandler(async (event) => {
         name,
         path,
         schedule,
-        ...(raw?.method ? { method: String(raw.method).toUpperCase() } : {}),
+        method,
         enabled: raw?.enabled !== false,
+        useCronSecret: raw?.useCronSecret === true,
       })
     }
     await saveSchedulerJobs(jobs)

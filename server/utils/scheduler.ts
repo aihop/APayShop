@@ -14,6 +14,8 @@ export interface ScheduledWebhook {
   method?: string
   schedule: 'hourly' | 'daily' | 'weekly' | number
   enabled?: boolean
+  /** 运行时从服务器环境读取 CRON_SECRET 注入 Authorization；不把密钥写入数据库。 */
+  useCronSecret?: boolean
   /** 附加请求头(如 { "Authorization": "Bearer <token>" })。
    * 鉴权令牌请放这里而不是 path 的 query:path 会被写进运行状态记录、回显到
    * /admin/scheduler 管理页、并进日志,query 里的 token 等于公开。 */
@@ -130,11 +132,17 @@ async function recordResult(job: ScheduledWebhook, ok: boolean, detail: string, 
 export async function runSchedulerJob(job: ScheduledWebhook): Promise<{ ok: boolean; detail: string }> {
   const startedAt = Date.now()
   try {
+    const headers = { ...(job.headers || {}) }
+    if (job.useCronSecret) {
+      const cronSecret = String(process.env.CRON_SECRET || '').trim()
+      if (!cronSecret) throw new Error('CRON_SECRET is not configured')
+      headers.Authorization = `Bearer ${cronSecret}`
+    }
     const response = await $fetch.raw(job.path, {
       method: (job.method || 'POST') as any,
       timeout: JOB_TIMEOUT_MS,
       retry: 0,
-      ...(job.headers && Object.keys(job.headers).length ? { headers: job.headers } : {}),
+      ...(Object.keys(headers).length ? { headers } : {}),
     })
     const detail = `status=${response.status}`
     await recordResult(job, true, detail, Date.now() - startedAt)
@@ -162,6 +170,7 @@ export async function listSchedulerStatus(): Promise<Array<Record<string, unknow
     method: job.method || 'POST',
     schedule: job.schedule,
     enabled: job.enabled !== false,
+    useCronSecret: job.useCronSecret === true,
     lastRun: stateByName.get(job.name)?.lastRun || null,
     lastResult: stateByName.get(job.name)?.lastResult || null,
   }))
