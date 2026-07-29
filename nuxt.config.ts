@@ -112,6 +112,14 @@ const DEV_WATCH_IGNORE = [
 
 export default defineNuxtConfig({
   ignore: DEV_WATCH_IGNORE,
+  routeRules: {
+    '/themes/qingpu/listing/ozon-categories/manifest.json': {
+      headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' },
+    },
+    '/themes/qingpu/listing/ozon-categories/assets/**': {
+      headers: { 'cache-control': 'public, max-age=31536000, immutable' },
+    },
+  },
   // 主题私有 vendor 的客户端别名:纯函数(如 qingpu-engine 定价计算)可在浏览器组件复用;
   // 这里避免使用 `#` 前缀,否则会落入 Node package imports 语义,把主题私有约定抬成
   // 根包级别配置。nitro 侧同名别名见下方 nitro:config 钩子,两侧解析到同一目录。
@@ -223,7 +231,7 @@ export default defineNuxtConfig({
               (a: any) => a?.dir === publicDir || a?.baseURL === baseURL
             )
             if (!exists) {
-              nitroConfig.publicAssets.push({ dir: publicDir, baseURL })
+              nitroConfig.publicAssets.push({ dir: publicDir, baseURL, maxAge: 300 })
             }
           }
         })
