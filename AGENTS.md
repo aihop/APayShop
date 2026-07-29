@@ -1,6 +1,7 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-07-29`: Qingpu 渠道买家侧预览统一消费服务端归一化草稿快照：服务端解析 workspace/canonical/生成图片引用并输出浏览器 URL，同时提供正文、属性、SKU 与未提交草稿回退；前端不再猜测私有资产 ID，见 Section 6.L。
 > `2026-07-29`: Qingpu Listing 划线价统一使用用户级 `oldPriceMarkupRate` 上浮规则，默认 30%；服务端转换为引擎 `frontDiscountRate` 契约并写入 workspace 定价快照，SKU 手工划线价仍优先，见 Section 6.L。
 > `2026-07-29`: 新增前台通知共享状态约定：导航、用户中心侧栏与通知列表统一消费 `useNotificationState()` 的全局未读数，已读操作即时同步并由服务端计数校准，见 Section 6.D。
 > `2026-07-29`: Qingpu 网页铺货 SKU 表新增单条 SKU 与复制能力；手工 SKU 落 `listingWorkspace.manualOverrides.manualVariants`，共享引擎统一合并展示/发布，复制保留价格、库存、包装和平台规格覆盖但使用独立空图片槽，见 Section 6.L。
@@ -297,6 +298,7 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
 - **通用工具任务约定**: Qingpu 主题下 text-to-image / image-to-image / text-to-video 这类非 listing 专属 AI 工具，统一复用 `qingpu_tasks` 作为异步任务账本；任务类型按能力命名（如 `tool_image_generate`），不要继续创建 `qingpu_listing_tasks` 或工具专属任务表。工具产物统一落 `qingpu_assets`，并通过 `meta.source / meta.toolLabel / meta.prompt` 与“我的创作”联通。
 - **1688 直抓原始协议约定**: Qingpu 铺货服务端直抓 1688 商品时，统一以 ainode `/ai/crawl` 返回 payload 作为 `canonical.extra.raw.payload` 的权威原始档，`canonical.extra.raw.provider` 固定标记为 `ainode-crawl-1688`；不得再在业务层把 ainode 返回重包成 OneBound 风格 `props_list / prop_imgs / skus.sku` 兼容结构。规格值图、SKU 维度与 fallback 聚合应直接基于 ainode raw 的 `specs / skus / detail_images / raw.skuList` 派生（`raw.skuList` 是每 SKU 包装尺寸/毛重的权威来源——`skus[].packaging` 实测常年为空，归一逻辑按 `spec_combination` 关联回填，唯一产线归口在引擎 `normalizeAinodeCrawl1688Product`，业务层不得再手写这层解析，见 qingpu-ai@332a7d9c / vendor v0.7.21）。
 - **SKU 即时编辑与跨端一致性**: 网页工作台必须与 `qingpu-ai/entrypoints/dash` 保持同一 mutation 语义：前端先更新本地行模型，再串行提交；POST 携带商品 `baseRevision`，服务端每次读取最新 aggregate 后重放单个 mutation，并在同一事务内校验 revision、写 workspace、推进 revision。`409` 只允许基于服务端 `currentRevision` 自动重试一次，旧 revision 响应不得回退新状态。SKU “删除”只写 `listingWorkspace.manualOverrides.excludedSkuIds`，保留 canonical 采集变体；至少保留一条的校验按未排除 SKU 计算。
+- **渠道买家侧预览快照**: 渠道预览必须优先消费已保存渠道草稿，并由主题服务端把 `listing.imageUrls`、Rich Content 图片和 SKU `imageRefs` 中的 workspace/canonical/生成资产引用统一解析成浏览器可用 URL；同时归一化正文、属性、价格与 SKU 状态。无草稿时由服务端按 workspace → canonical 顺序回退。前端预览组件只渲染归一化快照，不得自行猜测主题私有资产 ID 或复制发布引擎解析逻辑。
 - **Listing 划线价规则**: 用户级定价设置统一保存 `listing.pricingDefaults.oldPriceMarkupRate`，默认 `0.30`，语义固定为 `划线价 = 售价 × (1 + 上浮率)`。共享引擎仍使用既有 `frontDiscountRate` 契约，服务端按 `markup / (1 + markup)` 转换并把两者写入商品 `listingWorkspace.pricing` 快照；自动派生值不得写入 `manualOverrides.skuPricing.oldPriceRub`，只有用户手工填写的 SKU 划线价才作为覆盖项优先。
 - **手工 SKU 与复制语义**: 网页新增/复制的 SKU 属于工作区人工加工结果，统一写 `listingWorkspace.manualOverrides.manualVariants`，不得伪装成 canonical 采集事实；展示、定价、图片槽和渠道发布必须通过共享引擎的有效变体口径消费。复制必须生成新的稳定 ID 与 `offerSeq`，复制价格、库存、包装和规格轴覆盖，但不得继承来源 SKU 图片，图片使用 `manual::<variantId>` 独立槽；规格组合必须在采集与手工 SKU 全集中唯一。
 - **渠道佣金自动匹配与快照复用**: Qingpu listing 的渠道佣金规则统一通过 `server/listing/commission` 下的 matcher factory 按渠道分发，不得把 Ozon 匹配逻辑继续散落在页面或 workspace query 中。选择平台类目后，规则包存在 mapping 时优先按精确 `categoryId:typeId`（再回退 type/category id）匹配，随后使用显式映射与置信度阈值名称匹配，并把渠道、平台类目标识、佣金 path/labels、价格档、费率、规则版本与来源保存为 `workspace.pricing.commissionBinding` 快照；相同类目必须复用自动或人工绑定，类目变化才重匹配，价格变化只在已绑定子类内重选档位。前端已绑定时默认收起人工选择器，仅在匹配失败或用户主动修改时展开；人工修改也必须走 revision-safe 串行提交与一次 `409 currentRevision` 重试。
