@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   .where(eq(products.isActive, true))
 
   // 去重
-  const types = [...new Set(result.map(r => r.type).filter(Boolean))]
+  const types = [...new Set(result.map((row: { type: string | null }) => row.type).filter(Boolean))]
 
   return {
     success: true,

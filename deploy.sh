@@ -399,7 +399,7 @@ if [ "$USE_SUPERVISOR" = true ]; then
     PROGRAM_BLOCK=$(cat <<EOF
 [program:${APP_NAME}]
 directory=$(pwd)
-command=node .output/server/index.mjs
+command=node --env-file=.env .output/server/index.mjs
 autostart=true
 autorestart=true
 redirect_stderr=true
@@ -440,10 +440,10 @@ EOF
 else
     if pm2 describe $APP_NAME > /dev/null 2>&1; then
         echo "${MSG_PM2_RESTART}"
-        pm2 restart $APP_NAME --update-env
+        pm2 restart $APP_NAME --node-args="--env-file=.env" --update-env
     else
         echo "${MSG_PM2_START}"
-        PORT=$PORT pm2 start .output/server/index.mjs --name $APP_NAME
+        PORT=$PORT pm2 start .output/server/index.mjs --name $APP_NAME --node-args="--env-file=.env"
         pm2 save
         echo -e "${GREEN}${MSG_PM2_SAVE}${NC}"
     fi

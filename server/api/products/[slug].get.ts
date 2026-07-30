@@ -27,7 +27,7 @@ export default defineCachedEventHandler(async (event) => {
       .set({ views: sql`${products.views} + 1` })
       .where(eq(products.id, product.id))
       .execute()
-      .catch(err => console.error('Failed to increment product views:', err))
+      .catch((error: unknown) => console.error('Failed to increment product views:', error))
   )
 
   // Parse JSON string fields back to arrays/objects for the frontend

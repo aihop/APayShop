@@ -154,7 +154,7 @@ const scheduleOptions = [
 const scheduleLabel = (v: string | number) => scheduleOptions.find(o => o.value === v)?.label || String(v)
 
 const { data, pending, refresh } = useFetch<{ data: JobRow[] }>('/api/admin/scheduler')
-const jobs = computed(() => data.value?.data || [])
+const jobs = computed<JobRow[]>(() => data.value?.data || [])
 
 const modalOpen = ref(false)
 const saving = ref(false)

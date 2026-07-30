@@ -2,10 +2,6 @@ import { handleOAuthLogin } from "../../utils/auth"
 import { logger } from "../../utils/logger"
 
 export default defineOAuthGoogleEventHandler({
-  config: {
-    // You can set emailRequired: true if needed
-    emailRequired: true,
-  },
   async onSuccess(event, { user }) {
     return handleOAuthLogin(event, 'google', {
       id: user.sub, // Google's unique ID for the user

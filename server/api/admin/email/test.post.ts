@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
       order_id: 'TEST-001',
       amount: '99.00',
       product_name: 'Test Product',
-      expire_date: new Date().toISOString().split('T')[0],
+      expire_date: new Date().toISOString().split('T')[0]!,
       plan_name: 'Pro Plan',
     },
   })

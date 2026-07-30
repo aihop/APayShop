@@ -457,6 +457,19 @@
 </template>
 
 <script setup lang="ts">
+import {
+  formatRegionCity,
+  formatStatsNumber,
+  formatStatsPercent,
+  getStatsTrendWidth,
+  shortenVisitorId,
+} from '../../utils/adminStatsFormatters'
+import {
+  buildStatsOverviewCards,
+  resolveStatsModal,
+} from '../../utils/adminStatsView'
+import type { StatsModalSource } from '../../utils/adminStatsView'
+
 definePageMeta({ title: 'Visitor Stats', layout: 'admin' })
 
 const { t, locale } = useI18n()
@@ -502,7 +515,7 @@ const funnel = computed(() => data.value?.funnel || [])
 // Modal state
 const isModalOpen = ref(false)
 const modalTitle = ref('')
-const modalSource = ref<'visitors' | 'events' | 'pageVisits'>('visitors')
+const modalSource = ref<StatsModalSource>('visitors')
 const modalEventType = ref('')
 const modalSourceType = ref('')
 const isVisitorDetailOpen = ref(false)
@@ -528,44 +541,12 @@ function openVisitorFromIp(visitorId: string) {
 function openModal(key: string) {
   modalSourceType.value = ''
   modalEventType.value = ''
-
-  if (key === 'pageViews') {
-    modalTitle.value = t('admin.stats.pageViewsModalTitle')
-    modalSource.value = 'visitors'
-    modalEventType.value = 'page_view'
-  } else if (key === 'pageVisits') {
-    modalTitle.value = t('admin.stats.pageVisitsModalTitle')
-    modalSource.value = 'pageVisits'
-  } else if (key === 'uniqueVisitors') {
-    modalTitle.value = t('admin.stats.uniqueVisitorsModalTitle')
-    modalSource.value = 'visitors'
-  } else if (key === 'todayIp') {
-    modalTitle.value = t('admin.stats.todayIpModalTitle')
-    modalSource.value = 'events'
-  } else if (key === 'productVisitors') {
-    modalTitle.value = t('admin.stats.productVisitorsModalTitle')
-    modalSource.value = 'visitors'
-    modalEventType.value = 'product_view'
-  } else if (key === 'checkoutVisitors') {
-    modalTitle.value = t('admin.stats.checkoutVisitorsModalTitle')
-    modalSource.value = 'visitors'
-    modalEventType.value = 'begin_checkout'
-  } else if (key === 'paidVisitors') {
-    modalTitle.value = t('admin.stats.paidVisitorsModalTitle')
-    modalSource.value = 'visitors'
-    modalEventType.value = 'order_paid'
-  } else if (key === 'authVisitors') {
-    modalTitle.value = t('admin.stats.authVisitorsModalTitle')
-    modalSource.value = 'visitors'
-    modalEventType.value = 'auth'
-  } else if (key === 'externalVisitors') {
-    modalTitle.value = t('admin.stats.externalVisitorsModalTitle')
-    modalSource.value = 'visitors'
-    modalSourceType.value = 'external'
-  } else if (key === 'campaignVisitors') {
-    modalTitle.value = t('admin.stats.campaignVisitorsModalTitle')
-    modalSource.value = 'visitors'
-    modalSourceType.value = 'campaign'
+  const config = resolveStatsModal(key, t)
+  if (config) {
+    modalTitle.value = config.title
+    modalSource.value = config.source
+    modalEventType.value = config.eventType
+    modalSourceType.value = config.sourceType
   }
   isModalOpen.value = true
 }
@@ -670,98 +651,12 @@ const maxUniqueVisitors = computed(() =>
   )
 )
 
-const overviewCards = computed(() => [
-  {
-    label: t('admin.stats.pageViews'),
-    value: formatNumber(overview.value.pageViews),
-    icon: 'ph:chart-line-up',
-    iconClass: 'text-cyan-400',
-    tip: t('admin.stats.pageVisitsTip'),
-    clickable: true,
-    modalKey: 'pageVisits',
-  },
-  {
-    label: t('admin.stats.uniqueVisitors'),
-    value: formatNumber(overview.value.uniqueVisitors),
-    icon: 'ph:users',
-    iconClass: 'text-purple-400',
-    tip: t('admin.stats.uniqueVisitorsTip'),
-    clickable: true,
-    modalKey: 'uniqueVisitors',
-  },
-  {
-    label: t('admin.stats.todayVisitors'),
-    value: formatNumber(overview.value.todayVisitors),
-    icon: 'ph:clock-countdown',
-    iconClass: 'text-amber-400',
-    tip: t('admin.stats.todayVisitorsTip'),
-    clickable: true,
-    modalKey: 'todayIp',
-  },
-  {
-    label: t('admin.stats.productVisitors'),
-    value: formatNumber(overview.value.productVisitors),
-    icon: 'ph:package',
-    iconClass: 'text-blue-400',
-    tip: t('admin.stats.productVisitorsTip'),
-    clickable: true,
-    modalKey: 'productVisitors'
-  },
-  {
-    label: t('admin.stats.checkoutVisitors'),
-    value: formatNumber(overview.value.checkoutVisitors),
-    icon: 'ph:shopping-cart-simple',
-    iconClass: 'text-orange-400',
-    tip: t('admin.stats.checkoutVisitorsTip'),
-    clickable: true,
-    modalKey: 'checkoutVisitors'
-  },
-  {
-    label: t('admin.stats.paidVisitors'),
-    value: formatNumber(overview.value.paidVisitors),
-    icon: 'ph:credit-card',
-    iconClass: 'text-emerald-400',
-    tip: t('admin.stats.paidVisitorsTip'),
-    clickable: true,
-    modalKey: 'paidVisitors'
-  },
-  {
-    label: t('admin.stats.authVisitors'),
-    value: formatNumber(overview.value.authVisitors),
-    icon: 'ph:sign-in',
-    iconClass: 'text-pink-400',
-    tip: t('admin.stats.authVisitorsTip'),
-    clickable: true,
-    modalKey: 'authVisitors'
-  },
-  {
-    label: t('admin.stats.externalVisitors'),
-    value: formatNumber(overview.value.externalVisitors),
-    icon: 'ph:share-network',
-    iconClass: 'text-sky-400',
-    tip: t('admin.stats.externalVisitorsTip'),
-    clickable: true,
-    modalKey: 'externalVisitors'
-  },
-  {
-    label: t('admin.stats.campaignVisitors'),
-    value: formatNumber(overview.value.campaignVisitors),
-    icon: 'ph:megaphone',
-    iconClass: 'text-rose-400',
-    tip: t('admin.stats.campaignVisitorsTip'),
-    clickable: true,
-    modalKey: 'campaignVisitors'
-  },
-  {
-    label: t('admin.stats.conversionRate'),
-    value: formatPercent(overview.value.conversionRate),
-    icon: 'ph:funnel',
-    iconClass: 'text-green-400',
-    tip: t('admin.stats.conversionRateTip'),
-    clickable: false,
-    modalKey: ''
-  },
-])
+const overviewCards = computed(() => buildStatsOverviewCards(
+  overview.value,
+  t,
+  formatNumber,
+  formatPercent,
+))
 
 const funnelWithRate = computed(() => {
   const base = Number(funnel.value[0]?.visitors || 0)
@@ -786,24 +681,19 @@ watch(preset, () => {
 })
 
 function formatNumber(value: number | string | undefined) {
-  return new Intl.NumberFormat(
-    locale.value === 'zh' ? 'zh-CN' : 'en-US'
-  ).format(Number(value || 0))
+  return formatStatsNumber(value, locale.value)
 }
 
 function formatPercent(value: number | string | undefined) {
-  return `${Number(value || 0).toFixed(1)}%`
+  return formatStatsPercent(value)
 }
 
 function getTrendWidth(value: number, max: number) {
-  if (!max) return 0
-  return Number(((value / max) * 100).toFixed(1))
+  return getStatsTrendWidth(value, max)
 }
 
 function shortVisitor(value: string) {
-  if (!value) return '-'
-  if (value.length <= 14) return value
-  return `${value.slice(0, 8)}...${value.slice(-4)}`
+  return shortenVisitorId(value)
 }
 
 function formatSourceLabel(value: string) {
@@ -815,11 +705,6 @@ function formatSourceLabel(value: string) {
   if (normalized === 'referral') return t('admin.stats.referral')
   if (normalized === 'campaign') return t('admin.stats.campaign')
   return value
-}
-
-function formatRegionCity(item: any) {
-  const parts = [item.region, item.city].filter(Boolean)
-  return parts.length > 0 ? parts.join(' / ') : '-'
 }
 
 // Data cleanup

@@ -141,6 +141,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 import { ref } from 'vue'
 
 const props = defineProps<{
@@ -172,15 +173,15 @@ const uploadLogo = async (event: Event) => {
     if (res && res.url) {
       props.form.site_logo = res.url
       toast.add({
-        title: $t('admin.settings.general.toast_success'),
-        description: $t('admin.settings.general.toast_logo_uploaded'),
+        title: t('admin.settings.general.toast_success'),
+        description: t('admin.settings.general.toast_logo_uploaded'),
         color: 'success',
       })
     }
   } catch (error: any) {
     toast.add({
-      title: $t('admin.settings.general.toast_error'),
-      description: error.data?.message || $t('admin.settings.general.toast_upload_failed'),
+      title: t('admin.settings.general.toast_error'),
+      description: error.data?.message || t('admin.settings.general.toast_upload_failed'),
       color: 'error',
     })
   } finally {

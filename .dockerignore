@@ -1,0 +1,16 @@
+.git
+.gitignore
+.nuxt
+.output
+.data
+build
+node_modules
+app/themes/*/.git
+app/themes/*/.nuxt
+app/themes/*/.output
+app/themes/*/node_modules
+.env
+.env.*
+!.env.example
+npm-debug.log*
+*.log

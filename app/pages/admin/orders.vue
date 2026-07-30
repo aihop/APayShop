@@ -62,7 +62,7 @@
               <img
                 v-if="row.original.productImage"
                 :src="row.original.productImage"
-                :alt="row.original.productName"
+                :alt="row.original.productName || ''"
                 class="w-full h-full object-cover"
               />
               <UIcon
@@ -79,7 +79,7 @@
                 :to="`/products/${row.original.productSlug || row.original.productId}`"
                 target="_blank"
                 class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-400 hover:underline truncate"
-                :title="row.original.productName"
+                :title="row.original.productName || undefined"
               >
                 {{ row.original.productName }}
               </NuxtLink>
@@ -327,6 +327,23 @@ const toast = useToast()
 const requestUrl = useRequestURL()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
+interface AdminOrderRow {
+  id: string
+  payMethod?: string | null
+  tradeNo?: string | null
+  productImage?: string | null
+  productName?: string | null
+  productId?: number | string | null
+  productSlug?: string | null
+  productType?: string | null
+  amount: number
+  currency?: string | null
+  userEmail?: string | null
+  userNickname?: string | null
+  contactEmail?: string | null
+  [key: string]: unknown
+}
+
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.orders.id') },
   { accessorKey: 'productName', header: t('admin.dashboard.product') },
@@ -362,7 +379,7 @@ const {
   },
 })
 
-const orders = computed(() => ordersData.value?.data || [])
+const orders = computed<AdminOrderRow[]>(() => ordersData.value?.data || [])
 const totalItems = computed(() => ordersData.value?.total || 0)
 const frontendOrigin = computed(() => requestUrl.origin.replace(/\/$/, ''))
 

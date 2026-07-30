@@ -46,6 +46,7 @@
               controls
               autoplay
               playsinline
+              preload="metadata"
               class="max-h-full max-w-full rounded-xl bg-black"
             />
           </div>
@@ -167,17 +168,14 @@ const downloadCurrentVideo = async () => {
   if (!props.downloadable || !source?.url || downloadLoading.value) return
   downloadLoading.value = true
   try {
-    const res = await fetch(source.url)
-    if (!res.ok) throw new Error('download_failed')
-    const blob = await res.blob()
-    const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = objectUrl
+    link.href = source.url
     link.download = getDownloadFilename()
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    URL.revokeObjectURL(objectUrl)
   }
   catch {
     window.open(source.url, '_blank', 'noopener,noreferrer')

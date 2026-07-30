@@ -1,8 +1,17 @@
 import { users, usersTokens } from "../../../db/schema"
-import { count, desc, like, or, sql, eq, and, isNotNull } from "drizzle-orm"
+import { count, like, or, sql, eq, and } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { proxyExternalRequest } from '../../../utils/externalProxy'
+
+interface LocalUserSummaryRow {
+  id: number
+  email: string
+  nickname: string | null
+  cashBalance: number | string | null
+  grantBalance: number | string | null
+  status: string | null
+}
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -60,7 +69,7 @@ export default defineEventHandler(async (event) => {
       )) as any
     }
 
-    const allUsers = await usersQuery
+    const allUsers = await usersQuery as LocalUserSummaryRow[]
 
     // 合并本地用户与外部消费数据
     const mergedUsers = allUsers.map((user) => {

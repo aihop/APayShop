@@ -24,7 +24,7 @@
         >
           <template #status-cell="{ row }">
             <UBadge
-              :color="row.original.isUsed ? 'red' : 'success'"
+              :color="row.original.isUsed ? 'error' : 'success'"
               variant="subtle"
               size="sm"
             >
@@ -54,7 +54,7 @@
           <template #actions-cell="{ row }">
             <div class="flex items-center gap-2">
               <UButton
-                color="red"
+                color="error"
                 variant="ghost"
                 icon="ph:trash"
                 size="sm"
@@ -88,18 +88,17 @@
     <!-- Import Cards Modal -->
     <UModal
       v-model:open="isModalOpen"
-      :ui="{ width: 'sm:max-w-xl' }"
+      :ui="{ content: 'sm:max-w-xl' }"
     >
       <template #content>
         <UCard
           class="bg-white dark:bg-[#121214] ring-1 ring-gray-200 dark:ring-gray-800"
-          :ui="{ divide: 'divide-gray-200 dark:divide-gray-800' }"
         >
           <template #header>
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.cards.importTitle') }}</h3>
               <UButton
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 icon="ph:x"
                 class="-my-1"
@@ -143,7 +142,7 @@
 
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
               <UButton
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 @click="isModalOpen = false"
               >
@@ -176,6 +175,15 @@ const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
+
+interface CardRow {
+  id: number
+  productName?: string
+  cardNumber?: string
+  isUsed: boolean
+  orderId?: string | null
+  createdAt: string
+}
 
 const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.cards.col_id') },
@@ -222,7 +230,7 @@ const keyProducts = computed(() => {
 })
 
 const totalItems = computed(() => cardsData.value?.total || 0)
-const paginatedCards = computed(() => cardsData.value?.data || [])
+const paginatedCards = computed<CardRow[]>(() => cardsData.value?.data || [])
 
 // Modal & Form State
 const isModalOpen = ref(false)

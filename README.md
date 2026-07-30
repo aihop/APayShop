@@ -69,7 +69,7 @@ npm run dev
 
 ```bash
 npm run build
-node .output/server/index.mjs
+node --env-file=.env .output/server/index.mjs
 ```
 
 If you use a multi-theme setup and want to ship only `default` + a selected theme, you can build an isolated artifact directory:

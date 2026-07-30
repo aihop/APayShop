@@ -207,6 +207,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 import { ref } from 'vue'
 import { useToast } from '#imports'
 
@@ -247,15 +248,15 @@ const uploadQr = async (event: Event, field: string, inputRef: any) => {
     if (res && res.url) {
       props.form[field] = res.url
       toast.add({
-        title: $t('admin.common.success'),
-        description: $t('admin.settings.company.toast_qr_success'),
+        title: t('admin.common.success'),
+        description: t('admin.settings.company.toast_qr_success'),
         color: 'success',
       })
     }
   } catch (error: any) {
     toast.add({
-      title: $t('admin.common.error'),
-      description: error.data?.message || $t('admin.settings.company.toast_qr_failed'),
+      title: t('admin.common.error'),
+      description: error.data?.message || t('admin.settings.company.toast_qr_failed'),
       color: 'error',
     })
   } finally {

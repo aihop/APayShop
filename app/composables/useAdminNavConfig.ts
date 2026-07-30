@@ -1,7 +1,7 @@
 export interface AdminNavItem {
   to: string
   icon: string
-  labelKey: string
+  labelKey?: string
   labelFallback?: string
   exact?: boolean
   conditional?: () => boolean

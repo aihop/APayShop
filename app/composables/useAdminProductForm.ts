@@ -1,5 +1,12 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useToast } from '#imports'
+import {
+  cleanProductFeatures,
+  cleanServiceSchemaFields,
+  parseProductFeatures,
+  parseServiceSchemaFields,
+  stripUiIds,
+} from '../utils/adminProductFormData'
 
 export const useAdminProductForm = (emit: any) => {
   const toast = useToast()
@@ -66,8 +73,7 @@ export const useAdminProductForm = (emit: any) => {
     
     // Refresh JSON buffer if staying in JSON mode
     if (!isFeaturesVisualMode.value) {
-      const cleanList = currentFeaturesList.value.map(({ id, ...rest }) => rest)
-      currentFeaturesJson.value = JSON.stringify(cleanList, null, 2)
+      currentFeaturesJson.value = JSON.stringify(stripUiIds(currentFeaturesList.value), null, 2)
     }
   }
 
@@ -135,16 +141,7 @@ export const useAdminProductForm = (emit: any) => {
   const syncServiceSchemaJsonToList = (): boolean => {
     if (isServiceSchemaVisualMode.value) return true
     try {
-      const parsed = JSON.parse(serviceFormSchemaStr.value)
-      if (!Array.isArray(parsed)) throw new Error('Must be a JSON array')
-      
-      serviceFormSchemaList.value = parsed.map((f: any) => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: f.name || '',
-        label: f.label || '',
-        type: f.type || 'text',
-        required: f.required !== false
-      }))
+      serviceFormSchemaList.value = parseServiceSchemaFields(serviceFormSchemaStr.value)
       return true
     } catch (e) {
       toast.add({ title: 'JSON Error', description: 'Invalid JSON format in Service Schema', color: 'error' })
@@ -155,8 +152,7 @@ export const useAdminProductForm = (emit: any) => {
   const toggleServiceSchemaMode = () => {
     if (isServiceSchemaVisualMode.value) {
       // 切换到 JSON 模式：剥离 id 字段
-      const cleanList = serviceFormSchemaList.value.map(({ id, ...rest }) => rest)
-      serviceFormSchemaStr.value = JSON.stringify(cleanList, null, 2)
+      serviceFormSchemaStr.value = JSON.stringify(stripUiIds(serviceFormSchemaList.value), null, 2)
       isServiceSchemaVisualMode.value = false
     } else {
       // 尝试切换回可视化模式
@@ -204,15 +200,7 @@ export const useAdminProductForm = (emit: any) => {
   const syncFeaturesJsonToList = (): boolean => {
     if (isFeaturesVisualMode.value) return true
     try {
-      const parsed = JSON.parse(currentFeaturesJson.value)
-      if (!Array.isArray(parsed)) throw new Error('Must be a JSON array')
-      
-      currentFeaturesList.value = parsed.map((f: any) => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: f.name || '',
-        icon: f.icon || 'ph:check',
-        included: f.included !== false
-      }))
+      currentFeaturesList.value = parseProductFeatures(currentFeaturesJson.value)
       return true
     } catch (e) {
       toast.add({ title: 'JSON Error', description: 'Invalid JSON format in features', color: 'error' })
@@ -223,8 +211,7 @@ export const useAdminProductForm = (emit: any) => {
   const toggleFeaturesMode = () => {
     if (isFeaturesVisualMode.value) {
       // 切换到 JSON 模式：剥离 id 字段
-      const cleanList = currentFeaturesList.value.map(({ id, ...rest }) => rest)
-      currentFeaturesJson.value = JSON.stringify(cleanList, null, 2)
+      currentFeaturesJson.value = JSON.stringify(stripUiIds(currentFeaturesList.value), null, 2)
       isFeaturesVisualMode.value = false
     } else {
       // 尝试切换回可视化模式
@@ -324,16 +311,7 @@ export const useAdminProductForm = (emit: any) => {
 
       // 解析 Pricing Plan Features
       if (form.metaData.plan_features) {
-        const parseFeatures = (data: any) => {
-          const features = typeof data === 'string' ? JSON.parse(data) : data
-          return Array.isArray(features) ? features.map((f: any) => ({
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            name: f.name || '',
-            icon: f.icon || 'ph:check',
-            included: f.included !== false
-          })) : []
-        }
-        featuresList.value = parseFeatures(form.metaData.plan_features)
+        featuresList.value = parseProductFeatures(form.metaData.plan_features)
       } else {
         featuresList.value = []
       }
@@ -351,13 +329,7 @@ export const useAdminProductForm = (emit: any) => {
             translationForms[loc].form_schema_labels = trans.form_schema_labels || {}
             
             if (trans.plan_features) {
-               const features = typeof trans.plan_features === 'string' ? JSON.parse(trans.plan_features) : trans.plan_features
-               translationFeaturesLists[loc] = Array.isArray(features) ? features.map((f: any) => ({
-                  id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                  name: f.name || '',
-                  icon: f.icon || 'ph:check',
-                  included: f.included !== false
-               })) : []
+               translationFeaturesLists[loc] = parseProductFeatures(trans.plan_features)
             } else {
                translationFeaturesLists[loc] = []
             }
@@ -405,10 +377,7 @@ export const useAdminProductForm = (emit: any) => {
     if (form.type === 'service') {
       try {
         if (!form.metaData) form.metaData = {}
-        const cleanSchema = serviceFormSchemaList.value.map(f => ({
-          name: f.name, label: f.label, type: f.type, required: f.required
-        }))
-        form.metaData.form_schema = cleanSchema
+        form.metaData.form_schema = cleanServiceSchemaFields(serviceFormSchemaList.value)
       } catch (e) {
         toast.add({ title: 'Error', description: 'Invalid Service Form Schema', color: 'error' })
         return false
@@ -418,13 +387,7 @@ export const useAdminProductForm = (emit: any) => {
     // 处理 Subscription / Top-up 的展示 Features
     if (form.type === 'subscription' || form.type === 'topup') {
       try {
-        const cleanFeatures = featuresList.value
-          .map(f => ({
-            name: String(f.name || '').trim(),
-            icon: f.icon,
-            included: f.included
-          }))
-          .filter(f => f.name)
+        const cleanFeatures = cleanProductFeatures(featuresList.value)
 
         if (cleanFeatures.length > 0) {
           form.metaData.plan_features = cleanFeatures
@@ -490,13 +453,7 @@ export const useAdminProductForm = (emit: any) => {
       if (form.type === 'subscription' || form.type === 'topup') {
         try {
           const transFeatures = translationFeaturesLists[loc] || []
-          const cleanTranslatedFeatures = transFeatures
-            .map(f => ({
-              name: String(f.name || '').trim(),
-              icon: f.icon,
-              included: f.included
-            }))
-            .filter(f => f.name)
+          const cleanTranslatedFeatures = cleanProductFeatures(transFeatures)
 
           if (cleanTranslatedFeatures.length > 0) {
             form.metaData.translations[loc].plan_features = cleanTranslatedFeatures

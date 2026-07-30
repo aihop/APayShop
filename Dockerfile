@@ -19,4 +19,4 @@ RUN if [ "$DB_DIALECT" = "postgresql" ]; then npm run build-pg; else npm run bui
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["sh", "-c", "if [ -f .env ]; then exec node --env-file=.env .output/server/index.mjs; else exec node .output/server/index.mjs; fi"]

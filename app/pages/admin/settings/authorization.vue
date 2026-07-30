@@ -351,6 +351,7 @@ definePageMeta({ title: 'Authorization', layout: 'admin' })
 
 const toast = useToast()
 const { confirm } = useConfirm()
+const adminFetch = $fetch as (request: string, options?: Record<string, unknown>) => Promise<any>
 
 const { loadAdmin, hasPerm: hasAdminPerm, labelFor } = useAdminPermissions()
 const { extensionPermissionDefs, themeSectionTitle } = useAdminExtensions()
@@ -406,7 +407,7 @@ const isSavingIntegration = ref(false)
 const loadIntegrationForm = async () => {
   if (!hasAdminPerm('settings:view')) return
   try {
-    const rows: any[] = await $fetch('/api/admin/settings')
+    const rows: any[] = await adminFetch('/api/admin/settings')
     for (const row of rows) {
       if (row.key in integrationForm) {
         (integrationForm as any)[row.key] = row.value
@@ -418,7 +419,7 @@ const loadIntegrationForm = async () => {
 const saveIntegrationForm = async () => {
   isSavingIntegration.value = true
   try {
-    await $fetch('/api/admin/settings', { method: 'POST', body: { ...integrationForm } })
+    await adminFetch('/api/admin/settings', { method: 'POST', body: { ...integrationForm } })
     toast.add({ title: isZh.value ? '已保存' : 'Saved', color: 'success' })
   } catch (e: any) {
     toast.add({
@@ -458,7 +459,7 @@ const refreshTokens = async () => {
   if (!hasAdminPerm('admins:view')) { tokensPending.value = false; return }
   tokensPending.value = true
   try {
-    tokensData.value = await $fetch('/api/admin/admins/tokens')
+    tokensData.value = await adminFetch('/api/admin/admins/tokens')
   } catch (e: any) {
     if (e?.status === 401 || e?.statusCode === 401) useRouter().push('/admin/login')
   } finally {
@@ -466,7 +467,7 @@ const refreshTokens = async () => {
   }
 }
 
-const tokens = computed(() => tokensData.value?.data || [])
+const tokens = computed<any[]>(() => tokensData.value?.data || [])
 
 const isExpired = (tok: any) => !!tok.expiresAt && new Date(tok.expiresAt).getTime() < Date.now()
 const statusColor = (tok: any): any => {
@@ -562,7 +563,7 @@ const createToken = async () => {
       ? ['*']
       : [...formPermissions.value]
 
-    const res: any = await $fetch('/api/admin/admins/tokens', {
+    const res: any = await adminFetch('/api/admin/admins/tokens', {
       method: 'POST',
       body: {
         name: createForm.name,
@@ -601,7 +602,7 @@ const revokeToken = async (tok: any) => {
   if (!isConfirmed) return
 
   try {
-    await $fetch(`/api/admin/admins/tokens/${tok.id}`, { method: 'DELETE' })
+    await adminFetch(`/api/admin/admins/tokens/${tok.id}`, { method: 'DELETE' })
     await refreshTokens()
     toast.add({ title: isZh.value ? '已吊销' : 'Revoked', color: 'success' })
   } catch (e: any) {

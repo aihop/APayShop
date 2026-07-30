@@ -10,6 +10,7 @@ interface ProxyExternalRequestOptions {
   allowedPaths?: Iterable<string>
   proxyLabel?: string
   userAgent?: string
+  overrideQuery?: Record<string, string | number | boolean | null | undefined>
 }
 
 function normalizeGatewayUrl(raw: string | null | undefined) {
@@ -165,6 +166,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     allowedPaths,
     proxyLabel = 'Proxy',
     userAgent = 'APay-Proxy/1.0',
+    overrideQuery,
   } = options
   const session = await getUserSession(event).catch(() => null)
   const userId = (session?.user as any)?.id
@@ -180,7 +182,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     })
   }
 
-  const query = getQuery(event)
+  const query = overrideQuery ? { ...overrideQuery } : getQuery(event)
 
   // 支持两种传参方式：
   //   target=https://full.url/path  — 完整 URL（向后兼容）

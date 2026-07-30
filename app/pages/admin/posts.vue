@@ -48,7 +48,7 @@
               <span class="text-sm font-medium text-gray-900 dark:text-white">{{ row.original.title }}</span>
               <span class="text-xs text-gray-500 font-mono">/blog/{{ row.original.slug }}</span>
               <span
-                v-if="row.original.sort !== null && row.original.sort !== undefined && row.original.sort !== ''"
+                v-if="row.original.sort !== null && row.original.sort !== undefined"
                 class="text-xs text-gray-500 font-mono"
               >sort: {{ row.original.sort }}</span>
               <span
@@ -60,7 +60,7 @@
 
           <template #type-cell="{ row }">
             <UBadge
-              color="gray"
+              color="neutral"
               variant="subtle"
               size="sm"
             >
@@ -80,7 +80,7 @@
 
           <template #status-cell="{ row }">
             <UBadge
-              :color="row.original.isActive ? 'success' : 'gray'"
+              :color="row.original.isActive ? 'success' : 'neutral'"
               variant="subtle"
               size="sm"
             >
@@ -97,7 +97,7 @@
           <template #actions-cell="{ row }">
             <div class="flex items-center gap-2">
               <UButton
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 icon="ph:eye"
                 size="sm"
@@ -105,7 +105,7 @@
                 target="_blank"
               />
               <UButton
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 icon="ph:pencil-simple"
                 size="sm"
@@ -113,7 +113,7 @@
                 :disabled="!hasAdminPerm('posts:edit')"
               />
               <UButton
-                color="red"
+                color="error"
                 variant="ghost"
                 icon="ph:trash"
                 size="sm"
@@ -166,6 +166,19 @@ const { confirm } = useConfirm()
 const { localePath } = useLocaleRouter()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
+interface AdminPostRow {
+  id: number
+  title: string
+  slug: string
+  imageUrl?: string | null
+  sort?: number | null
+  key?: string | null
+  type: string
+  views?: number
+  isActive: boolean
+  createdAt: string
+}
+
 const typeLabels: Record<string, string> = {
   blog: '默认文章',
   announcement: '公告',
@@ -210,7 +223,7 @@ const {
 } as any)
 
 const totalItems = computed(() => postsData.value?.total || 0)
-const paginatedPosts = computed(() => postsData.value?.data || [])
+const paginatedPosts = computed<AdminPostRow[]>(() => postsData.value?.data || [])
 
 // ── Post editor modal (default article + everything else) ──
 const isModalOpen = ref(false)

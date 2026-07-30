@@ -136,7 +136,7 @@
               height="50"
               fill="transparent"
               class="cursor-crosshair"
-              @mouseenter="hoveredIndex = index"
+              @mouseenter="hoveredIndex = Number(index)"
             />
 
             <circle
@@ -161,9 +161,9 @@
             v-for="(label, i) in dashboardData.chart.labels"
             :key="i"
             class="text-[10px] font-medium text-gray-500 whitespace-nowrap absolute transform -translate-x-1/2"
-            :style="{ left: `${(i / (dashboardData.chart.labels.length - 1)) * 100}%` }"
+            :style="{ left: `${(Number(i) / (dashboardData.chart.labels.length - 1)) * 100}%` }"
           >
-            <template v-if="i % 4 === 0 || i === dashboardData.chart.labels.length - 1">
+            <template v-if="Number(i) % 4 === 0 || Number(i) === dashboardData.chart.labels.length - 1">
               {{ label.includes(' ') ? label.split(' ')[1].substring(0, 5) : label }}
             </template>
           </span>

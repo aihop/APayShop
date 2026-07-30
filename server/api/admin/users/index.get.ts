@@ -4,6 +4,23 @@ import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { proxyExternalRequest } from '../../../utils/externalProxy'
 
+interface LocalUserRow {
+  id: number
+  username: string
+  email: string
+  nickname: string | null
+  createdAt: Date | string | null
+  status: string | null
+  lastLoginAt: Date | string | null
+  cashBalance: number | string | null
+  grantBalance: number | string | null
+}
+
+interface ActiveKeyRow {
+  userId: number | string | null
+  count: number | string
+}
+
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
   const query = getQuery(event)
@@ -66,7 +83,7 @@ export default defineEventHandler(async (event) => {
       )) as any
     }
 
-    const allUsers = await usersQuery.orderBy(desc(users.createdAt))
+    const allUsers = await usersQuery.orderBy(desc(users.createdAt)) as LocalUserRow[]
 
     // 合并本地用户与外部消费数据
     const mergedUsers = allUsers.map((user) => {
@@ -125,7 +142,7 @@ export default defineEventHandler(async (event) => {
             )
           )
         )
-        .groupBy(usersTokens.userId)
+        .groupBy(usersTokens.userId) as ActiveKeyRow[]
 
       activeKeysResult.forEach(row => {
         activeKeyCountMap.set(Number(row.userId), Number(row.count || 0))

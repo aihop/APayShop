@@ -105,7 +105,7 @@
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.templates_title') }}</h2>
         </div>
         <div class="flex items-center gap-2">
-          <UButton type="button" size="sm" color="gray" variant="outline" class="rounded-xl" :disabled="!hasAdminPerm('settings:edit')" @click="loadDefaultTemplates">
+          <UButton type="button" size="sm" color="neutral" variant="outline" class="rounded-xl" :disabled="!hasAdminPerm('settings:edit')" @click="loadDefaultTemplates">
             <template #leading>
               <UIcon name="ph:download-simple" class="w-4 h-4" />
             </template>
@@ -149,7 +149,7 @@
               type="button"
               size="xs"
               variant="ghost"
-              color="gray"
+              color="neutral"
               icon="ph:pencil-simple"
               @click="editTemplate(idx)"
               :disabled="!hasAdminPerm('settings:edit')"
@@ -158,7 +158,7 @@
               type="button"
               size="xs"
               variant="ghost"
-              color="red"
+              color="error"
               icon="ph:trash"
               @click="deleteTemplate(idx)"
               :disabled="!hasAdminPerm('settings:edit')"

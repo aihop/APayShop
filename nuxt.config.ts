@@ -29,6 +29,7 @@ const resolveBuildThemes = () => {
   return resolveSelectedThemes({
     themesDir,
     manifestFile,
+    explicitThemes: '',
     envThemes: process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
   })
 }
@@ -280,7 +281,7 @@ export default defineNuxtConfig({
   },
   i18n: {
     locales: I18N_LOCALES,
-    defaultLocale: I18N_DEFAULT_LOCALE,
+    defaultLocale: I18N_DEFAULT_LOCALE as 'en' | 'zh' | 'ru',
     // prefix_except_default:默认语言无前缀,其余带前缀。单语言站(只保留一个
     // locale 且它就是 default)因此天然没有 /zh 这类后缀,不必改 strategy
     strategy: 'prefix_except_default',

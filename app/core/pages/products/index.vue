@@ -35,7 +35,7 @@
           :key="product.id"
           :to="`/products/${product.slug || product.id}`"
           class="group bg-[#121214] border border-gray-800 rounded-2xl overflow-hidden hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-300 flex flex-col h-full"
-          v-motion-slide-visible-once-bottom="{ delay: index * 100 }"
+          v-motion-slide-visible-once-bottom="{ delay: Number(index) * 100 }"
         >
           <!-- Image -->
           <div class="aspect-w-16 aspect-h-10 w-full overflow-hidden bg-gray-900 relative">

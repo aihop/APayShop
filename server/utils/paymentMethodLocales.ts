@@ -89,7 +89,7 @@ function localeFromAcceptLanguage(event: H3Event) {
 export async function getSiteLocaleConfig(): Promise<SiteLocaleConfig> {
   const rows = await db.select().from(settings).where(
     inArray(settings.key, ['supported_locales', 'default_locale'])
-  )
+  ) as Array<{ key: string, value: string | null }>
 
   const supportedLocalesSetting = rows.find(item => item.key === 'supported_locales')?.value || ''
   const defaultLocaleSetting = rows.find(item => item.key === 'default_locale')?.value || ''

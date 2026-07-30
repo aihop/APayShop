@@ -75,6 +75,7 @@ export function useEmailTemplateManager(options: UseEmailTemplateManagerOptions)
   function editTemplate(index: number) {
     editingTemplateIndex.value = index
     const template = templates.value[index]
+    if (!template) return
 
     Object.assign(editingTemplate, {
       code: template.code,

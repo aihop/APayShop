@@ -325,7 +325,7 @@ const {
 })
 const totalItems = computed(() => usersData.value?.total || 0)
 
-const paginatedUsers = computed(() => {
+const paginatedUsers = computed<any[]>(() => {
   return usersData.value?.data || []
 })
 

@@ -162,6 +162,10 @@ import { useFetch } from '#imports'
 import { useLocalizedProduct } from '~/composables/useLocalizedProduct'
 
 const route = useRoute()
+const routeSlug = computed(() => {
+  const value = route.params.slug
+  return String(Array.isArray(value) ? value.at(-1) || '' : value || '')
+})
 const quantity = ref(1)
 
 const { getLocalizedProduct } = useLocalizedProduct()
@@ -175,7 +179,7 @@ useHead({
 })
 
 const { data: productData, pending } = await useFetch(
-  `/api/products/${route.params.slug[1]}`,
+  () => `/api/products/${routeSlug.value}`,
   {
     transform: (data: any) => {
       if (data && typeof data.imageUrls === 'string') {

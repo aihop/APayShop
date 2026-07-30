@@ -26,7 +26,7 @@ export default defineCachedEventHandler(async (event) => {
       .set({ views: sql`${posts.views} + 1` })
       .where(eq(posts.id, post.id))
       .execute()
-      .catch(err => console.error('Failed to increment post views:', err))
+      .catch((error: unknown) => console.error('Failed to increment post views:', error))
   )
 
   let parsedMetaData = null

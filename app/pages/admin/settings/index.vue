@@ -236,7 +236,7 @@ const buildFormFromStore = (store: Record<string, string>): Record<string, any> 
   const next: Record<string, any> = { ...DEFAULT_FORM }
   for (const [key, raw] of Object.entries(store)) {
     if (key === 'allow_guest_checkout' || key === 'disable_multi_device_login') {
-      next[key] = (String(raw) === 'true' || raw === true) as any
+      next[key] = String(raw) === 'true'
     } else {
       next[key] = raw as any
     }

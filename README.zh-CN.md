@@ -69,7 +69,7 @@ npm run dev
 
 ```bash
 npm run build
-node .output/server/index.mjs
+node --env-file=.env .output/server/index.mjs
 ```
 
 如果你使用多主题并希望发布时仅保留 `default` + 指定主题，可生成一个独立的产物目录：
