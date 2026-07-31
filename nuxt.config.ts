@@ -76,6 +76,21 @@ const resolveI18n = () => {
 }
 
 const { locales: I18N_LOCALES, defaultLocale: I18N_DEFAULT_LOCALE } = resolveI18n()
+const LIBSQL_NATIVE_PACKAGE_PATTERN = /^(darwin|linux|win32)-/
+const resolveInstalledLibsqlNativePackages = () => {
+  const libsqlPackagesDir = path.resolve(__dirname, 'node_modules/@libsql')
+  if (!fs.existsSync(libsqlPackagesDir)) return []
+
+  return fs.readdirSync(libsqlPackagesDir)
+    .filter(name => LIBSQL_NATIVE_PACKAGE_PATTERN.test(name))
+    .map(name => {
+      const packageDir = path.join(libsqlPackagesDir, name)
+      const packageJson = JSON.parse(
+        fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8')
+      ) as { main?: string }
+      return path.join(packageDir, packageJson.main || 'index.node')
+    })
+}
 // dev 忽略清单。注意:这个数组同时喂给 `ignore: DEV_WATCH_IGNORE`(nuxt 的**扫描**
 // 忽略,影响组件/自动导入/页面扫描)和 vite watch。所以**绝不能**放 `node_modules`
 // 或根 `.nuxt`——那会让 nuxt 连 @nuxt/ui 从 node_modules 注册的组件(UAvatar 等)一起
@@ -351,9 +366,11 @@ export default defineNuxtConfig({
     preset: process.env.NITRO_PRESET || (isCloudflarePagesTarget ? 'cloudflare-pages' : 'node-server'),
     minify: true,
     compressPublicAssets: true, // 开启 gzip/br 压缩
-    // 强制将这些容易丢失的包内联到产物中
+    // libsql 必须保持 external，让 Nitro 追踪并复制当前平台的原生可选包；
+    // 内联后其动态 require(`@libsql/${target}`) 无法被追踪，独立产物会启动失败。
     externals: {
-      inline: ['entities', 'parse5','libsql']
+      inline: ['entities', 'parse5', ...(isCloudflarePagesTarget ? ['libsql'] : [])],
+      traceInclude: isCloudflarePagesTarget ? [] : resolveInstalledLibsqlNativePackages(),
     },
   },
   vite: {

@@ -197,6 +197,11 @@ if [[ ! -d ".output" ]]; then
   exit 1
 fi
 
+if [[ -f ".output/server/node_modules/libsql/package.json" ]]; then
+  echo "==> Verifying standalone libsql runtime"
+  run node -e "require('./.output/server/node_modules/libsql')"
+fi
+
 echo "==> Restoring default theme build loader"
 restore_theme_build_loader
 trap - EXIT

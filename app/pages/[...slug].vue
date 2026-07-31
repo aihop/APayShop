@@ -160,4 +160,8 @@ const activeComponent = computed(() => {
   // fallback 到 core
   return (themeBuild.corePageModules[`../core/pages/${file}`] as any)?.default || null
 })
+
+if (!activeComponent.value) {
+  setResponseStatus(404)
+}
 </script>
