@@ -1,10 +1,20 @@
 <template>
   <NuxtErrorBoundary>
     <component
-      v-if="activeComponent"
+      v-if="activeComponent && activeDirectoryLayout"
+      :is="activeDirectoryLayout.component"
+      :key="activeDirectoryLayout.key"
+    >
+      <component
+        :is="activeComponent"
+        :key="activePageKey"
+      />
+    </component>
+    <component
+      v-else-if="activeComponent"
       :is="activeComponent"
-      :key="(activeTheme || '_core_') + targetFile"
-    ></component>
+      :key="activePageKey"
+    />
     <div
       v-else
       key="page-404"
@@ -159,6 +169,41 @@ const activeComponent = computed(() => {
   }
   // fallback 到 core
   return (themeBuild.corePageModules[`../core/pages/${file}`] as any)?.default || null
+})
+
+const activePageKey = computed(() => `${activeTheme.value || '_core_'}:${targetFile.value}`)
+
+const activeDirectoryLayout = computed(() => {
+  const file = targetFile.value
+  const segments = file.split('/')
+  segments.pop()
+
+  while (segments.length > 0) {
+    const layoutFile = `${segments.join('/')}/layout.vue`
+    if (layoutFile !== file) {
+      if (activeTheme.value) {
+        const themePath = `../themes/${activeTheme.value}/pages/${layoutFile}`
+        const themeLayout = themeBuild.themePageModules[themePath] as any
+        if (themeLayout?.default && themeLayout.persistentDirectoryLayout === true) {
+          return {
+            component: themeLayout.default,
+            key: `${activeTheme.value}:${layoutFile}`,
+          }
+        }
+      }
+
+      const coreLayout = themeBuild.corePageModules[`../core/pages/${layoutFile}`] as any
+      if (coreLayout?.default && coreLayout.persistentDirectoryLayout === true) {
+        return {
+          component: coreLayout.default,
+          key: `_core_:${layoutFile}`,
+        }
+      }
+    }
+    segments.pop()
+  }
+
+  return null
 })
 
 if (!activeComponent.value) {
