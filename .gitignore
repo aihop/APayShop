@@ -9,6 +9,7 @@ node_modules
 /payments
 /uploads
 .env
+.env.publish
 TEMPLATE_GUIDE.md
 build_local.sh
 prompt.md

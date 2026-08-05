@@ -7,12 +7,11 @@ const packageJson = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')
 ) as { version?: string }
 
-const publicAppVersion = process.env.GOPANEL_PIPELINE_VERSION
-  || process.env.PIPELINE_VERSION
-  || process.env.VERSION
-  || process.env.NUXT_PUBLIC_APP_VERSION
+const buildAppVersion = String(
+  process.env.APAY_BUILD_VERSION
   || packageJson.version
   || '1.0.0'
+).trim().replace(/^v(?=\d)/i, '')
 
 const isCloudflarePagesTarget = (() => {
   const preset = String(process.env.NITRO_PRESET || '').trim().toLowerCase()
@@ -127,6 +126,9 @@ const DEV_WATCH_IGNORE = [
 ]
 
 export default defineNuxtConfig({
+  appConfig: {
+    appVersion: buildAppVersion,
+  },
   ignore: DEV_WATCH_IGNORE,
   routeRules: {
     '/themes/qingpu/listing/ozon-categories/manifest.json': {
@@ -400,9 +402,6 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     // 这里的键名会自动映射到环境变量 NUXT_DATABASE_URL
-    databaseUrl: '', 
-    public: {
-      appVersion: publicAppVersion,
-    },
+    databaseUrl: '',
   }
 })

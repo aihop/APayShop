@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 输入 ./build.sh <repo-name> [theme-name] sqlite|pg
+# 输入 ./build.sh <repo-name> [theme-name] [sqlite|pg] [version]
 DIALECT="${3:-sqlite}"
 
 # 切换到项目根目录
@@ -25,8 +25,32 @@ DRY_RUN="${DRY_RUN:-0}"
 REPO_NAME="${1:-${REPO_NAME:-${CODEUP_REPO_NAME:-}}}"
 THEME_NAME="${2:-${THEME_NAME:-${BUILD_THEME:-}}}"
 BUILD_THEMES="${BUILD_THEMES:-${APAY_BUILD_THEMES:-}}"
+BUILD_VERSION="${4:-${APAY_BUILD_VERSION:-}}"
 OUTPUT_DIR="${OUTPUT_DIR:-}"
 THEME_MANIFEST_FILE="${THEME_MANIFEST_FILE:-app/generated/theme-manifest.json}"
+RELEASE_MANIFEST_FILE="${RELEASE_MANIFEST_FILE:-}"
+
+if [[ "${BUILD_VERSION}" =~ ^[vV][0-9] ]]; then
+  BUILD_VERSION="${BUILD_VERSION:1}"
+fi
+
+SELECTED_THEMES=",${BUILD_THEMES// /},"
+if [[ "${THEME_NAME}" == "qingpu" || "${SELECTED_THEMES}" == *",qingpu,"* ]]; then
+  if [[ -z "${BUILD_VERSION}" ]]; then
+    echo "missing Qingpu build version"
+    echo "usage: ./build.sh <repo-name> qingpu [sqlite|pg] <version>"
+    echo "   or: APAY_BUILD_VERSION=<version> ./build.sh <repo-name> qingpu [sqlite|pg]"
+    exit 1
+  fi
+fi
+
+if [[ -n "${BUILD_VERSION}" ]]; then
+  if [[ ! "${BUILD_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+.-][0-9A-Za-z.-]+)*$ ]]; then
+    echo "invalid build version: ${BUILD_VERSION} (expected SemVer, for example 1.2.3)"
+    exit 1
+  fi
+  export APAY_BUILD_VERSION="${BUILD_VERSION}"
+fi
 
 mask_cmd() {
   local s="$*"
@@ -120,7 +144,7 @@ run() {
 
 if [[ -z "${REPO_NAME}" ]]; then
   echo "missing repo name"
-  echo "usage: ./build.sh <repo-name> [theme-name]"
+  echo "usage: ./build.sh <repo-name> [theme-name] [sqlite|pg] [version]"
   exit 1
 fi
 
@@ -154,7 +178,11 @@ copy_file() {
 
 commit_output_repo() {
   local dir="$1"
-  local commit_msg="build: ${REPO_NAME} ${THEME_NAME:-core} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local version_suffix=""
+  if [[ -n "${BUILD_VERSION}" ]]; then
+    version_suffix=" v${BUILD_VERSION}"
+  fi
+  local commit_msg="build: ${REPO_NAME} ${THEME_NAME:-core}${version_suffix} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   if [[ "${DRY_RUN}" == "1" ]]; then
     echo "+ $(mask_cmd git -C "${dir}" init) (skipped if already a repo)"
@@ -180,6 +208,7 @@ commit_output_repo() {
 }
 
 echo "==> Building project (dialect: ${DIALECT})"
+echo "    APP_VERSION=${BUILD_VERSION:-package.json}"
 # Node 默认 old space 上限约 4GB,构建 Nitro server 时会撞上并 OOM
 # (FATAL ERROR: Ineffective mark-compacts near heap limit)。这里给一个可覆盖的
 # 默认值:内存小的 CI 可用 NODE_OPTIONS=--max-old-space-size=4096 覆盖。
@@ -229,6 +258,15 @@ if [[ -f "${THEME_MANIFEST_FILE}" ]]; then
   copy_file "${THEME_MANIFEST_FILE}" "${OUTPUT_DIR}/theme-manifest.json"
 else
   echo "WARN: theme manifest not found, skip copy"
+fi
+
+if [[ -n "${RELEASE_MANIFEST_FILE}" ]]; then
+  if [[ ! -f "${RELEASE_MANIFEST_FILE}" ]]; then
+    echo "release manifest not found: ${RELEASE_MANIFEST_FILE}"
+    exit 1
+  fi
+  echo "==> Copying release manifest"
+  copy_file "${RELEASE_MANIFEST_FILE}" "${OUTPUT_DIR}/release.json"
 fi
 
 if [[ -d "public" ]]; then

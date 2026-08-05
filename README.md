@@ -76,7 +76,16 @@ If you use a multi-theme setup and want to ship only `default` + a selected them
 
 ```bash
 ./build.sh apay-site official
+./build.sh apay-site qingpu pg 1.2.3
 ```
+
+Publish the Qingpu build repository and register a site changelog generated from the Qingpu theme Git commits:
+
+```bash
+QINGPU_ADMIN_TOKEN=apay_admin_xxx ./publish.sh 1.2.3 pg
+```
+
+All three worktrees must be clean for a real publish. Preview the detected commit range with `ALLOW_DIRTY=1 DRY_RUN=1 ./publish.sh 1.2.3 pg`.
 
 ### VPS GeoLite2 Visitor Location
 

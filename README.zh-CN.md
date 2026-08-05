@@ -76,7 +76,16 @@ node --env-file=.env .output/server/index.mjs
 
 ```bash
 ./build.sh apay-site official
+./build.sh apay-site qingpu pg 1.2.3
 ```
+
+发布 Qingpu 产物仓，并根据 Qingpu 主题 Git 提交自动登记网页版本记录：
+
+```bash
+QINGPU_ADMIN_TOKEN=apay_admin_xxx ./publish.sh 1.2.3 pg
+```
+
+正式发布前 APay 主仓、Qingpu 主题仓和产物仓都必须保持干净；可先执行 `ALLOW_DIRTY=1 DRY_RUN=1 ./publish.sh 1.2.3 pg` 预览提交范围。
 
 ### VPS GeoLite2 访客地域
 
