@@ -18,6 +18,7 @@ const orderedFiles = [
   'tasks.sql',
   'tenant_keys.sql',
   'publish_records.sql',
+  'category_mapping_votes.sql',
   'rule_bundles.sql',
   'kv.sql',
 ]
@@ -40,6 +41,14 @@ const listSqlFiles = async () => {
   const fileNames = entries
     .filter(entry => entry.isFile() && entry.name.endsWith('.sql'))
     .map(entry => entry.name)
+  const requestedFiles = process.argv.slice(2)
+  if (requestedFiles.length) {
+    const invalidFiles = requestedFiles.filter(name => !fileNames.includes(name))
+    if (invalidFiles.length) {
+      throw new Error(`Unknown Qingpu SQL file(s): ${invalidFiles.join(', ')}`)
+    }
+    return [...new Set(requestedFiles)]
+  }
 
   const extras = fileNames
     .filter(name => !orderedFiles.includes(name))
