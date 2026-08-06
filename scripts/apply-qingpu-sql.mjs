@@ -16,6 +16,7 @@ const orderedFiles = [
   'stores.sql',
   'channel-drafts.sql',
   'tasks.sql',
+  'ainode_task_events.sql',
   'tenant_keys.sql',
   'publish_records.sql',
   'category_mapping_votes.sql',
@@ -23,18 +24,37 @@ const orderedFiles = [
   'kv.sql',
 ]
 
+/**
+ * 显式调用初始化命令却「跳过」并返回成功,是这套流程最危险的行为:
+ * 2026-08 真实事故——tasks.sql 里 qingpu_task_image_slot_leases 的建表语句早已写好,
+ * 但脚本因为读不到连接串而静默 Skip + exit 0,表始终没建;runner 的认领 SQL 无条件
+ * 引用它,于是每次 claimNextTask 直接抛异常,整个任务队列彻底停摆。前端只表现为
+ * 「任务一直排队」,异常只进服务端日志,极难定位。
+ *
+ * 现在一律以非零退出码失败:这个脚本没有「顺带跑一下」的调用方(只在 db:qingpu:init
+ * 与 deploy_cf.sh 里显式调用),调用即意味着调用方要求 schema 就绪。
+ */
 const resolveConnectionString = () => {
   const connectionString = process.env.QINGPU_DATABASE_URL || process.env.DATABASE_URL || ''
   if (!connectionString) {
-    console.log('[qingpu:init] Skip: no QINGPU_DATABASE_URL or DATABASE_URL found.')
-    return null
+    throw new Error(
+      'no QINGPU_DATABASE_URL or DATABASE_URL found.\n'
+      + '  npm script 已带 --env-file-if-exists=.env;若仍缺失,请确认 .env 存在或显式导出环境变量。',
+    )
   }
   if (!/^postgres(ql)?:\/\//i.test(connectionString)) {
-    console.log('[qingpu:init] Skip: configured database is not PostgreSQL.')
-    return null
+    throw new Error(
+      `configured database is not PostgreSQL (${connectionString.split('://')[0] || 'unknown'}://…).\n`
+      + '  Qingpu 主题的私有表只支持 PostgreSQL;若本环境确实不跑 Qingpu,请不要调用本命令。',
+    )
   }
   return connectionString
 }
+
+/** 从 SQL 文件里解析出本次应当存在的表名,用作应用后的自检清单(随 SQL 自动同步,不手维护) */
+const parseExpectedTables = (sqlText) => (
+  [...sqlText.matchAll(/create\s+table\s+if\s+not\s+exists\s+([a-z0-9_]+)/gi)].map(match => match[1])
+)
 
 const listSqlFiles = async () => {
   const entries = await readdir(sqlDir, { withFileTypes: true })
@@ -59,7 +79,6 @@ const listSqlFiles = async () => {
 
 const main = async () => {
   const connectionString = resolveConnectionString()
-  if (!connectionString) return
 
   const client = new Client({ connectionString })
   await client.connect()
@@ -73,14 +92,27 @@ const main = async () => {
     }
 
     const files = await listSqlFiles()
+    const expectedTables = new Set()
     for (const fileName of files) {
       const filePath = path.join(sqlDir, fileName)
       const sql = await readFile(filePath, 'utf8')
       console.log(`[qingpu:init] Applying ${fileName}`)
       await client.query(sql)
+      for (const table of parseExpectedTables(sql)) expectedTables.add(table)
     }
 
-    console.log('[qingpu:init] Qingpu database schema is ready.')
+    // 应用成功不等于表就绪:核心表若属于别的 owner,ALTER 会中断在半路;这里以
+    // 「表是否真的存在」做最终判据,把「跑完了但没建出来」这种静默失败挡在部署阶段。
+    const { rows } = await client.query(
+      'select tablename from pg_tables where schemaname = current_schema() and tablename = any($1)',
+      [[...expectedTables]],
+    )
+    const missing = [...expectedTables].filter(table => !rows.some(row => row.tablename === table))
+    if (missing.length) {
+      throw new Error(`schema applied but these tables are still missing: ${missing.join(', ')}`)
+    }
+
+    console.log(`[qingpu:init] Qingpu database schema is ready (${expectedTables.size} tables verified).`)
   }
   finally {
     await client.end()
