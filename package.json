@@ -3,6 +3,7 @@
   "version": "1.0.1",
   "main": "index.js",
   "scripts": {
+    "prebuild": "npm run check:qingpu-listing-publish-facts",
     "build": "nuxt build",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
     "predev": "node scripts/reset-theme-manifest.mjs && node scripts/generate-theme-build.mjs --all",
@@ -21,7 +22,8 @@
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:mysql:gen": "drizzle-kit generate --config=drizzle.mysql.config.ts",
     "db:mysql:push": "drizzle-kit push --config=drizzle.mysql.config.ts",
-    "db:mysql:migrate": "drizzle-kit migrate --config=drizzle.mysql.config.ts"
+    "db:mysql:migrate": "drizzle-kit migrate --config=drizzle.mysql.config.ts",
+    "check:qingpu-listing-publish-facts": "node app/themes/qingpu/scripts/check-listing-publish-facts.mjs"
   },
   "keywords": [],
   "author": "",
