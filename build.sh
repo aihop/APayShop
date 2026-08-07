@@ -260,6 +260,49 @@ else
   echo "WARN: theme manifest not found, skip copy"
 fi
 
+# 主题自带的部署资产:主题在自己的 theme.json 里用 deployAssets 声明「哪些文件必须
+# 随产物一起发布」(典型:私有表的建表 SQL 与其应用器),核心只按清单原样复制,不认识
+# 任何主题的具体内容——与 theme.admin.json 注册后台扩展页是同一套思路。
+#
+# 路径语义:相对主题根 → 原样落到产物根。qingpu 声明 database + scripts/apply-*.mjs,
+# 产物里就是 <artifact>/database 与 <artifact>/scripts/,两者仍是兄弟目录,应用器的
+# `__dirname/../database` 相对解析在主题内和产物内都成立,无需按环境改路径。
+#
+# 为什么必须有这一步:build.sh 产出的是纯产物包(只含 .output/public/资源文件),
+# 源码树不在里面。2026-08 事故——qingpu 的建表 SQL 从未随产物发布,线上根本没有
+# 文件可执行,任务队列因缺表长期静默停摆。
+if [[ -n "${THEME_NAME}" && -f "app/themes/${THEME_NAME}/theme.json" ]]; then
+  THEME_DEPLOY_ASSETS="$(node -e '
+    const fs = require("node:fs")
+    try {
+      const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+      const assets = Array.isArray(manifest.deployAssets) ? manifest.deployAssets : []
+      // 拒绝绝对路径与向上穿越:清单来自主题,不能让它写到产物目录之外
+      process.stdout.write(assets
+        .map(entry => String(entry || "").trim())
+        .filter(entry => entry && !entry.startsWith("/") && !entry.split("/").includes(".."))
+        .join("\n"))
+    } catch { process.stdout.write("") }
+  ' "app/themes/${THEME_NAME}/theme.json")"
+  if [[ -n "${THEME_DEPLOY_ASSETS}" ]]; then
+    echo "==> Copying theme deploy assets (${THEME_NAME})"
+    while IFS= read -r asset; do
+      [[ -n "${asset}" ]] || continue
+      src="app/themes/${THEME_NAME}/${asset}"
+      dst="${OUTPUT_DIR}/${asset}"
+      if [[ -d "${src}" ]]; then
+        copy_dir "${src}" "${dst}"
+      elif [[ -f "${src}" ]]; then
+        run mkdir -p "$(dirname "${dst}")"
+        copy_file "${src}" "${dst}"
+      else
+        echo "ERROR: theme.json deployAssets 声明了不存在的路径: ${src}" >&2
+        exit 1
+      fi
+    done <<< "${THEME_DEPLOY_ASSETS}"
+  fi
+fi
+
 if [[ -n "${RELEASE_MANIFEST_FILE}" ]]; then
   if [[ ! -f "${RELEASE_MANIFEST_FILE}" ]]; then
     echo "release manifest not found: ${RELEASE_MANIFEST_FILE}"
