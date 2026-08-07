@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-image-spec-closure",
+  "title": "彻底收口三端 Listing 图片任务规格",
+  "problem": "Dash、Lite 与网页单图已共用渠道图片任务工厂，但网页蓝图仍手拼执行参数，worker 仍接受旧 payload，边界门禁未覆盖服务端蓝图和执行器，运行实例也缺少引擎版本探针。",
+  "expectedOutcome": "全部 Listing 图片生成和重新生成统一消费不可变 v1 taskSpec；网页蓝图逐槽位通过共享工厂构造规格；worker 拒绝无规格任务；门禁阻止旁路复发；只读 API 可证明运行实例实际加载的 vendor 版本。",
+  "constraints": [
+    "严格复用 qingpu-engine 的 buildImageGenerationTaskSpec 与 assertImageGenerationTaskSpec",
+    "不改任务并发、暂停继续删除、三方合并和发布参数规范",
+    "不保留旧 image_generate payload 运行时兼容；旧任务由上线前清理处理",
+    "蓝图重试必须复用同一冻结事实引用，不按当前 workspace 静默重建",
+    "不引入新依赖、新 storage 根键或第二套图片 factory"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-generation-tasks/factory.ts",
+        "tests/image-generation-task-factory.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-generation-tasks/factory.ts",
+        "tests/image-generation-task-factory.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/blueprint.ts",
+        "server/listing/image-task-spec.ts",
+        "server/listing/image.generate.ts",
+        "server/tasks/executors.ts",
+        "scripts/check-listing-publish-boundaries.mjs",
+        "scripts/check-listing-image-task-specs.mjs",
+        "api/listing/blueprint.ts",
+        "api/listing/engine-version.get.ts",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/blueprint.ts",
+        "server/listing/image-task-spec.ts",
+        "server/listing/image.generate.ts",
+        "server/tasks/executors.ts",
+        "scripts/check-listing-publish-boundaries.mjs",
+        "scripts/check-listing-image-task-specs.mjs",
+        "api/listing/blueprint.ts",
+        "api/listing/engine-version.get.ts",
+        "server/vendor/qingpu-engine/**"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md",
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md",
+        "app/themes/qingpu"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页蓝图每张任务均通过共享工厂构造并断言 taskSpec",
+    "普通生成与重生只使用 frozen canonical references，SKU 只使用规格原图，精修才使用 current_edit",
+    "image_generate 和 blueprint worker 遇到缺失或无效 taskSpec 会明确失败",
+    "门禁覆盖 API、页面、蓝图服务端和 worker，禁止再次手拼 outputUsage/referenceSnapshot",
+    "运行版本 GET API 返回当前 vendor version、sourceCommit 和 builtAt",
+    "任务控制、任务并发、Listing 边界及 APay 正式构建继续通过"
+  ],
+  "verification": [
+    {
+      "name": "共享图片任务工厂回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/image-generation-task-factory.test.ts tests/generation-reference-selection.test.ts tests/generated-image-regeneration-target.test.ts tests/gallery-slot-goals.test.ts && npm run check:deps && npm run typecheck"
+    },
+    {
+      "name": "图片任务规格合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-listing-image-task-specs.mjs"
+    },
+    {
+      "name": "Listing 边界与任务回归",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs && node --experimental-strip-types scripts/check-task-controls.mjs && node --experimental-strip-types scripts/check-task-runner-concurrency.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    },
+    {
+      "name": "图片 API 中英文文档",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- content/docs/12.qingpu-listing-products.md content/zh/docs/12.qingpu-listing-products.md app/themes/qingpu"
+    }
+  ]
+}

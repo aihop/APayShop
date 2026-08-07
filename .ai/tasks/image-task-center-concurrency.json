@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "image-task-center-concurrency",
+  "title": "让任务中心的独立图片卡槽六路并发执行",
+  "problem": "独立 image_generate 任务已按商品与卡槽生成 dedupeKey，workspace 写回也会按稳定资产 ID 三方合并、按卡槽 key 合并，但任务 runner 仍用商品级租约把同商品不同卡槽全部串行化，导致图片进入任务中心后排队等待。",
+  "expectedOutcome": "不同卡槽的独立图片任务最多六路并发；同一卡槽仍幂等去重，写回保留所有卡槽产物，并与会修改整商品的蓝图、文案、补参等任务互斥。",
+  "constraints": [
+    "只并发独立 image_generate 卡槽任务；blueprint 已在任务内部六路并发，不再套第二层并发",
+    "默认并发数为 6，可通过 QINGPU_IMAGE_TASK_CONCURRENCY 下调，最小 1、硬上限 6",
+    "同一 userId + productId + 卡槽不得重复执行；不同卡槽允许并发",
+    "image_generate 与同商品 blueprint、prepare、generate、attributes 等整商品任务必须互斥",
+    "不得移除 FOR UPDATE SKIP LOCKED、心跳、重试、依赖门禁或同槽 dedupeKey",
+    "新增卡槽共享租约时必须与现有整商品独占租约原子互斥，认领过程使用商品记录行锁消除并发穿透",
+    "必须用现有稳定资产 ID 三方合并与 forcedMedia 卡槽 key 合并保护并发写回；若测试发现丢槽则按根因修复",
+    "蓝图单任务内部 QINGPU_BLUEPRINT_CONCURRENCY 保持默认 6，不在外层重复领取多个蓝图",
+    "不得修改正在进行的生图 UI、任务工厂、vendor 或图片引用规范",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/runner.ts",
+        "server/tasks/concurrency.ts",
+        "server/tasks/queue.ts",
+        "server/tasks/image-slot-leases.ts",
+        "database/tasks.sql",
+        "server/listing/generated-workspace-merge.ts",
+        "server/listing/queries.publish.ts",
+        "server/listing/image.generate.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ],
+      "claims": [
+        "server/tasks/runner.ts",
+        "server/tasks/concurrency.ts",
+        "server/tasks/queue.ts",
+        "server/tasks/image-slot-leases.ts",
+        "database/tasks.sql",
+        "server/listing/generated-workspace-merge.ts",
+        "server/listing/queries.publish.ts",
+        "server/listing/image.generate.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "同一商品六个不同卡槽的 image_generate 任务可以同时执行",
+    "同一卡槽重复请求只复用一个活动任务",
+    "六个并发任务落库后 imageAssets 与卡槽指针全部保留，不因完成顺序丢失",
+    "独立图片 worker 不领取 blueprint、prepare、generate、attributes、image_review、video_generate 或工具任务",
+    "并发配置缺失或非法时回退 6，大于 6 时截断为 6",
+    "同商品存在独立图片任务运行时，整商品任务不能被领取；反之亦然",
+    "卡槽租约按 taskSpec.slotKey/assignTo 派生稳定 key；缺少稳定卡槽身份的任务不得进入共享租约通道",
+    "任务成功、失败、取消、僵死回收和心跳都会同步维护卡槽租约，不留下永久占用",
+    "常驻 kickTaskRunner 与 runTaskBatch 共用同一图片并发调度口径",
+    "单个任务失败只记该任务失败，不中断其他 worker，所有心跳定时器都会清理",
+    "现有任务依赖、僵死恢复、心跳与任务完成语义保持不变",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "任务中心图片并发合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-runner-concurrency.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}

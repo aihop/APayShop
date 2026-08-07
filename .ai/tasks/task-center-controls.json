@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "task-center-controls",
+  "title": "任务中心支持暂停继续删除",
+  "problem": "Qingpu 任务中心只能查看进度，用户无法暂停、继续或删除任务；运行中的远程调用也缺少安全停止语义。",
+  "expectedOutcome": "每个任务可按状态执行暂停、继续和删除；暂停保留已有进度及远程凭据，继续复用原任务，删除隐藏任务但保留已生成资产。",
+  "constraints": [
+    "暂停与删除必须在安全检查点收口，不强制中断正在进行的网络请求",
+    "继续必须复用原任务行、remoteTaskId、蓝图子任务账本与已生成资产，避免重复付费",
+    "删除任务只隐藏任务记录，不删除已生成资产",
+    "不修改 qingpu_tasks 既有状态约束，不要求历史表 owner 权限",
+    "暂停的前置任务不得导致依赖任务失败，删除的前置任务必须阻断等待中的依赖任务",
+    "控制接口必须校验任务归属，禁止跨用户操作",
+    "不得覆盖现有生图并发、UI 规范、vendor 或图片写回改动",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ],
+      "claims": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/control.ts",
+        "server/tasks/executors.ts",
+        "server/tasks/runner.ts",
+        "server/tasks/queue.ts",
+        "server/tasks/queries.ts",
+        "server/tasks/index.ts",
+        "server/listing/blueprint.ts",
+        "api/listing/tasks/control.ts",
+        "pages/user/listing/layout.vue",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "scripts/check-task-controls.mjs"
+      ],
+      "claims": [
+        "server/tasks/control.ts",
+        "server/tasks/executors.ts",
+        "server/tasks/runner.ts",
+        "server/tasks/queue.ts",
+        "server/tasks/queries.ts",
+        "server/tasks/index.ts",
+        "server/listing/blueprint.ts",
+        "api/listing/tasks/control.ts",
+        "pages/user/listing/layout.vue",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "scripts/check-task-controls.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "queued 任务暂停后不再被 runner 领取，继续后可重新领取",
+    "running 任务显示 pause_requested，并在下一个安全检查点转为 paused 且释放全部租约",
+    "暂停后继续保留进度、结果、remoteTaskId 与子任务账本",
+    "删除的任务立即从列表隐藏；运行中任务在安全点释放租约；已生成资产不被删除",
+    "删除前置任务会阻断仍在排队的依赖任务，暂停前置任务只让依赖继续等待",
+    "终态任务只提供删除，暂停任务只提供继续与删除，活动任务提供暂停与删除",
+    "控制接口跨用户访问返回未找到或禁止操作",
+    "现有不同商品并发与图片卡槽六路并发合同继续通过",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "Listing API 文档格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- content/docs/12.qingpu-listing-products.md content/zh/docs/12.qingpu-listing-products.md"
+    },
+    {
+      "name": "任务控制合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-controls.mjs"
+    },
+    {
+      "name": "任务并发回归合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-runner-concurrency.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}

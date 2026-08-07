@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-parameter-dictionary-guard",
+  "title": "修复保存渠道草稿时误拦已被 SKU 覆盖的 Ozon 字典属性",
+  "problem": "商品级巡检产生复合颜色，但最终 Ozon item 已由 SKU 的黑色、橙色覆盖；保存渠道草稿仍扫描 inspection，错误提示商品颜色未命中字典。",
+  "expectedOutcome": "字典证明与真实 payload 共用最终 item 属性投影，只校验最终会提交的 dictionary_value_id；诊断快照不能参与发布门禁。",
+  "sample": {
+    "productId": "ai-1688-1026023947850",
+    "wrongMessage": "商品颜色「530橙色胸背带熊头」未通过 Ozon 字典实时校验",
+    "effectiveSkuValues": [
+      { "skuId": "6207162991292", "value": "黑色", "dictionaryValueId": 61574 },
+      { "skuId": "6207162991279", "value": "橙色", "dictionaryValueId": 61585 }
+    ]
+  },
+  "constraints": [
+    "不针对颜色属性 ID 写特例",
+    "不放宽所有 Ozon 字典验证",
+    "不新增第二套发布 factory 或 registry",
+    "删除被共享投影替代的重复属性合并代码",
+    "兼容并保留正在进行的生图任务工厂规范"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/effective-items.ts",
+        "src/domain/publish-payloads/ozon-factory.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "scripts/check-engine-bundle.mjs",
+        "tests/ozon-effective-items.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/effective-items.ts",
+        "src/domain/publish-payloads/ozon-factory.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "scripts/check-engine-bundle.mjs",
+        "tests/ozon-effective-items.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/ozon-catalog.ts",
+        "scripts/check-listing-publish-facts.mjs",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/ozon-catalog.ts",
+        "scripts/check-listing-publish-facts.mjs",
+        "server/vendor/qingpu-engine/**"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "package.json",
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        "package.json",
+        "app/themes/qingpu"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "最终证明目标不包含商品级复合颜色 530橙色胸背带熊头",
+    "最终证明目标包含 dictionary_value_id 61574 和 61585",
+    "payload factory 与字典证明消费同一个最终 item 投影",
+    "发布保存模块不得读取 inspection",
+    "Qingpu 引擎版本严格递增且 sourceCommit 指向已提交源码",
+    "Qingpu-AI 全量测试、类型检查、引擎构建和 APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 最终属性合同测试",
+      "repository": "qingpu-ai",
+      "triggers": ["src/domain/channel-mappers/ozon/**", "src/domain/publish-payloads/ozon-factory.ts", "tests/ozon-effective-items.test.ts"],
+      "command": "npx vitest run tests/ozon-effective-items.test.ts tests/ozon-single-sku-payload.test.ts tests/ozon-variant-aspect-guard.test.ts tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "共享口径与分层门禁",
+      "repository": "qingpu-ai",
+      "triggers": ["src/engine/index.ts", "scripts/check-deps.mjs", "scripts/check-engine-bundle.mjs", "src/domain/channel-mappers/ozon/**"],
+      "command": "npm run check:deps && npm run engine:build"
+    },
+    {
+      "name": "Qingpu-AI 类型与全量回归",
+      "repository": "qingpu-ai",
+      "triggers": ["src/**", "tests/**", "scripts/**"],
+      "command": "npm run typecheck && npm test"
+    },
+    {
+      "name": "网页端发布事实源合同",
+      "repository": "qingpu-theme",
+      "triggers": ["server/listing/ozon-catalog.ts", "scripts/check-listing-publish-facts.mjs", "server/vendor/qingpu-engine/**"],
+      "command": "node scripts/check-listing-publish-facts.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "apay",
+      "triggers": ["package.json", "app/themes/qingpu"],
+      "command": "npm run build"
+    }
+  ]
+}

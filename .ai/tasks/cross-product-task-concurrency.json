@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "cross-product-task-concurrency",
+  "title": "让不同商品的任务并发执行",
+  "problem": "任务 runner 只有一个 exclusive lane 消费者。虽然商品租约只限制同一 userId + productId，但不同商品的 blueprint、prepare、generate、attributes 等整商品任务仍被进程层全局串行，导致任务中心显示排队。",
+  "expectedOutcome": "不同商品的整商品任务可以有限并发执行；同一商品仍通过商品租约严格串行，并继续与该商品的独立图片卡槽任务互斥。",
+  "constraints": [
+    "整商品任务并发默认 2，可通过 QINGPU_PRODUCT_TASK_CONCURRENCY 调整，最小 1、硬上限 6",
+    "同一 userId + productId 的 blueprint、prepare、generate、attributes、视频及其他整商品任务必须继续互斥",
+    "不同商品允许并发，不得再由单个 exclusive worker 全局串行",
+    "独立 image_generate 卡槽任务仍使用现有全局六路 worker_slot，不改变同槽互斥和写回合并语义",
+    "blueprint 单任务内部并发保持现状；外层整商品并发必须有独立上限，不允许无界启动",
+    "常驻 kickTaskRunner 与 runTaskBatch 使用同一整商品并发配置",
+    "保留 FOR UPDATE SKIP LOCKED、商品行锁、依赖门禁、心跳、失败隔离和僵死恢复",
+    "不得修改正在进行的前端、生图 UI、vendor 或任务工厂改动",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/runner.ts",
+        "server/tasks/concurrency.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ],
+      "claims": [
+        "server/tasks/runner.ts",
+        "server/tasks/concurrency.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "两个不同商品的整商品任务可以同时进入 running 并执行",
+    "同一商品的两个整商品任务不能同时执行",
+    "同商品整商品任务与独立图片卡槽任务继续双向互斥",
+    "整商品并发配置缺失或非法时为 2，大于 6 时截断为 6",
+    "独立图片卡槽并发仍默认为 6，配置口径不被整商品并发污染",
+    "常驻 runner 启动配置数量的 exclusive workers，Cron 每批也最多并发领取相同数量的整商品任务",
+    "单个商品任务失败不终止其他商品 worker，所有心跳定时器都会清理",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "任务中心跨商品并发合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-runner-concurrency.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}

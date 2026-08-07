@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "sku-refine-reference-execution",
+  "title": "修复 SKU 精修冻结参考图执行丢失",
+  "problem": "图片任务工厂已为 SKU refine 冻结当前生成图和对应 SKU 原图，但提示词构造器对所有 SKU 任务都强制清空 referenceImageUrls，执行时实际丢失当前生成图。",
+  "expectedOutcome": "SKU 普通生成和重生仍只使用规格原图；SKU 精修按冻结顺序使用当前生成图并以对应规格原图兜底。",
+  "constraints": [
+    "不修改 taskSpec 协议",
+    "不改变主图、轮播、SKU 普通生成与重生的参考图规则",
+    "不修改 APay 根仓主题迁移和 Listing 参数规范"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "tests/set-anchor-reference.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "tests/set-anchor-reference.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "SKU 普通生成只使用对应规格 canonical 原图",
+    "SKU 精修保留冻结当前图置首并只追加对应规格原图兜底",
+    "非 SKU 图片参考图行为不变"
+  ],
+  "verification": [
+    {
+      "name": "SKU 锚点与精修参考图回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/set-anchor-reference.test.ts tests/image-generation-task-factory.test.ts && npm run check:deps && npm run typecheck"
+    }
+  ]
+}

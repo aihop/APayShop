@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-variant-required-attribute-validation",
+  "title": "修复 Ozon SKU 必填属性误报",
+  "problem": "Ozon 将属性 8962「一个商品中的件数」定义为 SKU 级必填属性。工作区每个有效 SKU 都已保存该值并进入最终草稿，但共享引擎的通用必填检查只豁免行级型号名称，仍按商品级属性判定 8962 缺失，导致保存渠道草稿被错误拦截。",
+  "expectedOutcome": "服务端统一发布校验按最终草稿中的有效 SKU 判断必填规格轴：每个发布 SKU 都有值时消除误报，任一发布 SKU 缺值时继续阻断；保存草稿、发布、就绪账本与客服复查保持同一口径。",
+  "constraints": [
+    "只纠正最终草稿已由每个有效 SKU 满足的 is_aspect 必填属性",
+    "不得按属性名称或固定属性 ID 写特例",
+    "任一有效 SKU 缺值时必须保留原阻断",
+    "排除 SKU 只以最终草稿 variants 为准，不得重新纳入校验",
+    "不手改带有并行生图改动的 vendor 引擎产物",
+    "不得覆盖任务中心、生图或其他并行改动",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.validation.ts",
+        "server/listing/publish.draft.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/readiness.ts",
+        "server/support/tools.ts",
+        "scripts/check-ozon-variant-required-validation.mjs"
+      ],
+      "claims": [
+        "server/listing/publish.validation.ts",
+        "server/listing/publish.draft.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/readiness.ts",
+        "server/support/tools.ts",
+        "scripts/check-ozon-variant-required-validation.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "每个最终发布 SKU 都填写一个商品中的件数时不再提示缺少该必填属性",
+    "任一最终发布 SKU 未填写该属性时仍提示缺失",
+    "其他商品级必填属性缺失不会被一并放行",
+    "已排除 SKU 不参与每行必填判断",
+    "保存草稿、发布、就绪账本与客服复查使用同一归一化函数",
+    "Qingpu 专项合同与 APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "SKU 必填属性发布校验合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-ozon-variant-required-validation.mjs"
+    },
+    {
+      "name": "Listing 发布边界门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-boundaries.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    }
+  ]
+}

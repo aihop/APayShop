@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-engine-0-7-96",
+  "title": "发布生成参考图修复到 Qingpu 网页端",
+  "problem": "qingpu-ai 已修复发布选图误裁剪生成参考原图的问题，但 APay 仍加载 0.7.95，导致网页端一键成套生图继续只冻结主图。",
+  "expectedOutcome": "从已提交的 qingpu-ai 源码发布 0.7.96，更新主题 vendor 与 APay 主题 gitlink，使网页端和扩展端共同消费同一图片任务工厂。",
+  "constraints": [
+    "vendor 只能由 qingpu-ai engine:release 脚本生成",
+    "版本必须严格递增且 sourceCommit 指向真实源码提交",
+    "不得覆盖或提交主题内正在进行的任务队列与前端修改",
+    "不得修改图片任务工厂之外的业务逻辑",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        "app/themes/qingpu"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "vendor 版本为 0.7.96 且源锚点对应本次 qingpu-ai 提交",
+    "默认生成参考图不再被发布选图的删除镜像裁剪",
+    "网页端 Listing 边界与事实源门禁通过",
+    "主题其他在途修改保持未提交且内容不变"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 引擎版本与 Listing 门禁",
+      "repository": "apay",
+      "always": true,
+      "command": "cd app/themes/qingpu && node -e \"const v=require('./server/vendor/qingpu-engine/version.json');if(v.version!=='0.7.96'||v.sourceCommit!=='b69dc49')process.exit(1)\" && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs"
+    }
+  ]
+}

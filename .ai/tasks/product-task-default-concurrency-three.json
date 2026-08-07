@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "product-task-default-concurrency-three",
+  "title": "将跨商品任务默认并发调整为三路",
+  "problem": "跨商品整商品任务目前默认并发为 2。结合现有数据库连接池容量和单个蓝图内部六路生图，默认提升到 3 能改善多商品排队，同时继续限制并发放大风险。",
+  "expectedOutcome": "未配置环境变量时，不同商品的整商品任务默认三路并发；显式环境配置、同商品互斥和独立图片六路并发保持不变。",
+  "constraints": [
+    "只把 QINGPU_PRODUCT_TASK_CONCURRENCY 的默认值从 2 调整为 3",
+    "整商品并发硬上限保持 6",
+    "独立图片默认并发保持 6",
+    "同商品数据库租约与任务分类保持不变",
+    "不得修改其他 AI 的前端或生图文件",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/concurrency.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ],
+      "claims": [
+        "server/tasks/concurrency.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "商品任务并发配置缺失、空值或非法时回退为 3",
+    "显式配置 1 到 6 时按配置生效，大于 6 截断为 6",
+    "图片任务默认并发仍为 6",
+    "任务中心并发合同通过",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "任务中心并发合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-runner-concurrency.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}

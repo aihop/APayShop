@@ -19,3 +19,6 @@ wrangler.toml
 
 # wrangler 本地运行时产物(miniflare D1 数据、临时 bundle),不入仓
 .wrangler/
+
+# 本地 AI 开发任务租约与验证报告，不进入版本库
+.tmp/ai-tasks/
