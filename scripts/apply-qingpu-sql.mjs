@@ -112,7 +112,37 @@ const main = async () => {
       throw new Error(`schema applied but these tables are still missing: ${missing.join(', ')}`)
     }
 
-    console.log(`[qingpu:init] Qingpu database schema is ready (${expectedTables.size} tables verified).`)
+    // 约束名漂移巡检:PostgreSQL 改表名不改约束名,重命名过的表会留下旧名约束。
+    // 它们不会报错,但会与按规范名重建的同类约束**并存**,旧的那条继续按旧定义拦截
+    // ——2026-08 实测:qingpu_tasks 由 qingpu_listing_tasks 改名而来,残留的
+    // qingpu_listing_tasks_status_check 让写入 paused 一直失败,而 pg_get_constraintdef
+    // 查规范名那条显示完全正确,极难定位。
+    // 只巡检 CHECK 与 UNIQUE:定义写在名字背后、能静默分叉的就这两类;
+    // 主键/外键/非空即使名字陈旧也只是命名问题,不影响语义,不在此报警。
+    const { rows: drifted } = await client.query(
+      `select t.relname as table_name, c.conname as constraint_name, c.contype
+       from pg_constraint c
+       join pg_class t on t.oid = c.conrelid
+       join pg_namespace n on n.oid = t.relnamespace
+       where n.nspname = current_schema()
+         and t.relname = any($1)
+         and c.contype in ('c', 'u')
+         and c.conname not like t.relname || '%'
+       order by t.relname, c.conname`,
+      [[...expectedTables]],
+    )
+    if (drifted.length) {
+      console.warn('[qingpu:init] ⚠ 检测到约束名与表名不匹配(疑似改表名后的残留),同名同类约束可能并存并按旧定义拦截:')
+      for (const row of drifted) {
+        console.warn(`  - ${row.table_name}: ${row.constraint_name} (${row.contype === 'c' ? 'CHECK' : 'UNIQUE'})`)
+      }
+      console.warn('  处理方式:在对应 database/*.sql 里 `drop constraint if exists <旧名>` 后按规范名重建。')
+    }
+
+    console.log(
+      `[qingpu:init] Qingpu database schema is ready (${expectedTables.size} tables verified`
+      + `${drifted.length ? `, ${drifted.length} constraint name(s) need attention` : ''}).`,
+    )
   }
   finally {
     await client.end()

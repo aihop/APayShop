@@ -1,6 +1,7 @@
 # APay: 极简极客风全栈虚拟商品独立站
 
 > **变更日志 (Changelog)**
+> `2026-08-06`: 将本地 AI 任务契约提升为仓库级最高开发流程门禁：代码任务先写独立契约，经用户确认后通过 `ai:prepare` 取得文件租约，完成后必须通过 `ai:complete` 验证并释放；具体契约统一存放 `.ai/tasks/`，见 Section 7.A。
 > `2026-08-05`: Qingpu 1688 采购成本统一以逐 SKU 原始报价为事实值；同步入口会从 ainode raw 重建并补回被历史客户端裁剪的 canonical SKU，补回项转写 `excludedSkuIds` 以保留用户选择，并提供幂等历史修复脚本，见 Section 6.L。
 > `2026-07-29`: Qingpu 渠道买家侧预览统一消费服务端归一化草稿快照：服务端解析 workspace/canonical/生成图片引用并输出浏览器 URL，同时提供正文、属性、SKU 与未提交草稿回退；前端不再猜测私有资产 ID，见 Section 6.L。
 > `2026-07-29`: Qingpu Listing 划线价统一使用用户级 `oldPriceMarkupRate` 上浮规则，默认 30%；服务端转换为引擎 `frontDiscountRate` 契约并写入 workspace 定价快照，SKU 手工划线价仍优先，见 Section 6.L。
@@ -292,6 +293,12 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
   - 主题私有 PG 客户端、查询封装、工具函数放在 `app/themes/[theme]/server/**`
   - 建表 SQL 放在 `app/themes/[theme]/database/*.sql`
 - **禁止事项**: 严禁把仅供主题使用的外部表、租户表、授权表强行加入 `server/db/schema.ts`、`schema.pg.ts`、`schema.sqlite.ts`、`schema.mysql.ts`。
+- **幂等重放约定（主题 SQL 不走版本迁移，必须自我收敛）**: `database/*.sql` 由 `db:qingpu:init` 每次全量重放，没有版本簿记，因此**每个文件都必须能把库改造成声明的样子**，而不只是“不报错”。
+  - **表**用 `create table if not exists`；**可变对象（CHECK / UNIQUE / 索引定义）一律 `drop ... if exists` + 重建**。
+  - **严禁**用 `if not exists` 或 `do $$ if not exists then add`  声明可变对象：它们只看名字在不在，定义改了也不会生效，而且不报错。写在 `create table` 里的内联 constraint 同理——**只在建表时生效，对存量表永远不刷新**。
+  - **改过表名的表，必须把旧表名的约束一起 `drop`**：PostgreSQL 改表名不改约束名。只 drop 新名会留下两条同类约束并存，旧的那条继续按旧定义拦截。2026-08 真实事故：`qingpu_tasks`（原 `qingpu_listing_tasks`）加 `paused` 状态时，`pg_get_constraintdef` 查规范名那条显示完全正确，写入却一直被残留的 `qingpu_listing_tasks_status_check` 拒绝。
+  - `apply-qingpu-sql.mjs` 会在应用后自检：期望表是否真的存在（缺失即失败退出），以及 CHECK/UNIQUE 约束名是否与表名前缀不符（疑似改名残留，告警）。
+  - **什么时候才改用真迁移**：需要数据回填、破坏性变更（drop column/table）、或环境版本审计时。核心表已有 Drizzle 迁移（`server/db/migrations/`），届时复用那套，不要再造第二套。
 - **用户级主题配置建议**: 对于 Qingpu 铺货工作台这类“按登录用户保存偏好”的主题私有设置，优先使用 `qingpu_settings` 这类用户级 JSON 配置桶（`user_id + config jsonb`），再按 `listing.modelSettings` 等命名空间扩展，避免为每一类偏好继续拆新的细粒度配置表。
 - **主题级轻量状态建议**: 对于 Qingpu 维护任务、lazy-cron 抢占、水位等“非用户维度、少量键值”的主题私有状态，优先使用 `qingpu_kv(key primary key, value jsonb)` 这类轻量 KV 表；不要继续挤占核心 `settings`，也不要为单个状态再拆专表。
 - **资源表软删统一**: Qingpu 铺货私有资源表 `qingpu_listing_products`、`qingpu_listing_workspaces`、`qingpu_listing_channel_drafts`、`qingpu_assets` 删除语义统一收口到 `deleted_at`；查询默认过滤 `deleted_at is null`，恢复/重建/upsert 必须显式清回 `deleted_at = null`。若图片前端需要“显示已软删 / 恢复”体验，可额外保留 `meta.softDeleted` 作为 UI 辅助标记，但数据库权威删除态仍以 `deleted_at` 为准。
@@ -313,6 +320,19 @@ APay 是整个 SaaS 矩阵（APay官网 + Shoply 基座 + QingPu 演示小程序
 
 - **数据多语言**: 数据库字段通过 `metaData.translations` 存储多语言，前端用 `useLocalizedProduct()` 解析。
 - **API 文档强制同步**: 新增或修改 API 接口时，**必须**同步更新 `content/docs/` (英文) 和 `content/zh/docs/` (中文) 下的 Markdown 文档。一个模块对应一个文档，必须包含请求参数、响应体示例。
+
+### A. AI 任务契约流程（最高开发门禁）
+
+所有代码改动默认执行本流程；纯分析不建契约。发布、支付、价格、库存、数据库、鉴权和跨仓 vendor 不得简化。
+
+1. 先创建 `.ai/tasks/<task-id>.json`，写明问题、范围、`claims`、验收标准和验证命令；不得修改业务代码。
+2. 用户确认后运行 `npm run ai:prepare -- --contract <path> --agent <name>`。
+3. 只修改 `claims` 内文件；需要扩围时先停止并更新契约。
+4. 完成后运行 `npm run ai:complete -- --contract <path> --agent <name>`；通过才算完成。
+
+禁止扩大范围、覆盖并行改动、弱化验证或无实际改动时制造通过。`ai:complete` 不自动授权提交、推送、发布或生产迁移。
+
+Demo：`.ai/tasks/hello-ai-task.demo.json`；详细说明：`docs/ai-development-workflow-example.md`。
 
 ---
 
