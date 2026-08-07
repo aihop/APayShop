@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "prebuild": "npm run check:qingpu-listing-publish-facts",
-    "build": "nuxt build",
+    "build": "node scripts/run-nuxt-build.mjs",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
     "predev": "node scripts/reset-theme-manifest.mjs && node scripts/generate-theme-build.mjs --all",
     "dev": "ulimit -n 65536; NODE_OPTIONS='--max-old-space-size=32768' nuxt dev --host 127.0.0.1 --env-file=.env --port 5400",

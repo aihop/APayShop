@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-activity-discount-rate",
+  "title": "网页铺货活动折扣率完整贯通",
+  "problem": "Dash 已支持按活动折扣率反推发布挂牌倍率，但网页铺货仅有划线价规则，活动折扣率没有默认值、设置持久化、工作区覆盖、草稿快照与最终发布应用。",
+  "expectedOutcome": "网页设置和 SKU 定价侧栏支持活动折扣率，默认 50% 对应 2 倍挂牌；建议价、草稿快照、最终发布使用同一反推公式，旧数据兼容。",
+  "constraints": [
+    "默认 activityDiscountRate 为 0.5，对应 2 倍活动挂牌价",
+    "活动折扣率与划线价上浮率保持独立语义",
+    "发布使用草稿冻结快照，不读取发布后的最新设置",
+    "不得复用已停用的店铺 priceMultiplier",
+    "不得覆盖主题仓现有未提交改动",
+    "不引入新依赖，不执行真实发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/products/update.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/SettingsPricingCard.vue",
+        "pages/user/listing/components/WorkspacePricingSidebar.vue",
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/workspaces.types.ts",
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/publish.aggregate.ts",
+        "server/listing/publish.confirm.ts",
+        "server/listing/publish.draft.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/publish.settings.ts",
+        "server/listing/queries.shared.ts",
+        "server/listing/queries.workspace.ts",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts"
+      ],
+      "claims": [
+        "api/listing/products/update.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/SettingsPricingCard.vue",
+        "pages/user/listing/components/WorkspacePricingSidebar.vue",
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/workspaces.types.ts",
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/publish.aggregate.ts",
+        "server/listing/publish.confirm.ts",
+        "server/listing/publish.draft.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/publish.settings.ts",
+        "server/listing/queries.shared.ts",
+        "server/listing/queries.workspace.ts",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页设置页和 SKU 定价侧栏均可编辑活动折扣率",
+    "默认 50% 显示为 2 倍活动挂牌价，活动后价格回到目标售价",
+    "活动规则随用户默认值和商品工作区持久化",
+    "渠道草稿冻结活动折扣率与活动挂牌倍率",
+    "最终 Ozon 发布价格和划线价同时应用冻结倍率",
+    "活动折扣为 0 时保持原发布价格"
+  ],
+  "verification": [
+    {
+      "name": "活动定价主题类型与发布门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx nuxi typecheck && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs"
+    }
+  ]
+}

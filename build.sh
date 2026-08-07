@@ -7,6 +7,12 @@ DIALECT="${3:-sqlite}"
 # 切换到项目根目录
 cd "$(dirname "$0")"
 
+# 主题 manifest/loader、Nuxt buildDir 与 .output 是一组共享构建状态。
+# 整个脚本必须持有同一把跨进程锁；内部 npm/yarn build 识别环境标记后不重复加锁。
+if [[ "${APAY_BUILD_LOCK_HELD:-}" != "1" ]]; then
+  exec node scripts/run-with-build-lock.mjs -- bash "$0" "$@"
+fi
+
 LOAD_ENV="${LOAD_ENV:-1}"
 ENV_FILE="${ENV_FILE:-.env}"
 

@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+cd "$(dirname "$0")"
+if [[ "${APAY_BUILD_LOCK_HELD:-}" != "1" ]]; then
+    exec node scripts/run-with-build-lock.mjs -- bash "$0" "$@"
+fi
+
 # 配置变量
 DEFAULT_PROJECT_NAME="apay"
 DEFAULT_DB_NAME="apay"
