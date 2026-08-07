@@ -1,5 +1,7 @@
 # AI 开发自动流程示例：Ozon 参数误拦截
 
+> 本文只保留上手示例。字段、生命周期、并发、过期与恢复的权威规则见 `docs/ai/task-contract.md`；跨仓引擎与主题发布见 `docs/ai/cross-repository-development.md`。示例与专项文档冲突时，以专项文档和脚本行为为准。
+
 这个示例把一次真实 Bug 修复变成可执行任务契约，目标不是替代工程判断，而是让任何 AI 都必须留下相同的证据链。
 
 示例契约：`.ai/tasks/ozon-parameter-dictionary-guard.example.json`

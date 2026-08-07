@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "ai-documentation-simplification",
+  "title": "精简并收口三仓 AI 开发文档",
+  "problem": "APay 根 AGENTS.md 混合产品历史、业务细节与执行门禁，qingpu-ai 根协议重复承载云效角色和命令，Qingpu 主题只有工具专属 CLAUDE.md，导致默认上下文过重且跨仓事实源分散。",
+  "expectedOutcome": "根级 AGENTS.md 只保留必须默认加载的执行门禁和文档路由，AI 任务生命周期与跨仓发布分别由专项文档承载，Qingpu 主题以 AGENTS.md 作为跨工具唯一事实源。",
+  "constraints": [
+    "只调整开发文档，不修改业务代码、脚本行为或依赖",
+    "保留仍有效的工程与业务约束，不以删除事实代替精简",
+    "保留 APay 既有关键章节编号或提供明确的新文档路由，避免历史引用静默失效",
+    "跨仓引擎发布只允许一个事实源，其他仓库只保留摘要和链接",
+    "不覆盖三个仓库中已有的其他未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "AGENTS.md",
+        "docs/changelog.md",
+        "docs/engineering-constraints.md",
+        "docs/ai-development-workflow-example.md",
+        "docs/ai/task-contract.md",
+        "docs/ai/cross-repository-development.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "docs/changelog.md",
+        "docs/engineering-constraints.md",
+        "docs/ai-development-workflow-example.md",
+        "docs/ai/task-contract.md",
+        "docs/ai/cross-repository-development.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "CLAUDE.md"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "AGENTS.md",
+        "SPEC.md",
+        "docs/README.md",
+        "docs/yunxiao-ai-collab.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "SPEC.md",
+        "docs/README.md",
+        "docs/yunxiao-ai-collab.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "APay 根 AGENTS.md 明显减重并可路由到全部迁出的有效约束",
+    "AI 任务契约文档覆盖审批、租约、验证、过期和中断恢复边界",
+    "跨仓文档明确 qingpu-ai、主题仓与 APay 主仓的所有权及发布顺序",
+    "Qingpu 主题 AGENTS.md 成为唯一事实源且 CLAUDE.md 仅作薄壳",
+    "qingpu-ai 的云效角色、命令和异常流程由专项协作手册统一承载",
+    "三个仓库的文档引用与当前目录、命令和实现保持一致"
+  ],
+  "verification": [
+    {
+      "name": "APay 文档结构检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check && test -s AGENTS.md && test -s docs/changelog.md && test -s docs/engineering-constraints.md && test -s docs/ai/task-contract.md && test -s docs/ai/cross-repository-development.md"
+    },
+    {
+      "name": "Qingpu 主题入口检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check && test -s AGENTS.md && rg -q '@AGENTS.md' CLAUDE.md"
+    },
+    {
+      "name": "Qingpu AI 文档结构检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check && test -s AGENTS.md && test -s docs/yunxiao-ai-collab.md && rg -q 'docs/yunxiao-ai-collab.md' AGENTS.md"
+    }
+  ]
+}

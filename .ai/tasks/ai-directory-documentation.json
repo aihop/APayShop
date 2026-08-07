@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "ai-directory-documentation",
+  "title": "补充 .ai 目录规范入口",
+  "problem": "当前仓库已使用 .ai/tasks 作为跨仓任务契约入口，但 .ai 目录本身没有说明文件，AI 无法快速区分可版本化契约、运行态租约与专项流程文档。",
+  "expectedOutcome": ".ai/README.md 成为目录级短入口，说明文件所有权、任务生命周期、禁止手改的运行态和专项事实源路由，不重复维护脚本细节。",
+  "constraints": [
+    "只新增 .ai/README.md，不修改任务脚本或业务代码",
+    "目录入口不得复制完整契约规范，生命周期细节继续链接 docs/ai/task-contract.md",
+    "明确 .tmp/ai-tasks 是运行态且不得手改、提交或用于伪造基线",
+    "不覆盖现有任务契约或其他会话改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/README.md"
+      ],
+      "claims": [
+        ".ai/README.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    ".ai/README.md 说明 tasks、运行态、命令入口与事实源边界",
+    "文档覆盖契约审批、claims、验证、过期和中断时的停止规则",
+    "目录入口与 docs/ai/task-contract.md 互相引用且不形成重复规则"
+  ],
+  "verification": [
+    {
+      "name": ".ai 目录文档检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- .ai/README.md && test -s .ai/README.md && rg -q 'docs/ai/task-contract.md' .ai/README.md && rg -q '.tmp/ai-tasks' .ai/README.md"
+    }
+  ]
+}
