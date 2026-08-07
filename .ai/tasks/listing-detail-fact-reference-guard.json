@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-detail-fact-reference-guard",
+  "title": "收口 Listing 详情事实门禁",
+  "problem": "结构化详情已经保存稳定 factRefs 并会在发布时按当前证据逐段复核，但 AI 模块仍额外依赖整个商品 sourceRevision。未被模块引用的 Ozon SKU 参数新增也会推进全局哈希，导致所有详情模块被错误拦截并重复生成。",
+  "expectedOutcome": "详情生成与发布统一使用模块级事实合同：引用事实仍存在、原型与角色适用且正文复核通过时保持有效；引用事实失效、原型变化或正文失实时继续阻断并触发重新生成。",
+  "constraints": [
+    "共享语义只允许定义在 qingpu-ai 引擎源码，APay 不得按错误文案过滤",
+    "生成判定与发布判定必须复用同一详情有效性函数",
+    "未引用商品属性或 SKU 参数新增不得使现有详情失效",
+    "引用事实变化或消失必须继续阻断",
+    "被排除或改值的 SKU 引用必须失效；未被引用的新 SKU 不得误杀现有模块",
+    "不得覆盖任务中心、生图或其他并行改动",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/listing-copy/sections/detail.ts",
+        "tests/listing-copy.test.ts"
+      ],
+      "claims": [
+        "src/domain/listing-copy/sections/detail.ts",
+        "tests/listing-copy.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "未引用的商品属性或 Ozon SKU 参数新增后，详情发布校验继续通过且不重复生成",
+    "任一模块 factRefs 引用的事实变化或消失时继续阻断",
+    "被模块引用的 SKU 被排除或规格改值时继续阻断，未引用新 SKU 不误杀",
+    "内容原型变化或模块角色不再适用时继续阻断",
+    "真实商品 ai-1688-998435870736 的四个详情模块可由同一规则判定为有效",
+    "Qingpu 专项测试与共享引擎构建通过"
+  ],
+  "verification": [
+    {
+      "name": "详情事实单元合同",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-copy.test.ts"
+    },
+    {
+      "name": "共享引擎构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    }
+  ]
+}
