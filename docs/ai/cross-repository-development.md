@@ -10,9 +10,9 @@
 | `apay-qingpu` | `app/themes/qingpu` | Qingpu 网页 UI、主题 API、私有 PG、任务执行与 engine vendor |
 | `apay` | `.` | Nuxt 宿主、核心支付/订单/认证、主题装配与部署入口 |
 
-Qingpu 主题目前仍是 APay 工作树内的**独立 Git 仓库**。APay 已不再用 gitlink 固定它，因此 APay 单一提交不能证明主题版本；发布记录必须显式包含三个仓库中实际参与发布的提交。
+Qingpu 主题是 APay 工作树内的**独立 Git 仓库**，同时由 APay index 中的 `app/themes/qingpu` gitlink（mode `160000`）固定目标提交。APay 提交因此能标识应使用的 `themeCommit`，但当前仓库没有 `.gitmodules`，不包含主题远端 URL 或自动初始化方式；只 checkout APay 仍不能单独拉取并还原主题源码。
 
-在正式流水线能从锁文件还原主题前，不得宣称“只 checkout APay 即可完整复现 Qingpu 产品”。
+完整复现需要已知主题仓来源，并检出 APay gitlink 指向的提交。发布记录仍显式保存全部提交元组，不能只写 APay 提交或只写主题提交。
 
 ## 2. 共享口径
 
@@ -28,7 +28,7 @@ Qingpu 主题目前仍是 APay 工作树内的**独立 Git 仓库**。APay 已�
 -> engine:release 写主题 vendor
 -> 验证 sourceCommit 与主题合同
 -> 提交/push 主题仓
--> 宿主有改动时提交/push APay
+-> 推进 APay gitlink 并提交/push APay
 -> 记录提交元组
 ```
 
@@ -37,14 +37,15 @@ Qingpu 主题目前仍是 APay 工作树内的**独立 Git 仓库**。APay 已�
 3. 用严格递增版本执行 `engine:release`。
 4. 在主题仓确认 `version.json.sourceCommit` 等于源码提交，vendor 只有生成产物变化。
 5. 运行主题专项守卫、Listing 合同和 APay 构建；支付/发布默认 dry-run。
-6. 只提交主题仓本任务文件并 push；APay 父仓 commit 不能代替主题提交。
-7. 只有宿主、文档、构建或装配变化时才提交 APay。
-8. 发布说明记录 `{ qingpuAiCommit, engineVersion, themeCommit, apayCommit? }`。
+6. 只提交主题仓本任务文件并 push；APay gitlink 只记录提交指针，不能代替主题提交。
+7. 在 APay 更新 `app/themes/qingpu` 指针并提交/push；主题提交变化时这一步不可省略，宿主代码无变化也一样。
+8. 发布说明记录 `{ qingpuAiCommit, engineVersion, themeCommit, apayCommit }`，并确认 APay gitlink 等于 `themeCommit`。
 
 ## 4. 跨仓 AI 任务
 
 - 使用 APay `.ai/tasks/*.json` 作为入口，一份契约列全参与仓库。
 - engine 源与测试属于 `qingpu-ai`，vendor 与主题实现属于 `qingpu-theme`，宿主文件属于 `apay`。
+- 若任务会在 `ai:complete` 前提交主题或推进主题指针，APay 仓必须同时声明并租用 `app/themes/qingpu`；否则主题 HEAD 变化会表现为 APay 的未声明 gitlink 改动。
 - 不默认租整个主题或整个 `src/`；只租闭环需要的文件。
 - 源码与 vendor 属于同一结果时，验收同时校验行为、版本锚点和主题合同。
 - AI 契约解决文件并发和验证，不解决三个 Git 仓库的原子提交。
@@ -53,7 +54,7 @@ Qingpu 主题目前仍是 APay 工作树内的**独立 Git 仓库**。APay 已�
 
 - engine 构建失败：停止，主题 vendor 不应变化。
 - vendor 已写入但主题验证失败：保留现场修复或由用户决定回退，不手改产物。
-- 主题已提交而 APay 失败：修复宿主后记录新提交元组，不重写 engine 版本。
+- 主题已提交而 APay gitlink 未推进：保留已发布主题提交，修复 APay 指针或宿主后再形成 `apayCommit`，不重写 engine 版本。
 - `sourceCommit` 与源码不一致：废弃该版本并发布更高版本，禁止复用旧号。
 - 任一仓有其他会话改动：只提交本任务文件；无法隔离时停止协调。
 

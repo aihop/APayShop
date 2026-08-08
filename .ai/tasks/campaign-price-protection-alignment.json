@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "campaign-price-protection-alignment",
+  "title": "三端统一活动保价策略",
+  "problem": "当前活动折扣字段同时承担启用状态与折扣参数，网页默认双倍挂牌而 Dash 默认不加价，用户难以理解且未参加活动时存在高价风险。",
+  "expectedOutcome": "网页、Dash 与 Lite 统一使用默认关闭的活动保价开关和默认 50% 的预计平台降价参数；仅开启时反推挂牌价，并兼容旧扩展设置和已冻结网页草稿。",
+  "constraints": [
+    "新策略默认关闭，预计平台降价默认 50%",
+    "倍率只由共享引擎公式推导，不允许三端复制",
+    "旧扩展端非零活动折扣迁移为已开启，网页旧工作区不因历史默认值继续静默加价",
+    "已提交草稿继续优先使用冻结的 activityPriceMultiplier",
+    "不修改 qingpu-ai 现有无关文档与调试文件",
+    "vendor 只能由 engine:release 生成"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/pipeline/profit-calculator.ts",
+        "src/domain/settings/types.ts",
+        "src/shared/settings-normalize.ts",
+        "src/app/workflows/publish-workflow.ts",
+        "src/app/composables/usePricingSidebarCalculations.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/ozon/draft-snapshot.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "entrypoints/dash/PublishStrategyModal.vue",
+        "entrypoints/dash/PublishConfirmModal.vue",
+        "entrypoints/dash/composables/useDashPublishFlow.ts",
+        "tests/publish-strategy-pricing.test.ts",
+        "tests/pricing-defaults.test.ts",
+        "docs/storage-map.md"
+      ],
+      "claims": [
+        "src/shared/pipeline/profit-calculator.ts",
+        "src/domain/settings/types.ts",
+        "src/shared/settings-normalize.ts",
+        "src/app/workflows/publish-workflow.ts",
+        "src/app/composables/usePricingSidebarCalculations.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/ozon/draft-snapshot.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "entrypoints/dash/PublishStrategyModal.vue",
+        "entrypoints/dash/PublishConfirmModal.vue",
+        "entrypoints/dash/composables/useDashPublishFlow.ts",
+        "tests/publish-strategy-pricing.test.ts",
+        "tests/pricing-defaults.test.ts",
+        "docs/storage-map.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**",
+        "server/settings/helpers.ts",
+        "server/listing/queries.shared.ts",
+        "server/listing/queries.workspace.ts",
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/publish.draft.ts",
+        "server/listing/publish.run.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/workspaces.types.ts",
+        "pages/user/listing/components/SettingsPricingCard.vue",
+        "pages/user/listing/components/WorkspacePricingSidebar.vue",
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/workspace-pricing.calculator.ts",
+        "api/listing/products/update.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**",
+        "server/settings/helpers.ts",
+        "server/listing/queries.shared.ts",
+        "server/listing/queries.workspace.ts",
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/publish.draft.ts",
+        "server/listing/publish.run.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/workspaces.types.ts",
+        "pages/user/listing/components/SettingsPricingCard.vue",
+        "pages/user/listing/components/WorkspacePricingSidebar.vue",
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/workspace-pricing.calculator.ts",
+        "api/listing/products/update.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页、Dash 与 Lite 新策略默认关闭且预计平台降价默认 50%",
+    "活动保价关闭时发布倍率为 1，开启 50% 时发布倍率为 2",
+    "设置与 SKU 侧栏以目标成交价、平台挂牌价、预计活动成交价展示结果",
+    "旧扩展非零折扣设置兼容迁移，旧网页提交草稿继续按冻结倍率发布",
+    "新网页草稿冻结开关、预计折扣与倍率"
+  ],
+  "verification": [
+    {
+      "name": "共享策略测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/publish-strategy-pricing.test.ts tests/pricing-defaults.test.ts tests/ozon-publish.test.ts && npm run engine:build"
+    },
+    {
+      "name": "网页 Listing 守卫与构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm run check:listing-publish-boundary && npm run check:listing-publish-facts && npm run build"
+    }
+  ]
+}

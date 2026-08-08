@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-activity-pricing-supplement",
+  "title": "补齐活动定价默认装配与草稿类型",
+  "problem": "活动折扣率还需要进入网页工作台默认值装配，并在共享 Ozon 草稿快照类型与兼容校验中声明。",
+  "expectedOutcome": "新商品默认 50% 活动折扣；新草稿冻结折扣率和倍率，旧草稿缺失字段仍可按 1 倍兼容发布。",
+  "constraints": [
+    "默认 activityDiscountRate 为 0.5",
+    "共享草稿新增字段保持可选，旧草稿不得失效",
+    "不得修改活动定价之外的工作台装配与草稿字段"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/workspace-pricing.calculator.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/workspace-pricing.calculator.ts"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/draft-snapshot.ts",
+        "src/domain/channel-mappers/ozon/types.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/draft-snapshot.ts",
+        "src/domain/channel-mappers/ozon/types.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页工作台默认活动折扣为 50%",
+    "商品 workspace 的活动折扣覆盖用户默认值",
+    "新草稿类型允许冻结活动折扣率与倍率",
+    "旧草稿缺少活动字段仍通过提交快照校验"
+  ],
+  "verification": [
+    {
+      "name": "网页工作台类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx nuxi typecheck"
+    },
+    {
+      "name": "共享草稿类型与发布测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-publish.test.ts tests/publish-strategy-pricing.test.ts"
+    }
+  ]
+}

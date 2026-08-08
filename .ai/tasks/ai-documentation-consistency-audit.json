@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "ai-documentation-consistency-audit",
+  "title": "核查并修正三仓 AI 文档一致性",
+  "problem": "当前 AI 文档仍存在可执行事实错误：Qingpu 主题实际由 APay gitlink 固定但跨仓文档称未固定，主题入口引用不存在的 Schema 文件，扩围说明未准确表达当前脚本缺少 abort/resume，qingpu-ai 的 CLAUDE.md 仍注入已退出根入口的云效角色协议。",
+  "expectedOutcome": "三仓默认入口、专项事实源和当前 Git/脚本/文件结构一致；跨仓发布能准确复现提交指针，主题入口只引用真实文件与命令，Claude 薄壳不再引入失效章节。",
+  "constraints": [
+    "只调整 AI 执行文档，不修改业务代码、脚本、依赖或生产配置",
+    "云效脚本和专项文档继续保留，只从默认 Claude/AGENTS 上下文移除",
+    "不触碰现有未跟踪业务契约和 qingpu-ai 中本任务未声明的脏文件",
+    "跨仓描述以当前 Git index、文件结构和 package scripts 为事实依据",
+    "不声称当前脚本具备 abort、renew、resume 或 recover 能力"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/README.md",
+        "docs/ai/task-contract.md",
+        "docs/ai/cross-repository-development.md"
+      ],
+      "claims": [
+        ".ai/README.md",
+        "docs/ai/task-contract.md",
+        "docs/ai/cross-repository-development.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "AGENTS.md"
+      ],
+      "claims": [
+        "AGENTS.md"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "CLAUDE.md"
+      ],
+      "claims": [
+        "CLAUDE.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "跨仓文档准确说明 gitlink 固定能力、缺失 .gitmodules 的初始化边界和四提交发布元组",
+    "主题入口引用 products/workspaces/channel-drafts 三份真实 SQL 与本地 Nuxt 类型检查命令",
+    "契约文档明确当前活动租约不能原地扩围，脏 claims 过期后必须停止报告",
+    "qingpu-ai 的 CLAUDE.md 仅导入根 AGENTS.md 和 Claude hook，不再注入云效或失效章节",
+    "全部声明文档通过格式、路径、失效引用和 Git 事实检查"
+  ],
+  "verification": [
+    {
+      "name": "APay AI 文档事实检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- .ai/README.md docs/ai/task-contract.md docs/ai/cross-repository-development.md && test -s .ai/README.md && test -s docs/ai/task-contract.md && test -s docs/ai/cross-repository-development.md && test \"$(git ls-files -s app/themes/qingpu | awk '{print $1}')\" = 160000 && rg -q 'gitlink' docs/ai/cross-repository-development.md && rg -q '没有 `.gitmodules`' docs/ai/cross-repository-development.md && rg -q 'abort' docs/ai/task-contract.md"
+    },
+    {
+      "name": "Qingpu 主题入口事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- AGENTS.md && test -s AGENTS.md && test -s database/products.sql && test -s database/workspaces.sql && test -s database/channel-drafts.sql && test -x ../../../node_modules/.bin/nuxt && ! rg -q 'database/listing.sql|npx nuxt typecheck' AGENTS.md"
+    },
+    {
+      "name": "Qingpu AI Claude 薄壳检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- CLAUDE.md && rg -q '@AGENTS.md' CLAUDE.md && ! rg -q '云效|yunxiao|@pm-ai|@coder-ai|@qa-ai|@sync-ai|§1\\.1|§1\\.2|§1\\.3|§11' CLAUDE.md"
+    }
+  ]
+}

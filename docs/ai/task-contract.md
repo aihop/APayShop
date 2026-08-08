@@ -12,7 +12,7 @@
 
 ```text
 draft -> user-approved -> leased -> verifying -> verified -> finished
-                    \-> expired / blocked
+                    \-> expired / blocked（人工处置结果，脚本不持久化该状态）
 ```
 
 - `draft`：只创建或调整契约，不先改声明的目标文件。
@@ -48,20 +48,22 @@ npm run ai:complete -- --contract .ai/tasks/<task>.json --agent <name>
 
 - claims 重叠时后启动者停止，不得通过改短路径字符串绕过。
 - 同一任务不能重复 start 重置基线，也不能被其他 agent 抢占。
-- 开工后需要新增文件时停止修改；先安全结束当前租约，再改契约并重新审批。
+- claims 租约防止文件重叠，但当前验证摘要覆盖整个 Git 工作树；基线后出现的未声明改动会阻断完成。因此同一工作树不支持多个写任务可靠并行，真正并行需使用独立 worktree。
+- 活动租约的契约摘要已锁定，不能原地新增 claims。当前脚本没有 `abort`：只有原范围能独立满足真实验收时，才先完成原任务再建新契约；否则停止并报告，不得修改契约或租约绕过。
 - 发现非本任务脏改动时保留原样；完成检查只追究租约后新增的越界改动。
 
 ## 6. 中断、过期与恢复
 
-当前脚本支持过期清理，但**不支持带脏 claims 的自动 renew/resume/recover**：
+当前脚本支持过期清理，但**不支持 `abort/renew/resume/recover`**：
 
 - 租约有效：继续工作并直接执行 `ai:complete`，不要重复 prepare。
 - 即将过期：优先到期前完成；当前没有续租命令，不手改 lease JSON。
-- 已过期且 claims 有改动：保持现场，停止继续修改并报告；不要伪造新基线或扩大 claims 绕过。
+- 已过期且 claims 干净：确认没有新冲突后，可通过一份经批准的新契约重新开工。
+- 已过期且 claims 有改动：保持现场，停止继续修改并报告；新任务也会因 claims 已脏而拒绝开工，不要提交未验证改动、伪造新基线或扩大 claims 绕过。
 - 验证失败：在范围内修复后重跑；根因要求扩围时重新审批。
 - agent 无法继续：报告已改文件、未完成项和验证状态，未经用户决定不宣称完成。
 
-`renew/resume/recover` 只有在脚本、自测和本文同时更新后才算可用。
+`abort/renew/resume/recover` 只有在脚本、自测和本文同时更新后才算可用。
 
 ## 7. 跨仓与完成定义
 

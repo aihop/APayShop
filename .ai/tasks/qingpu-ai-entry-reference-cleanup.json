@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ai-entry-reference-cleanup",
+  "title": "修正 qingpu-ai Electron 入口与旧文档引用",
+  "problem": "electron 子目录缺少标准 AGENTS.md，CLAUDE.md 误把不存在的 electron/AGENTS.md 称为历史存档；同时 docs/ai-prompt-architecture.md 仍引用已从根 AGENTS.md 删除的旧章节名，默认 AI 路由不稳定。",
+  "expectedOutcome": "Electron 子树拥有短小、可执行且继承仓库门禁的标准入口，Claude 只导入该入口，历史 AGENT.md 原样保留；旧提示词架构中的失效章节引用改为当前真实文档路由。",
+  "constraints": [
+    "只修改 qingpu-ai 的 AI 文档，不修改 Electron 或扩展业务代码、依赖和构建配置",
+    "保留 electron/AGENT.md，不删除、不改写历史需求提示词",
+    "不恢复云效默认流程，不修改云效文档归档",
+    "Electron 发布仍统一从 qingpu-ai 根 scripts/release.mjs 进入",
+    "不提交、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "electron/AGENTS.md",
+        "electron/CLAUDE.md",
+        "docs/ai-prompt-architecture.md"
+      ],
+      "claims": [
+        "electron/AGENTS.md",
+        "electron/CLAUDE.md",
+        "docs/ai-prompt-architecture.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "electron/AGENTS.md 成为默认短入口并明确桌面壳边界、真实文件路由、根发布命令与验证方式",
+    "electron/CLAUDE.md 只导入 electron/AGENTS.md，不再把 AGENTS.md 误称为历史存档",
+    "electron/AGENT.md 保持不变并由新入口标记为按需历史背景",
+    "docs/ai-prompt-architecture.md 不再引用根 AGENTS.md 中不存在的章节名",
+    "云效文档和业务代码均无改动"
+  ],
+  "verification": [
+    {
+      "name": "Electron AI 入口检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- electron/AGENTS.md electron/CLAUDE.md docs/ai-prompt-architecture.md && test -s electron/AGENTS.md && test -s electron/AGENT.md && rg -q '@AGENTS.md' electron/CLAUDE.md && rg -q 'AGENT.md' electron/AGENTS.md && rg -q 'npm run dist:mac' electron/AGENTS.md"
+    },
+    {
+      "name": "失效章节引用检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "! rg -n 'AGENTS\\.md §(技术路线强约束|文件输出格式强约束|自检清单|图片处理方案)' docs/ai-prompt-architecture.md && ! git diff --name-only -- docs/yunxiao-ai-collab.md docs/yunxiao-project-config-checklist.md docs/archive/yunxiao"
+    }
+  ]
+}

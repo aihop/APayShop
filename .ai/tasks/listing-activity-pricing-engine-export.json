@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-activity-pricing-engine-export",
+  "title": "导出活动折扣反推公式到网页引擎",
+  "problem": "活动折扣反推函数已在 qingpu-ai 定价单点中实现并有测试，但未进入 engine 出口，网页端无法在不复制公式的情况下消费。",
+  "expectedOutcome": "主包和浏览器切片均导出 deriveActivityPremiumRate，并发布严格递增的网页 vendor 版本。",
+  "constraints": [
+    "不复制活动折扣公式",
+    "只扩展既有 engine 白名单出口",
+    "vendor 只能由 engine:release 生成",
+    "sourceCommit 必须指向包含出口改动的源码提交",
+    "不得提交 qingpu-ai 现有无关文档改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/engine/browser.ts",
+        "src/engine/index.ts"
+      ],
+      "claims": [
+        "src/engine/browser.ts",
+        "src/engine/index.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "deriveActivityPremiumRate 可从 index.js 与 browser.js 导入",
+    "engine bundle 守卫通过",
+    "vendor 版本严格高于 0.7.100",
+    "vendor sourceCommit 对应真实源码提交"
+  ],
+  "verification": [
+    {
+      "name": "共享引擎类型测试与 bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/publish-strategy-pricing.test.ts tests/ozon-publish.test.ts && npm run engine:build"
+    },
+    {
+      "name": "网页 vendor 出口与版本锚点",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"import('./server/vendor/qingpu-engine/index.js').then(m=>{if(typeof m.deriveActivityPremiumRate!=='function')process.exit(1);const v=m.deriveActivityPremiumRate(0.5);if(Math.abs(v-1)>1e-9)process.exit(1)})\" && node -e \"const v=require('./server/vendor/qingpu-engine/version.json');if(v.version!=='0.7.101')process.exit(1)\""
+    }
+  ]
+}

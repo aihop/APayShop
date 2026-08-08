@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "theme-agent-entry-cleanup",
+  "title": "收口 Design 与 Minimal 主题 AI 入口",
+  "problem": "Design 与 Minimal 独立主题仓的根 AGENTS.md 仍是 169/310 行的一次性整站生成提示词，混合产品文案、外部接口快照和自动 Git 写入，覆盖 APay 默认任务契约并增加维护任务误操作风险。",
+  "expectedOutcome": "两个主题仓根 AGENTS.md 只保留日常维护门禁、事实源和验证；原生成提示词完整迁入 docs/archive 按需保留，Minimal 不再默认要求 pull、git add -A、commit 和 push。",
+  "constraints": [
+    "只修改两个独立主题仓的 AI 文档，不修改页面、API、业务代码或依赖",
+    "完整保留原一句话生成主题提示词作为归档资料",
+    "根入口不得包含自动 pull、git add -A、commit 或 push 指令",
+    "外部接口路径以主题当前代码为事实源，不在根入口复制易漂移的接口清单",
+    "不提交主题仓或推进 APay gitlink"
+  ],
+  "repositories": [
+    {
+      "name": "design-theme",
+      "path": "app/themes/design",
+      "allowedPaths": [
+        "AGENTS.md",
+        "docs/archive/one-sentence-site-generator.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "docs/archive/one-sentence-site-generator.md"
+      ]
+    },
+    {
+      "name": "minimal-theme",
+      "path": "app/themes/minimal",
+      "allowedPaths": [
+        "AGENTS.md",
+        "docs/archive/one-sentence-miniprogram-generator.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "docs/archive/one-sentence-miniprogram-generator.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "两个根 AGENTS.md 均明显减重并路由到归档生成提示词",
+    "Design 入口保留主题隔离、PaymentModal、静态 Tailwind 和验证约束",
+    "Minimal 入口保留公开代理、微信认证、结账 relay、后台命名空间与验证边界",
+    "原提示词完整保存在各仓 docs/archive，且不再默认加载",
+    "Minimal 根入口不含自动 Git 拉取、全量暂存、提交或推送"
+  ],
+  "verification": [
+    {
+      "name": "Design 主题入口检查",
+      "repository": "design-theme",
+      "always": true,
+      "command": "git diff --check && test -s AGENTS.md && test -s docs/archive/one-sentence-site-generator.md && rg -q 'PaymentModal' AGENTS.md && rg -q 'docs/archive/one-sentence-site-generator.md' AGENTS.md && rg -q 'One.Sentence Website Builder' docs/archive/one-sentence-site-generator.md"
+    },
+    {
+      "name": "Minimal 主题入口检查",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "git diff --check && test -s AGENTS.md && test -s docs/archive/one-sentence-miniprogram-generator.md && rg -q 'api/public-external.ts' AGENTS.md && rg -q 'server/checkout/' AGENTS.md && rg -q 'docs/archive/one-sentence-miniprogram-generator.md' AGENTS.md && ! rg -q 'git pull|git add -A|git commit|git push' AGENTS.md"
+    }
+  ]
+}
