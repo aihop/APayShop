@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-ismanaged-convergence",
+  "title": "收敛合卡型号码的托管判据:两端都只认台账,历史码一次性回填",
+  "problem": "行级 9048 型号码的「这值是我们生成的还是用户手填的」判据在两端不一致。引擎 reconcileOzonMergeModelNames 只认台账:`!current || (hasOwn(previousAuto, id) && current === previousAuto[id])`。主题 ensureMergeModelName 多一条格式兜底:`|| AUTO_MERGE_CODE_PATTERN.test(value)`,并且组内复用号也按格式挑(`filter(AUTO_MERGE_CODE_PATTERN.test)`)而非按台账。后果:自动码格式但不在 autoModelNames 里的行,主题判为自动会参与重排、引擎判为手填会冻结并计入 preservedManualCount,同一商品在网页端与插件端得到相反的分组结果。线上实测(2026-08-08)分歧面 4 个商品 / 57 个 SKU:ai-1688-1005383484100(2)、ai-1688-782738484584(12)、ai-1688-679198305338(2)、ai-1688-1003224207596(41),这 4 个的 ozonMergeCardState 键完全不存在,是台账机制上线之前的历史形态;另有 12 个商品行级值与台账完全吻合,不存在中间态。当前全库真正手填(非自动码格式且不在台账)的行级值为 0 个,格式兜底现在只服务于这批历史数据。",
+  "expectedOutcome": "两端的托管判据统一为「只认 ozonMergeCardState 台账 + manualVariantIds」,同一份 (previousAuto, 当前值, manualVariantIds) 输入在网页端与插件端得到相同的托管判定与分组结果;那 4 个历史商品的 57 个既有码被一次性收编进 autoModelNames,不重新发号、不产生号段浪费;回填只针对「ozonMergeCardState 键缺失」这一历史形态,回填后该键存在,后续用户手打的码形值不会被再次误收成自动码。",
+  "constraints": [
+    "分组仍由引擎 computeMergeCardGroups 单点决定,不得在主题重写分组规则",
+    "主题继续用 allocateOfferCodes 发数据库稳定码,引擎继续用本地码,不改变两者各自的赋值策略",
+    "既有码必须原样保留:回填是收编而非重发,57 个码的字面值一个都不能变",
+    "回填条件必须严格限定在 ozonMergeCardState 键不存在的工作区;已有该键的工作区一律不碰",
+    "回填 SQL 必须幂等,可随 db:qingpu:init 反复执行而不产生二次效果",
+    "回填不得改动 manualOverrides.skuAspects 里的任何值,只写 ozonMergeCardState.autoModelNames",
+    "manualVariantIds 中的行在两端都必须继续被尊重,不受本次改动影响",
+    "不得改动商品级 9048 的处理:线上 6 个商品级覆盖全为 origin='ai',两端判定本就一致,不在本次范围",
+    "不得改动单 SKU 发码判据(skuItems.length === 0)与就绪账本口径",
+    "不修改 qingpu-ai:引擎侧已是只认台账,本次无源码改动,因此不发新引擎版本",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.codes.ts",
+        "database/repair-merge-model-names.sql",
+        "scripts/check-merge-card-codes.mjs"
+      ],
+      "claims": [
+        "server/listing/sku.codes.ts",
+        "database/repair-merge-model-names.sql",
+        "scripts/check-merge-card-codes.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题行级 isManaged 不再含 AUTO_MERGE_CODE_PATTERN 格式兜底,判据与引擎逐字对应",
+    "主题组内复用号改为从 ozonMergeCardState.autoModelNames 读取,与引擎 previousAuto 的复用语义一致",
+    "回填 SQL 只更新 ozonMergeCardState 键缺失的工作区,且只新增 autoModelNames,不触碰 skuAspects",
+    "回填后那 4 个商品的 57 个码字面值不变,且全部进入 autoModelNames",
+    "回填 SQL 重复执行第二次影响 0 行",
+    "回填后全库分歧面归零:不存在「自动码格式但不在台账且不在 manualVariantIds」的行级值",
+    "AUTO_MERGE_CODE_PATTERN 在商品级历史值清理处的用法保持不变",
+    "守卫扩展断言两端 isManaged 均为只认台账,任一端加回格式兜底即失败",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "合卡发码判据守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-merge-card-codes.mjs"
+    },
+    {
+      "name": "建表应用器运行时守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-sql-applier-runtime.mjs"
+    },
+    {
+      "name": "任务控制合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-task-controls.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}
