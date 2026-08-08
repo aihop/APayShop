@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-code-convergence",
+  "title": "收敛合卡型号码判据：单 SKU 必填缺口与两端 isManaged 分叉",
+  "problem": "合卡型号码(Ozon 9048)有两套实现：引擎 reconcileOzonMergeModelNames 供 lite/dash 使用本地码，主题 ensureMergeModelName 经 prepareChannelListingContent 的 afterAttributes 注入数据库稳定码。两者共用 computeMergeCardGroups 分组，但赋值判据已分叉，且都在 skuItems 少于两条时直接返回。实测：8 个单 SKU 商品的类目把 9048 列为必填却永远拿不到码，其中 ai-1688-1017240978833、ai-1688-834150323103、ai-1688-1056411049821 的就绪账本已被「缺少必填属性: 型号名称（针对合并为一张商品卡片）」阻塞发布；另有 4 个商品共 57 个自动格式码不在 ozonMergeCardState.autoModelNames 中，引擎按「人工值不再重排」处理而主题按格式判为自动码继续重排，同一商品在插件端与网页端的合卡分组行为相反。",
+  "expectedOutcome": "单 SKU 商品在类目要求 9048 时也能获得型号码，必填缺口消失；两端 isManaged 判据一致，同一商品无论由插件端还是网页端处理都得到相同的托管判定与分组结果；数据库稳定码策略与本地码策略仍各自保留在自己的调用方。",
+  "constraints": [
+    "分组仍由引擎 computeMergeCardGroups 单点决定，不得在主题重写分组规则",
+    "主题继续经 afterAttributes 注入数据库稳定码，引擎默认路径继续用本地码，不改变这一注入边界",
+    "不得改变 AUTO_MERGE_CODE_PATTERN 之外的自动码格式，也不得让自动码与 publishOfferCode 命名空间冲突",
+    "用户手填的型号值(非自动码格式、或记录在 manualVariantIds 中)必须继续被尊重，不得被自动值覆盖",
+    "已有自动码的分组必须继续沿用最小号，不得因本次改动重新发号造成号段浪费",
+    "单 SKU 发码只在类目实际包含 9048 时进行；类目不含 9048 时保持现状不发码",
+    "不得修改任务队列、租约、并发或就绪账本口径",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/ozon-merge-card-workflow.ts",
+        "tests/ozon-merge-card.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/ozon-merge-card-workflow.ts",
+        "tests/ozon-merge-card.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.codes.ts",
+        "scripts/check-merge-card-codes.mjs"
+      ],
+      "claims": [
+        "server/listing/sku.codes.ts",
+        "scripts/check-merge-card-codes.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "类目包含 9048 的单 SKU 商品能获得型号码，就绪账本不再报「缺少必填属性: 型号名称」",
+    "类目不包含 9048 的单 SKU 商品保持不发码，行为与改动前一致",
+    "引擎与主题对同一份 (previousAuto, 当前值, manualVariantIds) 输入给出相同的托管判定",
+    "自动格式码即使不在 autoModelNames 中，两端也判定一致，不再出现一端重排一端冻结",
+    "手填型号值与 manualVariantIds 中的行在两端都不被自动值覆盖",
+    "已有自动码的分组沿用最小号，不重新发号",
+    "多规格商品的分组结果与改动前一致（仅托管判定与单 SKU 缺口发生变化）",
+    "新增主题守卫脚本覆盖上述判定，纳入常规守卫集合",
+    "引擎全量测试通过且 vue-tsc 无新增错误",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "引擎单元测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run"
+    },
+    {
+      "name": "引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vue-tsc --noEmit"
+    },
+    {
+      "name": "合卡发码判据守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-merge-card-codes.mjs"
+    },
+    {
+      "name": "任务控制合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-task-controls.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}
