@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-sql-applier-artifact-runtime",
+  "title": "让 qingpu 建表应用器在产物包里真的可执行",
+  "problem": "app/themes/qingpu/scripts/apply-qingpu-sql.mjs 通过 theme.json 的 deployAssets 随产物发布,但在产物里无法启动:它 `import { Client } from 'pg'`,而运行时 server/db/pg.ts 用的是 postgres 驱动。Nitro 只把运行时实际用到的包放进 .output/server/node_modules——postgres 在里面,pg 不在;产物根既无 node_modules 也无 package.json,装不了依赖;Node 从 <artifact>/scripts/ 向上解析也不会看 .output/server/node_modules。真实构建实测:`node scripts/apply-qingpu-sql.mjs` 在产物内直接 ERR_MODULE_NOT_FOUND: Cannot find package 'pg'。这与 2026-08 停摆事故同类——文件发出去了但执行不了,而上一轮只做了逻辑推演没跑真实构建,所以没暴露。另有一处同源分歧:运行时接受 QINGPU_DATABASE_URL/POSTGRES_URL/POSTGRESQL_URL/DATABASE_URL 四个变量,应用器只认前后两个,只配 POSTGRES_URL 的环境会让应用器报「找不到连接串」而应用本身连得上。",
+  "expectedOutcome": "应用器改用与运行时同一个 postgres 驱动,并在源码树与产物包两种布局下都能解析到它;从产物根执行 `node scripts/apply-qingpu-sql.mjs` 能正常连库并逐文件应用 SQL,自检与约束漂移巡检行为不变;连接串环境变量口径与运行时一致;新增守卫锁定这条,防止再次回归成「发得出去、跑不起来」。",
+  "constraints": [
+    "不得引入新依赖:只使用已在 apay dependencies 中且确实随产物发布的 postgres",
+    "不得修改任何 database/*.sql 的内容与 orderedFiles 顺序",
+    "多语句 SQL 文件必须继续在单次调用内以隐式事务执行,语义与原 pg client.query(sql) 等价",
+    "应用失败必须继续以非零退出码结束,不得恢复成静默 Skip + exit 0",
+    "表存在性自检与 CHECK/UNIQUE 约束名漂移巡检的判据和告警文案保持不变",
+    "产物内的驱动解析不得硬编码包内部文件路径,须从 postgres 的 package.json exports 推导入口,以免版本升级后失效",
+    "不得修改 build.sh:核心不认识任何主题的具体依赖,这是 deployAssets 机制的设计前提",
+    "不得改动主题运行时 server/db/pg.ts 的连接池配置"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/apply-qingpu-sql.mjs",
+        "scripts/check-sql-applier-runtime.mjs"
+      ],
+      "claims": [
+        "scripts/apply-qingpu-sql.mjs",
+        "scripts/check-sql-applier-runtime.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "应用器不再 import pg;驱动改为 postgres",
+    "在源码树中 `npm run db:qingpu:init` 行为与改动前一致(逐文件应用 + 表存在性自检 + 约束漂移告警 + 失败非零退出)",
+    "在 build.sh 产出的真实产物包内,从产物根执行 `node scripts/apply-qingpu-sql.mjs` 能越过模块解析进入连库阶段,不再 ERR_MODULE_NOT_FOUND",
+    "产物内驱动入口由 .output/server/node_modules/postgres 的 package.json exports.import 推导,不硬编码 src/index.js",
+    "缺少连接串、非 PostgreSQL 连接串两种情况仍分别抛出原有的可操作错误信息",
+    "连接串环境变量与运行时 server/db/pg.ts 取同一组,顺序一致",
+    "新增守卫脚本断言:应用器不得 import pg、必须具备产物回落解析、必须保留非零退出",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "建表应用器运行时守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-sql-applier-runtime.mjs"
+    },
+    {
+      "name": "任务控制合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-task-controls.mjs"
+    },
+    {
+      "name": "合卡发码判据守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-merge-card-codes.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}
