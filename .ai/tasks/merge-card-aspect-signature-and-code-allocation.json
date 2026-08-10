@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-aspect-signature-and-code-allocation",
+  "title": "统一「可区分」判据到分组单点;修复型号码发号的恢复与并发缺口",
+  "problem": "两个独立缺陷。(1)「卡内可区分」有两份定义:computeMergeCardGroups 的 aspectSignature 只按值是否非空算签名,而发布期查重 mapper.ts 的 aspectSignatureOf 会先剔除数字轴(Integer/Decimal)上的非数字值——Ozon 对这类值硬性拒收,等效于没填。于是「60W / 80W」这类行在分组阶段被判为可区分、合进同一张卡并发同一个型号码,到 Ozon 侧两值双双失效变成「可变特性相同,无法合并」。目前发布期 invalidNumericValues 会把它升级为阻断项,不会漏到线上,但两处各自维护一份判据,与刚收敛掉的 isManaged 是同一类结构问题。(2) allocateOfferCodes 的唯一性依赖 qingpu_settings.config.listing.offerCodeCounter,但恢复用的 floor 只扫 workspace->>'publishOfferCode',不扫已发出的行级 9048 型号码(存在 manualOverrides.skuAspects 里);同一 stem 窗口内计数器若丢失或被重置,新发型号码会与旧型号码重复,两个商品共用同一个 9048 会被 Ozon 合成一张卡。同一函数还有并发缺口:`select ... for update` 在 qingpu_settings 尚无该 user 行时锁不住任何东西,两个并发事务各自算出 floor=0 领到完全相同的码。",
+  "expectedOutcome": "「卡内可区分」只有一份定义,分组与发布期查重共用同一个签名函数,数字轴归一在分组阶段就生效,不再出现「本地判可区分、Ozon 判不可区分」的分叉。型号码发号在计数器丢失后仍能从已发出的型号码恢复出正确的 floor,并且在 settings 行不存在时也能真正串行化,并发领码不再撞号。",
+  "constraints": [
+    "分组规则(aspect 轴=卡内变体、非 aspect 轴=分卡、组内不可区分强拆独卡)本身不变,只把数字轴归一并入签名口径",
+    "签名函数必须单点导出,分组与发布期查重共用;不得在任一端保留第二份实现",
+    "数字轴判定必须来自实时类目合同的属性类型(normalizeOzonAttributeKind 的 integer/decimal),不得按属性名或 id 写死",
+    "缺少类目定义时行为必须与改动前一致(不做数字轴剔除),不得因缺定义而改变既有分组",
+    "发布期 invalidNumericValues 的阻断提示保持不变:仍要告诉用户把值改成纯数字,不得因为分组阶段已剔除就静默放行",
+    "allocateOfferCodes 的返回值格式、前缀与 stem 规则不变,不得改变既有码格式",
+    "floor 恢复必须同时覆盖 publishOfferCode 与已发出的行级 9048 型号码,取两者最大值",
+    "并发串行化不得依赖 settings 行是否存在;不得引入新依赖或新表",
+    "不得改动就绪账本口径、任务队列、单 SKU 发码判据与托管判据",
+    "主题必须继续经 vendor 消费引擎单点,不得复制实现"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/merge-card-groups.ts",
+        "src/domain/channel-mappers/ozon/merge-card-plan.ts",
+        "src/domain/channel-mappers/ozon/category-contract.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/app/workflows/ozon-merge-card-workflow.ts",
+        "src/engine/index.ts",
+        "tests/ozon-merge-card-plan.test.ts",
+        "tests/ozon-merge-card-aspect-signature.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/merge-card-groups.ts",
+        "src/domain/channel-mappers/ozon/merge-card-plan.ts",
+        "src/domain/channel-mappers/ozon/category-contract.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/app/workflows/ozon-merge-card-workflow.ts",
+        "src/engine/index.ts",
+        "tests/ozon-merge-card-plan.test.ts",
+        "tests/ozon-merge-card-aspect-signature.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.codes.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "server/vendor/qingpu-engine"
+      ],
+      "claims": [
+        "server/listing/sku.codes.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "server/vendor/qingpu-engine"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "签名函数从 merge-card-groups 单点导出,mapper.ts 的发布期查重改为调用它,文件内不再有第二份签名实现",
+    "数字轴上的非数字值在分组阶段即被剔除:仅靠该类值区分的两行会被强拆独卡,不再合进同一张卡",
+    "数字轴上的合法纯数字值仍参与区分,合卡行为与改动前一致",
+    "未提供类目定义时签名口径与改动前逐字一致(既有调用方不传定义时行为不变)",
+    "发布期对非数字值的阻断提示仍然出现",
+    "allocateOfferCodes 的 floor 同时取 publishOfferCode 与行级 9048 型号码的最大序号",
+    "allocateOfferCodes 在 settings 行不存在时也能串行化,两个并发调用不会拿到相同的码",
+    "既有型号码格式与前缀不变",
+    "引擎全量测试与 vue-tsc 通过",
+    "vendor 升至新版本且 sourceCommit 等于 qingpu-ai HEAD",
+    "守卫扩展:锁定签名单点与 floor 恢复口径",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "引擎单元测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run"
+    },
+    {
+      "name": "引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vue-tsc --noEmit"
+    },
+    {
+      "name": "合卡发码判据守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-merge-card-codes.mjs"
+    },
+    {
+      "name": "建表应用器运行时守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-sql-applier-runtime.mjs"
+    },
+    {
+      "name": "任务控制合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-task-controls.mjs"
+    }
+  ]
+}
