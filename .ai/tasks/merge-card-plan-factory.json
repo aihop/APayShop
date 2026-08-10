@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-plan-factory",
+  "title": "合卡型号码赋值收口为 domain 工厂,只保留「新号从哪来」作为注入策略",
+  "problem": "合卡型号码目前只有分组是单点(computeMergeCardGroups),赋值是两份实现各写一遍:引擎 reconcileOzonMergeModelNames(供插件端与网页嵌入端)和主题 ensureMergeModelName(供 APay 主题服务端)。两边各自实现 isManaged、组内复用、组序、记账,只有发号方式真正不同(引擎本地码 `${publishOfferCode}-NNN`,主题 allocateOfferCodes 数据库稳定码)。merge-card-groups.ts 的注释把「哪些行受管(手填尊重)」划给消费方策略,但它不是策略而是共享不变量——2026-08-08 的分歧正源于此:主题多一条格式兜底,导致同一商品在网页端与插件端得到相反的分组结果。该分歧已在 apay-qingpu@f7b9b00 用「两端都只认台账」修正并加守卫,但一致性目前靠守卫盯着两份实现,不是靠结构保证,下一次改动仍可能重新分叉。",
+  "expectedOutcome": "isManaged、组内复用号、组序、记账、受管行的赋值全部收进 qingpu-ai 的 domain 单点工厂;引擎与主题都只向工厂提供输入并注入「如何铸造 N 个新号」,拿回同一份计划后按同一套规则落值。三端(插件端 / 网页嵌入端 / APay 主题服务端)的托管判定与分组结果由结构保证一致,不再依赖守卫比对两份实现。Ozon 合卡语义(aspect 轴=卡内变体、非 aspect 轴=分卡、组内不可区分强拆独卡)完全由既有 computeMergeCardGroups 承担,本次不改。",
+  "constraints": [
+    "分组仍由 computeMergeCardGroups 单点决定,本次不改其规则与输出",
+    "工厂必须是纯函数:不读写 Product、不做 IO、不发号;发号由调用方注入",
+    "工厂必须导出组序 groupIndex:引擎本地码以 `index + 1` 为序号种子,丢掉它会让 lite/dash 既有码值整体平移",
+    "既有码必须继续沿用:有台账记录且未被跨组占用的组不得重新发号",
+    "manualVariantIds 与手填值在两端都必须继续被尊重",
+    "托管判据必须保持「只认台账」,不得借重构之机引入任何格式匹配",
+    "引擎 reconcileOzonMergeModelNames 的对外返回结构(available/changed/groupCount/variantAxisDims/splitAxisDims/preservedManualCount/skippedForManualProductValue)与 force 选项语义保持不变",
+    "主题 ensureMergeModelName 的对外签名与返回值(boolean changed)保持不变",
+    "主题继续经 afterAttributes 注入数据库稳定码,引擎继续用本地码,注入边界不变",
+    "主题必须从 vendor 导入工厂,不得在主题复制实现",
+    "新出口须走 src/engine/index.ts 白名单,并按发布顺序发新引擎版本、更新 vendor",
+    "不得改动单 SKU 发码判据、商品级 9048 处理、就绪账本口径与任务队列",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/merge-card-plan.ts",
+        "src/app/workflows/ozon-merge-card-workflow.ts",
+        "src/engine/index.ts",
+        "tests/ozon-merge-card-plan.test.ts",
+        "tests/ozon-merge-card.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/merge-card-plan.ts",
+        "src/app/workflows/ozon-merge-card-workflow.ts",
+        "src/engine/index.ts",
+        "tests/ozon-merge-card-plan.test.ts",
+        "tests/ozon-merge-card.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.codes.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "server/vendor/qingpu-engine"
+      ],
+      "claims": [
+        "server/listing/sku.codes.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "server/vendor/qingpu-engine"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "新增 domain 工厂产出计划:变体轴/分卡轴、按组序排列的受管组、每组可沿用的台账号、需铸造的新号数量、被占用的号命名空间、保留的人工行数",
+    "工厂为纯函数,不 import Product 类型之外的应用层依赖,不做 IO",
+    "引擎 reconcileOzonMergeModelNames 改为消费工厂,自身只负责本地码铸造与落值,不再自带 isManaged/复用/组序逻辑",
+    "主题 ensureMergeModelName 改为从 vendor 消费同一工厂,自身只负责 allocateOfferCodes 与落值",
+    "两端不再各自出现 isManaged 定义",
+    "引擎既有测试全部通过,且新增工厂单测覆盖:空值受管、台账值受管、手填值不受管、manualVariantIds 受尊重、已有台账号沿用不重发、跨组撞号时后到的组改领新号、groupIndex 与分组顺序一致",
+    "对同一份输入,引擎路径与主题路径得到相同的受管判定与分组归属(以测试或守卫证明)",
+    "引擎全量测试与 vue-tsc 通过",
+    "vendor 升至新版本且 version.json.sourceCommit 等于 qingpu-ai 的 HEAD",
+    "守卫改为断言「两端都消费同一工厂」,而不是比对两份实现的判据文本",
+    "APay 正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "引擎单元测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run"
+    },
+    {
+      "name": "引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vue-tsc --noEmit"
+    },
+    {
+      "name": "合卡发码判据守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-merge-card-codes.mjs"
+    },
+    {
+      "name": "建表应用器运行时守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-sql-applier-runtime.mjs"
+    },
+    {
+      "name": "任务控制合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-task-controls.mjs"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}

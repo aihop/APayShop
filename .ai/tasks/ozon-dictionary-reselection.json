@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-dictionary-reselection",
+  "title": "修复 Ozon 字典值重新选择残留旧值",
+  "problem": "网页 SKU 表的字典多选控件会把未命中官方候选的旧值继续保留在选中数组中；用户重新选择官方值后，提交内容仍包含旧无效值，服务端因此返回只能选择 Ozon 官方候选值。",
+  "expectedOutcome": "用户重新选择 Ozon 官方候选时，控件自动移除不在当前候选中的旧值，只提交仍有效的官方值；服务端官方字典校验保持严格。",
+  "constraints": [
+    "不放宽服务端 Ozon 官方候选校验",
+    "只调整网页 SKU 字典选择交互，不修改存储结构、API 协议或 engine vendor",
+    "保留仍在当前官方候选中的已选值，仅移除已失效或未命中的旧值",
+    "不触碰主题仓现有未提交的 sku.codes 与 engine vendor 改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "../qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/WorkspaceSkuInlineEditor.vue",
+        "pages/user/listing/components/WorkspaceSkuFieldEditorModal.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/WorkspaceSkuInlineEditor.vue",
+        "pages/user/listing/components/WorkspaceSkuFieldEditorModal.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "字典多选存在旧未命中值时，重新选择官方候选不会继续提交旧值",
+    "已有且仍有效的官方多选值不会被误删",
+    "单选字典、普通输入框和非字典字段行为不变",
+    "服务端仍拒绝任何候选外字典值"
+  ],
+  "verification": [
+    {
+      "name": "网页 SKU 字典重选类型与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/components/WorkspaceSkuInlineEditor.vue pages/user/listing/components/WorkspaceSkuFieldEditorModal.vue && cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
