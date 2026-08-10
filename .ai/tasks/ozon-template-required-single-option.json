@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-template-required-single-option",
+  "title": "修复商品颜色唯一候选自动选择误报",
+  "problem": "商品颜色被定义为模板必填，但必填字典属性的唯一候选自动选择仍只识别 Ozon schema required。颜色只有一个官方候选且 schema 标记 required:false 时，界面显示可自动选择，发布草稿却没有生成带 dictionary_value_id 的正式值，必须手动下拉选择一次才能解除拦截。",
+  "expectedOutcome": "schema 必填或模板必填的字典属性只有一个官方候选时，都直接生成带 dictionary_value_id 的自动选择值；商品颜色无需手动重复选择即可通过字典与发布校验。",
+  "constraints": [
+    "只扩展既有唯一候选自动选择的必填口径，不改变多候选、非必填或无候选行为",
+    "手动覆盖、AI 覆盖和显式清空继续优先",
+    "不修改存储结构、消息协议、发布入口或 vendor 产物",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "tests/ozon-attribute-mapping.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "tests/ozon-attribute-mapping.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "商品颜色 required:false 且只有一个官方候选时自动生成 dictionary_value_id",
+    "自动选择后的草稿不再提示缺少或未选择商品颜色",
+    "普通非必填字典属性仍不自动选择",
+    "候选多于一个时仍要求用户或 AI 明确选择",
+    "现有属性映射测试与类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 属性映射回归测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-attribute-mapping.test.ts"
+    },
+    {
+      "name": "Qingpu AI 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    }
+  ]
+}
