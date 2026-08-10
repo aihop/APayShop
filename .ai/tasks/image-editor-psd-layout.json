@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "image-editor-psd-layout",
+  "title": "精修编辑器分层 PSD 导出与布局重排",
+  "problem": "精修编辑器只能保存扁平成品图，缺少可继续加工的 PSD；顶部命令、右侧属性和底部图册的信息层级混杂，窄窗口会明显压缩画布。",
+  "expectedOutcome": "Dash、Lite 与 design 站共用的精修编辑器可以本地导出分层 PSD，并以更清晰的全局动作、上下文属性栏和响应式布局完成编辑。",
+  "constraints": [
+    "PSD 仅本地生成下载，不写入商品资产、storage、消息协议或发布链",
+    "底图包含已烘焙的修补与调色，文字、色块和尺寸标注保留为独立视觉图层",
+    "不新增 UI 入口，只调整既有精修弹窗",
+    "不修改 embed 跨项目消息协议",
+    "新增 PSD 写出依赖必须按点击动态加载，避免进入编辑器首屏主包",
+    "保持 Dash、Lite 与 design 站共享同一套编辑器实现"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "package.json",
+        "package-lock.json",
+        "src/features/image-editor/psd-export.ts",
+        "src/features/image-editor/composables/useEditImageCanvas.ts",
+        "src/features/image-editor/EditImageModal.vue",
+        "src/features/image-editor/EditImageCanvasPane.vue",
+        "src/features/image-editor/EditImageImageListPanel.vue",
+        "src/features/image-editor/EditImageSelectionInspector.vue",
+        "tests/image-editor-psd-export.test.ts",
+        "docs/design-web-image-editor.md",
+        "docs/README.md"
+      ],
+      "claims": [
+        "package.json",
+        "package-lock.json",
+        "src/features/image-editor/psd-export.ts",
+        "src/features/image-editor/composables/useEditImageCanvas.ts",
+        "src/features/image-editor/EditImageModal.vue",
+        "src/features/image-editor/EditImageCanvasPane.vue",
+        "src/features/image-editor/EditImageImageListPanel.vue",
+        "src/features/image-editor/EditImageSelectionInspector.vue",
+        "tests/image-editor-psd-export.test.ts",
+        "docs/design-web-image-editor.md",
+        "docs/README.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "当前画布可导出 Photoshop 可打开的 PSD，底图与各视觉对象分层且顺序正确",
+    "PNG、JPEG、PSD 导出与保存到商品语义分离，保存仍是唯一主动作",
+    "全局动作不再挤占多行画布高度，低频快捷处理收口",
+    "右侧面板明确显示当前上下文，高级文字属性可折叠",
+    "窄窗口右栏可收起，画布保留可用宽度",
+    "独立 design 站不再显示无意义的空商品图册",
+    "扩展、web 构建、类型检查、分层守卫和相关测试通过"
+  ],
+  "verification": [
+    {
+      "name": "PSD 导出回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/image-editor-psd-export.test.ts tests/ali-scene.test.ts"
+    },
+    {
+      "name": "编辑器分层与类型",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck"
+    },
+    {
+      "name": "扩展与 design 站构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build && npm run build:web"
+    }
+  ]
+}
