@@ -47,12 +47,12 @@
       "allowedPaths": [
         "server/listing/sku.codes.ts",
         "scripts/check-merge-card-codes.mjs",
-        "server/vendor/qingpu-engine"
+        "server/vendor/qingpu-engine/**"
       ],
       "claims": [
         "server/listing/sku.codes.ts",
         "scripts/check-merge-card-codes.mjs",
-        "server/vendor/qingpu-engine"
+        "server/vendor/qingpu-engine/**"
       ]
     }
   ],

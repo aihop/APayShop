@@ -35,11 +35,11 @@
       "path": "app/themes/qingpu",
       "allowedPaths": [
         "scripts/check-merge-card-codes.mjs",
-        "server/vendor/qingpu-engine"
+        "server/vendor/qingpu-engine/**"
       ],
       "claims": [
         "scripts/check-merge-card-codes.mjs",
-        "server/vendor/qingpu-engine"
+        "server/vendor/qingpu-engine/**"
       ]
     }
   ],
