@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-sku-package-draft-contract",
+  "title": "修复 Ozon SKU 包装草稿合同误拦截",
+  "problem": "商品仅按 SKU 保存完整包装时可以通过渠道草稿提交校验，但共享引擎的已提交草稿合同仍强制要求商品级 listing.packageInfo，导致随后去发布统一报草稿缺少当前完整合同。",
+  "expectedOutcome": "逐 SKU 包装与运费证据完整且已核实时，刚提交的 Ozon 渠道草稿可进入发布；真正缺包装、运费未核实或其他合同字段残缺时仍保持阻断。",
+  "constraints": [
+    "只修正商品级 packageInfo 与逐 SKU 完整包装重复校验的矛盾",
+    "不得放宽 freightEvidence 的 SKU 覆盖、尺寸重量、价格或 freightVerified 校验",
+    "不得静默迁移旧合同或从当前工作区重建已提交快照",
+    "不得手改 Qingpu 主题的 engine vendor 产物",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/draft-snapshot.ts",
+        "tests/ozon-publish.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/draft-snapshot.ts",
+        "tests/ozon-publish.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "商品级 packageInfo 缺省但每个发布 SKU 的冻结包装与运费证据完整时，草稿合同判定通过",
+    "任一发布 SKU 缺少对应证据、尺寸重量无效或 freightVerified 不为 true 时继续判定失败",
+    "旧版本及缺少定价、目录或工作区版本的草稿继续要求重新提交",
+    "Ozon 发布专项测试、类型检查和引擎 bundle 守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 发布合同测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "Vue 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "引擎 bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build && node scripts/check-engine-bundle.mjs"
+    }
+  ]
+}
