@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-code-out-of-title",
+  "title": "合卡键与展示标题解耦:系统发的型号码不得进 item.name",
+  "problem": "buildVariantItemName 无条件把 variant.modelName 追加进 item.name。modelName 来自 mapper 的 item.modelNameOverride,即行级 9048 合卡键;该键在本系统里通常是自动发的数据库稳定码(QP-260810163050-001 这类),属于内部合卡标识,不该出现在买家可见标题。线上实测标题:「Плоский магнитный кабель USB Type-C для быстрой зарядки, 100 Вт или 240 Вт, QP-260810163050-001, 1 m, синий」。全库 24 个多变体商品中 13 个的标题混入了自动码。它也不是 SKU 货号——货号是另一组 offer_id。实测该商品分卡轴为空、只有 1 张卡、组标签为空串,说明这个码在标题里并未承担任何区分职责。",
+  "expectedOutcome": "系统自动发放的合卡型号码不再进入 item.name;用户手填的型号名称(非系统发放)仍然保留在标题里,不误伤。判定依据是 ozonMergeCardState.autoModelNames 台账,不是值的格式。",
+  "constraints": [
+    "判定必须走台账(autoModelNames),不得用 AUTO_MERGE_CODE_PATTERN 之类的格式匹配——格式只说明「长得像」,与已收敛的托管判据口径必须一致",
+    "用户手填的型号名称必须继续出现在标题里",
+    "不得改变分组、发码、8292/9048 的注入与就绪账本口径",
+    "不得改变 item.name 中规格轴值的顺序与去重规则(pushUnique 语义保持)",
+    "不得改变 offer_id 的任何生成逻辑",
+    "标题长度上限(200)与既有合规校验不受影响",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/publish-payloads/ozon-factory.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "tests/ozon-variant-item-name.test.ts"
+      ],
+      "claims": [
+        "src/domain/publish-payloads/ozon-factory.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "tests/ozon-variant-item-name.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-merge-card-codes.mjs",
+        "server/vendor/qingpu-engine"
+      ],
+      "claims": [
+        "scripts/check-merge-card-codes.mjs",
+        "server/vendor/qingpu-engine"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "草稿变体带出「该型号值是否系统自动发放」的标记,取自 ozonMergeCardState.autoModelNames",
+    "buildVariantItemName 在型号值为自动发放时不把它拼进标题",
+    "型号值为用户手填时仍然拼进标题",
+    "规格轴值仍按原规则进标题(含数字轴长度单位补全与去重)",
+    "线上那 13 个混入自动码的商品,重新组包后标题不再含 QP- 开头的码",
+    "引擎全量测试与 vue-tsc 通过",
+    "守卫锁定:标题不得无条件拼 modelName,判定必须走台账",
+    "vendor 升版且 sourceCommit 等于 qingpu-ai HEAD"
+  ],
+  "verification": [
+    { "name": "引擎单元测试", "repository": "qingpu-ai", "always": true, "command": "npx vitest run" },
+    { "name": "引擎类型检查", "repository": "qingpu-ai", "always": true, "command": "npx vue-tsc --noEmit" },
+    { "name": "合卡发码判据守卫", "repository": "qingpu-theme", "always": true, "command": "node --experimental-strip-types scripts/check-merge-card-codes.mjs" }
+  ]
+}
