@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-api-error-detail",
+  "title": "保留 Ozon API HTTP 状态与错误正文",
+  "problem": "Ozon 非 2xx 响应在统一客户端中被直接转换为字符串，原生 Response 最终只显示 [object Response]，发布记录无法判断鉴权、限流、参数或平台故障。",
+  "expectedOutcome": "Ozon API 失败信息稳定包含 HTTP 状态，并从平台 JSON 响应中提取 code、message 和 details；没有结构化正文时仍给出明确兜底，且不再出现 [object Response]。",
+  "constraints": [
+    "只修改统一 Ozon 客户端错误归一化，不改变请求、重试和发布行为",
+    "错误正文必须限制长度，不记录请求头、API Key 或完整响应对象",
+    "兼容 Response、ofetch FetchError、普通 Error 和网络超时",
+    "不得新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/api-client.ts",
+        "tests/marketplace-api-client.test.ts"
+      ],
+      "claims": [
+        "src/shared/api-client.ts",
+        "tests/marketplace-api-client.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "HTTP 错误包含状态码和可用的状态文本",
+    "Ozon JSON 错误的 code、message 和 details 被写入错误消息",
+    "无正文 Response 不再显示 [object Response]",
+    "超时与 retryable 判定保持不变",
+    "相关单元测试和类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 客户端错误测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/marketplace-api-client.test.ts"
+    },
+    {
+      "name": "Qingpu-AI 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    }
+  ]
+}
