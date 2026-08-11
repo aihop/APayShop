@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-optional-commission-inspector",
+  "title": "统一 Ozon 可选佣金检查展示",
+  "problem": "Ozon 发布判定已将佣金子类和档位视为可选，但发布前检查面板仍以红色显示未绑定，容易让用户误判为发布阻断项。",
+  "expectedOutcome": "佣金未绑定时发布判定继续只给警告，检查面板明确显示可选并说明按参考或兜底佣金率核价；共享引擎、主题 vendor 和 APay gitlink 完整交付。",
+  "constraints": [
+    "不改变 Ozon 发布门禁、定价公式或 payload",
+    "只调整检查面板展示语义并补回归测试",
+    "主题 vendor 只能通过 engine:release 生成",
+    "版本号严格递增且 sourceCommit 对齐 qingpu-ai 提交",
+    "不纳入或覆盖现有 .DS_Store 等无关改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/components/channel-draft-inspectors/ozon.ts",
+        "tests/ozon-publish.test.ts"
+      ],
+      "claims": [
+        "src/components/channel-draft-inspectors/ozon.ts",
+        "tests/ozon-publish.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "../qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/ozon-optional-commission-inspector.json",
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        ".ai/tasks/ozon-optional-commission-inspector.json",
+        "app/themes/qingpu"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "佣金子类和档位未绑定时仍不进入 missingFields",
+    "检查面板将未绑定佣金标为可选而非红色错误",
+    "检查面板说明当前按参考或兜底佣金率核价",
+    "主题 vendor sourceCommit 等于本次 qingpu-ai 提交",
+    "APay gitlink 等于本次主题提交"
+  ],
+  "verification": [
+    {
+      "name": "佣金发布与检查展示回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-publish.test.ts && npm run typecheck && npm run check:deps"
+    },
+    {
+      "name": "主题 vendor 锚点检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check && test \"$(node -p \"require('./server/vendor/qingpu-engine/version.json').version\")\" = \"0.7.108\""
+    },
+    {
+      "name": "APay gitlink 与契约检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- .ai/tasks/ozon-optional-commission-inspector.json app/themes/qingpu && test -s .ai/tasks/ozon-optional-commission-inspector.json"
+    }
+  ]
+}
