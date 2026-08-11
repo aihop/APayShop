@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "logistics-facts-three-client-convergence",
+  "title": "三端统一事实物流目录与报价证据",
+  "problem": "Dash 与 Lite 从 qingpu-ai 物流计算模块读取物流商和线路，网页端却在 workspace-pricing.presets.ts 复制维护同一份 19 条线路；engine 浏览器出口只暴露报价函数，不暴露目录和证据元数据。当前清单虽恰好一致，但新增物流商或更新资费时仍会漂移，且报价对象未把 verified/reference 证据等级返回给界面，用户无法区分已核验资费与参考价。",
+  "expectedOutcome": "物流商、线路、资费来源、资费版本、证据等级和报价计算只在 qingpu-ai 定义；Dash、Lite 与网页端消费同一 engine 出口。GUOO 继续按已核验资费自动可信，CEL/ZTO/URAL/XINGYUAN 明确作为参考价并要求当前 SKU 人工确认，未命中有效资费档时不得冒充精确报价。",
+  "constraints": [
+    "只收口物流目录、报价证据和三端消费，不重构三份定价 UI",
+    "GUOO 的 verified 与 CEL/ZTO/URAL/XINGYUAN 的 reference 证据等级必须保持，不得把参考价标记为官方或自动可信",
+    "通用跨境经济、标准、优先和大件模板不得冒充真实承运商报价",
+    "真实承运商报价继续按现有件型、销售货值、计费重、禁运能力、单价和挂号费计算",
+    "包装或货值未命中有效资费档时继续阻断自动核价或要求手工运费确认，不得静默使用模板价放行",
+    "物流商、线路、资费来源、版本和证据等级只由 engine 出口提供，网页端不得保留复制清单",
+    "保留既有 logisticsProvider 持久化 value，兼容存量商品与确认 token",
+    "vendor 只能由 qingpu-ai engine:release 生成，版本严格递增为 0.7.108，sourceCommit 必须对应包含本次源码的真实提交",
+    "不引入新依赖，不推送、不部署、不触碰生产数据"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        "app/themes/qingpu"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/pipeline/logistics-calculator.ts",
+        "src/app/composables/usePricingSidebarCalculations.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "scripts/check-deps.mjs",
+        "tests/logistics-catalog.test.ts",
+        "tests/realfbs-carrier-ratebook.test.ts"
+      ],
+      "claims": [
+        "src/shared/pipeline/logistics-calculator.ts",
+        "src/app/composables/usePricingSidebarCalculations.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "scripts/check-deps.mjs",
+        "tests/logistics-catalog.test.ts",
+        "tests/realfbs-carrier-ratebook.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "../qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**",
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/components/workspace-pricing.presets.ts",
+        "scripts/check-logistics-catalog.mjs"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**",
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/components/workspace-pricing.presets.ts",
+        "scripts/check-logistics-catalog.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Dash、Lite 与网页端均可选择同一 9 个物流商分组和 19 条线路，value 与存量数据兼容",
+    "网页端不再定义 WORKSPACE_LOGISTICS_ROUTE_OPTIONS 或 realFBS 承运商复制清单",
+    "engine 的浏览器与主入口均导出物流商、线路和单线路查询函数及对应类型",
+    "每条真实承运商线路包含 tariffSource、tariffVersion 和 tariffEvidence，三端显示或提示同一证据信息",
+    "GUOO 有效资费报价 freightVerified=true；四家参考资费 freightVerified=false 且 confirmationRequired=true",
+    "缺包装、超件型、超货值或缺资费行时不产生伪精确报价，现有手工确认 token 失效规则保持",
+    "防复制守卫能阻止网页重新维护物流线路数组，并校验 vendor 目录与证据等级",
+    "vendor 升至 0.7.108，sourceCommit 等于包含本次 engine 源码的 qingpu-ai 提交",
+    "相关单元测试、类型检查、引擎 bundle 守卫、网页 Listing 守卫和 APay 构建通过"
+  ],
+  "verification": [
+    {
+      "name": "物流事实、类型与引擎 bundle",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/logistics-catalog.test.ts tests/realfbs-carrier-ratebook.test.ts tests/logistics-recommendation.test.ts && npm run engine:build"
+    },
+    {
+      "name": "网页物流目录与 Listing 守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-logistics-catalog.mjs && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs"
+    },
+    {
+      "name": "APay 正式构建与主题锚点",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const v=require('./app/themes/qingpu/server/vendor/qingpu-engine/version.json');if(v.version!=='0.7.108')process.exit(1)\" && npm run build"
+    }
+  ]
+}
