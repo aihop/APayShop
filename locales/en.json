@@ -477,6 +477,27 @@
       "passwordMismatch": "New passwords do not match"
     },
     "settings": {
+      "presets": {
+        "nav": "Product Field Presets",
+        "title": "Product Field Presets",
+        "subtitle": "Declare custom fields per product type. The product form renders them below the built-in fields and stores values in product metadata.",
+        "no_permission": "No permission to view system settings",
+        "product_type": "Product type",
+        "add_field": "Add field",
+        "help": "The field name is the storage key (must start with a letter; letters, digits and underscores allowed). The label is what the form shows. Names already used by built-in controls are ignored.",
+        "empty": "No custom fields for this type yet",
+        "field_name": "Field name",
+        "field_label": "Label",
+        "field_type": "Type",
+        "field_default": "Default",
+        "field_required": "Required",
+        "field_name_invalid": "Invalid field name, or it collides with a built-in field",
+        "form_section": "Custom fields",
+        "type_text": "Text",
+        "type_number": "Number",
+        "type_boolean": "Toggle",
+        "type_textarea": "Multiline text"
+      },
       "page": {
         "title": "System Settings",
         "subtitle": "Configure global site information, AI models, and theme preferences.",

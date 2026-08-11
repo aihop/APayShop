@@ -321,6 +321,7 @@ export default defineNuxtConfig({
       'admin/settings/themes': false,
       'admin/settings/manages': false,
       'admin/settings/authorization': false,
+      'admin/settings/product-presets': false,
       'admin/payments': false,
       'admin/profile': false,
       'admin/extensions/[...slug]': false,

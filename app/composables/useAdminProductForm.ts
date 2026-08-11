@@ -1,10 +1,13 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useToast } from '#imports'
 import {
+  PRODUCT_META_PRESETS_KEY,
   cleanProductFeatures,
   cleanServiceSchemaFields,
+  parseMetaPresets,
   parseProductFeatures,
   parseServiceSchemaFields,
+  presetFieldsForType,
   stripUiIds,
 } from '../utils/adminProductFormData'
 
@@ -104,6 +107,29 @@ export const useAdminProductForm = (emit: any) => {
   // ==========================================
   // 3. 特殊产品类型扩展字段 (Extended Fields)
   // ==========================================
+
+  // 商品元数据表单预设：按商品类型声明的自定义字段（名称/类型），值直接写 metaData。
+  // 核心不认识任何具体键名——预设是 settings 里的数据，不是代码。
+  const metaPresets = computed(() => parseMetaPresets(settings.value?.[PRODUCT_META_PRESETS_KEY]))
+  const presetFields = computed(() => presetFieldsForType(metaPresets.value, form.type))
+
+  /**
+   * 预设默认值只在**新建**商品时预填(form.id === null)。
+   * 不回填既有商品:回填会让「这个键从没配过」和「配过且恰好等于默认值」无法区分,
+   * 而下游常靠「键不存在 = 不限制」来避免误伤存量商品。
+   * 已经有值的键也不覆盖——运营填过的东西不能被默认值冲掉。
+   */
+  const applyPresetDefaults = () => {
+    if (form.id !== null) return
+    if (!form.metaData) form.metaData = {}
+    for (const field of presetFields.value) {
+      if (field.default === null || field.default === undefined) continue
+      if (form.metaData[field.name] !== undefined) continue
+      form.metaData[field.name] = field.default
+    }
+  }
+
+  watch(() => form.type, () => { applyPresetDefaults() })
 
   // Subscription 类型：Gateway Plan IDs 映射
   const planIdsList = ref<{gateway: string, id: string}[]>([])
@@ -361,6 +387,7 @@ export const useAdminProductForm = (emit: any) => {
       for (const key in translationFeaturesLists) {
         translationFeaturesLists[key] = []
       }
+      applyPresetDefaults()
     }
     newImageUrl.value = ''
   }
@@ -579,6 +606,7 @@ export const useAdminProductForm = (emit: any) => {
     planIdsList,
     availableGateways,
     addPlanId,
-    removePlanId
+    removePlanId,
+    presetFields
   }
 }

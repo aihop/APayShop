@@ -301,6 +301,49 @@
         </template>
       </ProductPricingFeaturesSection>
 
+      <!--
+        商品类型预设的自定义字段。字段名/类型全部来自 settings 里的预设数据,
+        核心不认识任何具体键名;已被上面写死控件接管的键在 RESERVED_META_KEYS 里排除。
+        只在主语言 tab 渲染:预设值是结构化配置,不做逐语言翻译。
+      -->
+      <div
+        v-if="currentTabLocale === defaultLocale && presetFields.length"
+        class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg"
+      >
+        <h3 class="text-gray-900 dark:text-white font-medium mb-4">{{ $t('admin.settings.presets.form_section') }}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UFormField
+            v-for="field in presetFields"
+            :key="field.name"
+            :label="field.label || field.name"
+            :required="field.required"
+          >
+            <UCheckbox
+              v-if="field.type === 'boolean'"
+              v-model="form.metaData[field.name]"
+            />
+            <UTextarea
+              v-else-if="field.type === 'textarea'"
+              v-model="form.metaData[field.name]"
+              :rows="3"
+              class="text-gray-900 dark:text-white w-full"
+            />
+            <UInput
+              v-else-if="field.type === 'number'"
+              v-model.number="form.metaData[field.name]"
+              type="number"
+              class="text-gray-900 dark:text-white w-full"
+            />
+            <UInput
+              v-else
+              v-model="form.metaData[field.name]"
+              class="text-gray-900 dark:text-white w-full"
+            />
+            <p class="text-xs text-gray-500 mt-1">{{ field.name }}</p>
+          </UFormField>
+        </div>
+      </div>
+
       <ProductImagesField
         :visible="currentTabLocale === defaultLocale"
         :images="form.imageUrls"
@@ -444,6 +487,7 @@ const {
   availableGateways,
   addPlanId,
   removePlanId,
+  presetFields,
 } = useAdminProductForm(emit)
 
 const typeOptions = computed(() => [

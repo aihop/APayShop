@@ -476,6 +476,27 @@
       "passwordMismatch": "新密码两次输入不一致"
     },
     "settings": {
+      "presets": {
+        "nav": "商品字段预设",
+        "title": "商品字段预设",
+        "subtitle": "按商品类型声明自定义字段，商品表单会在固有字段之下渲染它们，值直接存入商品元数据。",
+        "no_permission": "没有查看系统设置的权限",
+        "product_type": "商品类型",
+        "add_field": "添加字段",
+        "help": "字段名用于存储（英文字母开头，可含数字和下划线），标签是表单上显示的名称。已被固有控件占用的字段名会被自动忽略。",
+        "empty": "该类型还没有自定义字段",
+        "field_name": "字段名",
+        "field_label": "显示标签",
+        "field_type": "类型",
+        "field_default": "默认值",
+        "field_required": "必填",
+        "field_name_invalid": "字段名不合法，或与系统固有字段冲突",
+        "form_section": "自定义字段",
+        "type_text": "单行文本",
+        "type_number": "数字",
+        "type_boolean": "开关",
+        "type_textarea": "多行文本"
+      },
       "page": {
         "title": "系统设置",
         "subtitle": "配置全局站点信息、AI 模型和主题偏好",

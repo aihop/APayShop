@@ -23,6 +23,7 @@ export const SETTINGS_NAV_TABS: SettingsNavTab[] = [
   { id: 'users', labelKey: 'admin.nav.manages', icon: 'ph:users-four', route: '/admin/settings/manages' },
   { id: 'authorization', labelKey: 'admin.settings.page.nav_authorization', icon: 'ph:key-fill', route: '/admin/settings/authorization' },
   { id: 'themes', labelKey: 'admin.nav.themes', icon: 'ph:sparkle-duotone', route: '/admin/settings/themes' },
+  { id: 'product-presets', labelKey: 'admin.settings.presets.nav', icon: 'ph:list-plus-fill', route: '/admin/settings/product-presets' },
 ]
 
 /** 是否为 settings 页内合法 tab id(路由型成员不算——它们不由 activeTab 渲染) */
