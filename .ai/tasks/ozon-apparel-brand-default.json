@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-apparel-brand-default",
+  "title": "修复 Ozon 服装和鞋类品牌默认值",
+  "problem": "Ozon 属性 31「服装和鞋类品牌」与属性 85「品牌」是两个独立属性。现有基础字段只稳定识别 85，且发布映射把品牌的 dictionary_value_id 丢弃后写成裸文本，导致服装类目必填属性 31 为空并被错误阻断。",
+  "expectedOutcome": "独立识别属性 31 与 85；对当前类目实际存在的品牌属性，从该属性自己的实时字典解析 Нет бренда，并冻结真实 attributeId、官方文本与 dictionary_value_id；服装类目不再因属性 31 为空而阻断。",
+  "constraints": [
+    "属性 31 与属性 85 保持独立语义和独立基础字段 key，不互相替代",
+    "dictionary_value_id 必须来自当前属性的已缓存类目字典，不写死候选 ID",
+    "字典缺失或没有 Нет бренда 时不得伪造 ID 或裸文本绕过必填校验",
+    "不修改存储结构、消息协议、发布入口或 vendor 产物",
+    "不得引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/base-template-fields.ts",
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/ozon-base-template-fields.test.ts",
+        "tests/ozon-attribute-mapping.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/base-template-fields.ts",
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/ozon-base-template-fields.test.ts",
+        "tests/ozon-attribute-mapping.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "属性 31「服装和鞋类品牌」独立于属性 85「品牌」被识别",
+    "属性 31 从自己的当前类目字典选择 Нет бренда 并提交对应 dictionary_value_id",
+    "属性 85 继续从自己的当前类目字典选择 Нет бренда 并提交对应 dictionary_value_id",
+    "没有实时字典候选时不写死 ID、不提交裸文本，并保持必填阻断",
+    "现有 Ozon 属性映射测试与类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 基础属性识别测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-base-template-fields.test.ts"
+    },
+    {
+      "name": "Ozon 属性映射回归测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-attribute-mapping.test.ts"
+    },
+    {
+      "name": "Qingpu AI 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    }
+  ]
+}
