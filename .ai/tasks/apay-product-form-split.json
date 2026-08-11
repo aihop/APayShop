@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-product-form-split",
+  "title": "拆分商品表单:ProductFormModal 与 useAdminProductForm 收到 500 行以内",
+  "problem": "app/components/admin/ProductFormModal.vue(569 行)与 app/composables/useAdminProductForm.ts(612 行)长期超过 500 行工程约定。apay-product-meta-presets 又各自往里加了约 40 行,当时按串行安排把拆分留到本期。",
+  "expectedOutcome": "两个文件均降到 500 行以内,抽出的部分按既有 app/components/admin/products/ 分区惯例落位。商品表单的渲染结果、保存产物与校验行为逐字段不变。",
+  "constraints": [
+    "纯结构调整:不改变任何字段的渲染条件、默认值、类型强转、多语言处理与保存产物",
+    "优先抽出本次新增的预设相关部分(预设字段渲染、预设加载与默认值),再按需抽既有区块",
+    "抽出的组件放 app/components/admin/products/,与 ProductImagesField 等同级;抽出的逻辑放独立 composable",
+    "子目录组件必须显式 import——Nuxt 自动导入会带路径前缀(见 ProductFormModal 顶部注释,踩过静默不渲染的坑)",
+    "新文件同样受 500 行约定约束",
+    "不新增依赖,不改后端"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/admin/ProductFormModal.vue",
+        "app/components/admin/products/**",
+        "app/composables/useAdminProductForm.ts",
+        "app/composables/useProductMetaPresets.ts"
+      ],
+      "claims": [
+        "app/components/admin/ProductFormModal.vue",
+        "app/components/admin/products/**",
+        "app/composables/useAdminProductForm.ts",
+        "app/composables/useProductMetaPresets.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "ProductFormModal.vue 与 useAdminProductForm.ts 均少于 500 行",
+    "新增的组件与 composable 均少于 500 行",
+    "预设字段渲染与默认值逻辑抽到独立文件,ProductFormModal 只做装配",
+    "商品表单在 basic/subscription/service/key/file/topup 六种类型下渲染的字段集合与拆分前一致",
+    "nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "行数约定",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('fs');const files=['app/components/admin/ProductFormModal.vue','app/composables/useAdminProductForm.ts','app/composables/useProductMetaPresets.ts',...fs.readdirSync('app/components/admin/products').map(f=>'app/components/admin/products/'+f)];const bad=files.filter(f=>fs.existsSync(f)&&fs.readFileSync(f,'utf8').split('\\n').length>500);if(bad.length)throw new Error('over 500 lines: '+bad.join(', '));console.log('all under 500 lines:',files.length,'files')\""
+    },
+    {
+      "name": "子目录组件显式 import",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const s=require('fs').readFileSync('app/components/admin/ProductFormModal.vue','utf8');const used=[...s.matchAll(/<(Product[A-Za-z]+)/g)].map(m=>m[1]);const uniq=[...new Set(used)];const missing=uniq.filter(n=>!new RegExp('import '+n+' from').test(s));if(missing.length)throw new Error('missing explicit import: '+missing.join(', '));console.log('explicit imports ok:',uniq.length)\""
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

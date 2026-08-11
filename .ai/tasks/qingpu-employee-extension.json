@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-extension",
+  "title": "Qingpu 员工二期:扩展端凭证与人均 AI 额度",
+  "problem": "员工一期只开了网页通道。扩展/桌面端走的是 qingpu_tenant_keys 这条 Bearer 通道,那张表还不认识员工,resolveApiAuth 的 tenant key 分支一律按店主处理。同时所有员工共用店主那把 ainode api_key,单个员工失手就能把店主余额跑空。",
+  "expectedOutcome": "员工可以在扩展/桌面端登录,其设备凭证归属到本人;DEVICE_KEY_CAP 从「每用户 N 把」改为「每人 N 把」,店主多设备登录不再挤掉员工;每个员工持有独立的 ainode api_key(仍挂在店主的 ainode 账户下)并可由店主设置消费上限。",
+  "constraints": [
+    "不修改 ainode 仓库任何代码:创建 key 与设额度都走既有 /api/site/api-keys/create 与 /api/site/api-keys/quota-limit",
+    "员工的 ainode key 绝不能走 persistModelCredentials:那条路径写 qingpu_settings(user_id 主键),会直接覆盖店主自己的 key",
+    "员工 key 存在 qingpu_employees.ainode_api_key_id,不进 qingpu_settings",
+    "不复用 ensureAINodeApiKey 的「只在首次创建」guard,否则第二个员工建不出 key",
+    "员工 key 必须进 AINODE_MODEL_GROUP_ID 对应分组,否则建得出来但一调就报错",
+    "改 issue.ts 时必须一次梳完四条路径:DEVICE_KEY_CAP 撤销最旧、按订阅批量续期、hasUsedTrial 试用判定、revokeAllTenantKeysForUser;漏一条的表现是员工随机掉线且无提示",
+    "数据归属不变:tenant key 分支返回的 userId 仍恒为店主 owner_user_id,employee_id 只承担审计与限权",
+    "员工停用后其设备凭证必须同步失效"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/tenant_keys.sql",
+        "server/tenant-keys/**",
+        "server/employees/**",
+        "server/shared/resolveApiUserId.ts",
+        "api/employees/**",
+        "scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "database/tenant_keys.sql",
+        "server/tenant-keys/**",
+        "server/employees/**",
+        "server/shared/resolveApiUserId.ts",
+        "api/employees/**",
+        "scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu_tenant_keys 增加 employee_id 列(可空,NULL = 店主本人设备),并建立配套索引",
+    "DEVICE_KEY_CAP 的作用域改为 (user_id, employee_id):店主反复登录不再撤销员工的 key",
+    "订阅续期、试用判定、全量撤销三条路径在引入 employee_id 后语义明确且各自有测试或守卫覆盖",
+    "resolveApiAuth 的 tenant key 分支能解析出 employeeId 与 role,并同样经过访问闸门",
+    "员工停用后,其 tenant key 在下一次请求即失效",
+    "每个员工可获得独立 ainode api_key,存 qingpu_employees.ainode_api_key_id,且 qingpu_settings 不被写入员工凭证",
+    "店主可为单个员工设置 AI 消费上限,调用既有 quota-limit 端点",
+    "APay 根 nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "员工闸门与凭证守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "设备凭证归属事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'employee_id' database/tenant_keys.sql && rg -q 'employee_id' server/tenant-keys/queries.ts && ! rg -q 'persistModelCredentials' server/employees/ && rg -q 'AINODE_MODEL_GROUP_ID' server/tenant-keys/ainode.ts"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

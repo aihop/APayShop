@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-plan-quota",
+  "title": "Qingpu 套餐资源配额:员工数与店铺数上限",
+  "problem": "套餐目前只区分 level,不限制任何业务资源:任何用户都能无限建店铺、无限加员工。配额的定义位置已经有了(apay-product-meta-presets 已落地的商品字段预设,把 max_stores/max_employees 写进 products.meta_data),但主题侧还没有读取与强制。",
+  "expectedOutcome": "套餐产品的 meta_data 上声明 max_stores / max_employees 后,创建店铺和创建员工时在服务端强制,超额返回 402 并说明当前用量与上限。未声明配额的套餐保持不限制。主题自带一份预设 JSON 与一键安装入口,免去运营手敲键名。存储体积与商品数不在本期范围。",
+  "constraints": [
+    "不新增数据表:额度定义读 products.meta_data(已被 getQingpuPlanProducts 读取并缓存),用量用现有表 count",
+    "不修改 ainode 仓库任何代码:ainode 只管钱(余额、结算、api_key 消费上限),业务资源配额归主题",
+    "缺配额键 = 不限制。上线时没有任何产品填过配额,若缺键回退到默认下限会把全部存量付费用户瞬间夹死",
+    "软超限:存量超额资源保留可用,只拦截新建,不删除、不禁用既有店铺或员工",
+    "配额键沿用 meta_data 既有 snake_case 风格(max_stores / max_employees)",
+    "强制点收口在 server/quota,各创建端点只调用断言,不各自解析元数据",
+    "读取侧严格解析:非整数、负数一律视为未配置,避免 UI 或人工写入的脏值变成误拦",
+    "不改动 resolveApiAuth 的鉴权与员工访问闸门语义",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/quota/**",
+        "server/shared/coreStats.ts",
+        "api/stores/index.ts",
+        "api/employees/index.ts",
+        "resource/plan-quota-preset.json",
+        "api/admin/plan-quota-preset.ts",
+        "scripts/check-quota-gate.mjs"
+      ],
+      "claims": [
+        "server/quota/**",
+        "server/shared/coreStats.ts",
+        "api/stores/index.ts",
+        "api/employees/index.ts",
+        "resource/plan-quota-preset.json",
+        "api/admin/plan-quota-preset.ts",
+        "scripts/check-quota-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "getQingpuPlanProducts 额外返回 maxStores/maxEmployees,来源为 products.meta_data 的 max_stores/max_employees,缺键或脏值为 null(不限制)",
+    "server/quota 提供按 userId 解析当前生效配额的读取,以及超额抛 402 的断言,两者是唯一强制点",
+    "创建店铺与创建员工在超额时返回 402,消息含当前用量与上限;未超额与未配置配额时行为与改动前一致",
+    "无有效订阅时的默认配额集中在一处常量,且默认为不限制",
+    "存量超额账号仍可正常读取与使用既有店铺、员工,只有新建被拦",
+    "主题自带 plan-quota-preset.json 并提供管理端一键写入 settings.product_meta_presets 的入口,运营不需要手敲键名",
+    "守卫脚本静态锁定「缺键不限制」「软超限」两条不变量并通过",
+    "APay 根 nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "配额闸门守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-quota-gate.mjs"
+    },
+    {
+      "name": "配额收口事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'max_stores' server/shared/coreStats.ts && rg -q 'assertQuota' api/stores/index.ts && rg -q 'assertQuota' api/employees/index.ts && test -s resource/plan-quota-preset.json && node -e \"const p=require('./resource/plan-quota-preset.json'); const f=(p.subscription||[]).map(x=>x.name); if(!f.includes('max_stores')||!f.includes('max_employees')) throw new Error('preset missing quota fields')\""
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

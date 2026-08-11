@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-subaccount",
+  "title": "Qingpu 店主员工子账户:实体、登录与权限闸门(主题自包含)",
+  "problem": "店主想让员工帮忙铺货,目前只能共用店主账号:员工能看到账单、订阅、发票和推广佣金,离职只能改主密码,也无法区分某条操作或某笔 AI 消费是谁产生的。Qingpu 现有身份只有 users.id 一层,tenant key 是设备凭证(一人多把,1:N),不能承担人员身份。",
+  "expectedOutcome": "店主可创建、停用店内员工;员工用「店铺码 + 登录名 + 密码」登录网页,会话解析出的数据归属仍是店主 user_id,业务数据与 AI 计费完全落在店主名下;员工请求在唯一鉴权入口按路径白名单放行,账单/订阅/订单/发票/推广类接口默认拒绝。员工是主题领域实体,实现全部落在主题仓内,APay 主仓与 ainode 均零改动。",
+  "constraints": [
+    "不修改 APay 主仓任何文件:qingpu_employees 是主题私有表,主题库可能是独立数据库(QINGPU_DATABASE_URL),核心不得反向依赖主题表;登录端点与会话类型增强都放主题内,只调用宿主既有的 setUserSession/hashPassword 公开能力",
+    "session.user.id 必须写店主 owner_user_id,禁止把 qingpu_employees.id 写入 session.user.id 或任何被当作 userId 使用的字段",
+    "resolveApiAuth 返回的 userId 语义保持不变(数据归属者=店主),员工身份只经新增的独立字段传递,现有 85 个调用点不改",
+    "员工登录标识不使用邮箱,与 APay users 邮箱空间不相交;唯一性为店内唯一 (owner_user_id, login_name)",
+    "路径白名单必须 fail-closed:未显式放行的路径对员工一律 403,新增端点默认拒绝",
+    "不修改 ainode 仓库任何代码;不修改 server/tenant-keys/issue.ts 的订阅、试用、DEVICE_KEY_CAP 与续期逻辑(属第二期)",
+    "不修改 qingpu_settings 的写入路径,员工凭证不得写入按 user_id 主键的设置表",
+    "不改动 11 张 Qingpu 业务表的 user_id 归属字段,不引入 account_id",
+    "密码哈希复用宿主既有 hashPassword/verifyPassword,不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/employees.sql",
+        "server/db/pg.ts",
+        "server/employees/**",
+        "server/shared/resolveApiUserId.ts",
+        "api/employees/**",
+        "scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "database/employees.sql",
+        "server/db/pg.ts",
+        "server/employees/**",
+        "server/shared/resolveApiUserId.ts",
+        "api/employees/**",
+        "scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu_employees 表建立:owner_user_id 隔离、(owner_user_id, login_name) 唯一、status 仅 active/disabled、停用走 disabled_at 不删行",
+    "qingpu_employees 进入 assertQingpuSchemaReady 的 REQUIRED_TABLES,缺表时 503 并给出可执行命令",
+    "resolveApiAuth 额外返回 employeeId 与 role;店主会话与 tenant key 通道行为完全不变,userId 恒为店主",
+    "员工会话命中非白名单路径返回 403,白名单覆盖 listing/creations/tools/stores(读),billing/subscription/orders/invoice/promo/agent 一律拒绝",
+    "店主可通过 api/employees 创建、列出、改名改权限、停用员工;员工自身无权调用这组接口",
+    "员工登录端点位于主题 api/employees/login.ts,校验店铺码+登录名+密码,写入的 session.user.id 为店主 id,员工信息位于独立字段",
+    "APay 主仓工作区零改动,核心不存在任何 employee 相关文件",
+    "守卫脚本对 fail-closed 与 session 归属两条不变量做静态检查并通过",
+    "APay 根 nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "员工访问闸门守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "Qingpu 员工表与自检事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s database/employees.sql && rg -q 'qingpu_employees' server/db/pg.ts && rg -q 'owner_user_id' database/employees.sql && rg -q 'qingpu_employees_login_unique' database/employees.sql && ! rg -q 'email' database/employees.sql"
+    },
+    {
+      "name": "主题自包含边界检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s api/employees/login.ts && test -s server/employees/session.d.ts && ! test -e ../../../server/api/auth/employee-login.post.ts && test -z \"$(cd ../../.. && git status --porcelain -- server auth.d.ts)\""
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

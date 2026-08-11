@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-product-meta-presets",
+  "title": "APay 商品元数据表单预设:按商品类型声明自定义字段",
+  "problem": "products.meta_data 的 schema 注释写的是 EAV 自定义属性,但实际每个键都在 ProductFormModal 里写死了一个控件,没有任何通用编辑入口。结果是:主题需要的业务字段(如套餐额度)无处安放——要么往核心表单加控件,让核心去认识只有某个主题懂的概念;要么运营根本没有地方填。存量的 level 键就是这样,被 coreStats 读取却没有对应控件。",
+  "expectedOutcome": "运营可按商品类型声明一组自定义字段(名称、标签、类型、必填),商品表单在现有控件之下渲染这些字段并直接写入 products.meta_data。核心不内置、不理解任何具体业务键名;主题把自己需要的字段作为预设内容提供。现有写死控件行为完全不变。",
+  "constraints": [
+    "只做加法:不迁移、不删除、不改动任何现有写死控件与其条件显隐、多语言、类型强转逻辑",
+    "预设不得渲染已被写死控件接管的键,避免同一个键出现两个输入框;受控键清单集中在一处",
+    "核心不得内置任何主题专用预设内容,默认预设为空;核心源码不得出现 max_stores 等具体业务键名",
+    "不新增后端:复用既有 /api/admin/settings 通用 upsert 与 settings 表,不加表不加接口",
+    "/api/settings 是未鉴权公开端点,预设描述符会公开可读;预设只能放字段描述,不得放任何机密",
+    "字段描述符沿用既有 service form_schema 的形状与双模式编辑器路数,不另起一套",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/utils/adminProductFormData.ts",
+        "app/composables/useAdminProductForm.ts",
+        "app/components/admin/ProductFormModal.vue",
+        "app/components/admin/settings/nav-tabs.ts",
+        "app/pages/admin/settings/product-presets.vue",
+        "nuxt.config.ts",
+        "locales/en.json",
+        "locales/ru.json",
+        "locales/zh.json"
+      ],
+      "claims": [
+        "app/utils/adminProductFormData.ts",
+        "app/composables/useAdminProductForm.ts",
+        "app/components/admin/ProductFormModal.vue",
+        "app/components/admin/settings/nav-tabs.ts",
+        "app/pages/admin/settings/product-presets.vue",
+        "nuxt.config.ts",
+        "locales/en.json",
+        "locales/ru.json",
+        "locales/zh.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "预设以 settings 表的 product_meta_presets 键存储,结构为 { 商品类型: 字段描述符数组 },字段描述符为 name/label/type/required",
+    "商品表单在切换类型时渲染该类型的预设字段,值读写 form.metaData[name],保存后与其他 meta 键一并持久化",
+    "受控键清单存在且被预设渲染排除,现有写死控件不出现重复输入框",
+    "设置族新增预设编辑页并出现在 nav-tabs 单点清单中,可增删字段并保存",
+    "新页面在 nuxt.config.ts 的 i18n pages 表中登记为 false,与其余 admin 页面口径一致",
+    "默认预设为空:未配置时商品表单渲染结果与改动前一致",
+    "核心源码不含任何具体业务键名(如 max_stores),预设内容全部来自数据",
+    "三个 locale 文件均补齐新增文案键",
+    "nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "预设机制事实检查",
+      "repository": "apay",
+      "always": true,
+      "command": "test -s app/pages/admin/settings/product-presets.vue && rg -q 'PRODUCT_META_PRESETS_KEY' app/pages/admin/settings/product-presets.vue app/composables/useAdminProductForm.ts && rg -q 'product_meta_presets' app/utils/adminProductFormData.ts && rg -q 'product-presets' app/components/admin/settings/nav-tabs.ts && rg -q 'RESERVED_META_KEYS' app/utils/adminProductFormData.ts"
+    },
+    {
+      "name": "核心不认识业务键名",
+      "repository": "apay",
+      "always": true,
+      "command": "! rg -q 'max_stores|max_employees|maxStores|maxEmployees' app server"
+    },
+    {
+      "name": "多语言文案齐备",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const l=['en','ru','zh'].map(n=>JSON.parse(require('fs').readFileSync('locales/'+n+'.json','utf8'))); const k=Object.keys(l[0].admin.settings.presets||{}); if(!k.length) throw new Error('missing preset locale keys'); for(const f of l){ for(const key of k){ if(!f.admin.settings.presets[key]) throw new Error('missing locale key: '+key) } } console.log('locale keys ok:', k.length)\""
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
