@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "local-branches-main-convergence",
+  "title": "收敛 GoPanel 未合并分支到三仓主线",
+  "problem": "GoPanel 在 APay、Qingpu 主题和 qingpu-ai 生成的任务分支尚未全部进入 main。其中物流事实分支尚未交付；可选佣金任务又产生两轮主题/APay 交付分支，并与物流任务各自携带不同的 engine 0.7.108 vendor。直接 merge GoPanel 旧分支会发生 gitlink 与 vendor 冲突，后合并的 vendor 还会静默覆盖先合并功能。",
+  "expectedOutcome": "以 qingpu-ai main 已有的可选佣金修复为基线，迁入物流事实源码，发布同时包含两项能力的 engine 0.7.110；Qingpu 主题保留当前 main 的员工/配额并消费统一物流目录；APay 保留当前 main 并推进主题 gitlink。旧的 0.7.108/0.7.109 交付分支由组合版本取代，不直接合并互斥 vendor。",
+  "constraints": [
+    "不得逐分支直接合并互斥 vendor；最终主题只能保留由 qingpu-ai 最新 main 生成的一套 engine 产物",
+    "先合并并验证 qingpu-ai 源码，再发布 engine 0.7.110；主题 vendor 禁止手改",
+    "主题必须保留 main 上员工子账户与套餐配额实现，不得回退 qingpu_employees、配额闸门或相关守卫",
+    "APay 必须保留 main 上商品字段预设与现有任务契约，不得用旧分支覆盖 gitlink",
+    "物流商、线路、资费来源、版本和证据等级只由 engine 出口提供；网页端删除复制清单",
+    "可选佣金检查展示必须继续标记为可选，不得恢复红色阻断语义",
+    "旧版 ozon-optional-commission-inspector 合同由 ozon-optional-commission-inspector-main 与本组合合同取代，不把旧 0.7.108 指针合入 main",
+    "原有 .DS_Store 改动保持未提交且内容不变",
+    "只处理 gopanel/* 分支；不处理 codex/*、worktree-snapshot-* 或其他非 GoPanel 历史分支",
+    "GoPanel 已被 main 包含的分支不重复合并；本任务只迁移相对 main 仍为正补丁的独有提交",
+    "不引入依赖、不发布应用、不操作生产数据"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "scripts/check-deps.mjs",
+        "src/app/composables/usePricingSidebarCalculations.ts",
+        "src/engine/browser.ts",
+        "src/engine/index.ts",
+        "src/shared/pipeline/logistics-calculator.ts",
+        "tests/logistics-catalog.test.ts",
+        "tests/realfbs-carrier-ratebook.test.ts"
+      ],
+      "claims": [
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "scripts/check-deps.mjs",
+        "src/app/composables/usePricingSidebarCalculations.ts",
+        "src/engine/browser.ts",
+        "src/engine/index.ts",
+        "src/shared/pipeline/logistics-calculator.ts",
+        "tests/logistics-catalog.test.ts",
+        "tests/realfbs-carrier-ratebook.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/components/workspace-pricing.presets.ts",
+        "scripts/check-logistics-catalog.mjs",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "pages/user/listing/components/useWorkspacePricingSidebar.ts",
+        "pages/user/listing/components/workspace-pricing.presets.ts",
+        "scripts/check-logistics-catalog.mjs",
+        "server/vendor/qingpu-engine/**"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/local-branches-main-convergence.json",
+        ".ai/tasks/logistics-facts-three-client-convergence.json",
+        ".ai/tasks/ozon-optional-commission-inspector-main.json",
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        ".ai/tasks/local-branches-main-convergence.json",
+        ".ai/tasks/logistics-facts-three-client-convergence.json",
+        ".ai/tasks/ozon-optional-commission-inspector-main.json",
+        "app/themes/qingpu"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu-ai main 同时包含可选佣金检查展示与统一物流事实源码，相关测试和依赖守卫通过",
+    "主题 vendor 版本为 0.7.110，sourceCommit 等于包含两项能力的 qingpu-ai 提交",
+    "网页端消费 engine 物流目录，不再维护 WORKSPACE_LOGISTICS_ROUTE_OPTIONS 或 realFBS 承运商复制清单",
+    "GUOO 保持 verified；CEL/ZTO/URAL/XINGYUAN 保持 reference 且要求人工确认",
+    "主题 main 上员工子账户、套餐配额和对应守卫保持存在",
+    "APay main 补入物流与最终佣金交付合同，gitlink 等于最终主题提交",
+    "三仓 main 推送后不再保留已收敛或已被 main 包含的本地 gopanel/* 分支；远端 GoPanel 分支仅在确认已合并后删除",
+    "原有 .DS_Store 未提交改动保持不变"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu-AI 物流与佣金回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/logistics-catalog.test.ts tests/realfbs-carrier-ratebook.test.ts tests/logistics-recommendation.test.ts tests/ozon-publish.test.ts && npm run engine:build"
+    },
+    {
+      "name": "主题物流、发布与配额守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const v=require('./server/vendor/qingpu-engine/version.json');if(v.version!=='0.7.110')process.exit(1)\" && node scripts/check-logistics-catalog.mjs && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs && node scripts/check-employee-access-gate.mjs && node scripts/check-quota-gate.mjs"
+    },
+    {
+      "name": "APay 构建与跨仓锚点",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check && test -s .ai/tasks/logistics-facts-three-client-convergence.json && test -s .ai/tasks/ozon-optional-commission-inspector-main.json && npm run build"
+    }
+  ]
+}
