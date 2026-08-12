@@ -36,7 +36,8 @@
         "api/tenant-keys/**",
         "api/user-info.ts",
         "api/employees/login.ts",
-        "scripts/check-employee-access-gate.mjs"
+        "scripts/check-employee-access-gate.mjs",
+        "server/vendor/qingpu-engine/**"
       ],
       "claims": [
         "api/ainode/site/**",

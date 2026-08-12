@@ -77,7 +77,9 @@
 
 ### 3.4 权限用白名单 + 默认拒绝
 
-`server/shared/resolveApiUserId.ts` 是主题全部 API 的唯一鉴权入口（文件注释自己写了这件事）。权限也走这里，用路径前缀白名单。
+权限走 `server/shared/resolveApiUserId.ts`，用路径前缀白名单。
+
+**「它是唯一鉴权入口」不是天然事实，是靠守卫维持的不变量。** 这条最初写错过：文件注释声称「全部 84 个 API 都经过本函数」，实际有 7 个端点（`api/ainode/site/*` 与 `api/tenant-keys/{detail,rotate,revoke}`）直接调核心的会话工具，完全绕过闸门——而员工会话的 `session.user.id` 就是店主 id，绕过即放行，员工因此能读店主账单并吊销其设备凭证。已修复，并由 `check-employee-access-gate.mjs` 全目录扫描把守。**新增端点必须走 `resolveApiAuth`，否则守卫会失败。**
 
 漏加规则的表现是员工干不了某件事（店主立刻反馈）；反过来逐个端点加校验，漏一个就是一个洞且没人会发现。**方向不能反。**
 

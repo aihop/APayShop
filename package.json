@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "main": "index.js",
   "scripts": {
-    "prebuild": "npm run check:qingpu-listing-publish-facts",
+    "prebuild": "npm run check:qingpu-listing-publish-facts && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate",
     "build": "node scripts/run-nuxt-build.mjs",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
     "predev": "node scripts/reset-theme-manifest.mjs && node scripts/generate-theme-build.mjs --all",
@@ -31,7 +31,9 @@
     "ai:selftest": "node scripts/ai-task.selftest.mjs",
     "ai:demo:prepare": "node scripts/ai-task-flow.mjs prepare --contract .ai/tasks/hello-ai-task.demo.json --agent demo-ai",
     "ai:demo:complete": "node scripts/ai-task-flow.mjs complete --contract .ai/tasks/hello-ai-task.demo.json --agent demo-ai",
-    "check:qingpu-listing-publish-facts": "node app/themes/qingpu/scripts/check-listing-publish-facts.mjs"
+    "check:qingpu-listing-publish-facts": "node app/themes/qingpu/scripts/check-listing-publish-facts.mjs",
+    "check:qingpu-employee-access-gate": "node app/themes/qingpu/scripts/check-employee-access-gate.mjs",
+    "check:qingpu-quota-gate": "node app/themes/qingpu/scripts/check-quota-gate.mjs"
   },
   "keywords": [],
   "author": "",

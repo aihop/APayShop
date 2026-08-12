@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-review-followups",
+  "title": "代码审查遗留项:主题 admin 分级权限、预设降级、配额口径与守卫接线",
+  "problem": "员工子账户与套餐配额上线后的审查还剩五处已确认缺陷:(1) 主题 admin 端点在 /api/qingpu/admin/** 这条别名上完全不经核心中间件(isAdminPath 只匹配 /api/admin 前缀),requireAdmin 又只校验「存在管理员会话」,任何低权限管理员都能打到全部 8 个端点,含店铺凭证、设备凭证与维护操作;(2) parseMetaPresetFields 的 JSON.parse 没有 try/catch,某个类型的预设值是坏字符串时会抛出 computed,整个管理端商品弹窗打不开,与该函数承诺的降级行为相反;(3) 配额用量把已停用的员工和已停用的店铺算在内,而员工停用是设计上的离职路径且永不删行,导致名额无法释放;(4) 店铺码在 SELECT 与 INSERT 之间非原子,并发创建首个员工会给同一店主生成两个码,且唯一约束冲突被笼统报成「该登录名在本店已存在」;(5) 三个守卫脚本没有接进 package.json 或任何自动执行入口,其编码的不变量实际从不自动校验。此外 vendor 生成产物缺少合并策略,并行分支合并时可能被逐行缝合出不对应任何源提交的产物。",
+  "expectedOutcome": "主题 admin 端点逐个声明所需的扩展权限并强制校验,低权限管理员被拒;预设数据损坏只导致该类型无自定义字段,商品表单照常打开;配额只统计启用中的资源,停用即释放名额;店铺码冲突有明确提示且不再产生同店主双码;守卫脚本随构建自动执行;vendor 目录声明为不可逐行合并的生成产物。",
+  "constraints": [
+    "不修改核心中间件的 isAdminPath 判定:把它扩到主题别名会让所有未映射的主题 admin 路由落进默认拒绝分支,直接打断现有后台功能",
+    "权限码沿用既有的 ext:<theme>:<key> 扩展权限体系与 view/edit 分级,不另发明一套",
+    "复用核心既有的 adminHasPermission(server/middleware/auth.ts 已在服务端使用),不在主题重写权限判定",
+    "配额口径变更只影响计数,不改变软超限语义:仍然只拦新建,不删除、不停用既有资源",
+    "预设解析的降级必须是「该类型退化为空」,不得静默吞掉整份预设,也不得让表单崩溃",
+    "vendor 只声明合并属性,不改动其内容,不改 engine 发布流程",
+    "不修改 ainode 仓库任何代码",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/utils/adminProductFormData.ts",
+        "package.json",
+        "docs/ai/employee-quota-handoff.md"
+      ],
+      "claims": [
+        "app/utils/adminProductFormData.ts",
+        "package.json",
+        "docs/ai/employee-quota-handoff.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        ".gitattributes",
+        "server/shared/requireAdmin.ts",
+        "server/quota/index.ts",
+        "server/employees/queries.ts",
+        "api/admin/**",
+        "api/employees/index.ts",
+        "api/stores/index.ts",
+        "scripts/check-employee-access-gate.mjs",
+        "scripts/check-quota-gate.mjs",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        ".gitattributes",
+        "server/shared/requireAdmin.ts",
+        "server/quota/index.ts",
+        "server/employees/queries.ts",
+        "api/admin/**",
+        "api/employees/index.ts",
+        "api/stores/index.ts",
+        "scripts/check-employee-access-gate.mjs",
+        "scripts/check-quota-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "requireAdmin 支持声明所需权限码并强制校验,缺权限返回 403;全部 8 个主题 admin 端点都传入了权限码",
+    "低权限管理员经 /api/qingpu/admin/** 访问主题 admin 端点被拒绝,拥有对应扩展权限的管理员不受影响",
+    "parseMetaPresetFields 对坏数据不抛异常,单个类型解析失败退化为该类型空字段,其余类型不受影响",
+    "配额计数只统计启用中的员工与店铺,停用后名额立即释放",
+    "店铺码生成与员工插入的唯一约束冲突有可区分的错误提示,不再把码冲突误报成登录名冲突",
+    "三个守卫脚本在 package.json 中有独立入口,并接入 prebuild 随构建执行",
+    "主题仓 .gitattributes 将 vendor 目录声明为不可逐行合并的生成产物",
+    "交接文档中「resolveApiAuth 是唯一鉴权入口」的表述改为「由守卫脚本维持的不变量」,并记录曾有 7 个端点绕过的事实",
+    "APay 根 nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "员工闸门与会话守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "配额闸门守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-quota-gate.mjs"
+    },
+    {
+      "name": "admin 权限与 vendor 合并策略事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'adminHasPermission' server/shared/requireAdmin.ts && rg -q 'merge' .gitattributes && node -e \"const fs=require('fs');const files=fs.readdirSync('api/admin').filter(f=>f.endsWith('.ts'));const bad=files.filter(f=>!/requireAdmin\\\\(event,\\\\s*['\\\"]/.test(fs.readFileSync('api/admin/'+f,'utf8')));if(bad.length)throw new Error('未声明权限码的 admin 端点: '+bad.join(', '));console.log('admin endpoints with permission code:',files.length)\""
+    },
+    {
+      "name": "配额只统计启用中资源",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q \"status = 'active'\" server/employees/queries.ts && rg -q 'countActiveEmployeesByOwner|activeOnly' server/employees/queries.ts api/employees/index.ts"
+    },
+    {
+      "name": "守卫脚本已接线",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const s=require('./package.json').scripts;const need=['check:qingpu-employee-access-gate','check:qingpu-quota-gate'];const miss=need.filter(k=>!s[k]);if(miss.length)throw new Error('未注册: '+miss.join(', '));if(!/check:qingpu-employee-access-gate/.test(s.prebuild||''))throw new Error('prebuild 未接入守卫');console.log('guards wired')\""
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

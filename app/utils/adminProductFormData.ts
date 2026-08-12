@@ -109,9 +109,19 @@ const PRESET_FIELD_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,63}$/
 export const isValidPresetFieldName = (value: string) =>
   PRESET_FIELD_NAME_PATTERN.test(value) && !RESERVED_META_KEYS.has(value)
 
-/** 解析单个类型下的字段数组(带 UI id,供编辑器使用) */
+/**
+ * 解析单个类型下的字段数组(带 UI id,供编辑器使用)。
+ *
+ * 坏数据一律退化为空数组,绝不抛出:这个函数被商品表单的 computed 调用,
+ * 一旦抛出就是整个管理端商品弹窗打不开——而预设只是锦上添花的自定义字段,
+ * 不该有能力让主表单开不了。settings 里存进一条 {"subscription":"[broken"}
+ * 就足以触发。
+ */
 export const parseMetaPresetFields = (value: unknown): FormRecord[] => {
-  const list = typeof value === 'string' ? JSON.parse(value) : value
+  let list: unknown = value
+  if (typeof list === 'string') {
+    try { list = JSON.parse(list) } catch { return [] }
+  }
   if (!Array.isArray(list)) return []
   return list.map((field: FormRecord) => ({
     id: createUiId(),
