@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "gopanel-code-104-delegated-scope",
+  "title": "将 GoPanel code-104 委派会话作用域修复收敛到主线",
+  "problem": "GoPanel code-104 的三仓交付发生在较旧主线上，主题与 APay 分支直接合并会覆盖后来已落地的员工二期和 Qingpu 发布改动。当前主线已吸收统一鉴权入口与通用 delegated 会话标记，但仍缺少委派会话对核心 API 的 scope 默认拒绝、员工会话 scope 声明、Bearer 设备凭证对账单与凭证管理端点的明确拒绝，以及覆盖全部主题 API 的鉴权守卫。",
+  "expectedOutcome": "在不回退当前主线功能的前提下，将 code-104 尚缺的安全语义融合进 Qingpu 主题与 APay 主线；qingpu-ai 保持其 code-104 分支已与 main 同提交的状态；主题先提交推送，APay gitlink 再固定到该主题提交并与核心鉴权修复一起提交推送。",
+  "constraints": [
+    "resolveApiAuth 返回的 userId 恒为数据归属者/店主，不改变员工二期既有身份与凭证归属语义",
+    "核心仅依赖通用 delegated 标记与 scope 字符串，不读取 employee 主题领域对象",
+    "委派会话对 scope 外的 /api/** 默认拒绝，只保留可逐条解释的会话壳、公开读接口和主题工具上传入口",
+    "主题端点保持现有响应形状，只补充鉴权通道限制和静态守卫",
+    "不得覆盖 code-104 分支之后主线新增的 Listing、套餐配额、员工二期或 engine vendor 改动",
+    "qingpu-ai 的 code-104 分支若与 main 同提交则不制造空提交，不发布新 engine 版本",
+    "不新增依赖，不执行生产迁移，不清理 GoPanel worktree 或分支"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/middleware/auth.ts",
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        "server/middleware/auth.ts",
+        "app/themes/qingpu"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/ainode/site/balance-logs.ts",
+        "api/ainode/site/billing-logs.ts",
+        "api/ainode/site/model-failure-logs.ts",
+        "api/ainode/site/stats.ts",
+        "api/employees/login.ts",
+        "api/tenant-keys/detail.ts",
+        "api/tenant-keys/revoke.ts",
+        "api/tenant-keys/rotate.ts",
+        "scripts/check-employee-access-gate.mjs",
+        "server/employees/access.ts",
+        "server/employees/session.d.ts"
+      ],
+      "claims": [
+        "api/ainode/site/balance-logs.ts",
+        "api/ainode/site/billing-logs.ts",
+        "api/ainode/site/model-failure-logs.ts",
+        "api/ainode/site/stats.ts",
+        "api/employees/login.ts",
+        "api/tenant-keys/detail.ts",
+        "api/tenant-keys/revoke.ts",
+        "api/tenant-keys/rotate.ts",
+        "scripts/check-employee-access-gate.mjs",
+        "server/employees/access.ts",
+        "server/employees/session.d.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "委派会话仅能访问其 scope 前缀及经审批的核心最小放行集，scope 缺失或非法时对其他核心 API 返回 403",
+    "员工登录使用通用 delegated 标记并从主题闸门常量写入 /api/qingpu scope，店主 id 不变量保持不变",
+    "余额、账单、模型失败、用量统计及设备凭证详情/吊销/轮换拒绝 Bearer tenant key 管理通道",
+    "守卫扫描全部主题 API，只有逐条登记独立鉴权理由的端点可以不调用 resolveApiAuth/resolveApiUserId",
+    "主题与 APay 类型检查、构建及专项守卫通过，APay gitlink 等于最终主题提交",
+    "qingpu-ai 的 gopanel/code-104-qingpu-ai 与 main 保持同一提交"
+  ],
+  "verification": [
+    {
+      "name": "APay 委派作用域事实检查",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q 'DELEGATED_SESSION_CORE_ALLOWLIST' server/middleware/auth.ts && rg -q 'session\\.delegated' server/middleware/auth.ts && rg -q 'delegated\\.scope' server/middleware/auth.ts && git -C ../qingpu-ai diff --quiet main...gopanel/code-104-qingpu-ai"
+    },
+    {
+      "name": "员工访问闸门守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "主题 code-104 关键事实",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'scope: THEME_API_PREFIX' api/employees/login.ts && rg -q 'export const THEME_API_PREFIX' server/employees/access.ts && rg -q 'viaTenantKey' api/ainode/site/{balance-logs,billing-logs,model-failure-logs,stats}.ts api/tenant-keys/{detail,revoke,rotate}.ts"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    }
+  ]
+}
