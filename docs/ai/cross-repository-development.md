@@ -34,7 +34,7 @@ Qingpu 主题是 APay 工作树内的**独立 Git 仓库**，同时由 APay inde
 
 1. `qingpu-ai` 引擎相关工作树干净，按风险运行类型、测试和 bundle 守卫。
 2. 先提交 `qingpu-ai`，确保 HEAD 包含产物源码。
-3. 用严格递增版本执行 `engine:release`。
+3. 执行 `engine:release`；脚本默认扫描主题全部可达历史中的最高版本并自动递增补丁号，特殊发布才显式指定严格更高版本。
 4. 在主题仓确认 `version.json.sourceCommit` 等于源码提交，vendor 只有生成产物变化。
 5. 运行主题专项守卫、Listing 合同和 APay 构建；支付/发布默认 dry-run。
 6. 只提交主题仓本任务文件并 push；APay gitlink 只记录提交指针，不能代替主题提交。
