@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-engine-auto-latest",
+  "title": "Engine 打包自动生成最新 vendor",
+  "problem": "当前 engine:release 必须人工传版本且只比较工作树中的 version.json，主题合并曾把元数据从 0.7.110 回退到 0.7.108，导致运行时代码与版本锚点不一致。",
+  "expectedOutcome": "engine:release 默认从当前 qingpu-ai HEAD 构建；产物变化时基于主题全部可达历史的最高版本自动递增补丁号并生成 vendor，产物未变化时幂等退出；显式版本也不能低于历史最高版本。",
+  "constraints": [
+    "Engine 源码仍只属于 qingpu-ai，主题 vendor 只能由 release-engine 脚本生成",
+    "自动版本必须严格高于主题仓可达历史中的最高语义版本，不能因分支合并倒退",
+    "相同源码和相同 bundle 重复执行不得制造版本或 builtAt 噪声",
+    "不把 qingpu-ai 源码编译强塞进 APay 部署构建，生成动作保持在 Engine 发布打包阶段",
+    "不提交、不推送、不部署"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "docs/ai/cross-repository-development.md"
+      ],
+      "claims": [
+        "docs/ai/cross-repository-development.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "../qingpu",
+      "allowedPaths": [
+        "AGENTS.md",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "server/vendor/qingpu-engine/**"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "AGENTS.md",
+        "package.json",
+        "scripts/release-engine.mjs"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "package.json",
+        "scripts/release-engine.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "npm run engine:release 无需 --version 即可自动选择严格递增的最新版本",
+    "版本基线扫描主题全部可达历史，当前回退元数据不会再次生成低于 0.7.110 的版本",
+    "当前 qingpu-ai HEAD 被重新打包，vendor 元数据、package 版本和 bundle 内容一致",
+    "重复执行相同 HEAD 时幂等退出且不改 vendor",
+    "跨仓文档与执行入口准确说明自动版本和可选显式版本"
+  ],
+  "verification": [
+    {
+      "name": "Engine 自动发布与幂等验证",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "QINGPU_THEME_DIR=../qingpu npm run engine:release && git -C ../qingpu diff --exit-code -- server/vendor/qingpu-engine"
+    },
+    {
+      "name": "Engine bundle 与主题合同",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build && node ../qingpu/scripts/check-listing-publish-facts.mjs && node ../qingpu/scripts/check-logistics-catalog.mjs"
+    },
+    {
+      "name": "APay 契约与文档格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- docs/ai/cross-repository-development.md"
+    },
+    {
+      "name": "主题入口与 vendor 格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- AGENTS.md server/vendor/qingpu-engine"
+    },
+    {
+      "name": "Engine 发布脚本格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- AGENTS.md package.json scripts/release-engine.mjs"
+    }
+  ]
+}
