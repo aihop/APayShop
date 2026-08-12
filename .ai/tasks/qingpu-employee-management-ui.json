@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-management-ui",
+  "title": "Qingpu 用户中心员工管理页面",
+  "problem": "员工子账户后端已提供列表、创建、更新、重置密码和启停接口，但用户中心没有页面和导航入口，店主只能通过 curl 管理员工，店铺码也没有可见的分发入口。",
+  "expectedOutcome": "店主可从 Qingpu 用户中心进入员工管理页，查看店铺码与员工状态，创建员工，编辑姓名和角色，按需重置密码，并启用或停用员工；所有操作复用现有主题 API，错误与套餐配额限制在页面上清晰反馈。",
+  "constraints": [
+    "本期只实现店主端员工管理，不新增员工登录页、扩展端登录、人均 AI 额度或后端协议",
+    "页面必须落在 pages/user/employees.vue，并复用 pages/user/layout.vue 的用户中心壳",
+    "员工密码只在创建或显式重置时输入，不回显、不缓存服务端密码，也不把空密码提交为重置",
+    "启停操作必须二次确认；停用不删除员工，保持后端审计语义",
+    "角色仅使用现有 member / manager 两种值，permissions 字段本期不暴露伪配置 UI",
+    "API 错误优先展示服务端消息，包括 402 套餐上限，不用通用成功提示掩盖失败",
+    "中文、英文、俄文文案同步，不新增依赖，不修改员工鉴权与数据表"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "../qingpu",
+      "allowedPaths": [
+        "pages/user/employees.vue",
+        "pages/user/layout.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts"
+      ],
+      "claims": [
+        "pages/user/employees.vue",
+        "pages/user/layout.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "用户中心桌面端与移动端导航均出现员工管理入口，并正确高亮 /user/employees",
+    "页面加载 /api/qingpu/employees，展示员工姓名、登录名、角色、状态、最后登录时间和店铺码",
+    "店主可创建 member 或 manager，输入校验与后端约束一致，创建后刷新列表",
+    "店主可编辑姓名与角色，可选择输入新密码完成重置；留空密码不修改密码",
+    "启用和停用均有确认弹窗，成功后更新列表，失败时保留原状态并显示服务端错误",
+    "空状态、加载态、刷新态、API 失败和 402 配额错误均有明确反馈",
+    "三份 locale 包含相同的 employeeManagement 文案键，页面无硬编码用户可见业务文案",
+    "APay 根 Nuxt typecheck 不新增错误，员工访问与配额守卫继续通过"
+  ],
+  "verification": [
+    {
+      "name": "员工管理页面事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s pages/user/employees.vue && rg -q \"/api/qingpu/employees\" pages/user/employees.vue && rg -q \"/user/employees\" pages/user/layout.vue && rg -q \"employeeManagement\" locales/zh.ts locales/en.ts locales/ru.ts"
+    },
+    {
+      "name": "员工与配额守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs && node scripts/check-quota-gate.mjs"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../apay && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
