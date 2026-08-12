@@ -12,6 +12,20 @@ import {
   moduleEditCode,
 } from '../utils/adminPermissions'
 
+/**
+ * 委派会话在 scope 之外仍可访问的核心路径。
+ *
+ * 仅保留会话壳、已公开的商品/文章读取，以及 Qingpu 员工工具复用的核心上传入口。
+ * 账单、订阅、发票、佣金、订单、充值和凭证管理等账户资产路径一律不放行。
+ */
+const DELEGATED_SESSION_CORE_ALLOWLIST = [
+  '/api/_auth',
+  '/api/auth/logout',
+  '/api/users/upload',
+  '/api/products',
+  '/api/posts',
+]
+
 async function isMultiDeviceLoginDisabled(): Promise<boolean> {
   try {
     const result = await db.select().from(settings).where(eq(settings.key, 'disable_multi_device_login')).limit(1)
@@ -64,6 +78,26 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch {}
+
+  // 委派会话里的 user.id 是数据归属者，不代表实际操作者本人。主题自己的访问闸门
+  // 只能覆盖主题路由，因此核心必须对 scope 外的 /api/** 默认拒绝。这里仅依赖
+  // 通用 delegated/delegatedScope 声明，不读取任何主题领域身份。
+  const delegated = session?.user && session.delegated
+    ? { scope: typeof session.delegatedScope === 'string' ? session.delegatedScope : '' }
+    : null
+  if (delegated && pathname.startsWith('/api/')) {
+    const inScope = Boolean(delegated.scope)
+      && (pathname === delegated.scope || pathname.startsWith(`${delegated.scope}/`))
+    const isAllowedCorePath = DELEGATED_SESSION_CORE_ALLOWLIST.some(allowed =>
+      pathname === allowed || pathname.startsWith(`${allowed}/`),
+    )
+    if (!inScope && !isAllowedCorePath) {
+      throw createError({
+        statusCode: 403,
+        message: '当前子账号没有此操作的权限，请使用店主账号登录',
+      })
+    }
+  }
 
   // 4. 如果没有 session，尝试从 header 或 query 获取 token（API token 不受多设备限制）
   if (!session.user && !session.admin) {
