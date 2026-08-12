@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-products-admin",
+  "title": "Qingpu 管理后台新增渠道产品管理",
+  "problem": "主题管理后台目前只有发布记录排障，管理员无法在发布前按租户查看渠道草稿商品、就绪状态和校验问题。",
+  "expectedOutcome": "在发布记录上方新增渠道产品页面，提供跨租户的邮箱、渠道和就绪状态筛选、状态汇总与分页，只读展示渠道草稿商品及校验问题。",
+  "constraints": [
+    "页面与 API 均位于 Qingpu 主题内，沿用主题后台扩展扫描和管理员权限体系",
+    "渠道产品口径使用 qingpu_listing_channel_drafts，并通过 listing 查询所有者文件访问表",
+    "仅展示非软删、已提交的渠道草稿，不修改用户商品、草稿或发布状态",
+    "不新增数据库结构、依赖或跨仓 vendor 变更"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "../qingpu",
+      "allowedPaths": [
+        "admin/pages/channel-products.vue",
+        "admin/pages/dashboard.vue",
+        "api/admin/channel-products.ts",
+        "server/listing/queries.channels.ts",
+        "theme.admin.json"
+      ],
+      "claims": [
+        "admin/pages/channel-products.vue",
+        "admin/pages/dashboard.vue",
+        "api/admin/channel-products.ts",
+        "server/listing/queries.channels.ts",
+        "theme.admin.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "扩展管理导航中渠道产品位于发布记录之前，且运营看板有对应快捷入口",
+    "页面支持按邮箱、渠道和就绪状态筛选并分页，展示用户、商品、SKU、校验结果和更新时间",
+    "状态统计不受分页影响，并随邮箱与渠道筛选更新",
+    "管理端 API 受独立扩展权限保护且不返回完整渠道草稿 payload",
+    "APay Nuxt 类型检查不因本次改动新增错误"
+  ],
+  "verification": [
+    {
+      "name": "渠道产品管理结构检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const fs=require('fs');const m=require('./theme.admin.json');const keys=m.pages.map(x=>x.key);if(!(keys.indexOf('channel-products')>=0&&keys.indexOf('channel-products')<keys.indexOf('publish-records')))throw new Error('channel-products ordering invalid');for(const f of ['admin/pages/channel-products.vue','api/admin/channel-products.ts'])if(!fs.existsSync(f))throw new Error(f+' missing')\" && rg -q \"ext:qingpu:channel-products\" api/admin/channel-products.ts && rg -q \"listChannelsForAdmin\" server/listing/queries.channels.ts"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
