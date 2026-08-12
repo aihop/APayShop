@@ -13,17 +13,22 @@ import {
 } from '../utils/adminPermissions'
 
 /**
- * 委派会话在 scope 之外仍可访问的核心路径。
+ * 委派会话（见下方 3.5）在 scope 之外仍可访问的核心路径。逐条都要能说清为什么。
  *
- * 仅保留会话壳、已公开的商品/文章读取，以及 Qingpu 员工工具复用的核心上传入口。
- * 账单、订阅、发票、佣金、订单、充值和凭证管理等账户资产路径一律不放行。
+ * 只收两类：
+ *  a) 会话壳本身——不放行的话，子账号登录后前端读不到登录态、也退不出登录；
+ *  b) 已被证实**不需要登录**的公开读接口——子账号退出登录后照样能拿到同样的数据，
+ *     放行不多泄露任何东西，拦下去只会白白打断下载页/博客页。
+ *
+ * 凡是带账户资产语义的（账单、订阅、发票、佣金、下单、充值、API token、设备凭证）
+ * 一律不进这份清单：那正是子账号机制要挡住的东西。
  */
 const DELEGATED_SESSION_CORE_ALLOWLIST = [
-  '/api/_auth',
-  '/api/auth/logout',
-  '/api/users/upload',
-  '/api/products',
-  '/api/posts',
+  '/api/_auth',          // nuxt-auth-utils 的会话读取/清除，useUserSession() 依赖
+  '/api/auth/logout',    // 退出登录
+  '/api/users/upload',   // 通用上传：被主题 AI 工具页复用，而工具在子账号放行集内
+  '/api/products',       // 公开只读（无 requireUserSession）：下载页/产品页
+  '/api/posts',          // 公开只读（无 requireUserSession）：博客页
 ]
 
 async function isMultiDeviceLoginDisabled(): Promise<boolean> {
@@ -57,11 +62,12 @@ export default defineEventHandler(async (event) => {
     session = await getUserSession(event)
     
     // 3. 如果是从 cookie 会话登录，检查会话是否有效
-    // 委派会话豁免:该检查按 users.currentSessionId 逐**用户**判活,而委派会话
-    // (多个操作者代表同一个 user)共用同一行——写 currentSessionId 会让委派者
-    // 互踢,不写则会在这里被当成过期会话清掉,表现为登录成功、下一个请求就掉线
-    // 且无从排查。委派者自身的启停由签发方逐请求复核,不依赖这里。
-    if (session.user && session.user.id && !session.delegated) {
+    //    委派会话（见下方 delegated 说明）跳过这条：它的 user.id 是**店主**，
+    //    而 currentSessionId 是店主本人登录时写的。员工登录既不该改写店主那一行
+    //    （会让店主和其他员工互相踢下线），又不可能匹配上——不跳过的话，站点一旦
+    //    打开「禁止多设备登录」，员工登录成功后的下一个请求就会被判为「已被挤掉」。
+    //    委派会话的生命周期由签发方自己复核（每请求查员工状态，停用即时掉线）。
+    if (session.user && session.user.id && !session.employee) {
       const checkDisabled = await isMultiDeviceLoginDisabled()
       if (checkDisabled) {
         // 检查当前 cookie 会话的 sessionId 是否与用户表中的 currentSessionId 匹配
@@ -79,19 +85,24 @@ export default defineEventHandler(async (event) => {
     }
   } catch {}
 
-  // 委派会话里的 user.id 是数据归属者，不代表实际操作者本人。主题自己的访问闸门
-  // 只能覆盖主题路由，因此核心必须对 scope 外的 /api/** 默认拒绝。这里仅依赖
-  // 通用 delegated/delegatedScope 声明，不读取任何主题领域身份。
-  const delegated = session?.user && session.delegated
-    ? { scope: typeof session.delegatedScope === 'string' ? session.delegatedScope : '' }
-    : null
+  // 3.5 委派会话（delegated session）的作用域闸门。
+  //
+  // 主题可以签发「以店主身份操作、但不是店主本人」的会话（当前唯一实例：Qingpu 的
+  // 员工子账户，见 app/themes/qingpu/server/employees/）。这类会话的 user.id 存的是
+  // **店主 id**，因此在核心看来与店主本人的会话完全一样——/api/users/billing、
+  // subscription、invoice、promo/commissions、orders/checkout 会原样放行。
+  //
+  // 主题自己的闸门只能挡主题自己的路由，挡不住核心路由；而核心是唯一看得见每一个
+  // 请求的地方。所以这条规则必须落在核心：**带委派标记的会话，只能访问签发方声明的
+  // scope 前缀**，其余 /api/** 一律 403。默认拒绝——scope 缺失或非法时同样全拒，
+  // 免得「主题忘了写 scope」变成静默放行。
+  //
+  // 只管 /api/**：页面路由与静态资源不在此拦，页面级可见性由主题自己决定，数据面已经关死。
+  const delegated = session?.user && session.employee ? session.employee : null
   if (delegated && pathname.startsWith('/api/')) {
-    const inScope = Boolean(delegated.scope)
-      && (pathname === delegated.scope || pathname.startsWith(`${delegated.scope}/`))
-    const isAllowedCorePath = DELEGATED_SESSION_CORE_ALLOWLIST.some(allowed =>
-      pathname === allowed || pathname.startsWith(`${allowed}/`),
-    )
-    if (!inScope && !isAllowedCorePath) {
+    const scope = typeof delegated.scope === 'string' ? delegated.scope : ''
+    const inScope = Boolean(scope) && (pathname === scope || pathname.startsWith(`${scope}/`))
+    if (!inScope && !DELEGATED_SESSION_CORE_ALLOWLIST.some(allowed => pathname === allowed || pathname.startsWith(`${allowed}/`))) {
       throw createError({
         statusCode: 403,
         message: '当前子账号没有此操作的权限，请使用店主账号登录',
