@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-session-holes",
+  "title": "修复员工会话与鉴权闸门的四个缺口",
+  "problem": "员工子账户上线后的代码审查发现四处缺陷:(1) 主题 api/ 下有 8 个端点直接调 requireUserSession 而不经 resolveApiAuth,由于员工会话的 user.id 就是店主 id,员工因此可读店主账单/余额/用量,并能轮换、吊销店主的设备凭证——正是访问闸门声明不放行的两块;(2) setUserSession 是 defu 合并,admin: null 清不掉既有管理员声明,在登过管理后台的浏览器上做员工登录会得到带管理员权限的会话;(3) 开启「禁止多设备登录」时,中间件会清掉任何没有匹配 sessionId 的 cookie 会话,员工登录因此静默失效;(4) 陈旧的 employee 声明会经 defu 存活到之后的店主会话,把店主静默降权成员工权限。",
+  "expectedOutcome": "主题下所有需要「当前用户是谁」的端点统一经过 resolveApiAuth,员工闸门不再可绕过;员工登录签发的是干净会话,不继承任何既有 admin 或 employee 声明;店主正常登录同样不继承陈旧的委派声明;开启禁止多设备登录时员工登录可正常使用。守卫脚本能拦住「新增端点绕过 resolveApiAuth」这一类回归。",
+  "constraints": [
+    "核心不得认识 employee 这个主题概念:多设备守卫的放行条件用通用的 delegated 会话标记表达,核心只知道「这是委派会话」,不知道委派给谁",
+    "resolveApiAuth 返回的 userId 语义不变(恒为数据归属者/店主),现有调用点不改写",
+    "改造那 8 个端点时保持各自原有的业务行为与响应形状,只替换鉴权取数方式",
+    "员工会话不得写 users.currentSessionId:同店主的多个员工共用店主那一行,写它会让员工之间互相踢下线",
+    "不放宽任何现有权限:user-info 仍对员工可读,ainode/** 与 tenant-keys/** 改造后对员工一律拒绝",
+    "不修改 ainode 仓库任何代码",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/auth/login.post.ts",
+        "server/middleware/auth.ts",
+        "auth.d.ts"
+      ],
+      "claims": [
+        "server/api/auth/login.post.ts",
+        "server/middleware/auth.ts",
+        "auth.d.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/ainode/site/**",
+        "api/tenant-keys/**",
+        "api/user-info.ts",
+        "api/employees/login.ts",
+        "scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "api/ainode/site/**",
+        "api/tenant-keys/**",
+        "api/user-info.ts",
+        "api/employees/login.ts",
+        "scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题 api/ 下不再有任何文件直接调用 requireUserSession,全部经 resolveApiAuth",
+    "员工会话访问 /api/qingpu/ainode/** 与 /api/qingpu/tenant-keys/** 返回 403;店主会话与扩展 Bearer 通道行为不变",
+    "员工登录使用 replaceUserSession,签发的会话不含任何既有 admin 或 employee 声明",
+    "店主经核心登录时同样不继承陈旧的 employee/admin 声明",
+    "开启禁止多设备登录时,员工会话不再被中间件清除,且员工登录不写 users.currentSessionId",
+    "核心源码不出现 employee 字样的主题概念判断,放行条件基于通用 delegated 标记",
+    "守卫脚本新增一条检查:主题 api/ 下出现 requireUserSession 即失败",
+    "APay 根 nuxt typecheck 相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "员工闸门与会话守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "端点收口事实检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "! rg -q 'requireUserSession' api/ && rg -q 'replaceUserSession' api/employees/login.ts && ! rg -q 'currentSessionId' api/employees/login.ts"
+    },
+    {
+      "name": "核心不认识主题概念",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q 'replaceUserSession' server/api/auth/login.post.ts && rg -q 'delegated' server/middleware/auth.ts auth.d.ts && ! rg -q 'employee' server/middleware/auth.ts server/api/auth/login.post.ts"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

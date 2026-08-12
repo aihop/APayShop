@@ -43,7 +43,11 @@ export default defineEventHandler(async (event) => {
     session = await getUserSession(event)
     
     // 3. 如果是从 cookie 会话登录，检查会话是否有效
-    if (session.user && session.user.id) {
+    // 委派会话豁免:该检查按 users.currentSessionId 逐**用户**判活,而委派会话
+    // (多个操作者代表同一个 user)共用同一行——写 currentSessionId 会让委派者
+    // 互踢,不写则会在这里被当成过期会话清掉,表现为登录成功、下一个请求就掉线
+    // 且无从排查。委派者自身的启停由签发方逐请求复核,不依赖这里。
+    if (session.user && session.user.id && !session.delegated) {
       const checkDisabled = await isMultiDeviceLoginDisabled()
       if (checkDisabled) {
         // 检查当前 cookie 会话的 sessionId 是否与用户表中的 currentSessionId 匹配
