@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-products-gate-exemption",
+  "title": "登记渠道产品管理端点的员工闸门豁免",
+  "problem": "渠道产品管理端点已使用 requireAdmin 独立鉴权，但员工访问闸门守卫未登记该端点，导致 check:qingpu-employee-access-gate 失败。",
+  "expectedOutcome": "员工访问闸门守卫明确识别渠道产品管理端点由 requireAdmin 替代鉴权，专项检查恢复通过。",
+  "constraints": [
+    "仅登记已有 requireAdmin 管理端点，不放宽员工访问规则",
+    "不修改端点行为、权限码或响应形状",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "api/admin/channel-products.ts 以 requireAdmin 原因登记为闸门豁免",
+    "员工访问闸门专项检查通过"
+  ],
+  "verification": [
+    {
+      "name": "员工访问闸门专项检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    }
+  ]
+}
