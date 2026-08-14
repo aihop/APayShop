@@ -16,7 +16,7 @@
 |---|---|
 | `app/themes/qingpu/database/employees.sql` | `qingpu_employees` 表 |
 | `server/employees/access.ts` | 访问闸门，默认拒绝 |
-| `server/employees/{helpers,queries}.ts` | 类型、店铺码、校验、数据访问 |
+| `server/employees/{helpers,queries}.ts` | 类型、企业码、校验、数据访问 |
 | `server/employees/session.d.ts` | `#auth-utils` 模块增强（主题内） |
 | `api/employees/{index,update,status,login}.ts` | 店主管理 + 员工登录 |
 | `server/shared/resolveApiUserId.ts`（改） | 返回 `employeeId`/`role`、挂闸门、每请求复核状态 |

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-login-enterprise-code-label",
+  "title": "修复员工登录页企业码文案键",
+  "problem": "中文员工登录文案已统一为 enterpriseCode，但模板仍读取 shopCode，导致 Nuxt 类型检查失败。",
+  "expectedOutcome": "员工登录页使用各语言均存在的 enterpriseCode 文案键，类型检查不再报告该模板错误。",
+  "constraints": [
+    "仅修正文案键引用，不修改登录字段和接口协议",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["pages/auth/login/employee.vue"],
+      "claims": ["pages/auth/login/employee.vue"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "企业码输入框读取 enterpriseCode 文案键",
+    "员工登录闭环守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "员工登录闭环守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-login-flow.mjs"
+    }
+  ]
+}
