@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-agents-revision",
+  "title": "按代码事实修订 Studio 开发提示词",
+  "problem": "pages/user/studio/AGENTS.md 是在 Studio 尚无实现时写的,与当前代码事实存在偏差:把不存在的 /studio/create 当产品边界锚点、未说明 Listing 已跑通的生成契约如何复用、未定义模型执行接缝归属、未交代资产事实源在 Listing 与工具链路上的现状分工,也没有子账户维度。照此实现会导致后续在 Studio 重建平行能力,或误改 Listing 的资产存储权威。",
+  "expectedOutcome": "Studio 开发提示词与仓库代码事实一致:明确普通工具页的真实入口、明确必须复用的既有契约与共享落点、写死模型执行接缝、写清 Listing 与 Studio 各自的资产事实源分工并禁止反转 Listing 现状、补上子账户归属维度、把缺少数据来源的效果分析降级为后续项。",
+  "constraints": [
+    "只修改 Studio 目录级开发提示词,不修改页面、API、数据库、任务执行、vendor 或运行时提示词代码",
+    "文档结论必须与当前代码事实一致,不得写入未经代码验证的路由、模块或字段",
+    "不得要求把 workspace.media.imageAssets 的资产权威改为 qingpu_assets,该反转会因索引不完整与软删复活造成数据损坏",
+    "保留原有的五段合同、Registry + Factory、单向依赖与禁止复制运行时提示词等既有边界",
+    "文档保持自包含,不引用 qingpu-ai 仓库的绝对路径或其 AGENTS.md 文件路径",
+    "不覆盖 APay 根仓中员工与配额相关的其他会话改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/AGENTS.md"
+      ],
+      "claims": [
+        "pages/user/studio/AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "普通轻量工具入口按真实页面描述,不再把 /studio/create 当作现存路由",
+    "存在复用清单,明确 AssetPlan 复用 ImageGenerationTaskSpec、批量执行复用蓝图任务与子项账本、质检复用既有审核能力",
+    "明确共享契约落点为 server/assets/,并禁止 Studio 直接 import listing 内部实现文件",
+    "模型执行接缝写死:engine 出冻结规格与解析器,主题服务端执行外部调用",
+    "资产事实源分工写清:Listing 以 workspace 为权威,Studio 与工具链路以资产表为权威,共用同一 assetId 命名空间,且禁止反转 Listing 现状",
+    "补充子账户维度:项目归属、应用到 Listing 的权限、额度归属",
+    "效果分析因缺少指标数据来源被标注为后续项,不进入首期验收",
+    "保留五段合同、Registry + Factory 与禁止页面条件分发等既有边界",
+    "文档不含 qingpu-ai 绝对路径或其 AGENTS.md 路径引用"
+  ],
+  "verification": [
+    {
+      "name": "文档与代码事实一致性检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s pages/user/studio/AGENTS.md && rg -q 'text-to-image' pages/user/studio/AGENTS.md && rg -q 'ImageGenerationTaskSpec' pages/user/studio/AGENTS.md && rg -q 'server/assets' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "接缝与资产分工写死检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'runImageMode|ImageModeHandlerContext' pages/user/studio/AGENTS.md && rg -q 'qingpu_assets' pages/user/studio/AGENTS.md && rg -q 'workspace' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "子账户与既有边界保留检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '子账户|员工' pages/user/studio/AGENTS.md && rg -q 'CreativeBrief.*StrategyPlan.*AssetPlan.*QAReview.*PerformanceInsight' pages/user/studio/AGENTS.md && rg -q 'Registry.*Factory|Factory.*Registry' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "跨仓自包含检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/aihop/qingpu-ai|qingpu-ai/AGENTS.md' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "引用的共享契约文件真实存在",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s server/assets/image-task-spec.ts && test -s server/assets/image-references.ts && test -s server/assets/image-generation-contract.ts"
+    }
+  ]
+}

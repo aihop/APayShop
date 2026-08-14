@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-image-contract-hoist",
+  "title": "上提 Qingpu 图片生成共享契约与零耦合模块",
+  "problem": "专业版 /user/studio 即将开工，需要复用 Listing 已跑通的图片生成契约与任务规格工厂，但这些模块目前放在 server/listing/ 下。若 Studio 直接跨域 import listing 内部文件，会形成 studio <-> listing 耦合；若 Studio 自建一份，则出现第二套任务规格与结果契约。",
+  "expectedOutcome": "把对 Listing 零依赖的 image-references 与 image-task-spec 原样搬到共享的 server/assets/ 域，并把 ImageGenerationOutcome/ImageGenerationOptions 两个纯类型上提为独立契约文件；listing 侧改为从新位置导入或再导出。全过程不改动任何函数体与运行时行为，为后续 Studio 复用同一契约留出接入点。",
+  "constraints": [
+    "纯搬运与导入路径调整，不修改任何函数体、参数、返回值或控制流",
+    "只搬对 server/listing 零依赖的模块；依赖 ./queries、./publish、./image.shared 的实现文件一律留在原地",
+    "不搬 StoredGeneratedAssetConfig 等带 Product/workspace 形状的 Listing 专属类型",
+    "server/listing/image.shared.ts 必须继续再导出上提后的两个类型，保证 image.ts 桶文件与既有导入不断",
+    "不改动数据库、SQL、任务执行语义、资产落库顺序与 workspace 落层逻辑",
+    "不新建 server/ 顶层目录，共享落点复用既有 server/assets/ 域，保持 listing -> assets 单向依赖",
+    "不覆盖 APay 根仓中员工与配额相关的其他会话改动，不提交或推进 APay gitlink"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/assets/image-references.ts",
+        "server/assets/image-task-spec.ts",
+        "server/assets/image-generation-contract.ts",
+        "server/listing/image-references.ts",
+        "server/listing/image-task-spec.ts",
+        "server/listing/image.shared.ts",
+        "server/listing/image.generate.ts",
+        "server/listing/images.ts",
+        "server/listing/blueprint.ts",
+        "server/tasks/executors.ts",
+        "api/listing/blueprint.ts",
+        "api/listing/images/generate.ts",
+        "api/listing/images/regenerate.ts",
+        "api/listing/images/refine.ts"
+      ],
+      "claims": [
+        "server/assets/image-references.ts",
+        "server/assets/image-task-spec.ts",
+        "server/assets/image-generation-contract.ts",
+        "server/listing/image-references.ts",
+        "server/listing/image-task-spec.ts",
+        "server/listing/image.shared.ts",
+        "server/listing/image.generate.ts",
+        "server/listing/images.ts",
+        "server/listing/blueprint.ts",
+        "server/tasks/executors.ts",
+        "api/listing/blueprint.ts",
+        "api/listing/images/generate.ts",
+        "api/listing/images/regenerate.ts",
+        "api/listing/images/refine.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "image-references 与 image-task-spec 位于 server/assets/，原 server/listing/ 下同名文件不再存在",
+    "ImageGenerationOutcome 与 ImageGenerationOptions 定义在 server/assets/image-generation-contract.ts，listing/image.shared.ts 再导出且既有导入方无需改动",
+    "上提后的三个文件不 import 任何 server/listing 模块",
+    "全部原 listing 内部相对导入与 api 层导入指向新位置，无残留旧路径",
+    "APay 类型检查相对改动前不新增错误",
+    "函数体零改动，git diff 仅体现文件移动、导入路径与再导出"
+  ],
+  "verification": [
+    {
+      "name": "共享契约落位与旧路径清理",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s server/assets/image-references.ts && test -s server/assets/image-task-spec.ts && test -s server/assets/image-generation-contract.ts && test ! -e server/listing/image-references.ts && test ! -e server/listing/image-task-spec.ts"
+    },
+    {
+      "name": "共享契约不反向依赖 listing",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "! rg -q \"listing/\" server/assets/image-references.ts server/assets/image-task-spec.ts server/assets/image-generation-contract.ts"
+    },
+    {
+      "name": "旧导入路径无残留",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "! rg -q \"listing/image-task-spec|listing/image-references\" server api && ! rg -q \"from './image-task-spec'|from './image-references'\" server/listing"
+    },
+    {
+      "name": "契约类型仍可从 listing 桶文件消费",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q \"ImageGenerationOutcome\" server/listing/image.shared.ts && rg -q \"ImageGenerationOptions\" server/listing/image.shared.ts"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
