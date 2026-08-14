@@ -271,6 +271,38 @@ export default defineNuxtConfig({
           }
         })
       }
+    },
+    // 主题路由中间件:Nuxt 只扫描 srcDir/middleware,主题目录不在其中,
+    // 所以主题的路由守卫必须在这里显式注册,否则文件存在也不会执行。
+    // 命名加主题前缀避免重名;多主题会被同时打包,主题中间件需自行判定
+    // active_theme 后再生效(与 core 的 user-auth.global.ts 同一套路)。
+    'app:resolve'(app) {
+      const themesDir = path.resolve(__dirname, 'app/themes')
+      if (!fs.existsSync(themesDir)) return
+
+      resolveBuildThemes().forEach(theme => {
+        const middlewareDir = path.join(themesDir, theme, 'middleware')
+        if (!fs.existsSync(middlewareDir)) return
+
+        fs.readdirSync(middlewareDir)
+          .filter(file => /\.(ts|js|mjs)$/.test(file))
+          .sort()
+          .forEach(file => {
+            const filePath = path.join(middlewareDir, file)
+            if (!fs.statSync(filePath).isFile()) return
+
+            const baseName = file.replace(/\.(ts|js|mjs)$/, '')
+            const isGlobal = baseName.endsWith('.global')
+            const name = `${theme}-${isGlobal ? baseName.slice(0, -'.global'.length) : baseName}`
+            if (app.middleware.some(entry => entry.path === filePath)) return
+
+            app.middleware.push({
+              name,
+              path: filePath,
+              global: isGlobal,
+            })
+          })
+      })
     }
   },
   compatibilityDate: '2024-11-01',
@@ -292,9 +324,22 @@ export default defineNuxtConfig({
   ui: {
     prose: true
   },
+  // v3 的集合声明在根 content.config.ts;这里只管内容索引库落在哪。
+  //
+  // nativeSqlite 是必须的,不是优化项:v3 解析 sqlite 驱动时,默认分支会用 nypm
+  // 自动安装 better-sqlite3(C++ 原生绑定),违反 AGENTS.md §3。打开它之后走 Node
+  // 内置的 node:sqlite(v22.5+),零原生依赖。这条同时管住运行时库和构建期的
+  // _localDatabase——后者是独立配置项,只钉 database 不够。
+  //
+  // 运行时库:Cloudflare Pages 复用 NuxtHub 的 D1 绑定(见 wrangler.toml);其余
+  // 目标用本地 sqlite 文件。这里不用 libsql——@nuxt/content 的 nuxthub preset 会
+  // 在非 dev 构建里把 file: 开头的 libsql 路径强制改写成 /tmp/sqlite.db。
+  // content 只建 _content_* 表,与 drizzle 业务表同库不同表,互不影响。
   content: {
-    locales: ['zh'],
-    defaultLocale: 'en'
+    experimental: { nativeSqlite: true },
+    database: isCloudflarePagesTarget
+      ? { type: 'd1' as const, bindingName: 'DB' }
+      : { type: 'sqlite' as const, filename: '.data/content/contents.sqlite' },
   },
   i18n: {
     locales: I18N_LOCALES,
@@ -364,7 +409,11 @@ export default defineNuxtConfig({
     prerender: {
       routes: [],
       crawlLinks: false,
-      ignore: ['/']
+      // 原来是 ignore: ['/'],字符串按前缀匹配,等于忽略全部路由。@nuxt/content v3
+      // 靠预渲染 /__nuxt_content/<collection>/sql_dump.txt 把内容灌进运行时数据库,
+      // 被这条一起挡掉的话文档页查不到任何数据。这里保留「业务页面一律不预渲染」
+      // 的原意,只放行内容 dump 路由(nitro 的 ignore 支持谓词函数)。
+      ignore: [(route: string) => !route.startsWith('/__nuxt_content/')]
     },
     preset: process.env.NITRO_PRESET || (isCloudflarePagesTarget ? 'cloudflare-pages' : 'node-server'),
     minify: isCloudflarePagesTarget,

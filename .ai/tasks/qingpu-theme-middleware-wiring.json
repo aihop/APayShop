@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-theme-middleware-wiring",
+  "title": "主题路由中间件通用接线并归位员工守卫",
+  "problem": "app/middleware/employee-auth.global.ts 是 Qingpu 主题私有的员工域逻辑,却落在 APay 主仓核心中间件目录,违反 qingpu-employee-subaccount 契约「APay 主仓零改动、核心不存在任何 employee 相关文件」的承诺。根因是主题装配只接线了 api、server/vendor、public、components、pages、layouts,没有任何 middleware 接线,主题无处安放路由中间件。",
+  "expectedOutcome": "nuxt.config.ts 增加通用的主题中间件接线,把 app/themes/<theme>/middleware/ 下的路由中间件注册进 Nuxt;员工守卫移回 Qingpu 主题仓并自带 active_theme 判定,APay 核心中间件目录不再存在 employee 相关文件。接线对所有主题成立,不含任何单一主题的硬编码。",
+  "constraints": [
+    "接线必须通用:按已构建主题遍历目录,不得在 nuxt.config 中出现 qingpu 或其他具体主题名",
+    "中间件搬迁只改文件位置与 active_theme 守卫,不改变原有的路径放行与重定向逻辑",
+    "多主题会被同时打包,主题中间件必须自行判定 active_theme 后再生效,不得影响其他主题站点",
+    "不修改核心既有的 user-auth.global.ts 与 admin-auth.global.ts",
+    "不改动主题服务端员工闸门与鉴权逻辑;本中间件只是 UX 层重定向,不是安全边界",
+    "不新增运行时依赖,不改变主题目录既有接线(api/vendor/public/components/pages/layouts)的行为",
+    "不覆盖三个仓库中的其他未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "nuxt.config.ts",
+        "app/middleware/employee-auth.global.ts"
+      ],
+      "claims": [
+        "nuxt.config.ts",
+        "app/middleware/employee-auth.global.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "middleware/employee-auth.global.ts"
+      ],
+      "claims": [
+        "middleware/employee-auth.global.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "nuxt.config.ts 通过 app:resolve 钩子遍历已构建主题的 middleware 目录并注册为全局路由中间件",
+    "接线代码不含任何具体主题名硬编码",
+    "app/middleware/employee-auth.global.ts 不再存在",
+    "app/themes/qingpu/middleware/employee-auth.global.ts 存在,保留原放行与重定向逻辑,并增加 active_theme 判定",
+    "接线代码通过 app.middleware 注册并按 .global 后缀判定全局,名称带主题前缀避免重名",
+    "注册生效以运行时为准:dev server 下主题中间件在 SSR 与客户端均被执行(构建产物会把全局中间件内联进 chunk,不保留文件名,不能用产物 grep 判定)",
+    "APay 类型检查相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "核心中间件目录不含员工逻辑",
+      "repository": "apay",
+      "always": true,
+      "command": "test ! -e app/middleware/employee-auth.global.ts && ! rg -q 'employee' app/middleware"
+    },
+    {
+      "name": "接线通用且无主题名硬编码",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q \"app:resolve\" nuxt.config.ts && rg -q \"middleware\" nuxt.config.ts && ! rg -q \"'qingpu'\" nuxt.config.ts"
+    },
+    {
+      "name": "主题中间件落位且自带主题判定",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s middleware/employee-auth.global.ts && rg -q 'active_theme' middleware/employee-auth.global.ts && rg -q '/user/listing' middleware/employee-auth.global.ts"
+    },
+    {
+      "name": "接线按 Nuxt 中间件契约注册",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q 'app\\.middleware\\.push' nuxt.config.ts && rg -q 'isGlobal' nuxt.config.ts && rg -q 'resolveBuildThemes\\(\\)' nuxt.config.ts"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
