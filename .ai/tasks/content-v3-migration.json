@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "id": "content-v3-migration",
+  "title": "@nuxt/content 从 v2 升级到 v3 并改用集合式查询",
+  "problem": "package.json 锁在 @nuxt/content ^2.13.4,而 @nuxt/ui 4.6.1 的可选 peer 声明要求 @nuxt/content ^3.0.0,导致依赖安装在严格 peer 解析下报冲突、线上流水线无法完成安装。v2 的 queryContent + content.locales 配置形态在 v3 中已被移除,必须同时完成 API 与配置迁移,不能只抬版本号。",
+  "expectedOutcome": "@nuxt/content 升到 ^3.15.2;新增 content.config.ts 用 defineCollection 声明 docs_en/docs_zh 两个集合替代 v2 的 locales 配置;两个主题的 docs 路由改用 queryCollection 查询;content 索引库按部署目标分流(本地 libsql、Cloudflare Pages 用 D1 绑定),不引入任何原生绑定依赖;34 篇既有 markdown 的路径与渲染结果与 v2 一致。",
+  "constraints": [
+    "禁止引入 better-sqlite3 等 C++/Node 原生绑定依赖(AGENTS.md §3)。v3 解析 sqlite 驱动的默认分支会用 nypm 自动安装 better-sqlite3,必须用 content.experimental.nativeSqlite 走 Node 内置 node:sqlite;只钉 content.database 不够,构建期的 _localDatabase 是独立配置项",
+    "content 索引表与 NuxtHub 业务库共处同一 D1/sqlite 实例时,不得改动或迁移任何既有业务表",
+    "只改依赖、content 配置、nitro 预渲染放行与两个 docs 页面的查询实现,不改 34 篇 markdown 的正文与 frontmatter",
+    "不改变既有文档路径:content/docs/** 与 content/zh/docs/** 均对外呈现为 /docs/**",
+    "不修改 i18n 配置、主题装配逻辑与 hub.db 配置",
+    "不覆盖工作区中 qingpu-theme-middleware-wiring 任务对 nuxt.config.ts 的未提交改动(该任务改的是 hooks 段,与本任务不重叠)",
+    "nitro.prerender.ignore 只放行 /__nuxt_content/ 前缀,保持业务页面一律不预渲染的既有意图",
+    "package-lock.json 与 yarn.lock 必须与 package.json 同时保持一致,不得只更新其一"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "package.json",
+        "package-lock.json",
+        "yarn.lock",
+        "content.config.ts",
+        "nuxt.config.ts"
+      ],
+      "claims": [
+        "package.json",
+        "package-lock.json",
+        "yarn.lock",
+        "content.config.ts",
+        "nuxt.config.ts"
+      ]
+    },
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "pages/docs/[...slug].vue"
+      ],
+      "claims": [
+        "pages/docs/[...slug].vue"
+      ]
+    },
+    {
+      "name": "official-theme",
+      "path": "app/themes/official",
+      "allowedPaths": [
+        "pages/docs/[...slug].vue"
+      ],
+      "claims": [
+        "pages/docs/[...slug].vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "package.json 中 @nuxt/content 为 ^3.15.2,且 npm install 在不加 --legacy-peer-deps 的情况下成功",
+    "根目录存在 content.config.ts,用 defineContentConfig/defineCollection 声明 docs_en(source content/docs)与 docs_zh(source content/zh/docs,prefix 归一到 /docs)",
+    "nuxt.config.ts 中不再存在 content.locales / content.defaultLocale",
+    "nuxt.config.ts 中 content.database 按 isCloudflarePagesTarget 分流为 d1 绑定或 libsql 文件,不使用默认 sqlite 驱动",
+    "两个 docs 页面不再出现 queryContent 与 _locale,改为 queryCollection 按 locale 选择集合",
+    "全仓不再有 v2 专有 API(queryContent/fetchContentNavigation/ContentDoc/ContentList/ContentQuery/documentDriven)的引用",
+    "构建通过,且构建产物中不出现 better-sqlite3",
+    "APay 类型检查相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "依赖版本与严格 peer 安装",
+      "repository": "apay",
+      "always": true,
+      "command": "node -p \"require('./package.json').dependencies['@nuxt/content']\" | rg -q '\\^3\\.' && npm install --dry-run >/dev/null"
+    },
+    {
+      "name": "集合配置落位",
+      "repository": "apay",
+      "always": true,
+      "command": "test -s content.config.ts && rg -q 'defineContentConfig' content.config.ts && rg -q 'docs_en' content.config.ts && rg -q 'docs_zh' content.config.ts"
+    },
+    {
+      "name": "v2 配置形态已移除且索引库显式分流",
+      "repository": "apay",
+      "always": true,
+      "command": "! rg -q 'defaultLocale:\\s*.en.' nuxt.config.ts && rg -q 'nativeSqlite' nuxt.config.ts && rg -q \"'d1'\" nuxt.config.ts"
+    },
+    {
+      "name": "内容 dump 路由未被预渲染忽略挡掉",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q \"startsWith\\\\('/__nuxt_content/'\\\\)\" nuxt.config.ts"
+    },
+    {
+      "name": "ainode docs 页面改用集合查询",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "rg -q 'queryCollection' 'pages/docs/[...slug].vue' && rg -q 'docs_zh' 'pages/docs/[...slug].vue' && ! rg -q 'queryContent|_locale' 'pages/docs/[...slug].vue'"
+    },
+    {
+      "name": "official docs 页面改用集合查询",
+      "repository": "official-theme",
+      "always": true,
+      "command": "rg -q 'queryCollection' 'pages/docs/[...slug].vue' && rg -q 'docs_zh' 'pages/docs/[...slug].vue' && ! rg -q 'queryContent|_locale' 'pages/docs/[...slug].vue'"
+    },
+    {
+      "name": "全仓无 v2 专有 API 残留",
+      "repository": "apay",
+      "always": true,
+      "command": "! rg -q '\\bqueryContent\\(|\\bfetchContentNavigation\\(|<ContentDoc\\b|<ContentList\\b|<ContentQuery\\b|<ContentSlot\\b|\\bdocumentDriven\\b' app server"
+    },
+    {
+      "name": "未引入原生 sqlite 绑定",
+      "repository": "apay",
+      "always": true,
+      "command": "test -z \"$(npm ls better-sqlite3 --parseable 2>/dev/null | tail -n +2)\" && test ! -d node_modules/better-sqlite3"
+    },
+    {
+      "name": "构建通过且产出两个集合的内容 dump",
+      "repository": "apay",
+      "always": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 npm run build && test -s .output/public/__nuxt_content/docs_en/sql_dump.txt && test -s .output/public/__nuxt_content/docs_zh/sql_dump.txt"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
