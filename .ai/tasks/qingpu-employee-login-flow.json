@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-login-flow",
+  "title": "Qingpu 员工登录地址与网页使用闭环",
+  "problem": "员工后端登录端点已经存在，但主账号无法直接复制标准登录地址，公开登录页没有员工入口，员工登录后仍可能进入店主页面或在铺货页因 tenant-key 检查被拒；员工登录还使用合并会话写法，可能继承浏览器中的旧管理员声明。",
+  "expectedOutcome": "主账号获得可复制的 /auth/login/employee 员工登录地址；员工使用企业码、登录名和密码建立干净会话，默认进入铺货工作区；页面路由和工作区订阅校验识别员工身份，只开放已批准的工作能力，停用员工后下一次请求立即失效。",
+  "constraints": [
+    "登录地址只携带公开企业码，不携带密码或长期凭证",
+    "员工登录必须 replaceUserSession，不能继承既有 admin 或其他身份声明",
+    "session.user.id 与业务 userId 继续恒为店主 owner_user_id",
+    "员工工作区资格只返回布尔状态与到期时间，不暴露 tenant key 元数据、预览或原文",
+    "员工页面路由默认拒绝，允许范围与服务端员工白名单保持一致",
+    "不实现扩展和桌面端员工登录，不修改 qingpu-ai",
+    "不覆盖员工管理 UI 的并行重构，只做登录地址所需的最小接入",
+    "不新增依赖或数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/middleware/employee-auth.global.ts"
+      ],
+      "claims": [
+        "app/middleware/employee-auth.global.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/employees/login.ts",
+        "api/employee-access.ts",
+        "pages/auth/login/employee.vue",
+        "pages/user/listing/layout.vue",
+        "server/employees/access.ts",
+        "server/employees/helpers.ts",
+        "scripts/check-employee-login-flow.mjs"
+      ],
+      "claims": [
+        "api/employees/login.ts",
+        "api/employee-access.ts",
+        "pages/auth/login/employee.vue",
+        "pages/user/listing/layout.vue",
+        "server/employees/access.ts",
+        "server/employees/helpers.ts",
+        "scripts/check-employee-login-flow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "员工 API 响应包含 canonical loginPath 与绝对 loginUrl，地址仅预填 shop 参数",
+    "/auth/login/employee 提供企业码、登录名、密码表单，支持安全站内 redirect",
+    "员工登录使用 replaceUserSession，成功后默认进入 /user/listing",
+    "员工会话访问未批准的 /user 页面时被重定向到工作区",
+    "铺货布局对员工调用专用资格接口，不调用 tenant-keys/current 或 trial",
+    "专用资格接口不返回 tenant key 标识、预览、哈希或原文",
+    "员工停用状态继续由 resolveApiAuth 每请求复核",
+    "员工访问守卫、登录专项守卫和 Nuxt 类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "员工访问闸门守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "员工登录闭环守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-login-flow.mjs"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "APay 构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    }
+  ]
+}
