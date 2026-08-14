@@ -367,7 +367,8 @@ export default defineNuxtConfig({
       ignore: ['/']
     },
     preset: process.env.NITRO_PRESET || (isCloudflarePagesTarget ? 'cloudflare-pages' : 'node-server'),
-    minify: true,
+    minify: isCloudflarePagesTarget,
+    sourceMap: false,
     compressPublicAssets: true, // 开启 gzip/br 压缩
     // libsql 必须保持 external，让 Nitro 追踪并复制当前平台的原生可选包；
     // 内联后其动态 require(`@libsql/${target}`) 无法被追踪，独立产物会启动失败。
@@ -379,6 +380,7 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
     build: {
+      reportCompressedSize: false, // 禁用压缩大小报告
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
@@ -404,5 +406,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // 这里的键名会自动映射到环境变量 NUXT_DATABASE_URL
     databaseUrl: '',
-  }
+  },
+  sourcemap: { server: false, client: false },
 })
