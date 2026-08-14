@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-refine-editor-feedback",
+  "title": "修复 Listing 精修加载与保存反馈",
+  "problem": "Listing 首次点击精修时需动态加载 embed SDK、代理图片与场景，但按钮没有即时忙态；编辑器发出保存消息后 SDK 未等待宿主异步上传和数据库写入便关闭 iframe，失败时用户丢失编辑现场；服务端图片托管未返回 URL 时仍可能继续写入完成状态。",
+  "expectedOutcome": "点击精修后立即显示打开中状态；保存期间编辑器保持打开并锁定重复保存，宿主确认成功后才关闭，失败时保留编辑现场并显示真实错误；图片托管失败不写入假成功状态。",
+  "constraints": [
+    "只新增向后兼容的 embed 消息类型，不改变既有 ready/load/save/close/error 语义",
+    "不新增依赖，不改变商品图片资产模型和数据库结构",
+    "保留现有 dataUrl 保存 API 兼容面，本任务不扩大为上传协议重写",
+    "不修改两个仓库中现有的其他会话改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/features/image-editor/embed-protocol.ts",
+        "web/embed/embed.ts",
+        "web/image-editor/EditorHost.vue",
+        "tests/image-editor-embed-protocol.test.ts"
+      ],
+      "claims": [
+        "src/features/image-editor/embed-protocol.ts",
+        "web/embed/embed.ts",
+        "web/image-editor/EditorHost.vue",
+        "tests/image-editor-embed-protocol.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "server/listing/image.refine.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "server/listing/image.refine.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "点击精修后按钮立即进入忙态，SDK、图片和场景加载完成后恢复",
+    "点击保存后编辑器保持打开且保存按钮显示保存中，宿主保存成功后才关闭",
+    "宿主保存失败时编辑器保留当前内容、恢复保存按钮并展示具体错误",
+    "服务端未取得永久图片 URL 时明确失败且不更新资产状态"
+  ],
+  "verification": [
+    {
+      "name": "精修嵌入协议测试与网页构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/image-editor-embed-protocol.test.ts && npm run typecheck && npm run build:web"
+    },
+    {
+      "name": "Listing 精修主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
