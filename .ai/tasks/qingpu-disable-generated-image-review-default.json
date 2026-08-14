@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-disable-generated-image-review-default",
+  "title": "默认关闭生图质检并加入生图设置",
+  "problem": "生成图质检当前对缺省配置按开启处理，每张图额外产生视觉调用，但实际收益有限；同时开关只藏在任务策略弹窗，不在图片模型的生图设置中。",
+  "expectedOutcome": "新装与未配置用户默认不执行生成图文字质检和主图 QA；用户可在 Dash 生图设置中显式开启，任务策略弹窗与执行链保持同一口径。",
+  "constraints": [
+    "复用 settings.automation.generatedImageReview，不新增存储字段或消息协议",
+    "已显式开启的用户继续执行质检",
+    "只改变生成图质检默认值，不改变筛图、本地图片检查或发布校验",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/settings/automation.ts",
+        "src/shared/settings-normalize.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/components/TaskStrategyModal.vue",
+        "entrypoints/dash/DashSettingsDrawer.vue",
+        "tests/automation-quota.test.ts"
+      ],
+      "claims": [
+        "src/domain/settings/automation.ts",
+        "src/shared/settings-normalize.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/components/TaskStrategyModal.vue",
+        "entrypoints/dash/DashSettingsDrawer.vue",
+        "tests/automation-quota.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "缺省或旧配置未包含 generatedImageReview 时不执行生成图质检",
+    "显式设置 generatedImageReview=true 时仍执行文字质检与主图 QA",
+    "Dash 图片模型卡片提供生成图质检开关且保存到既有 automation 配置",
+    "任务策略弹窗对缺省配置展示为关闭"
+  ],
+  "verification": [
+    {
+      "name": "生图质检默认值回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/automation-quota.test.ts && npm run typecheck && npm run build"
+    }
+  ]
+}

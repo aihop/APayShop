@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-sellpic-product-spec",
+  "title": "基于 SellPicAI 调研补齐 Studio 产品开发规格",
+  "problem": "pages/user/studio/AGENTS.md 已覆盖架构边界、共享合同、任务恢复、资产事实源和分阶段实现，但缺少可直接指导产品开发的页面信息架构、商品套图输入与槽位目录、单图编辑模式、策略卡交互、结果动作、合规与版本复盘、费用反馈、状态设计、优先级和逐项验收规格。若只依赖现有执行提示词，开发时仍会遗漏用户可见能力或把参考站能力无边界地复制进 Studio。",
+  "expectedOutcome": "新增一份与 Studio 工程边界一致的产品与交互规格，吸收 SellPicAI 公开首页及 app 内商品图、单图编辑、商品视频、合规、版本分析、链接审计、记录与设置页面中适合 Qingpu 的能力；商品视频作为明确产品模块完整定义，不只保留占位入口；同时明确 Qingpu 既有复用点、P0/P1/P2 范围、不采纳项、页面状态与验收矩阵，并从 Studio AGENTS.md 建立文档路由。",
+  "constraints": [
+    "只修改 Studio 开发文档，不修改页面、API、数据库、任务执行、locale、vendor、运行时 Prompt 或 qingpu-ai 源码",
+    "参考站仅作为 2026-08-14 的竞品交互样本，不复制其品牌、原文文案、模型供应商、价格、密钥方案或未经验证的平台规则",
+    "产品规格必须服从现有 CreativeBrief -> StrategyPlan -> AssetPlan -> QAReview -> PerformanceInsight 合同、Registry + Factory、资产事实源和 Listing 回流边界",
+    "优先复用现有轻量工具、我的创作、图片任务规格、蓝图任务、任务子项账本和资产表，不规划平行实现",
+    "Amazon 特有的 A+、ASIN、广告报表、Keepa、SIF、CDQ 和 Bulk Sheet 能力不得冒充 Qingpu 首期已具备能力；只能明确降级为后续适配或不纳入 Studio",
+    "PerformanceInsight 在没有可信指标来源前保持后续项，不用生成次数、人工评分或模型判断伪造效果归因",
+    "文档不得包含登录账号、余额或其他调研会话中的个人信息"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/AGENTS.md",
+        "pages/user/studio/PRODUCT_SPEC.md"
+      ],
+      "claims": [
+        "pages/user/studio/AGENTS.md",
+        "pages/user/studio/PRODUCT_SPEC.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "明确回答现有 Studio 文档哪些已齐备、哪些尚缺，并将工程规范与产品规格分层维护",
+    "页面地图覆盖项目总览、创建/恢复项目、商品套图工作区、单图编辑、商品视频工作区、QA/合规、版本比较和我的创作复用关系",
+    "商品套图规格覆盖多视图与风格参考分离、商品证据、目标渠道与语言、基础套图、额外槽位、数量上限、个性化要求、成本预估和生成前校验",
+    "套图槽位目录覆盖主图、功能总览、核心卖点、场景、人群、细节、结构、规格、参数、对比、工艺、包装清单、成分、售后、算法语义等用途，并给出 evidence gate",
+    "单图编辑规格覆盖智能修图、风格参考、背景替换、用途转换、文字修改、局部重绘/消除、换色、裁剪、放大、扩图、精修及专门修复能力，并区分 P0/P1",
+    "商品视频规格覆盖视频用途与渠道 profile、多图商品素材、CreativeBrief、6 类策略卡、1-3 条小批量选择、时长/比例/分辨率/音频约束、受控 Prompt 微调、成本预估、批量任务、结果版本与应用回 Listing，并明确首期与后续模型能力边界",
+    "交互流程明确规划不扣生成费用、策略确认后才物化任务、小批量选择、Prompt 只开放允许字段、任务刷新恢复、部分成功、逐张重做与版本比较",
+    "QA 与回流明确 pass/warn/block、证据定位、修复动作、应用到 Listing 的 revision-safe 与员工权限规则",
+    "版本和效果模块明确指标来源、时间窗、归因风险与单变量实验要求；无数据时展示缺失态而不是伪造结论",
+    "列出 Qingpu 现有可直接复用能力与缺口，不重复建设顶层工具页、我的创作、资产中心、任务账本或 Listing 商品模型",
+    "给出 P0/P1/P2 路线、页面/空态/加载/失败/恢复状态、响应式与可访问性要求、逐模块验收矩阵和明确不采纳项",
+    "Studio AGENTS.md 能路由到 PRODUCT_SPEC.md，且原有工程边界不被弱化或重复搬入产品规格"
+  ],
+  "verification": [
+    {
+      "name": "Studio 产品规格存在且结构完整",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s pages/user/studio/PRODUCT_SPEC.md && rg -q '页面信息架构' pages/user/studio/PRODUCT_SPEC.md && rg -q 'P0.*P1.*P2' pages/user/studio/PRODUCT_SPEC.md && rg -q '不采纳' pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "核心闭环与交互覆盖",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '多视图' pages/user/studio/PRODUCT_SPEC.md && rg -q '6 类策略卡' pages/user/studio/PRODUCT_SPEC.md && rg -q '1-3 条' pages/user/studio/PRODUCT_SPEC.md && rg -q 'pass.*warn.*block' pages/user/studio/PRODUCT_SPEC.md && rg -q '版本比较' pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "既有系统复用与边界覆盖",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'ImageGenerationTaskSpec' pages/user/studio/PRODUCT_SPEC.md && rg -q '/user/creations' pages/user/studio/PRODUCT_SPEC.md && rg -q 'qingpu_assets' pages/user/studio/PRODUCT_SPEC.md && rg -q 'PerformanceInsight' pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "产品规格路由与文档格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'PRODUCT_SPEC.md' pages/user/studio/AGENTS.md && git diff --check -- pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "调研隐私与范围守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "! rg -q 'collerhu|余额 ¥|api.v3.cm|dataler.com' pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md"
+    }
+  ]
+}

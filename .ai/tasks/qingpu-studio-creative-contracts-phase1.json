@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-creative-contracts-phase1",
+  "title": "实现 Studio 共享 CreativeBrief 与图片策略合同",
+  "problem": "Studio 产品规格已经完成，但 qingpu-ai 目前没有 CreativeBrief、StrategyPlan 或按 capabilityKey + targetChannel + outputUsage + stage 解析的共享能力注册中心。若先做主题页面，事实提炼、策略默认值和证据门禁会散落在 Vue/API 中，形成第二套图片规划链。",
+  "expectedOutcome": "在 qingpu-ai 新增可经 engine 出口消费的共享创意能力合同：CreativeBrief 从统一 Product 聚合生成稳定证据目录、素材角色和 missingFacts；图片套图 StrategyPlan 复用现有图片蓝图生成三张不扣生成费用的策略卡；能力通过精确 selector 的 Registry + Factory 注册和解析，并有专项测试与注册中心文档。",
+  "constraints": [
+    "本阶段只修改 qingpu-ai 的纯领域合同、engine 出口、测试和注册中心文档，不修改 APay 主题页面、API、数据库、任务执行器或 vendor",
+    "Studio 与 Listing 是两个独立产品；新增能力必须保持宿主无关，可由任一产品通过 engine 出口消费",
+    "不新增 StudioProduct、平行图片任务规格或运行时 Prompt；AssetPlan 仍由既有 ImageGenerationTaskSpec 承担",
+    "CreativeBrief 只使用 canonical、workspace 已确认信息、稳定资产引用和显式用户事实；未知信息写入 missingFacts，不补猜",
+    "StrategyPlan 只规划不创建远程任务、不扣费，图片方案复用现有 blueprint 纯函数",
+    "Registry 按 capabilityKey + targetChannel + outputUsage + stage 精确解析，未注册组合显式 unsupported，不做渠道回落",
+    "输出可序列化、带 schemaVersion/planVersion/sourceRevision，且深冻结避免页面或任务创建前被篡改",
+    "不改动现有图片任务、Prompt、渠道 Profile 或正在进行的其他并行文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/creative-capabilities/**",
+        "src/engine/index.ts",
+        "tests/studio-creative-capabilities.test.ts",
+        "docs/registry-catalog.md"
+      ],
+      "claims": [
+        "src/domain/creative-capabilities/**",
+        "src/engine/index.ts",
+        "tests/studio-creative-capabilities.test.ts",
+        "docs/registry-catalog.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "CreativeBrief 输出 schemaVersion、briefVersion、sourceRevision、productId、targetChannel、evidence、assets、missingFacts 和用户偏好快照",
+    "证据 ID 来自稳定数据路径，不使用随机数；canonical、workspace 与 user_confirmed 来源可区分",
+    "产品参考与风格参考使用不同 role，Brief 不把 URL 当资产身份",
+    "缺少商品名、产品参考图、目标渠道或关键可声明事实时进入 missingFacts，不由模型或工厂补猜",
+    "图片 StrategyPlan 复用现有蓝图，输出完整转化、证据优先和小批量测试三张策略卡，每个槽位标记 ready 或 needs_evidence",
+    "StrategyPlan 只包含规划结果和 estimatedTaskCount，不创建 ImageGenerationTaskSpec 或任何远程任务",
+    "Registry 对完整 selector 精确解析，重复注册和未注册 selector 明确失败",
+    "新类型和工厂从 engine 唯一出口导出，engine bundle 保持零 Chrome 依赖",
+    "专项测试覆盖稳定证据、缺失事实、素材角色、三张策略、证据门禁、深冻结和 unsupported"
+  ],
+  "verification": [
+    {
+      "name": "Studio 共享能力专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/studio-creative-capabilities.test.ts"
+    },
+    {
+      "name": "分层依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "Engine 构建与零 Chrome 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    },
+    {
+      "name": "改动范围与格式",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/domain/creative-capabilities src/engine/index.ts tests/studio-creative-capabilities.test.ts docs/registry-catalog.md"
+    }
+  ]
+}
