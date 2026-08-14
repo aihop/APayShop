@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-dictionary-matcher-profiles",
+  "title": "Ozon 字典匹配按属性画像收口，修复 SKU 颜色整批漏配",
+  "problem": "匹配漏斗的包含匹配对候选设了 candidate.length >= 3 的门槛（为拉丁碎片防误配），把 Ozon ZH_HANS 颜色字典里 54 条两字基础色（黑色/灰色/米色/黄色…）整块屏蔽。1688 采集的「型号码+色名」规格值（A50黑色、A60米色）因此配不上官方候选，回退成采集原文的译文自由文本；商品 ai-1688-678842840126 的 8 个 SKU 只有三字的「卡其色」命中，其余 7 条以「A50 чёрный」形态卡在发布校验的必填字典属性阻断上。命中字典后 finalValue 又被原值译文覆盖，导致即使配上了，SKU 表里显示的仍是俄语，用户无从判断是否生效。",
+  "expectedOutcome": "字典匹配按属性组装配画像：颜色放行两字中文候选并支持型号码剥离、营销色名回落与组内同义词；尺码关闭包含匹配避免数字误配；英文字典保留缩写与 ASCII 投影。命中并拿到 dictionary_value_id 时以官方值为准，不再被译文覆盖。目标商品 8 个 SKU 的商品颜色全部带 dictionary_value_id，发布校验不再因颜色阻断。",
+  "constraints": [
+    "宁缺勿错：非颜色的款式/套餐/计量值一律返回 null，交给 AI 补参或人工，不得为提高命中率硬配",
+    "存量四级漏斗（exact/synonym/containment/abbreviation）的既有结论不得改变",
+    "dictionary-match.ts 的公开出口保留，改为委托通用画像，不留第二份实现",
+    "不改变 resolveDictionaryValue 的既有调用签名（属性组为可选参数）",
+    "不新增依赖，不改动存储结构与发布入口"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/dictionary-matcher-factory.ts",
+        "src/domain/channel-mappers/ozon/dictionary-match.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/ozon-dictionary-matcher-factory.test.ts",
+        "tests/ozon-sku-color-aspect.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/dictionary-matcher-factory.ts",
+        "src/domain/channel-mappers/ozon/dictionary-match.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/ozon-dictionary-matcher-factory.test.ts",
+        "tests/ozon-sku-color-aspect.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu",
+        ".ai/tasks/ozon-dictionary-matcher-profiles.json"
+      ],
+      "claims": [
+        "app/themes/qingpu",
+        ".ai/tasks/ozon-dictionary-matcher-profiles.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "商品 ai-1688-678842840126 的 8 个 SKU 规格轴「商品颜色」全部 matchedFromDictionary 且带 dictionary_value_id",
+    "藏青色经画像同义词归到官方「深蓝色」，不得配成字典里同样存在的「青色」",
+    "型号码剥离不吞修饰词：A50深灰色 命中「深灰色」而非「灰色」",
+    "命中带 id 时 finalValue 为官方字典值，不含俄文字符",
+    "非颜色值（小马扎/网兜/替换主机/0.5米 等）一律不命中",
+    "存量 ozon-dictionary-match 测试全绿，matchDictionaryValue 出口与通用画像等价",
+    "主题 vendor version.json 的 sourceCommit 等于本任务的 qingpu-ai 提交"
+  ],
+  "verification": [
+    {
+      "name": "字典匹配与 SKU 颜色回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-dictionary-matcher-factory.test.ts tests/ozon-sku-color-aspect.test.ts tests/ozon-dictionary-match.test.ts tests/ozon-attribute-mapping.test.ts tests/ozon-cjk-attribute-residue.test.ts"
+    },
+    {
+      "name": "引擎全量与类型",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run && npx tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "name": "宿主类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ],
+  "notes": [
+    "全库 216 条去重颜色原文实测：命中率 10.1% → 85.0%；未命中的 31 条中 27 条本就不是颜色值。",
+    "已知未覆盖：色名埋在中文长串中间（530米黄胸背带熊头、机械计数握力器黑灰10-100kg）与非标准色（碧玉），留给 AI 补参。",
+    "后续待办（不在本任务范围）：1) mapper 变体 aspectAttributes 补 strictDictionary 无 id 不出厂的纵深护栏；2) AI 补参候选池仍取字典头部 60/507 条，应改为用本匹配器粗筛后再喂模型。"
+  ]
+}
