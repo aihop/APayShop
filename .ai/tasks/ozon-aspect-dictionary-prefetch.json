@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-aspect-dictionary-prefetch",
+  "title": "选类目时预取规格轴字典，接上 SKU 自动配色链路",
+  "problem": "网页端选类目只落属性合同，loadOzonCategoryResourcesForUser 硬编码返回 dictionaryValues: {}，字典候选一律留给按需加载。但 SKU 颜色/尺码的确定性匹配依赖官方候选（matchDictionaryValue 首行即 `if (!dictionaryValues.length) return null`），候选不在场时整列回退成采集原文的译文，必须等 AI 补参任务 forceRefresh 补拉后才会变对。实测 28 个已选类目的商品里 5 个规格轴字典为空，全部卡在「SKU 规格轴值未命中官方候选」阻断上。另一半问题是按需补拉路径（fetchAndCacheAttributeValues）落库后不重算 channel_drafts.validation 物化列，导致值已经配上但阻断提示仍在。",
+  "expectedOutcome": "类目应用即带回规格轴字典并落 workspace，选完类目 SKU 表颜色列直接显示官方字典值；按需补拉候选后就绪度同步重算，不再残留已不成立的阻断提示。非规格轴字典维持按需加载不变。",
+  "constraints": [
+    "预取范围只放开 is_aspect && dictionary_id，不得扩到品牌等非规格轴大字典",
+    "预取失败/超时按缺失处理，绝不阻塞选类目（沿用既有 fail-soft 口径）",
+    "预取必须是显式 opt-in：类目推荐打分按候选类目逐个调同一函数且只读 attributes，默认开启会把请求数乘以候选数",
+    "资源缓存键需区分是否预取，避免打分路径缓存的空字典被类目应用命中",
+    "不改引擎，不发 engine 版本；确定性匹配是读时派生，字典在场即生效，不新增重算步骤"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/ozon-catalog.ts",
+        "api/listing/products/update.ts",
+        "api/listing/categories/attribute-values.ts"
+      ],
+      "claims": [
+        "server/listing/ozon-catalog.ts",
+        "api/listing/products/update.ts",
+        "api/listing/categories/attribute-values.ts"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu",
+        ".ai/tasks/ozon-aspect-dictionary-prefetch.json"
+      ],
+      "claims": [
+        "app/themes/qingpu",
+        ".ai/tasks/ozon-aspect-dictionary-prefetch.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "类目应用后 workspace.channelContext.ozon.attributeDictionaryValues 含全部 is_aspect 字典属性的候选",
+    "类目推荐打分、属性抽屉预览、发布冻结三条调用路径的请求数不变（不预取字典）",
+    "单个规格轴字典拉取失败或超时不影响类目应用成功落库",
+    "按需补拉候选（无 query）后 channel_drafts.validation 重算",
+    "商品 ai-1688-914168403181：预取前颜色命中 0/38，预取后 37/38"
+  ],
+  "verification": [
+    {
+      "name": "宿主类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "主题 Listing 专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-ozon-variant-required-validation.mjs && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs && node scripts/check-channel-preview-current-projection.mjs"
+    }
+  ],
+  "notes": [
+    "字典值按类目/类型分子集：同一个 dictionary_id 1494，手套类目返回 507 条，雨伞类目只返回 56 条。不能假设全平台同一份。",
+    "存量的 5 个空字典商品需重新选一次类目（或跑一次 AI 补参）才会补上，本次改动不含存量回填。",
+    "承接 ozon-dictionary-matcher-profiles：匹配器已能配上这些值，缺的只是候选在不在场。"
+  ]
+}
