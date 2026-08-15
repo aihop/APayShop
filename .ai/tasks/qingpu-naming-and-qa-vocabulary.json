@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-naming-and-qa-vocabulary",
+  "title": "收口命名规范并校正 QA 判定词汇",
+  "problem": "主题仓没有成文命名规范,靠惯例传递:database 多词 SQL 文件名 kebab 与 snake 各半,server 模块 listing 用点分子面而其余域用扁平 kebab,任务终态 succeeded 与 Studio 项目终态 completed 并存,API method 有文件后缀与 handler 内分支两套写法,组件域前缀不彻底。此外 QAReview 判定词汇有三套且文档那套没有实现:文档写 pass/warn/block,engine reviewGeneratedImageText 只返回 ok|warn,qingpu_task_items.review_status 存 not_required/pending/running/ok/warn/failed,block 在实现中完全不存在,导致「QA 为 block 的资产不得应用」这条约束和对应验收无法落地。",
+  "expectedOutcome": "主题仓 AGENTS.md 新增命名规范一节,逐条定死新文件的写法并标注存量异类不强制迁移;Studio 与能力中心文档把 QAReview 合同词汇定为唯一权威,并如实标注当前实现只覆盖文字审核、只产出 pass/warn,block 尚无产出规则;存储值与合同值的映射写死,避免 Studio 再造第四套词汇;block 缺口登记进技术债账本,由后续独立任务实现。",
+  "constraints": [
+    "只调整文档与技术债账本,不修改任何代码、SQL、engine 出口或数据库约束",
+    "不改变 engine reviewGeneratedImageText 的现有返回值,也不改 qingpu_task_items.review_status 约束",
+    "命名规范只约束新增文件,存量异类标注为不强制迁移,不触发任何改名或搬迁",
+    "不得把文档的 pass/warn/block 合同词汇删掉降级为实现现状,合同词汇保持权威并显式标注实现缺口",
+    "Studio 文档中依赖 block 的约束与验收必须标注为待 block 能力落地后生效,不得伪装已可执行",
+    "两份仓库文档保持自包含,不互相引用绝对路径",
+    "不覆盖三个仓库中其他会话的未提交改动,不提交或推进 APay gitlink"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "AGENTS.md",
+        "pages/user/studio/AGENTS.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "pages/user/studio/AGENTS.md"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "AGENTS.md",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题 AGENTS.md 有命名规范一节,覆盖 SQL 文件名、表名、server 模块文件名、API 文件名与 method、Vue 组件、类型、locale 与状态值八类",
+    "命名规范逐条给出新增文件的唯一写法,并点名存量异类且声明不强制迁移",
+    "状态值一节明确成功终态统一用 succeeded,并记录 studio_projects 现存 completed 为待收敛项",
+    "Studio 文档写明 QAReview 合同词汇 pass/warn/block 为权威,并标注当前实现只有文字审核且只产出 pass/warn",
+    "Studio 文档写明合同值与 review_status 存储值的映射,禁止再造第四套词汇",
+    "Studio 文档中依赖 block 的约束与验收显式标注为待 block 落地后生效",
+    "能力中心文档同步标注 block 尚无产出规则",
+    "技术债账本新增 QA 判定词汇缺口条目并注明还法"
+  ],
+  "verification": [
+    {
+      "name": "命名规范落位",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '## 7\\. 命名规范' AGENTS.md && rg -q 'succeeded' AGENTS.md && rg -q 'kebab' AGENTS.md && rg -q '不强制迁移' AGENTS.md"
+    },
+    {
+      "name": "Studio QA 词汇如实标注",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'pass / warn / block|pass/warn/block' pages/user/studio/AGENTS.md && rg -q 'review_status' pages/user/studio/AGENTS.md && rg -q '尚无产出规则|尚未实现|待 `block`' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "能力中心同步标注",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "rg -q 'block' AGENTS.md && rg -q '尚无产出规则|尚未实现' AGENTS.md"
+    },
+    {
+      "name": "技术债登记",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "rg -q 'QA 判定词汇|QAReview' docs/tech-debt-map.md"
+    },
+    {
+      "name": "文档无跨仓绝对路径",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- AGENTS.md pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/aihop' AGENTS.md pages/user/studio/AGENTS.md"
+    }
+  ]
+}
