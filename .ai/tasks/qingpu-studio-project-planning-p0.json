@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-project-planning-p0",
+  "title": "实现 Studio P0 项目与图片规划闭环",
+  "problem": "Studio 目前只有工程与产品规格，没有可用页面、项目持久化、独立上传、Listing 导入、CreativeBrief 或图片策略规划链路；主题 vendor 也尚未包含已经提交到 qingpu-ai 的共享创意能力。",
+  "expectedOutcome": "用户可在独立的 /user/studio 搜索筛选真实项目，在 /user/studio/create 上传并区分商品/风格素材创建项目或从 Listing 商品导入，并在项目工作区刷新恢复商品证据与三种 engine 图片策略；项目只保存商品、事实 revision、资产引用与规划合同，不复制 Listing 聚合或资产 URL。",
+  "constraints": [
+    "Studio 与 Listing 保持独立导航、页面、状态和编排，不复制或导入 Listing 页面、composable 与内部 queries",
+    "独立创建复用 engine 已有 productProjectionFactory 商品聚合工厂，不新增 StudioProduct、Listing workspace、渠道草稿或发布任务",
+    "Studio 不 import、调用或反向要求任何 server/listing、api/listing、Listing 页面或 composable；商品身份与已确认事实只经独立共享商品端口读取",
+    "本阶段禁止修改任何 pages/user/listing、server/listing、api/listing、Listing 任务或 database/products.sql；若确需影响 Listing 必须停止并先取得用户确认",
+    "CreativeBrief 与 StrategyPlan 只调用 engine 导出，不在主题拼 Prompt、策略默认值或渠道规则",
+    "项目只保存 productId、事实 revision、assetId、角色、用户偏好与规划合同，不复制资产 URL 或完整商品聚合",
+    "上传文件经受鉴权服务端验证并托管，落 qingpu_assets 后再用 assetId 关联项目",
+    "本阶段不创建付费图片任务，不伪装图片生成、QA、Listing 回流或视频执行已经完成",
+    "从 Listing 导入只经独立共享商品事实端口只读现有 productId、事实 revision 与已确认事实，不 import Listing 代码，也不写 Listing 表",
+    "不手改 vendor，必须由 qingpu-ai engine:release 从已提交源码生成并保持 sourceCommit 锚点",
+    "不提交、推送、发布或执行生产数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**",
+        "database/product-facts.sql",
+        "database/studio-projects.sql",
+        "server/db/pg.ts",
+        "server/studio/**",
+        "server/products/**",
+        "api/studio/**",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/create.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/**",
+        "pages/user/studio/types.ts",
+        "locales/studio/**"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**",
+        "database/product-facts.sql",
+        "database/studio-projects.sql",
+        "server/db/pg.ts",
+        "server/studio/**",
+        "server/products/**",
+        "api/studio/**",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/create.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/**",
+        "pages/user/studio/types.ts",
+        "locales/studio/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Studio 首页具有独立定位、真实项目列表、搜索、状态筛选以及加载、错误和空态",
+    "创建页并列提供独立上传与 Listing 导入，独立创建收集名称、商品参考、风格参考、Ozon 渠道、语言与创作目标",
+    "上传素材获得稳定 assetId 并落 qingpu_assets，产品参考与风格参考在项目关系和 Brief 角色中保持分离",
+    "独立创建通过 engine 商品聚合工厂生成 canonical 商品事实壳并写共享商品事实表，且不创建 Listing workspace、渠道草稿或 StudioProduct",
+    "Listing 导入经共享商品端口只保存 productId 与事实 revision，同一主账号同一 productId 恢复唯一有效项目，Studio 与 Listing 代码零互相 import",
+    "项目工作区包含概览、商品证据、图片套图、单图编辑、商品视频、QA 与合规、版本七个标签",
+    "项目详情可由 engine 生成并持久化 CreativeBrief，显示 evidence、missingFacts 与素材角色",
+    "项目详情可由 engine 生成并持久化 conversion_suite、evidence_first、test_batch 三张 StrategyPlan 卡，规划阶段明确不扣生成费用",
+    "事实 revision 变化时 Brief 与策略显示 stale，新策略规划前必须刷新 Brief",
+    "WB 或未注册组合显式 unsupported，不回落到 Ozon 默认值",
+    "页面刷新后项目、Brief 与 StrategyPlan 可恢复，接口错误有可行动反馈"
+  ],
+  "verification": [
+    {
+      "name": "Vendor 创意与商品工厂合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'buildCreativeBrief' server/vendor/qingpu-engine/index.d.ts && rg -q 'buildImageSuiteStrategyPlan' server/vendor/qingpu-engine/index.d.ts && rg -q 'productProjectionFactory' server/vendor/qingpu-engine/index.d.ts && test \"$(node -p \"require('./server/vendor/qingpu-engine/version.json').sourceCommit\")\" = \"$(git -C ../../../../qingpu-ai rev-parse --short HEAD)\""
+    },
+    {
+      "name": "Studio 边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "! rg -n 'pages/user/listing|server/listing|api/listing|Prompt正文|executionPrompt' pages/user/studio server/studio server/products api/studio && ! rg -n 'if \\(.*channel.*===' pages/user/studio server/studio server/products api/studio && git diff --quiet -- pages/user/listing server/listing api/listing database/products.sql database/workspaces.sql database/channel-drafts.sql"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Studio 范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- database/product-facts.sql database/studio-projects.sql server/db/pg.ts server/studio server/products api/studio pages/user/studio locales/studio server/vendor/qingpu-engine"
+    }
+  ]
+}

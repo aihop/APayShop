@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-single-edit-video-p0",
+  "title": "实现 Studio 单图编辑与商品视频第一版",
+  "problem": "Studio 导航已有单图编辑和商品视频入口，但对应路由尚不存在。用户无法从上传或我的创作选择商品图片，按专业电商任务组织编辑，也无法在 Studio 内基于商品素材设置视频用途、结构和真实图生视频参数。",
+  "expectedOutcome": "新增任务优先的单图编辑和商品视频工作台：单图按专业模式与结构化要求衔接现有图生图、增强和去背景工具；视频按用途、3-6 张素材、6 类策略方向、时长和画幅组织输入，并以主锚图片衔接现有可恢复图生视频执行链。",
+  "constraints": [
+    "复用现有图片编辑和视频任务 API，不复制模型调用、Prompt 模板、任务轮询、重试或资产落库",
+    "单图第一版只把已真实支持的 image-to-image、image-enhancer、image-bg-remove 标记为可执行；蒙版、OCR、确定性裁剪等未实现模式明确标记为后续",
+    "视频 Provider 当前只执行单张首帧；3-6 张素材用于专业输入组织，提交时必须明确只有主锚进入当前执行链，不伪装多图已传给 Provider",
+    "视频策略合同和父子任务尚未实现；第一版使用可选择的创意方向构造用户确认的语义要求，一次只提交一条真实图生视频任务",
+    "不修改 Listing 页面、Studio 项目表、engine vendor、数据库和付费生成合同",
+    "只修改契约 claims 中的文件；不提交、推送或部署本轮新改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/single-edit.vue",
+        "pages/user/studio/video-gen.vue",
+        "pages/user/studio/components/StudioMediaSourcePicker.vue",
+        "pages/user/studio/components/StudioModeCard.vue",
+        "pages/user/studio/locales/**",
+        "api/studio/image-reference.get.ts"
+      ],
+      "claims": [
+        "pages/user/studio/single-edit.vue",
+        "pages/user/studio/video-gen.vue",
+        "pages/user/studio/components/StudioMediaSourcePicker.vue",
+        "pages/user/studio/components/StudioModeCard.vue",
+        "pages/user/studio/locales/**",
+        "api/studio/image-reference.get.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/user/studio/single-edit 可从本地上传或我的创作选择一张源图，展示专业模式目录与真实支持边界",
+    "可执行单图模式将结构化选择转换成现有工具的 prompt/referenceUrl 查询参数，并进入真实编辑任务页面",
+    "/user/studio/video-gen 支持上传或从我的创作选择 3-6 张图片、设置主锚、用途、策略方向、时长、画幅和创作要求",
+    "视频页展示 6 类策略方向和用途约束，提交前明确当前 Provider 只执行主锚首帧",
+    "视频提交衔接现有 /image-to-video 任务执行页，传递主锚 assetId 或上传路径、语义要求、时长和画幅",
+    "中英俄文案完整，页面不会出现缺失翻译 key",
+    "Nuxt 类型检查不新增错误，浏览器验证两个路由与关键交互无运行时错误"
+  ],
+  "verification": [
+    {
+      "name": "单图工作台结构",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'StudioMediaSourcePicker' pages/user/studio/single-edit.vue && rg -q 'editModes' pages/user/studio/single-edit.vue && rg -q 'image-to-image' pages/user/studio/single-edit.vue"
+    },
+    {
+      "name": "视频工作台结构",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'StudioMediaSourcePicker' pages/user/studio/video-gen.vue && rg -q 'strategyOptions' pages/user/studio/video-gen.vue && rg -q 'image-to-video' pages/user/studio/video-gen.vue"
+    },
+    {
+      "name": "真实能力边界",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'currentExecutorNotice' pages/user/studio/video-gen.vue && ! rg -n 'executionPrompt|providerId|ImageGenerationTaskSpec' pages/user/studio/single-edit.vue pages/user/studio/video-gen.vue"
+    },
+    {
+      "name": "Studio 范围格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio/single-edit.vue pages/user/studio/video-gen.vue pages/user/studio/components/StudioMediaSourcePicker.vue pages/user/studio/components/StudioModeCard.vue pages/user/studio/locales api/studio/image-reference.get.ts"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

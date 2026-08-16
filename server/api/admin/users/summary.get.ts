@@ -133,9 +133,7 @@ export default defineEventHandler(async (event) => {
     }
 
     return {
-      data: {
-        summary,
-      }
+      data: summary,
     }
   } catch (error: any) {
     console.error('[admin/users/summary] Error:', error)

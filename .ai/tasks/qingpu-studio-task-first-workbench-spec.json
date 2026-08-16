@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-task-first-workbench-spec",
+  "title": "将 Studio 调整为任务优先的专业工作台",
+  "problem": "现有规格把 /user/studio 定义为项目管理首页，导致实现先展示项目列表、CreativeBrief 和 StrategyPlan 技术阶段，与已确认参考页面的直接生产心智不符。用户应该进入 Studio 后立即上传素材并配置商品套图，同时由项目底座在后台提供保存、恢复、版本、QA 与 Listing 回流。",
+  "expectedOutcome": "明确 Studio 是产品名、商品图/单图编辑/商品视频是用户工作台、项目是持久化组织方式；/user/studio 默认承载商品图五步工作台，项目列表迁到 /user/studio/projects，内部 CreativeBrief/StrategyPlan 以商品分析和套图建议呈现而不作为首次生产的技术门槛。",
+  "constraints": [
+    "本任务只修订 Studio 工程与产品文档，不修改页面、API、数据库、locale、vendor 或 qingpu-ai",
+    "保留现有项目、商品身份、资产引用、任务恢复、QA、版本和 Listing 协同架构",
+    "不照搬 SellPicAI 品牌、Amazon 特有规则、模型名称、价格、账号或供应商设置",
+    "全局资产继续复用 /user/creations，不新增 Studio 资产与版本顶层栏目",
+    "用户界面不以 CreativeBrief、StrategyPlan、AssetPlan 等内部合同名作为主流程文案"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/AGENTS.md",
+        "pages/user/studio/PRODUCT_SPEC.md"
+      ],
+      "claims": [
+        "pages/user/studio/AGENTS.md",
+        "pages/user/studio/PRODUCT_SPEC.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "规格明确 Studio、工作台、项目三层命名和职责",
+    "/user/studio 默认是商品图任务工作台而非项目列表",
+    "商品图工作台覆盖多视图、商品信息、基础套图、额外图片、个性化要求和生成汇总",
+    "项目在首次上传或 Listing 导入时自动建立草稿，并支持刷新恢复",
+    "项目列表迁到 /user/studio/projects，项目详情保留恢复、结果、QA 和版本能力",
+    "内部合同继续执行但用用户语言渐进展示，不暴露技术阶段阻断首次使用",
+    "导航覆盖商品图、单图编辑、商品视频、合规和项目记录，并继续复用 /user/creations"
+  ],
+  "verification": [
+    {
+      "name": "任务优先信息架构",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '/user/studio.*商品图' pages/user/studio/PRODUCT_SPEC.md && rg -q '/user/studio/projects' pages/user/studio/PRODUCT_SPEC.md && rg -q '任务优先' pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "工作台五步闭环",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '上传同一商品多视图' pages/user/studio/PRODUCT_SPEC.md && rg -q '选择基础套图' pages/user/studio/PRODUCT_SPEC.md && rg -q '额外图片' pages/user/studio/PRODUCT_SPEC.md && rg -q '生成汇总' pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "项目底座与内部合同边界",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '自动创建.*草稿项目' pages/user/studio/PRODUCT_SPEC.md && rg -q '不直接暴露.*CreativeBrief' pages/user/studio/PRODUCT_SPEC.md && rg -q '/user/creations' pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "文档格式与隐私",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md && ! rg -q 'collerhu|余额 ¥|api.v3.cm|dataler.com' pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md"
+    }
+  ]
+}

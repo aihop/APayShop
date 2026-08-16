@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-key-provisioning-resilience",
+  "title": "ainode 发键链路：超时收口、身份解析重试、失败原因可观测",
+  "problem": "新账号注册后经常拿不到 ainode API Key。ensureAINodeApiKey 的三次外部调用中，find-or-create 有 10 秒超时但零重试，一次网络抖动即失败；api-keys/list 与 api-keys/create 完全没有超时，上游卡住会把注册请求挂到平台超时。核心 find-or-create 的查-再-插不是原子操作，同邮箱并发会撞唯一键返回 500。失败又被 issue.ts 与扩展端两层 catch 吞掉，注册响应只剩一个空 apiKey，前端和调用方无法区分未发放与发放失败，只能翻服务端日志定位。",
+  "expectedOutcome": "发键链路每一步都有超时且整条链路有总预算，身份解析对可重试错误做有限次退避重试；核心 find-or-create 并发同邮箱时收敛到同一用户而不是 500；发键失败的阶段代码随注册/登录响应返回，调用方无需读服务端日志即可判断失败位置。",
+  "constraints": [
+    "只做超时、重试、并发收敛与失败原因透出，不改发键的业务判定（分组 6、baseUrl 口径、试用/订阅分支、已有 key 不覆盖等一律保持）",
+    "ainode key 失败仍然是非致命：tenant key 照发，注册与登录不得因此失败",
+    "整条发键链路对用户请求的占用必须有上限，重试不得让注册响应时间无界增长",
+    "find-or-create 的并发收敛必须兼容 postgresql / mysql / sqlite / d1 四种方言，禁止使用 ON CONFLICT 等单方言语法",
+    "透出的失败信息只含阶段代码与既有面向用户文案，不得把上游响应体、网关地址或 integration token 带进 API 响应",
+    "register 与 login 的响应形状必须保持一致，扩展端复用同一套解析逻辑",
+    "新增字段只做增量，不改动或删除现有响应字段，旧版扩展不受影响",
+    "resolveAINodeUserId 的现有两参调用方（server/ainode/site.ts）不得被破坏",
+    "不修改工作区中其他会话的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/auth/find-or-create.post.ts"
+      ],
+      "claims": [
+        "server/api/auth/find-or-create.post.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tenant-keys/ainode.ts",
+        "server/tenant-keys/issue.ts",
+        "api/register.ts",
+        "api/login.ts"
+      ],
+      "claims": [
+        "server/tenant-keys/ainode.ts",
+        "server/tenant-keys/issue.ts",
+        "api/register.ts",
+        "api/login.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "api-keys/list 与 api-keys/create 两次请求都带 AbortSignal 超时，不再存在无超时的外部调用",
+    "ensureAINodeApiKey 有整条链路的总时间预算，各步超时取单步上限与剩余预算的较小值",
+    "resolveAINodeUserId 对超时、网络错误、5xx 和 429 做有限次指数退避重试，对其余 4xx 不重试",
+    "resolveAINodeUserId 新增的截止时间参数可选，server/ainode/site.ts 的两参调用保持可用",
+    "核心 find-or-create 在插入撞唯一键时回查邮箱并返回既有用户，不再向调用方抛 500，且不使用单方言冲突语法",
+    "issueOrRotateTenantKey 返回值带 ainodeKeyError 阶段代码，未尝试发键时为 null",
+    "register 与 login 响应都返回 ainodeKeyError，且两者字段集合一致",
+    "ainodeKeyError 只含固定阶段代码，不含上游响应体、网关地址或凭证",
+    "ainode 发键失败时 tenant key 与 rawKey 仍正常返回，注册与登录不失败",
+    "契约验证通过并释放文件租约"
+  ],
+  "verification": [
+    {
+      "name": "发键链路外部调用全部带超时",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const strip=s=>s.replace(/\\/\\*[\\s\\S]*?\\*\\//g,'').replace(/\\/\\/.*$/gm,'');const code=strip(fs.readFileSync('server/tenant-keys/ainode.ts','utf8'));const calls=(code.match(/await ofetch</g)||[]).length;const timeouts=(code.match(/signal: AbortSignal\\.timeout\\(/g)||[]).length;if(calls!==3||timeouts!==calls)process.exit(1)\""
+    },
+    {
+      "name": "身份解析存在退避重试与总预算",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const s=fs.readFileSync('server/tenant-keys/ainode.ts','utf8');if(!/MAX_ATTEMPTS/.test(s))process.exit(1);if(!/BUDGET_MS/.test(s))process.exit(1);if(!/BACKOFF/.test(s))process.exit(1)\""
+    },
+    {
+      "name": "失败阶段代码贯通到注册与登录响应",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');for(const f of ['server/tenant-keys/issue.ts','api/register.ts','api/login.ts']){if(!fs.readFileSync(f,'utf8').includes('ainodeKeyError'))process.exit(1)}\""
+    },
+    {
+      "name": "find-or-create 并发收敛且不使用单方言冲突语法",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const strip=s=>s.replace(/\\/\\*[\\s\\S]*?\\*\\//g,'').replace(/\\/\\/.*$/gm,'');const code=strip(fs.readFileSync('server/api/auth/find-or-create.post.ts','utf8'));if(/onConflict|onDuplicateKey|ON CONFLICT|ON DUPLICATE KEY/i.test(code))process.exit(1);if(!/catch\\s*\\(/.test(code))process.exit(1)\""
+    },
+    {
+      "name": "类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-login-redirect-session-refresh",
+  "title": "修复管理员登录后偶发停留在登录页",
+  "problem": "管理员从受保护后台页面跳转到带 redirect 参数的登录页后，登录成功分支会跳过共享管理员会话的强制刷新。全局路由中间件随后读取登录前缓存并再次导航回登录页，用户看到的现象是点击登录按钮没有反应，整页刷新后才恢复。",
+  "expectedOutcome": "管理员凭据验证成功后，无论登录页是否带 redirect 参数，都先强制刷新共享管理员会话，再计算并执行目标路由跳转。",
+  "constraints": [
+    "只调整管理员登录页的登录成功流程，不修改服务端登录接口、Cookie、权限模型或路由中间件",
+    "保留合法 redirect 参数的现有跳转语义",
+    "登录失败仍显示原有错误并恢复按钮状态",
+    "不得覆盖或整理工作区中的其他未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/pages/admin/login.vue"
+      ],
+      "claims": [
+        "app/pages/admin/login.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "登录成功后在任何 redirect 分支判断之前执行 loadAdmin(true)",
+    "带合法 /admin redirect 的登录仍跳转到原目标路由",
+    "不带 redirect 的登录仍按管理员权限选择首个允许访问的后台路由",
+    "登录失败和加载状态处理保持现有行为",
+    "契约验证通过并释放文件租约"
+  ],
+  "verification": [
+    {
+      "name": "管理员登录跳转会话刷新顺序",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const source=fs.readFileSync('app/pages/admin/login.vue','utf8');const start=source.indexOf('const handleLogin = async () =>');const end=source.indexOf('\\n}',start);const handler=source.slice(start,end);const refresh=handler.indexOf('await loadAdmin(true)');const redirectBranch=handler.indexOf(\\\"typeof route.query.redirect === 'string'\\\");if(start<0||end<0||refresh<0||redirectBranch<0||refresh>redirectBranch)process.exit(1)\""
+    },
+    {
+      "name": "Nuxt 构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    }
+  ]
+}

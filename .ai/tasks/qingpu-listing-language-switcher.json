@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-language-switcher",
+  "title": "在 Listing 顶栏加入语言切换",
+  "problem": "Listing 使用独立 Dashboard 壳，不稳定展示主站 Header 的语言入口，用户在商品工作区内无法直接切换中文、英文和俄文。",
+  "expectedOutcome": "Listing 顶栏在任务中心与主题按钮之间显示紧凑语言菜单；切换语言后保留当前页面、商品参数、查询参数与锚点，并持久化用户选择。",
+  "constraints": [
+    "复用现有 LanguageSwitcher，不新增语言组件或依赖",
+    "只修改 Listing 独立布局，不改变主站 Header 与其他页面布局",
+    "语言切换必须保留当前完整路由上下文",
+    "不修改其他会话文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/layout.vue"
+      ],
+      "claims": [
+        "pages/user/listing/layout.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Listing 顶栏显示中文、英文、俄文切换菜单",
+    "语言入口位于任务中心与主题按钮之间且使用紧凑图标形态",
+    "切换后保留当前 Listing 深层路径、查询参数和锚点",
+    "刷新或再次访问时继续使用已选择语言"
+  ],
+  "verification": [
+    {
+      "name": "Listing 语言切换类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

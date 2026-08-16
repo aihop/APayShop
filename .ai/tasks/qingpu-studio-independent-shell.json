@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-independent-shell",
+  "title": "为 Studio 建立独立布局与语言包",
+  "problem": "Studio 页面已经具备项目规划 P0，但仍套用会员中心 UserLayout，页面和组件保留大量硬编码中文；这与 Studio、Listing 两个独立产品面的边界不一致。",
+  "expectedOutcome": "所有 /user/studio 路由由 Studio 自有工作台壳全屏接管，拥有自己的导航、顶栏、移动端入口和三语命名空间；Studio 页面与组件不再依赖 UserLayout、Listing 页面实现或硬编码用户文案。",
+  "constraints": [
+    "只借鉴 Listing 的 UDashboard 布局组合，不 import、复制或修改 Listing 页面、组件、composable 与语言包",
+    "Studio 导航、状态、文案和视觉语义全部位于 pages/user/studio 与 locales/studio",
+    "默认主题壳只负责对 /user/studio 路由隐藏站点顶栏和页脚，不承载 Studio 业务导航",
+    "不修改 Studio API、服务端、数据库、任务、资产或共享 engine",
+    "不新增依赖，不提交、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "layouts/default.vue",
+        "pages/user/studio/layout.vue",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/create.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/**",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "locales/studio/**"
+      ],
+      "claims": [
+        "layouts/default.vue",
+        "pages/user/studio/layout.vue",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/create.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/**",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "locales/studio/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Studio 首页、创建页和项目页统一使用 StudioLayout，不再套 UserLayout",
+    "Studio 路由隐藏默认站点顶栏和页脚，桌面与移动端均有自有导航",
+    "Studio 壳提供项目、创建、我的创作、Listing 和会员中心的清晰边界入口",
+    "Studio 三语包通过 qingpu.studio 命名空间注册，并覆盖壳、首页、创建页、项目页和上传组件文案",
+    "Studio 页面与组件不引用 qingpu.listing 文案，也不直接 import locales/studio 文件",
+    "Listing 页面与语言包零改动"
+  ],
+  "verification": [
+    {
+      "name": "Studio 独立边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '<StudioLayout' pages/user/studio/index.vue pages/user/studio/create.vue 'pages/user/studio/projects/[id].vue' && ! rg -n '<UserLayout|pages/user/listing|qingpu\\.listing|locales/studio/' pages/user/studio --glob '!AGENTS.md' --glob '!PRODUCT_SPEC.md' && git diff --quiet -- pages/user/listing locales/listing"
+    },
+    {
+      "name": "Studio 语言包接线",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q \"import studio from './studio/zh'\" locales/zh.ts && rg -q \"import studio from './studio/en'\" locales/en.ts && rg -q \"import studio from './studio/ru'\" locales/ru.ts && rg -q '^  studio,' locales/zh.ts locales/en.ts locales/ru.ts"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Studio 范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- layouts/default.vue pages/user/studio locales/zh.ts locales/en.ts locales/ru.ts locales/studio"
+    }
+  ]
+}

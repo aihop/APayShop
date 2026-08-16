@@ -900,7 +900,7 @@
     "operationLogs": {
       "page": {
         "title": "操作日志",
-        "subtitle": "后台变更审计记录：谁、在什么时候、改了什么。"
+        "subtitle": "后台变更审计记录：谁、在什么时候、改了什么"
       },
       "table": {
         "actor": "操作人",
@@ -951,10 +951,10 @@
       },
       "cleanup": {
         "title": "清理操作日志",
-        "desc": "仅删除早于保留天数的记录（最少保留 30 天）。审计日志不提供一键清空。",
+        "desc": "仅删除早于保留天数的记录（最少保留 30 天）。审计日志不提供一键清空",
         "keepDays": "保留天数",
         "confirmTitle": "清理操作日志",
-        "confirmMessage": "确定删除 {days} 天前的操作日志吗？此操作不可撤销。",
+        "confirmMessage": "确定删除 {days} 天前的操作日志吗？此操作不可撤销",
         "success": "已清理 {count} 条记录",
         "error": "清理失败"
       },
@@ -1006,7 +1006,7 @@
       },
       "confirm": {
         "delete_title": "删除支付方式",
-        "delete_desc": "确定吗？这可能会影响现有订单。"
+        "delete_desc": "确定吗？这可能会影响现有订单"
       },
       "toast": {
         "success": "成功",
@@ -1079,9 +1079,9 @@
     },
     "payment": {
       "pageTitle": "支付处理中",
-      "pageDescription": "查看支付状态和订单确认信息。",
+      "pageDescription": "查看支付状态和订单确认信息",
       "cancelledPageTitle": "支付已取消",
-      "cancelledPageDescription": "支付流程已取消，您可以返回继续选购或查看订单。",
+      "cancelledPageDescription": "支付流程已取消，您可以返回继续选购或查看订单",
       "processingPayment": "处理支付中...",
       "processingPaymentTips": "请稍后，我们正在确认您的支付...",
       "orderIdLabel": "订单号",
@@ -1167,13 +1167,13 @@
       "balanceUpdated": "余额已更新",
       "balanceUpdatedHint": "您的余额充值已成功到账。",
       "serviceRequestReceived": "服务请求已接收",
-      "serviceRequestReceivedHint": "我们已收到您的付款，团队会继续处理这笔服务订单。",
-      "deliveryReadyHint": "您的订单已支付成功，交付详情准备好后会显示在这里。",
-      "deliveryPendingHint": "您的订单正在处理中，请稍后回来查看，或联系支持团队。",
-      "deliveryRequiresPayment": "完成支付后才能查看交付信息。",
-      "orderExpiredOrCancelled": "该订单已取消或已过期。",
+      "serviceRequestReceivedHint": "我们已收到您的付款，团队会继续处理这笔服务订单",
+      "deliveryReadyHint": "您的订单已支付成功，交付详情准备好后会显示在这里",
+      "deliveryPendingHint": "您的订单正在处理中，请稍后回来查看，或联系支持团队",
+      "deliveryRequiresPayment": "完成支付后才能查看交付信息",
+      "orderExpiredOrCancelled": "该订单已取消或已过期",
       "orderNotFound": "订单不存在",
-      "orderNotFoundTips": "您查看的订单不存在，或您没有权限访问该订单。",
+      "orderNotFoundTips": "您查看的订单不存在，或您没有权限访问该订单",
       "productTypeKey": "授权密钥",
       "productTypeFile": "数字文件",
       "productTypeSubscription": "订阅服务",
@@ -1185,7 +1185,7 @@
       "noOrders": "暂无任何订单",
       "noOrdersTips": "您暂无任何订单。您需要先购买产品才能查看订单",
       "myOrders": "我的订单",
-      "myOrdersTips": "查看和管理您购买的产品。"
+      "myOrdersTips": "查看和管理您购买的产品"
     },
     "nav": {
       "home": "首页",
@@ -1234,7 +1234,7 @@
         "q1": "这是一次性支付吗？",
         "a1": "是的，目前我们所有的方案都是一次性付费终身使用，无需月付或年付",
         "q2": "我之后可以升级方案吗？",
-        "a2": "当然可以！您随时可以升级到更高档次的方案，只需补足当前方案与新方案的差价即可。"
+        "a2": "当然可以！您随时可以升级到更高档次的方案，只需补足当前方案与新方案的差价即可"
       },
       "about": {
         "title": "关于我们",

@@ -156,12 +156,10 @@ export default defineEventHandler(async (event) => {
     }))
 
     return {
-      data: {
-        list: finalUsers,
-        total,
-        page,
-        pageSize,
-      }
+      data: finalUsers,
+      total,
+      page,
+      pageSize,
     }
   } catch (error: any) {
     console.error('[admin/users] Error:', error)

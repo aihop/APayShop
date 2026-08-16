@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-image-workbench-default",
+  "title": "实现 Studio 默认商品图工作台",
+  "problem": "当前 /user/studio 仍是项目列表，创建、商品分析和套图策略分散在 create 与项目详情页，用户无法像专业商品图工具一样进入即完成多视图、商品信息、基础套图、额外图片与生成汇总。",
+  "expectedOutcome": "/user/studio 成为任务优先的 AI 商品图五步工作台，提交后真实创建/恢复项目并调用现有 Brief 与 Strategy API；项目列表迁到 /user/studio/projects，旧 create 路由兼容跳转，Studio 导航按商品图、单图编辑、商品视频、合规、项目记录组织。",
+  "constraints": [
+    "只修改 Studio 页面、组件和 Studio 三语文案，不修改 API、数据库、服务端、vendor、Listing 或全局资产",
+    "复用现有上传、项目创建、Brief 和 Strategy API，不在页面重写 engine 规则或 Prompt",
+    "付费 AssetPlan 和图片执行链未实现，本轮主按钮只能承诺商品分析与套图建议，不伪造生图结果或费用",
+    "WB 图片套图仍显式 unsupported，默认只允许提交已注册的 Ozon 组合",
+    "项目列表迁移保留搜索、状态筛选、空态、错误态和恢复入口",
+    "不新增依赖，不提交、推送或部署本轮新改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/index.vue",
+        "pages/user/studio/create.vue",
+        "pages/user/studio/layout.vue",
+        "pages/user/studio/projects/index.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/**",
+        "locales/studio/**"
+      ],
+      "claims": [
+        "pages/user/studio/index.vue",
+        "pages/user/studio/create.vue",
+        "pages/user/studio/layout.vue",
+        "pages/user/studio/projects/index.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/**",
+        "locales/studio/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/user/studio 首屏直接展示商品图五步工作台而非项目列表",
+    "产品多视图与风格参考分别上传，独立上传与 Listing 导入均可开始",
+    "工作台包含商品信息、基础套图、额外图片勾选与数量、个性化要求和实时张数汇总",
+    "提交后依次真实调用项目创建、Brief 和 Strategy API，并进入项目套图结果",
+    "接口失败时保留已创建项目并提供明确恢复入口，不重复伪创建付费任务",
+    "/user/studio/projects 提供原项目列表能力，/user/studio/create 兼容重定向默认工作台",
+    "Studio 导航展示商品图、单图编辑、商品视频、合规、项目记录和我的创作边界",
+    "三语文案不以 CreativeBrief/StrategyPlan 作为用户主流程名称"
+  ],
+  "verification": [
+    {
+      "name": "默认工作台结构",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'StudioAssetUpload' pages/user/studio/index.vue && rg -q 'baseSuites' pages/user/studio/index.vue && rg -q 'extraSlots' pages/user/studio/index.vue && rg -q 'totalImageCount' pages/user/studio/index.vue"
+    },
+    {
+      "name": "真实规划调用与非付费边界",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '/api/qingpu/studio/projects' pages/user/studio/index.vue && rg -q '/brief' pages/user/studio/index.vue && rg -q '/strategy' pages/user/studio/index.vue && ! rg -n 'ImageGenerationTaskSpec|executionPrompt|providerId' pages/user/studio"
+    },
+    {
+      "name": "路由与导航迁移",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s pages/user/studio/projects/index.vue && rg -q '/user/studio/projects' pages/user/studio/layout.vue && rg -q 'navigateTo.*user/studio' pages/user/studio/create.vue"
+    },
+    {
+      "name": "Studio 范围格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio locales/studio"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
