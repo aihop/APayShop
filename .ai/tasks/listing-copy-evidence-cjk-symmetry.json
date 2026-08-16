@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-copy-evidence-cjk-symmetry",
+  "title": "文案事实校验的中俄口径对称，修复简介被整段误拒",
+  "problem": "文案事实校验对「证据（中文原文）」和「产出（俄语文案）」用同一套抽取器，但抽取器只在俄语侧有效：① numericClaims 的单位捕获组 `[a-zа-яё一-鿿·.]+` 贪婪且含中文，中文里单位后面直接连正文（「65W钥匙扣数显四合一」「Type-C5A手机数据线」「0.5m以下(含)」）会把单位连同后文一起吞掉，canonicalUnit 认不出，证据侧数值声明恒为空，而俄语「65 Вт」单位后是空格恒能提取——所有数值声明必然判成无依据；② createClaimPattern 的词边界用 `[^\\p{L}\\p{N}]`，汉字也是 \\p{L}，拉丁词形声明在中文原文里边界判定失败；③ power_delivery / quick_charge 没有中文词形，1688 写「PD快充」「快充」永远确认不了。三者叠加：一条 PD 快充线的完全有据的简介被判出 4 条 unsupported_technical_claim，parse 不分 severity 整段作废，用户只看到「商品简介生成结果未通过事实或 Ozon 规范校验」，没有任何可行动信息。",
+  "expectedOutcome": "证据侧与产出侧对同一事实得出相同结论：源里写了的功率/电流/长度/PD/快充，文案再提不再判无依据；源里没有的声明仍被拦，已排除款式的声明仍是 error。简介/标题被拒时给出具体原因并透传到任务错误提示。",
+  "constraints": [
+    "不放宽判定强度：编造的数值、未确认的协议、已排除款式的声明必须继续拦截",
+    "单位前缀按从长到短匹配，「вт」不得被「в」抢走、「мм」不得被「м」抢走",
+    "explainRejection 与 parse 的判定顺序严格一一对应，只在失败路径调用",
+    "ListingCopySection.explainRejection 与 ListingCopyGenerationResult.failureReasons 均为可选，不强制其余 section 实现",
+    "不改存储结构，不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/listing-copy/context.ts",
+        "src/domain/listing-copy/types.ts",
+        "src/domain/listing-copy/sections/description.ts",
+        "src/domain/listing-copy/sections/title.ts",
+        "src/app/workflows/listing-copy-workflow.ts",
+        "src/app/workflows/channel-listing-preparation-types.ts",
+        "tests/listing-copy-evidence-cjk.test.ts"
+      ],
+      "claims": [
+        "src/domain/listing-copy/context.ts",
+        "src/domain/listing-copy/types.ts",
+        "src/domain/listing-copy/sections/description.ts",
+        "src/domain/listing-copy/sections/title.ts",
+        "src/app/workflows/listing-copy-workflow.ts",
+        "src/app/workflows/channel-listing-preparation-types.ts",
+        "tests/listing-copy-evidence-cjk.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/generate.ts",
+        "server/vendor/qingpu-engine/"
+      ],
+      "claims": [
+        "server/listing/generate.ts",
+        "server/vendor/qingpu-engine/"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu",
+        ".ai/tasks/listing-copy-evidence-cjk-symmetry.json"
+      ],
+      "claims": [
+        "app/themes/qingpu",
+        ".ai/tasks/listing-copy-evidence-cjk-symmetry.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "证据「65W钥匙扣数显四合一…Type-C5A…长度: 0.5m以下(含)」下，文案写 65 Вт / 5 A / 0,5 метра 均不判无依据",
+    "证据「PD快充线」确认 Power Delivery；证据「特性: 快充」确认 Quick Charge",
+    "证据里没有的协议、编造的 10 метров / 240 Вт 仍判 unsupported_technical_claim",
+    "钥匙扣款全部被排除时，文案提 брелок 仍判 excluded_variant_claim/error",
+    "简介被拒时 explainRejection 对空/过短/无俄语/含中文/促销词/无依据声明各给出对应原因",
+    "任务失败提示带上具体原因而不是只有「未通过事实或 Ozon 规范校验」"
+  ],
+  "verification": [
+    {
+      "name": "文案证据口径回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-copy-evidence-cjk.test.ts tests/listing-copy-fact-guard.test.ts"
+    },
+    {
+      "name": "引擎全量与类型",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run && npx tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "name": "宿主类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ],
+  "notes": [
+    "实测现场：商品 ai-1688-1005460866461，修复前一段完全有据的俄语简介判出 5 条 issue（4 条误判 + 1 条正确的 брелок），修复后仅剩 брелок。",
+    "брелок 那条是对的：18 个 SKU 排除了 15 个，剩余 3 个有效 SKU 都不含钥匙扣。但 confirmedText 仍把含「钥匙扣」的原始标题当确认事实喂给模型，模型照着写再被否——素材没有按排除口径过滤，属已知未修项。",
+    "未改动 parse 的 severity 口径：修掉误判后剩下的 warning 都是真的没依据，维持宁缺勿错。"
+  ]
+}
