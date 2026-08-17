@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-customer-management",
+  "title": "Qingpu 客户管理：权益、余额与充值聚合运营入口",
+  "problem": "现有账户权益后台要求先按邮箱搜索再进入单用户视图，缺少客户列表、余额概览和充值操作，运营需要在多个系统间切换。权益与余额又属于不同事实源，不能为了页面方便把充值写入 qingpu_user_grants。",
+  "expectedOutcome": "将 Qingpu 账户权益后台升级为客户管理列表，支持分页搜索客户、查看 AINode 余额和有效套餐，在客户详情中管理权益，并通过 AINode 管理端余额接口为客户充值和查看流水。页面聚合，领域命令保持解耦。",
+  "constraints": [
+    "客户主键始终是核心 users.id，不新增客户表或 account 概念",
+    "权益继续由 qingpu_user_grants 与 server/user-grants 负责，充值不得写入权益表",
+    "AI 消费余额、幂等和流水由 AINode 负责；Qingpu 按核心用户邮箱解析 AINode 用户 ID，通过集成令牌调用 AINode 管理端窄接口",
+    "客户列表在 APay 核心库查询，Qingpu 私有权益单独解析，不做跨数据库 join",
+    "后台保持 ext:qingpu:user-grants 独立权限；GET/HEAD 需 view，授予、撤销和充值需 edit",
+    "充值只允许 cash/grant、正数金额和必填原因；请求携带管理员标识，具体幂等和流水由 AINode 管理端接口负责",
+    "不修改并行 Listing、Studio、产品边界任务文件，不执行生产迁移、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/shared/adminUsers.ts",
+        "server/ainode/admin.ts",
+        "api/admin/user-grants.ts",
+        "admin/pages/user-grants.vue",
+        "theme.admin.json",
+        "scripts/check-user-grants.mjs",
+        "scripts/check-customer-management.mjs"
+      ],
+      "claims": [
+        "server/shared/adminUsers.ts",
+        "server/ainode/admin.ts",
+        "api/admin/user-grants.ts",
+        "admin/pages/user-grants.vue",
+        "theme.admin.json",
+        "scripts/check-user-grants.mjs",
+        "scripts/check-customer-management.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台入口显示为客户管理，并提供分页客户列表与邮箱、昵称、用户 ID 搜索",
+    "列表展示 cash/grant 余额、有效订阅和权益摘要，选择客户后可管理现有三项权益",
+    "充值调用 AINode /api/admin/users/:id/balance，携带管理员 ID/名称和必填原因形成 AINode 流水",
+    "客户详情可读取余额流水，充值后刷新余额和流水",
+    "权益授予与撤销沿用既有追加式历史，充值数据不进入 qingpu_user_grants",
+    "专项守卫锁定客户聚合、权限、余额事实源和领域边界"
+  ],
+  "verification": [
+    {
+      "name": "客户管理边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-management.mjs"
+    },
+    {
+      "name": "用户权益回归守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-grants.mjs"
+    },
+    {
+      "name": "格式与范围检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/shared/adminUsers.ts server/ainode/admin.ts api/admin/user-grants.ts admin/pages/user-grants.vue theme.admin.json scripts/check-user-grants.mjs scripts/check-customer-management.mjs"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
