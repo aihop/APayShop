@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-user-capabilities",
+  "title": "统一 Qingpu 三端用户能力读取与服务端准入",
+  "problem": "Listing 仍以 tenant key 判断网页产品准入，Studio 仅有单独 grant 闸门，Ops 尚无账户能力闸门，前端也缺少统一的最终能力快照。设备凭证、账户权益、员工权限和试用状态因此混在不同页面与接口中。",
+  "expectedOutcome": "新增 GET /api/qingpu/user-capabilities 作为 Listing、Studio、Ops 共用的只读能力接口；能力由统一目录、有效订阅、单用户授予和兼容试用解析，员工权限再独立取交集。三个产品 API 由同一服务端闸门保护，前端通过共享 composable 与全局路由中间件消费，新增试用同步写入限时 Listing 能力。",
+  "constraints": [
+    "users.id/user_id 仍是主账户身份，不引入 account/account_id 或独立账户实体",
+    "user-grants 继续是单用户覆盖授予事实源；user-capabilities 只输出最终能力快照，不提供写操作或审计历史",
+    "tenant key 继续只承担设备 Bearer 凭证；仅为存量试用提供限时兼容回读，新试用同时写 promotion grant",
+    "员工权限与账户能力分别判断，最终 enabled 取 accountAllowed 与 actorAllowed 交集",
+    "服务端闸门是安全边界，前端中间件只负责一致的导航体验",
+    "保持存量行为：Studio 与 Ops 默认开放，Listing 由有效订阅、限时试用或显式用户授予开放",
+    "不修改当前被其他任务占用或已有未提交改动的 Listing、Studio、Ops 页面壳",
+    "不新增依赖，不提交、推送、发布或执行生产数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/user-capabilities.ts",
+        "composables/useUserCapabilities.ts",
+        "middleware/user-capabilities.global.ts",
+        "server/user-capabilities/**",
+        "server/user-grants/catalog.ts",
+        "server/user-grants/resolver.ts",
+        "server/user-grants/access.ts",
+        "server/shared/coreStats.ts",
+        "server/employees/access.ts",
+        "server/tenant-keys/trial-pass.ts",
+        "database/user-grants.sql",
+        "scripts/check-user-capabilities.mjs"
+      ],
+      "claims": [
+        "api/user-capabilities.ts",
+        "composables/useUserCapabilities.ts",
+        "middleware/user-capabilities.global.ts",
+        "server/user-capabilities/**",
+        "server/user-grants/catalog.ts",
+        "server/user-grants/resolver.ts",
+        "server/user-grants/access.ts",
+        "server/shared/coreStats.ts",
+        "server/employees/access.ts",
+        "server/tenant-keys/trial-pass.ts",
+        "database/user-grants.sql",
+        "scripts/check-user-capabilities.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "统一接口按 listing/studio/ops 返回 accountAllowed、actorAllowed、enabled、source 与 expiresAt，并返回统一 limits 和订阅摘要",
+    "Listing 能力支持有效订阅、显式授予和存量/新增限时试用，Studio 与 Ops 保持上线前默认行为",
+    "Listing、Studio 和 channel-products API 在唯一 resolveApiAuth 入口经过对应能力闸门",
+    "员工只能获得既有白名单允许的产品能力，账户授予不会扩大员工路径权限",
+    "共享前端 composable 缓存同一能力快照，全局路由中间件对三个产品统一预取和处理禁用状态",
+    "新增试用写入 promotion 来源的 listing.enabled 限时授予，tenant key 不再是新增试用的唯一产品准入记录",
+    "专项守卫和 APay Nuxt 类型检查不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "用户能力统一边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-capabilities.mjs && node scripts/check-user-grants.mjs && node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "主题能力范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/user-capabilities.ts composables/useUserCapabilities.ts middleware/user-capabilities.global.ts server/user-capabilities server/user-grants/catalog.ts server/user-grants/resolver.ts server/user-grants/access.ts server/shared/coreStats.ts server/employees/access.ts server/tenant-keys/trial-pass.ts database/user-grants.sql scripts/check-user-capabilities.mjs"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

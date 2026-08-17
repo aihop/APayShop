@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "local-ainode-apay-baseline",
+  "title": "在本地 ainode PostgreSQL 建立 APay 共库基线",
+  "problem": "本地 APay 连接到 ainode 数据库。共享 users/admins 等表已存在，但 Drizzle 账本为空，且 ainode 的 products、balance_logs 与 APay 同名不同构，导致 db:pg:migrate 从 0000 开始执行并在 products 上冲突。",
+  "expectedOutcome": "提供并执行一份只允许连接本机 ainode 数据库的一次性事务迁移：保留共享身份表，迁移并保留 ainode 采集商品，扩展共享余额流水为兼容超集，创建 APay 缺失对象，并在完整核验后建立 0018 Drizzle baseline，使后续 db:pg:migrate 只执行新增迁移。",
+  "constraints": [
+    "脚本必须拒绝非 localhost/127.0.0.1/::1 连接和非 ainode 数据库",
+    "数据库变更必须在单个事务内完成，任一步失败全部回滚",
+    "不删除 users、products、balance_logs 或其现有数据；ainode 采集商品复制到 crawl_products，原表保留为 legacy 备份",
+    "balance_logs 保留 ainode 的 transaction_id、wallet_id 与既有外键，只增加 APay 所需字段和索引",
+    "只有结构和关键数据核验通过后才写 drizzle.__drizzle_migrations baseline",
+    "不修改 ainode 源码、不执行生产迁移、不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "scripts/migrate-local-ainode-apay-baseline.mjs"
+      ],
+      "claims": [
+        "scripts/migrate-local-ainode-apay-baseline.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "脚本对目标数据库和本机地址做 fail-closed 校验，并使用事务与 advisory lock",
+    "ainode products 的全部存量行复制到 crawl_products，原表及其索引、序列改为不冲突的 legacy 名称",
+    "共享 users、admins、admin_tokens、access_logs 和 balance_logs 与 APay 当前 PostgreSQL Schema 兼容",
+    "APay schema.pg.ts 声明的核心表、列、主外键和关键唯一索引存在",
+    "drizzle.__drizzle_migrations 最后记录对齐 0018，之后 yarn db:pg:migrate 无待执行迁移",
+    "迁移输出明确报告数据库、迁移前后行数、baseline 和回滚边界"
+  ],
+  "verification": [
+    {
+      "name": "一次性迁移脚本静态检查",
+      "repository": "apay",
+      "always": true,
+      "command": "node --check scripts/migrate-local-ainode-apay-baseline.mjs && rg -q 'pg_advisory_xact_lock' scripts/migrate-local-ainode-apay-baseline.mjs && rg -q 'ROLLBACK' scripts/migrate-local-ainode-apay-baseline.mjs && rg -q '__drizzle_migrations' scripts/migrate-local-ainode-apay-baseline.mjs"
+    },
+    {
+      "name": "迁移脚本格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- scripts/migrate-local-ainode-apay-baseline.mjs"
+    }
+  ]
+}

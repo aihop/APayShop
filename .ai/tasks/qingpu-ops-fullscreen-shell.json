@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ops-fullscreen-shell",
+  "title": "让店铺运营独立接管页面外壳",
+  "problem": "店铺运营已经有自己的侧栏和顶栏，但默认站点 Layout 仍渲染促销条、全局 Header 和 Footer，形成重复导航。",
+  "expectedOutcome": "所有 /user/ops 路由与 Listing、Studio 一样全屏接管页面，只渲染 ops 自己的工作台外壳。",
+  "constraints": [
+    "只扩展现有专业工作台路由判断",
+    "不改变普通站点、会员中心、Listing 或 Studio 的布局行为",
+    "支持带语言前缀的 ops 路由"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "layouts/default.vue"
+      ],
+      "claims": [
+        "layouts/default.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/user/ops 及其子路由不显示默认促销条、站点 Header 和 Footer",
+    "ops 自己的侧栏和顶栏继续正常显示",
+    "其他路由布局行为不变"
+  ],
+  "verification": [
+    {
+      "name": "默认布局格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- layouts/default.vue"
+    }
+  ]
+}

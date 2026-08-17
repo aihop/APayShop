@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ainode-tenant-token-setting",
+  "title": "为 Qingpu 配置独立 AINode 租户 Token",
+  "problem": "Qingpu 主题当前复用 APay 核心 integration_token 调用 AINode，导致主题租户钱包与 APay 系统租户边界混在一起。",
+  "expectedOutcome": "系统 settings 表新增带 Qingpu 前缀的 qingpu_ainode_tenant_token，由 Qingpu 扩展后台安全维护，并供 Qingpu 专属 AINode 调用统一使用。",
+  "constraints": [
+    "不覆盖或改变 APay 核心 integration_token",
+    "新 Token 只供服务端读取，公开设置接口和后台读取接口均不返回已保存明文",
+    "不把部署级 Token 放入用户级 qingpu_settings 或浏览器扩展 storage",
+    "保留工作区其他未提交改动，不提交、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/settings.get.ts"
+      ],
+      "claims": [
+        "server/api/settings.get.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "theme.admin.json",
+        "admin/pages/settings.vue",
+        "api/admin/settings.ts",
+        "server/ainode/config.ts",
+        "server/ainode/site.ts",
+        "server/ainode/admin.ts",
+        "server/tenant-keys/ainode.ts",
+        "scripts/check-ainode-tenant-token-setting.mjs"
+      ],
+      "claims": [
+        "theme.admin.json",
+        "admin/pages/settings.vue",
+        "api/admin/settings.ts",
+        "server/ainode/config.ts",
+        "server/ainode/site.ts",
+        "server/ainode/admin.ts",
+        "server/tenant-keys/ainode.ts",
+        "scripts/check-ainode-tenant-token-setting.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Qingpu 扩展管理存在 AINode 租户设置页，可保存或清除 qingpu_ainode_tenant_token",
+    "后台 GET 仅返回 configured 与 maskedToken，不返回已保存明文",
+    "Qingpu 的 AINode site、admin 与 API Key 签发调用统一读取主题 Token",
+    "APay 核心 integration_token 的读取和调用保持不变",
+    "公开 /api/settings 明确过滤 qingpu_ainode_tenant_token"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu AINode 租户 Token 守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-ainode-tenant-token-setting.mjs"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/settings.get.ts app/themes/qingpu"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

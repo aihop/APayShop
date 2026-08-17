@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-product-boundaries",
+  "title": "固化 Qingpu 产品边界与经营台演进约束",
+  "problem": "Listing、未来经营台与 Studio Pro 的用户目标、能力归属和演进顺序尚未形成单一事实源，后续开发容易把渠道订单、经营分析、专业视觉或会员支付订单混入错误产品。",
+  "expectedOutcome": "新增跨产品架构事实源和 Listing 产品规格，并在主题及 Studio 执行入口建立文档路由，明确当前上品工作台、未来经营台、Studio Pro、会员中心的数据与交互边界。",
+  "constraints": [
+    "只修改内部产品与工程文档，不修改页面、API、Schema、路由或用户可见文案",
+    "当前事实与目标状态分开书写，不把尚未实现的渠道订单、在线商品和经营分析描述为已上线",
+    "listing 保留为内部技术域与现有路由前缀，当前用户产品名建议为上品工作台，未来经营台仅作为聚合层目标",
+    "APay 支付订单与渠道店铺订单必须保持不同事实源、接口和用户语义",
+    "Studio Pro 独立承担专业图片、视频、QA、合规和版本工作流，不复制 Listing 发布流程或经营指标事实"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "AGENTS.md",
+        "docs/product-architecture.md",
+        "pages/user/listing/PRODUCT_SPEC.md",
+        "pages/user/studio/AGENTS.md",
+        "pages/user/studio/PRODUCT_SPEC.md"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "docs/product-architecture.md",
+        "pages/user/listing/PRODUCT_SPEC.md",
+        "pages/user/studio/AGENTS.md",
+        "pages/user/studio/PRODUCT_SPEC.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "跨产品架构文档明确当前能力分区、未来经营台聚合模式、命名阶段和数据所有权",
+    "Listing 产品规格明确 Dashboard、上品主流程、单一下一步动作、阶段摘要接口和未来扩展边界",
+    "Studio 执行文档引用跨产品事实源，并保留专业视觉独立产品边界",
+    "明确禁止把 APay 订单冒充渠道订单、把不完整指标包装成完整漏斗、把经营指标写入 Studio 权威数据",
+    "所有修改文件通过 Markdown 与 Git diff 格式检查"
+  ],
+  "verification": [
+    {
+      "name": "产品边界事实源守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '当前产品分区' docs/product-architecture.md && rg -q '未来经营台' docs/product-architecture.md && rg -q 'APay 支付订单' docs/product-architecture.md"
+    },
+    {
+      "name": "Listing 产品规格守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '上品工作台' pages/user/listing/PRODUCT_SPEC.md && rg -q '阶段摘要' pages/user/listing/PRODUCT_SPEC.md && rg -q '动态下一步' pages/user/listing/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "文档路由守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'docs/product-architecture.md' AGENTS.md pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md"
+    },
+    {
+      "name": "主题文档格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- AGENTS.md docs/product-architecture.md pages/user/listing/PRODUCT_SPEC.md pages/user/studio/AGENTS.md pages/user/studio/PRODUCT_SPEC.md"
+    }
+  ]
+}

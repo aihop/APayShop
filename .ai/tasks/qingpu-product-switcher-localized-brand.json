@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-product-switcher-localized-brand",
+  "title": "Qingpu 品牌标题读取多语言站点名称",
+  "problem": "QingpuProductSwitcher 和主站 Header 的品牌标题硬编码为固定名称，切换系统语言后不会展示后台配置的对应语言站点名称。",
+  "expectedOutcome": "产品切换器和主站 Header 按当前语言读取系统设置中的站点名称，并在缺失翻译时沿用全站统一回退规则。",
+  "constraints": [
+    "复用 useLocalizedSettings，不新增设置键、数据库字段或依赖",
+    "展开标题、折叠标题和 aria-label 使用同一品牌名称来源",
+    "保留当前工作区既有改动，不修改其他 Qingpu 业务模块",
+    "默认回退值保持中文品牌名，避免旧配置为空时出现空白"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/QingpuProductSwitcher.vue",
+        "layouts/default.vue"
+      ],
+      "claims": [
+        "components/QingpuProductSwitcher.vue",
+        "layouts/default.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "展开状态显示当前语言对应的系统站点名称",
+    "折叠状态显示同一名称的前两个字符",
+    "品牌链接无障碍名称与可见品牌名一致",
+    "主站 Header 显示当前语言对应的系统站点名称",
+    "缺失当前语言名称时按统一规则回退到基础语言或 site_name"
+  ],
+  "verification": [
+    {
+      "name": "产品切换器多语言品牌类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && git diff --check && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

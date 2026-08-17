@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-products-mvp",
+  "title": "实现渠道在线商品监控 MVP",
+  "problem": "当前系统只有发布记录，无法回答 Ozon 店铺商品此刻是否在售、待审核、异常、缺货或已下架，也无法识别平台已有但尚未关联 Qingpu 商品的 offer。",
+  "expectedOutcome": "建立独立在线商品事实源，支持按 Ozon 店铺全量同步商品快照、自动关联 Qingpu 商品、归一化状态并在独立页面按店铺和状态检索。",
+  "constraints": [
+    "在线商品与 Listing 发布记录分域，不能从发布成功直接推断平台当前状态",
+    "平台原始状态与 Qingpu 归一化状态同时保存，未知取值明确落 unknown",
+    "完整平台同步成功后才把本轮未返回商品标记为 delisted，失败不得破坏上次成功快照",
+    "只读取用户已绑定且启用的 Ozon 店铺凭证，不向浏览器返回明文凭证",
+    "首版不提供批量改价、改库存、上下架或自动告警，不引入新依赖",
+    "不修改当前其他活动任务租用的 Listing 侧栏、Listing 多语言或全局 schema 自检文件"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/19.qingpu-channel-products.md",
+        "content/zh/docs/19.qingpu-channel-products.md"
+      ],
+      "claims": [
+        "content/docs/19.qingpu-channel-products.md",
+        "content/zh/docs/19.qingpu-channel-products.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/channel-products/**",
+        "database/channel-products.sql",
+        "locales/channel-products/**",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "locales/zh.ts",
+        "pages/user/channel-products/**",
+        "pages/user/layout.vue",
+        "scripts/check-channel-products.mjs",
+        "server/channel-products/**",
+        "server/publish-records/queries.ts"
+      ],
+      "claims": [
+        "api/channel-products/**",
+        "database/channel-products.sql",
+        "locales/channel-products/**",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "locales/zh.ts",
+        "pages/user/channel-products/**",
+        "pages/user/layout.vue",
+        "scripts/check-channel-products.mjs",
+        "server/channel-products/**",
+        "server/publish-records/queries.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "新增 qingpu_channel_products，以 user、channel、store、offer 为唯一身份保存平台商品快照",
+    "新增店铺级同步状态，展示最后成功同步时间、商品数与最近错误",
+    "Ozon 同步覆盖商品身份、标题、图片、价格、库存、原始状态和归一化状态",
+    "通过发布记录中的 store_key 与 offer_id 自动关联 source_product_id，平台原有商品允许保持未关联",
+    "页面支持店铺、状态、关键词和仅看未关联筛选，并展示在售、待处理、错误、下架、归档、未知数量",
+    "同步失败不清空快照，成功全量同步才收口已消失商品为 delisted",
+    "中英文 API 文档、类型检查、专项守卫和格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "在线商品专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-channel-products.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/channel-products database/channel-products.sql locales/channel-products locales/en.ts locales/ru.ts locales/zh.ts pages/user/channel-products pages/user/layout.vue scripts/check-channel-products.mjs server/channel-products server/publish-records/queries.ts"
+    },
+    {
+      "name": "API 文档检查",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q 'channel-products' content/docs/19.qingpu-channel-products.md content/zh/docs/19.qingpu-channel-products.md && git diff --check -- content/docs/19.qingpu-channel-products.md content/zh/docs/19.qingpu-channel-products.md"
+    }
+  ]
+}

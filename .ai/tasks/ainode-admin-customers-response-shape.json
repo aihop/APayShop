@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-admin-customers-response-shape",
+  "title": "修复 AINode 客户列表响应解包",
+  "problem": "AINode 客户管理接口返回 data.list、data.total、data.page 和 data.pageSize，但主题页面仍把 data 当作数组并从响应顶层读取 total，导致接口成功返回客户后表格仍为空。",
+  "expectedOutcome": "AINode 主题客户管理页按当前 camelCase 分页协议读取 data.list 与 data.total，成功响应中的客户能够显示，分页总数正确，并有专项守卫防止回退到旧响应结构。",
+  "constraints": [
+    "只修改 AINode 独立主题仓的客户页面和专项守卫，不触碰 APay、Qingpu、AINode Go 服务或现有并行改动",
+    "不修改客户接口、数据库、鉴权、支付、充值和余额操作语义，不新增依赖",
+    "响应字段以当前 ainode camelCase JSON 协议 data.list、data.total、data.page、data.pageSize 为准，不兼容未确认的历史响应形状",
+    "列表请求失败时继续沿用现有清空列表、总数和汇总数据的失败边界；本次改动不产生外部写入",
+    "回滚边界仅为 admin/pages/customers.vue 与 scripts/check-admin-customers-response.mjs"
+  ],
+  "repositories": [
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "admin/pages/customers.vue",
+        "scripts/check-admin-customers-response.mjs"
+      ],
+      "claims": [
+        "admin/pages/customers.vue",
+        "scripts/check-admin-customers-response.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "当 GET /api/admin/users 返回 data.list 数组时，客户页面把每项规范化后传给表格展示",
+    "客户页面从 data.total 读取分页总数，响应示例中的 total=1 会得到一条记录和正确分页信息",
+    "客户列表响应类型使用 camelCase pageSize，并明确 data 为包含 list 与分页字段的对象",
+    "专项守卫覆盖 data.list 与 data.total 解包并拒绝旧的 res.data 数组和顶层 res.total 读取方式"
+  ],
+  "verification": [
+    {
+      "name": "AINode 客户响应协议守卫",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "node scripts/check-admin-customers-response.mjs && git diff --check -- admin/pages/customers.vue scripts/check-admin-customers-response.mjs"
+    },
+    {
+      "name": "Nuxt 生产构建",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "cd ../../.. && NODE_OPTIONS=--max-old-space-size=12288 ./node_modules/.bin/nuxt build"
+    }
+  ]
+}

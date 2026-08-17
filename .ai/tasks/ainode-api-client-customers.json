@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-api-client-customers",
+  "title": "建立 AINode API 客户端规范并修复客户页",
+  "problem": "APay 的通用外部代理透明返回上游 JSON，但 AINode 主题页面各自使用 any 解包 code/msg/data，缺少对业务码和分页结构的统一校验；客户管理页因此把标准分页 data 错当数组并从响应顶层读取 total，接口成功返回客户后表格仍为空。",
+  "expectedOutcome": "AINode 主题新增只适用于 /api/* 的强类型客户端规范，统一校验 code/msg/data 信封和 data.list/page/pageSize/total 分页结构；客户管理页通过该客户端读取客户、汇总、流水和写操作，成功响应可正确显示，协议漂移会明确失败。",
+  "constraints": [
+    "只修改 AINode 独立主题仓的专用客户端、客户页面和专项守卫，不触碰 APay、Qingpu、AINode Go 服务或现有并行改动",
+    "不修改客户接口、数据库、鉴权、支付、充值和余额操作语义，不新增依赖",
+    "专用客户端只用于 AINode /api/* 的 code/msg/data 协议，不用于 OpenAI 兼容 /v1/* 或无信封 Webhook",
+    "响应字段以当前 ainode camelCase 协议为准：普通响应 data 为业务值，分页响应 data 固定为 list/page/pageSize/total 或 list/page/pageSize/hasMore；不静默兼容已废弃或未确认形状",
+    "HTTP 非成功响应继续由现有 useExternalApi 处理；HTTP 成功但 code 非 0、信封或分页结构异常时由专用客户端抛出包含上游 msg 的明确错误",
+    "列表请求失败时继续沿用现有清空列表、总数和汇总数据的失败边界；充值请求继续禁用自动重试，避免不确定结果下重复入账",
+    "首批只迁移客户管理页验证客户端规范，不批量修改其他 AINode 页面",
+    "回滚边界仅为 composables/useAINodeApi.ts、admin/pages/customers.vue 与 scripts/check-admin-customers-response.mjs"
+  ],
+  "repositories": [
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "composables/useAINodeApi.ts",
+        "admin/pages/customers.vue",
+        "scripts/check-admin-customers-response.mjs"
+      ],
+      "claims": [
+        "composables/useAINodeApi.ts",
+        "admin/pages/customers.vue",
+        "scripts/check-admin-customers-response.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useAINodeApi 暴露普通数据、total 分页和 hasMore 分页的强类型读取方法，并复用 useExternalApi 的代理请求能力",
+    "专用客户端拒绝非对象信封、非整数 code、code 非 0、无效 msg/data，以及缺少 list/page/pageSize/total 或 hasMore 的分页响应",
+    "当 GET /api/admin/users 返回标准分页信封时，客户页面把 data.list 规范化后传给表格，并从 data.total 读取分页总数",
+    "客户汇总读取 data.summary；余额流水和 Token 流水分别使用标准 total 分页与 hasMore 分页；充值普通响应也检查业务 code",
+    "响应示例中的 total=1 会得到一条记录和正确分页信息，不兼容旧 data.data/page_size 或错误的顶层 total 形状",
+    "专项守卫用成功、业务错误和结构错误样本验证解包器，并检查客户页不再直接解包信封"
+  ],
+  "verification": [
+    {
+      "name": "AINode 客户端协议守卫",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "node scripts/check-admin-customers-response.mjs && git diff --check -- composables/useAINodeApi.ts admin/pages/customers.vue scripts/check-admin-customers-response.mjs"
+    },
+    {
+      "name": "Nuxt 生产构建",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "cd ../../.. && NODE_OPTIONS=--max-old-space-size=12288 ./node_modules/.bin/nuxt build"
+    }
+  ]
+}

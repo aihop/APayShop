@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-watermark-entry-completion",
+  "title": "放出 Listing 水印入口并补全应用交互",
+  "problem": "Listing Lite 已接入水印弹窗和执行链，但图片区没有可见入口；共享水印弹窗的主按钮写着保存配置，实际却会立即给商品加水印，且配置入口与立即应用入口无法区分。",
+  "expectedOutcome": "Lite 图片区提供可见的水印入口；共享弹窗明确区分仅保存模板与立即应用，Dash 对已选商品批量应用，Lite 对当前商品应用，并保持现有文字/图片水印、位置、平铺、透明度、旋转、间距和边距能力。",
+  "constraints": [
+    "复用现有 WatermarkModal、watermark workflow、图片版本链和设置持久化，不新增第二套水印实现",
+    "仅保存模板不得生成水印资产，立即应用才执行图片处理",
+    "Dash 没有勾选商品时仍可配置并保存模板，但立即应用按钮必须明确不可用",
+    "Lite 入口仅对当前商品生效，不扩大为隐式批量操作",
+    "不修改水印算法、持久化协议、云端网页 Listing、engine vendor 或数据库",
+    "不覆盖现有未提交改动，不提交、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/components/WatermarkModal.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "entrypoints/lite/LiteImagePanel.vue",
+        "tests/watermark-entry-contract.test.ts"
+      ],
+      "claims": [
+        "src/components/WatermarkModal.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "entrypoints/lite/LiteImagePanel.vue",
+        "tests/watermark-entry-contract.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Lite 图片工具栏在有当前商品时显示水印设置入口，并能打开现有水印弹窗",
+    "弹窗支持文字和图片水印，以及单点、斜向重复和网格平铺位置配置",
+    "弹窗提供仅保存模板动作，保存后关闭且不执行水印 workflow",
+    "Dash 有选中商品时显示应用到已选商品的明确动作，无选中时该动作不可用但模板仍可保存",
+    "Lite 显示应用到当前商品的明确动作，执行期间避免重复关闭或重复提交",
+    "现有任务策略中的配置模板入口继续可用，现有自动流水线继续消费同一水印模板",
+    "相关合同测试、类型检查和构建通过"
+  ],
+  "verification": [
+    {
+      "name": "水印入口交互合同",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/watermark-entry-contract.test.ts"
+    },
+    {
+      "name": "Qingpu AI 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "Qingpu AI 构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build"
+    },
+    {
+      "name": "范围格式",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/components/WatermarkModal.vue entrypoints/dash/DashLayout.vue entrypoints/lite/LiteWorkbench.vue entrypoints/lite/LiteImagePanel.vue tests/watermark-entry-contract.test.ts"
+    }
+  ]
+}

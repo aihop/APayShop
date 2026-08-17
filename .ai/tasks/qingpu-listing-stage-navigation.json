@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-stage-navigation",
+  "title": "统一上品阶段导航命名并拆分上架记录",
+  "problem": "导航仍使用工作区和渠道发布等工程术语，且上架记录隐藏在待上架页面的 Tab 中，与既定四阶段路线不一致。",
+  "expectedOutcome": "导航明确展示货源商品、加工箱、待上架和上架记录；上架记录使用独立页面，旧渠道记录链接兼容跳转。",
+  "constraints": [
+    "只调整用户可见命名和页面路由，不迁移 workspace、channel draft 或 publish record 数据模型",
+    "复用现有 ListingPublishRecordsPanel，不复制发布记录查询与状态逻辑",
+    "旧 /user/listing/channels?view=records 链接必须兼容",
+    "保留相关文件中已有 Dashboard 和页面外壳改动",
+    "中文、英文和俄文导航语义同步"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/index.vue",
+        "pages/user/listing/layout.vue",
+        "pages/user/listing/publish-records.vue",
+        "server/listing/dashboard.ts"
+      ],
+      "claims": [
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/index.vue",
+        "pages/user/listing/layout.vue",
+        "pages/user/listing/publish-records.vue",
+        "server/listing/dashboard.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "中文导航依次使用加工箱、待上架、上架记录",
+    "英文和俄文导航提供对应阶段名称",
+    "上架记录拥有独立 /user/listing/publish-records 页面",
+    "待上架页面不再显示待发布/发布记录切换 Tab",
+    "旧 channels?view=records 链接跳转到新页面",
+    "Dashboard 的上架记录入口直接指向新页面"
+  ],
+  "verification": [
+    {
+      "name": "阶段导航守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -Fq \"workspace: '加工箱'\" locales/listing/zh.ts && rg -Fq \"channels: '待上架'\" locales/listing/zh.ts && rg -Fq \"publishRecords: '上架记录'\" locales/listing/zh.ts && rg -Fq \"/user/listing/publish-records\" pages/user/listing/layout.vue pages/user/listing/index.vue server/listing/dashboard.ts"
+    },
+    {
+      "name": "页面拆分守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'ListingPublishRecordsPanel' pages/user/listing/publish-records.vue && ! rg -q 'viewTabItems|channelView' pages/user/listing/channels.vue"
+    },
+    {
+      "name": "页面类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- locales/listing/en.ts locales/listing/ru.ts locales/listing/zh.ts pages/user/listing/channels.vue pages/user/listing/index.vue pages/user/listing/layout.vue pages/user/listing/publish-records.vue server/listing/dashboard.ts"
+    }
+  ]
+}

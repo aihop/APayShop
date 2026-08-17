@@ -13,6 +13,9 @@ const buildAppVersion = String(
   || '1.0.0'
 ).trim().replace(/^v(?=\d)/i, '')
 
+// 开发环境支持多实例并行：通过 APAY_DATA_DIR 指定独立数据目录，避免 sqlite/缓存冲突
+const dataDir = process.env.APAY_DATA_DIR || '.data'
+
 const isCloudflarePagesTarget = (() => {
   const preset = String(process.env.NITRO_PRESET || '').trim().toLowerCase()
   return Boolean(process.env.CF_PAGES) || preset === 'cloudflare-pages'
@@ -126,6 +129,7 @@ const DEV_WATCH_IGNORE = [
 ]
 
 export default defineNuxtConfig({
+  buildDir: process.env.NUXT_BUILD_DIR || '.nuxt',
   appConfig: {
     appVersion: buildAppVersion,
   },
@@ -339,7 +343,7 @@ export default defineNuxtConfig({
     experimental: { nativeSqlite: true },
     database: isCloudflarePagesTarget
       ? { type: 'd1' as const, bindingName: 'DB' }
-      : { type: 'sqlite' as const, filename: '.data/content/contents.sqlite' },
+      : { type: 'sqlite' as const, filename: `${dataDir}/content/contents.sqlite` },
   },
   i18n: {
     locales: I18N_LOCALES,
@@ -382,7 +386,7 @@ export default defineNuxtConfig({
     db: {
       dialect: "sqlite",
       driver: isCloudflarePagesTarget ? 'd1' : "libsql",
-      connection: isCloudflarePagesTarget ? {} : { url: process.env.LIBSQL_URL || 'file:.data/db/sqlite.db' },
+      connection: isCloudflarePagesTarget ? {} : { url: process.env.LIBSQL_URL || `file:${dataDir}/db/sqlite.db` },
       applyMigrationsDuringBuild: isCloudflarePagesTarget,
       applyMigrationsDuringDev: false, // 禁用开发环境的自动迁移，避免与正式环境冲突
     },
@@ -455,6 +459,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // 这里的键名会自动映射到环境变量 NUXT_DATABASE_URL
     databaseUrl: '',
+    public: {
+      // 开发环境强制指定主题，方便同时运行多主题开发实例（NUXT_PUBLIC_DEV_THEME=ainode）
+      devTheme: process.env.NUXT_PUBLIC_DEV_THEME || '',
+    },
   },
   sourcemap: { server: false, client: false },
 })

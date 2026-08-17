@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-unified-presets-p0",
+  "title": "实现 Qingpu 统一预设与 Studio 图片预设 P0",
+  "problem": "Qingpu 当前没有统一的可复用预设资源。Studio 用户只能填写自由文本要求，无法通过系统风格快速配置整套主图、SKU 图和轮播图，也无法把用户预设安全冻结到项目历史。",
+  "expectedOutcome": "新增 qingpu_presets 通用资源表与项目应用快照表，提供严格校验的创作图片套图预设 CRUD、系统风格目录和管理页；Studio 工作台默认使用智能推荐，用户可选择系统或个人预设，并在项目创建时冻结预设 revision 与配置快照，使其真实进入后续 Brief 和策略规划。",
+  "constraints": [
+    "qingpu_presets 是跨域统一资源模型，P0 只注册 creative/image_suite 配置合同，不提前伪造 pricing、processing 或 publishing 的配置结构",
+    "数据库只保存用户语义偏好，不保存 executionPrompt、negativePrompt、QA Prompt、平台红线或结构化输出合同",
+    "系统预设由代码目录提供并与用户预设统一 API 展现，不向每个用户重复插入系统行",
+    "图片引用只保存 assetId，不复制 qingpu_assets URL 或二进制；P0 UI 不实现未完成的爆款参考图上传流程",
+    "主图、SKU 图和轮播图分别允许语义覆盖，默认继承共享风格；用户配置不得覆盖商品保真、证据和平台规则",
+    "项目创建时保存 preset source/key/id/revision/config snapshot；后续修改或删除预设不得改变既有项目快照",
+    "不修改 qingpu-ai engine Prompt 正文或 vendor，不修改正在并行变更的 Studio project schema/query/type 文件",
+    "不提交、推送、发布或执行生产数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/presets.sql",
+        "server/presets/**",
+        "api/presets/**",
+        "api/studio/projects/index.ts",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/presets.vue",
+        "pages/user/studio/presets.copy.ts",
+        "scripts/check-presets.mjs"
+      ],
+      "claims": [
+        "database/presets.sql",
+        "server/presets/**",
+        "api/presets/**",
+        "api/studio/projects/index.ts",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/presets.vue",
+        "pages/user/studio/presets.copy.ts",
+        "scripts/check-presets.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu_presets 按 user_id 隔离，支持软删、schemaVersion、revision、审计字段以及同域活动名称唯一性",
+    "qingpu_preset_applications 为 Studio 项目保存不可变 preset 配置快照，并且删除用户预设不会破坏历史记录",
+    "API 统一返回系统预设与当前用户预设，用户记录支持创建、编辑、软删和从系统预设复制",
+    "creative/image_suite 配置经过严格可判别校验，未知字段、未知枚举、超长文本和越权 assetId 被拒绝",
+    "至少提供智能推荐和八种易懂的系统视觉风格，系统预设不可直接编辑或删除",
+    "预设管理页以系统风格卡和个人预设为主入口，自定义文字放在高级配置中",
+    "用户可分别配置主图目标、SKU 标签策略、轮播图规划模式和各自补充要求，并可保持继承整套风格",
+    "Studio 工作台默认使用智能推荐，可选择系统或个人预设，并提供进入预设管理页的入口",
+    "创建 Studio 项目时服务端重新解析预设，不信任客户端 config；解析后的摘要进入 creativeGoal，快照写入 qingpu_preset_applications",
+    "未选择或失效预设时安全回退到系统智能推荐，不影响现有项目创建链路"
+  ],
+  "verification": [
+    {
+      "name": "统一预设专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-presets.mjs"
+    },
+    {
+      "name": "预设范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- database/presets.sql server/presets api/presets api/studio/projects/index.ts pages/user/studio/index.vue pages/user/studio/presets.vue pages/user/studio/presets.copy.ts scripts/check-presets.mjs"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

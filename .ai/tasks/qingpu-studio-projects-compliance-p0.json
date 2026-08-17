@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-projects-compliance-p0",
+  "title": "完成 Studio 项目记录与合规检查 P0",
+  "problem": "Studio 项目记录已有基础列表和详情，但缺少总数分页、URL 可恢复筛选和真实合规摘要；导航中的合规检查没有对应页面，项目详情 QA 标签也只是占位说明，用户无法定位现有任务审核状态或商品证据缺口。",
+  "expectedOutcome": "项目记录支持搜索、状态筛选、分页和可恢复 URL；新增合规检查页面和只读 API，按项目汇总现有商品事实 revision、CreativeBrief 缺失事实以及 qingpu_task_items.review_status，并在项目 QA 标签展示可追溯审核项、证据风险和修复入口。",
+  "constraints": [
+    "只读取现有 Studio 项目、商品事实、资产、任务和 task item 审核状态，不建立第二套资产、任务或审核存储",
+    "没有审核记录时明确显示未审核；review_status=ok 只表示对应审核项通过，不宣称通过所有平台规则",
+    "当前没有 block 审核产出规则，不伪造 block 结论；CreativeBrief missingFacts 的 block/warn 只标记商品证据风险",
+    "合规页面是只读汇总，不创建付费生成、模型审核、发布或 Listing 写入",
+    "不修改上一轮仍有未提交改动的单图、视频、资源选择器和 image-reference 文件",
+    "API 新增同步英文和中文 Studio 开发文档，不修改数据库、engine vendor 或 Listing 页面"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/18.qingpu-studio.md",
+        "content/zh/docs/18.qingpu-studio.md"
+      ],
+      "claims": [
+        "content/docs/18.qingpu-studio.md",
+        "content/zh/docs/18.qingpu-studio.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/compliance.vue",
+        "pages/user/studio/projects/index.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/StudioProjectCard.vue",
+        "pages/user/studio/types.ts",
+        "locales/studio/en.ts",
+        "locales/studio/zh.ts",
+        "locales/studio/ru.ts",
+        "api/studio/compliance.get.ts",
+        "server/studio/types.ts",
+        "server/studio/queries.ts",
+        "server/studio/compliance.ts",
+        "server/studio/index.ts"
+      ],
+      "claims": [
+        "pages/user/studio/compliance.vue",
+        "pages/user/studio/projects/index.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/StudioProjectCard.vue",
+        "pages/user/studio/types.ts",
+        "locales/studio/en.ts",
+        "locales/studio/zh.ts",
+        "locales/studio/ru.ts",
+        "api/studio/compliance.get.ts",
+        "server/studio/types.ts",
+        "server/studio/queries.ts",
+        "server/studio/compliance.ts",
+        "server/studio/index.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/user/studio/projects 显示真实总数并支持搜索、状态筛选、分页以及刷新后恢复筛选条件",
+    "/user/studio/compliance 能按项目展示证据风险、审核中、警告、审核失败、已通过和未审核状态，并支持搜索与状态筛选",
+    "合规结论仅来自 CreativeBrief missingFacts 与 task item review_status，未审核和缺数据不会显示为通过",
+    "项目详情 QA 标签展示该项目的真实审核项、资产版本、错误或证据缺口，并提供对应修复/查看入口",
+    "中英俄页面无缺失翻译 key；新增只读 API 有中英文开发文档",
+    "Nuxt 类型检查不新增错误，浏览器验证项目记录、合规页和项目 QA 标签无运行时错误"
+  ],
+  "verification": [
+    {
+      "name": "Studio 合规结构守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'listStudioCompliance' server/studio/compliance.ts && rg -q 'review_status' server/studio/compliance.ts && rg -q '/api/qingpu/studio/compliance' pages/user/studio/compliance.vue"
+    },
+    {
+      "name": "项目记录与 QA 结构守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'UPagination' pages/user/studio/projects/index.vue && rg -q \"activeTab === 'qa'\" 'pages/user/studio/projects/[id].vue' && rg -q 'complianceStatus' server/studio/types.ts"
+    },
+    {
+      "name": "Studio 开发文档守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q '/api/qingpu/studio/compliance' content/docs/18.qingpu-studio.md && rg -q '/api/qingpu/studio/compliance' content/zh/docs/18.qingpu-studio.md"
+    },
+    {
+      "name": "Studio 范围格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio/compliance.vue pages/user/studio/projects pages/user/studio/components/StudioProjectCard.vue pages/user/studio/types.ts locales/studio api/studio/compliance.get.ts server/studio"
+    },
+    {
+      "name": "APay 文档格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- content/docs/18.qingpu-studio.md content/zh/docs/18.qingpu-studio.md"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

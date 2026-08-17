@@ -15,6 +15,11 @@ interface ProxyExternalRequestOptions {
 
 const tenantDepositPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)\/deposit$/
 const tenantDepositLikePathPattern = /^\/api\/admin\/tenants\/[^/]+\/deposit$/
+const tenantCollectionPath = '/api/admin/tenants'
+const tenantDetailPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)$/
+const tenantDetailLikePathPattern = /^\/api\/admin\/tenants\/[^/]+$/
+const tenantRotateTokenPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)\/rotate-token$/
+const tenantRotateTokenLikePathPattern = /^\/api\/admin\/tenants\/[^/]+\/rotate-token$/
 const tenantAdminPathPattern = /^\/api\/admin\/tenants(?:\/|$)/
 const tenantAmountFields = [
   'depositBalance',
@@ -37,6 +42,8 @@ const tenantAmountFields = [
 const tenantDepositTypes = new Set(['deposit_topup', 'deposit_grant', 'opening_balance', 'admin_adjust'])
 const tenantAmountPattern = /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/
 const requestIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const tenantCodePattern = /^[a-z0-9][a-z0-9_-]{1,62}$/
+const tenantBodyFields = new Set(['name', 'code', 'status', 'allowDirectLogin', 'keyGroupId'])
 
 const quoteIntegerFields = (raw: string, fields: string[]) => {
   let result = raw
@@ -48,6 +55,72 @@ const quoteIntegerFields = (raw: string, fields: string[]) => {
     )
   }
   return result
+}
+
+const assertTenantBodyFields = (input: Record<string, unknown>, allowedFields: Set<string>) => {
+  if (Object.keys(input).some(field => !allowedFields.has(field))) {
+    throw createError({ statusCode: 400, statusMessage: 'Unsupported tenant field' })
+  }
+}
+
+const normalizeTenantFields = (body: unknown, includeStatus: boolean) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant body' })
+  }
+
+  const input = body as Record<string, unknown>
+  const allowedFields = includeStatus
+    ? tenantBodyFields
+    : new Set(['name', 'code', 'allowDirectLogin', 'keyGroupId'])
+  assertTenantBodyFields(input, allowedFields)
+
+  const name = typeof input.name === 'string' ? input.name.trim() : ''
+  const code = typeof input.code === 'string' ? input.code.trim().toLowerCase() : ''
+  const allowDirectLogin = input.allowDirectLogin
+  const keyGroupId = input.keyGroupId
+  const status = input.status
+  if (!name || name.length > 255 || !tenantCodePattern.test(code) || code === 'default') {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant name or code' })
+  }
+  if (typeof allowDirectLogin !== 'boolean') {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid direct-login setting' })
+  }
+  if (!Number.isInteger(keyGroupId) || Number(keyGroupId) < 0 || Number(keyGroupId) > 2147483647) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid key group ID' })
+  }
+  if (includeStatus && status !== 0 && status !== 1) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant status' })
+  }
+
+  return {
+    name,
+    code,
+    ...(includeStatus ? { status } : {}),
+    allowDirectLogin,
+    keyGroupId,
+  }
+}
+
+const buildTenantAdminBody = (method: string, targetPath: string, body: unknown) => {
+  if (method === 'POST' && targetPath === tenantCollectionPath) {
+    return normalizeTenantFields(body, false)
+  }
+  if (method === 'PUT' && tenantDetailPathPattern.test(targetPath)) {
+    return normalizeTenantFields(body, true)
+  }
+  if (method === 'PUT' && tenantDetailLikePathPattern.test(targetPath)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant ID' })
+  }
+  if (method === 'POST' && tenantRotateTokenPathPattern.test(targetPath)) {
+    return undefined
+  }
+  if (method === 'POST' && tenantRotateTokenLikePathPattern.test(targetPath)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant ID' })
+  }
+  if (method === 'POST') {
+    return buildTenantDepositBody(targetPath, body)
+  }
+  return body
 }
 
 const buildTenantDepositBody = (targetPath: string, body: unknown) => {
@@ -314,9 +387,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
   if (['POST', 'PUT', 'PATCH'].includes(method)) {
     body = await readBody(event).catch(() => undefined)
   }
-  if (method === 'POST') {
-    body = buildTenantDepositBody(targetUrl.pathname, body)
-  }
+  body = buildTenantAdminBody(method, targetUrl.pathname, body)
 
   // 优先使用 integration_token，降级到系统 NUXT_SESSION_PASSWORD
   const integrationToken = await getIntegrationToken()

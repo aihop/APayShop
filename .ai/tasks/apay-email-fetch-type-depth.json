@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-email-fetch-type-depth",
+  "title": "修复邮件模板请求类型展开",
+  "problem": "全站 API 路由增加后，邮件模板 composable 的直接类型化 $fetch 会递归展开全站路由联合类型，阻塞 Nuxt 类型检查。",
+  "expectedOutcome": "邮件默认模板和测试邮件请求使用局部明确签名，保留现有业务类型与请求行为，同时不再依赖全站路由推断。",
+  "constraints": [
+    "不改变邮件 API 路径、请求参数、响应结构或交互",
+    "不修改 Qingpu、客户管理或其他并行任务文件",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": ["app/composables/useEmailTemplateManager.ts"],
+      "claims": ["app/composables/useEmailTemplateManager.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "默认模板加载和测试邮件发送行为保持不变",
+    "两条请求继续使用 EmailTemplate 与 EmailTestResult 类型",
+    "Nuxt 类型检查不再报告该 composable 的类型深度错误"
+  ],
+  "verification": [
+    {
+      "name": "邮件 composable 格式与 Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useEmailTemplateManager.ts && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

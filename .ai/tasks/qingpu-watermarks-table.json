@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-watermarks-table",
+  "title": "新增 Qingpu 水印模板表",
+  "problem": "Listing 水印模板目前保存在用户设置 JSON，无法作为独立资源被店铺或其他场景引用。",
+  "expectedOutcome": "新增 qingpu_watermarks 单表保存用户水印模板，Listing 设置 API 读写用户默认模板，并兼容读取旧 settings 中的 watermarkConfig。",
+  "constraints": [
+    "只新增水印模板表，不增加绑定表",
+    "每个用户最多一条未删除的默认模板",
+    "配置继续复用服务端现有水印白名单归一化",
+    "表无默认模板时回退旧 listing.watermarkConfig，首次保存写入新表",
+    "不修改现有水印页面、算法、图片资产链和店铺表",
+    "不提交、推送、部署或执行生产数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/watermarks.sql",
+        "server/watermarks/queries.ts",
+        "api/listing/settings.ts",
+        "server/db/pg.ts",
+        "scripts/apply-qingpu-sql.mjs",
+        "scripts/check-listing-watermark-table.mjs"
+      ],
+      "claims": [
+        "database/watermarks.sql",
+        "server/watermarks/queries.ts",
+        "api/listing/settings.ts",
+        "server/db/pg.ts",
+        "scripts/apply-qingpu-sql.mjs",
+        "scripts/check-listing-watermark-table.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu_watermarks 支持一位用户维护多条模板，并以部分唯一索引约束最多一条有效默认模板",
+    "模板保存名称、类型、归一化配置、启用状态、默认状态和软删除时间",
+    "GET Listing settings 优先返回表内默认模板，无记录时兼容旧设置",
+    "POST Listing settings 将 watermarkConfig 写入默认模板且不再更新旧 JSON 字段",
+    "数据库初始化与启动自检包含 qingpu_watermarks",
+    "专项合同和格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "水印表与 API 合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-listing-watermark-table.mjs"
+    },
+    {
+      "name": "水印表范围格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- database/watermarks.sql server/watermarks/queries.ts api/listing/settings.ts server/db/pg.ts scripts/apply-qingpu-sql.mjs scripts/check-listing-watermark-table.mjs"
+    }
+  ]
+}

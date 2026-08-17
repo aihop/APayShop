@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ainode-base-url-env",
+  "title": "支持通过环境变量覆盖 AINode 网关基址",
+  "problem": "qingpu-ai 的 AI 请求基址硬编码为生产域名，本地构建即使配置了 AINode 地址环境变量也不会生效。",
+  "expectedOutcome": "扩展构建优先使用 VITE_AINODE_API_BASE_URL，Node 环境可使用 AINODE_API_BASE_URL，未配置时继续回退生产域名。",
+  "constraints": [
+    "不改变 API Key 来源或鉴权行为",
+    "不读取用户设置中的 generalModelBaseUrl",
+    "环境变量值去除首尾空白和末尾斜杠",
+    "不新增依赖，不修改现有并行任务文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/api-client.ts",
+        "tests/ainode-api-base-url.test.ts"
+      ],
+      "claims": [
+        "src/shared/api-client.ts",
+        "tests/ainode-api-base-url.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "VITE_AINODE_API_BASE_URL 存在时 resolveLlmConfig 使用其规范化地址",
+    "Node 环境 AINODE_API_BASE_URL 存在时可覆盖默认地址",
+    "未配置环境变量时仍使用 https://api.ainode.run",
+    "API Key 与模型选择行为保持不变"
+  ],
+  "verification": [
+    {
+      "name": "AINode 基址专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ainode-api-base-url.test.ts"
+    },
+    {
+      "name": "类型检查与差异格式",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/shared/api-client.ts tests/ainode-api-base-url.test.ts && npm run typecheck"
+    }
+  ]
+}

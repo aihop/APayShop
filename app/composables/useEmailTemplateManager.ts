@@ -7,6 +7,18 @@ interface UseEmailTemplateManagerOptions {
   t: (key: string) => string
 }
 
+const fetchDefaultEmailTemplates = $fetch as unknown as (
+  request: string,
+  options: { query: { locale: string } },
+) => Promise<EmailTemplate[]>
+const fetchEmailTestResult = $fetch as unknown as (
+  request: string,
+  options: {
+    method: 'POST'
+    body: { to: string, templateCode: string, templates: string }
+  },
+) => Promise<EmailTestResult>
+
 function createEmptyTemplateDraft(): EmailTemplateDraft {
   return {
     code: '',
@@ -151,7 +163,7 @@ export function useEmailTemplateManager(options: UseEmailTemplateManagerOptions)
     try {
       const localeValue = String(locale.value || 'zh').toLowerCase()
       const templateLocale = localeValue.startsWith('zh') ? 'zh' : 'en'
-      const result = await $fetch<EmailTemplate[]>('/api/admin/email/default-templates', {
+      const result = await fetchDefaultEmailTemplates('/api/admin/email/default-templates', {
         query: {
           locale: templateLocale,
         },
@@ -219,7 +231,7 @@ export function useEmailTemplateManager(options: UseEmailTemplateManagerOptions)
     testResult.value = null
 
     try {
-      const result = await $fetch<EmailTestResult>('/api/admin/email/test', {
+      const result = await fetchEmailTestResult('/api/admin/email/test', {
         method: 'POST',
         body: {
           to: testEmail.to,

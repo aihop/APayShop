@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-unified-presets",
+  "title": "将统一视觉预设接入 Qingpu Listing 生图",
+  "problem": "Listing 当前只能选择引擎蓝图的轮播内容槽位，不能复用 Studio 已有的 qingpu_presets 视觉偏好，用户会误把槽位 presetKey 当成视觉提示词预设。",
+  "expectedOutcome": "Listing 商品图片结果区可选择与 Studio 同源的系统或个人视觉预设；整套生成和单槽生成只提交预设身份，服务端重新解析并按主图、SKU 图、轮播图生成受控语义，在任务入队时冻结，不改变现有槽位、数量、水印和 Prompt 权威边界。",
+  "constraints": [
+    "复用 qingpu_presets 和现有预设 API，不创建 Listing 专用预设表或第二套管理页",
+    "客户端只提交 preset source/key/id，不提交或信任 config、executionPrompt、negativePrompt 或平台规则",
+    "预设只补充用户视觉语义，不覆盖商品事实、槽位目标、参考图、渠道 Profile、QA 或引擎 Prompt",
+    "整套任务与单槽任务都在入队时冻结解析后的语义，后续编辑或删除预设不改变已排队任务",
+    "原有 galleryStyles 是轮播内容构成，galleryTarget、水印与补图模式继续属于 Listing 执行策略",
+    "不修改正在并行编辑的 Listing 设置页、settings 服务、共享 engine/vendor、生产数据库",
+    "不提交、推送、发布或执行生产迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/ListingVisualPresetPicker.vue",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "api/listing/blueprint.ts",
+        "api/listing/images/generate.ts",
+        "server/assets/image-task-spec.ts",
+        "server/listing/preset-instruction.ts",
+        "scripts/check-listing-presets.mjs"
+      ],
+      "claims": [
+        "pages/user/listing/components/ListingVisualPresetPicker.vue",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "api/listing/blueprint.ts",
+        "api/listing/images/generate.ts",
+        "server/assets/image-task-spec.ts",
+        "server/listing/preset-instruction.ts",
+        "scripts/check-listing-presets.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Listing 商品图片区展示智能推荐、八种系统风格和当前用户个人预设，并提供统一管理页入口",
+    "用户选择在浏览器内记忆，失效或删除后界面和服务端均安全回退智能推荐",
+    "整套生成与单槽生成只发送预设身份，服务端按当前用户重新解析",
+    "主图、SKU 图和轮播图分别只消费其对应覆盖项，同时继承整套共享偏好",
+    "解析后的视觉语义在 ImageGenerationTaskSpec 的 editGoal 中冻结，并保留原槽位目标和商品事实约束",
+    "个人预设不能被其他用户通过伪造 id 使用，未知系统 key 不会进入任务",
+    "原有 Listing 图片生成、轮播槽位选择和无预设调用方保持兼容"
+  ],
+  "verification": [
+    {
+      "name": "Listing 统一预设专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-presets.mjs"
+    },
+    {
+      "name": "Listing 预设范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/components/ListingVisualPresetPicker.vue pages/user/listing/components/WorkspaceDetailPage.vue pages/user/listing/components/useWorkspaceGalleryImageTasks.ts api/listing/blueprint.ts api/listing/images/generate.ts server/assets/image-task-spec.ts server/listing/preset-instruction.ts scripts/check-listing-presets.mjs"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

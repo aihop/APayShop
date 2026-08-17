@@ -1,3 +1,12 @@
+interface AppSettingRow {
+  key: string
+  value: string
+}
+
+const fetchAppSettings = $fetch as unknown as (
+  request: string,
+) => Promise<AppSettingRow[]>
+
 export const useSettings = () => {
   // 1. 定义全局状态 (Nuxt 会确保在所有组件间共享此状态)
   const settings = useState<Record<string, string> | null>('app-settings', () => null)
@@ -11,7 +20,7 @@ export const useSettings = () => {
     isLoading.value = true
     try {
       // 利用 Nuxt 的 $fetch，它在 SSR 环境下表现优异
-      const data = await $fetch<any[]>('/api/settings')
+      const data = await fetchAppSettings('/api/settings')
       
       if (Array.isArray(data)) {
         // 转换为键值对对象

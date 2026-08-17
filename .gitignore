@@ -1,6 +1,8 @@
 .data
+.data-*
 node_modules
 .nuxt
+.nuxt-*
 /dist
 .output
 /build

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-import-modal",
+  "title": "将货源导入合并到货源商品页",
+  "problem": "独立导入页只承载扩展说明、链接提交和结果展示，却占用一级导航；导入完成后还需跳转货源商品页，流程割裂。",
+  "expectedOutcome": "货源商品页提供统一导入弹窗，现有导入入口经旧路由兼容跳转后自动打开弹窗；导航清理由占用相关文件的 Dashboard 任务完成后继续。",
+  "constraints": [
+    "保留现有 /api/qingpu/listing/collect 接口与单次最多 10 条链接的行为",
+    "导入成功后刷新货源商品列表，不改变商品、任务或发布数据模型",
+    "旧 /user/listing/import 路由必须兼容现有书签和历史入口",
+    "不触及 Dashboard 及其他并行任务已有未提交改动的文件",
+    "不新增依赖，不修改扩展端或共享 engine"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/ListingImportModal.vue",
+        "pages/user/listing/import.vue",
+        "pages/user/listing/products.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/ListingImportModal.vue",
+        "pages/user/listing/import.vue",
+        "pages/user/listing/products.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "货源商品页右上角和空状态均可打开导入弹窗",
+    "弹窗支持贴链接导入、扩展同步说明和逐条结果展示",
+    "导入成功后自动刷新货源商品列表",
+    "现有 Dashboard、首次引导、导航和工作区空状态入口经旧路由兼容跳转后打开弹窗",
+    "访问旧导入路由会替换跳转到货源商品页并打开弹窗",
+    "不改动已有未提交 Dashboard 文件"
+  ],
+  "verification": [
+    {
+      "name": "导入入口守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'ListingImportModal' pages/user/listing/products.vue && rg -q \"/user/listing/products?import=1\" pages/user/listing/import.vue"
+    },
+    {
+      "name": "Listing 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "修改文件格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/components/ListingImportModal.vue pages/user/listing/import.vue pages/user/listing/products.vue"
+    }
+  ]
+}

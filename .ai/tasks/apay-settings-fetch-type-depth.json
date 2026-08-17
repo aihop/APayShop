@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-settings-fetch-type-depth",
+  "title": "修复公共设置请求类型展开",
+  "problem": "全站 API 路由增加后，useSettings 中直接调用 Nuxt 类型化 $fetch 会展开过深的路由联合类型，导致全量类型检查失败。",
+  "expectedOutcome": "公共设置请求使用明确的局部请求与响应签名，不再依赖全站路由联合推断，且移除该调用的 any。",
+  "constraints": [
+    "不改变 /api/settings 的路径、运行时请求或设置状态结构",
+    "不修改 Qingpu 水印、客户管理、SupportWidget 或其他并行任务文件",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": ["app/composables/useSettings.ts"],
+      "claims": ["app/composables/useSettings.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useSettings 保持现有缓存、强制刷新和键值归一化行为",
+    "公共设置响应拥有显式 key/value 类型且不使用 any",
+    "Nuxt 类型检查不再报告 useSettings.ts 的过深类型错误"
+  ],
+  "verification": [
+    {
+      "name": "设置 composable 格式与 Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useSettings.ts && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

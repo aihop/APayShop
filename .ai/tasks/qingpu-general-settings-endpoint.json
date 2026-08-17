@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-general-settings-endpoint",
+  "title": "将 Qingpu 基础设置迁出 Listing 权限域",
+  "problem": "Text-to-image 等 Qingpu 基础页面读取通用模型配置时调用 /api/qingpu/listing/settings，因路径命中 listing.enabled 功能权限闸门而被拒绝。",
+  "expectedOutcome": "新增 /api/qingpu/settings 作为已登录用户与 Bearer 租户 Key 共用的基础设置接口，使其不再校验 Listing 功能授权；网页、扩展和文档迁到新地址，并保留旧地址兼容现有客户端。",
+  "constraints": [
+    "保留身份认证与租户隔离，只移除通用设置对 listing.enabled 的依赖",
+    "不修改 qingpu_settings 数据结构、设置字段或默认值",
+    "旧 /api/qingpu/listing/settings 保持可用，避免未升级客户端中断",
+    "保留主题工作区现有并行改动，不提交、推送、发布或执行生产迁移"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/10.qingpu-settings.md",
+        "content/zh/docs/10.qingpu-settings.md"
+      ],
+      "claims": [
+        "content/docs/10.qingpu-settings.md",
+        "content/zh/docs/10.qingpu-settings.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/settings.ts",
+        "components/ImageEditStudio.vue",
+        "components/VideoGenerationStudio.vue",
+        "pages/ecommerce-image.vue",
+        "pages/text-to-image.vue",
+        "pages/user/listing/components/useWorkspaceCategoryBinding.ts",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "scripts/check-settings-endpoint.mjs"
+      ],
+      "claims": [
+        "api/settings.ts",
+        "components/ImageEditStudio.vue",
+        "components/VideoGenerationStudio.vue",
+        "pages/ecommerce-image.vue",
+        "pages/text-to-image.vue",
+        "pages/user/listing/components/useWorkspaceCategoryBinding.ts",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "scripts/check-settings-endpoint.mjs"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/listing-settings-client.ts",
+        "tests/settings-endpoint-contract.test.ts"
+      ],
+      "claims": [
+        "src/shared/listing-settings-client.ts",
+        "tests/settings-endpoint-contract.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/api/qingpu/settings 复用现有设置读写逻辑且不命中 listing.enabled 路径权限规则",
+    "设置接口仍要求用户会话或有效 Bearer 租户 Key，并继续按 user_id 隔离",
+    "Text-to-image、基础图片和视频页面、Listing 工作区消费者及扩展统一调用新地址；正被其他任务编辑的 Listing 设置页通过旧地址兼容",
+    "旧 /api/qingpu/listing/settings 继续提供兼容访问",
+    "中英文 API 文档明确新地址、认证要求与旧地址兼容策略"
+  ],
+  "verification": [
+    {
+      "name": "主题设置端点守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-settings-endpoint.mjs"
+    },
+    {
+      "name": "扩展设置端点合同",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/settings-endpoint-contract.test.ts"
+    },
+    {
+      "name": "Qingpu AI 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- content/docs/10.qingpu-settings.md content/zh/docs/10.qingpu-settings.md app/themes/qingpu"
+    }
+  ]
+}

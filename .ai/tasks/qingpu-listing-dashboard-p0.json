@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-dashboard-p0",
+  "title": "实现上品工作台 Dashboard P0",
+  "problem": "当前 /user/listing 直接跳转加工箱，首次用户和中断返回用户无法理解采集、加工、待上架、上架记录的完整流程，也不知道当前唯一推荐动作。",
+  "expectedOutcome": "新增基于 Listing 真实物化状态的 Dashboard，展示四阶段摘要、动态下一步、首次单商品引导、待办与最近商品；保留 Listing 技术域，不引入伪经营数据。",
+  "constraints": [
+    "参考竞品的单商品首测与分阶段引导思想，不复制其品牌、教程正文、订单或经营分析信息架构",
+    "Dashboard 只读取现有商品、workspace、渠道草稿和发布记录事实，不伪造在线商品、渠道订单或销售漏斗",
+    "动态下一步保持唯一主动作，并说明推荐原因",
+    "不修改正在由其他任务处理的 Listing SKU、Studio、权限、额度或数据库文件",
+    "listing 保留为路由、API、目录与数据库技术域，用户文案使用上品工作台心智"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/dashboard.get.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/index.vue",
+        "pages/user/listing/layout.vue",
+        "server/listing/dashboard.ts",
+        "server/listing/queries.channels.ts"
+      ],
+      "claims": [
+        "api/listing/dashboard.get.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/index.vue",
+        "pages/user/listing/layout.vue",
+        "server/listing/dashboard.ts",
+        "server/listing/queries.channels.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/user/listing 不再重定向，直接展示上品工作台 Dashboard",
+    "Dashboard 展示采集箱、加工箱、待上架、上架记录四阶段真实数量",
+    "Dashboard 根据发布风险、待上架、加工中和采集商品计算唯一动态下一步",
+    "首次空状态引导用户先跑通一个真实商品，不暴露内部 canonical、workspace、draft 术语",
+    "最近商品可直接继续对应阶段，上架记录可从 Dashboard 参数直达",
+    "中文、英文、俄文文案完整，变更通过类型与格式检查"
+  ],
+  "verification": [
+    {
+      "name": "Dashboard 产品守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'dynamicNextAction' pages/user/listing/index.vue && rg -q 'firstProduct' locales/listing/zh.ts && rg -q 'dashboard' pages/user/listing/layout.vue"
+    },
+    {
+      "name": "Dashboard 数据守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'buildListingDashboard' server/listing/dashboard.ts api/listing/dashboard.get.ts && rg -q 'summarizeChannelsByUser' server/listing/queries.channels.ts"
+    },
+    {
+      "name": "Dashboard 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Dashboard 格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/listing/dashboard.get.ts locales/listing/en.ts locales/listing/ru.ts locales/listing/zh.ts pages/user/listing/channels.vue pages/user/listing/index.vue pages/user/listing/layout.vue server/listing/dashboard.ts server/listing/queries.channels.ts"
+    }
+  ]
+}

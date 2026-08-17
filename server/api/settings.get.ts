@@ -11,6 +11,8 @@ const SECRET_KEYS = new Set([
   'webhook_secret',
   'email_provider_config_json',
   'email_provider_send_script',
+  'qingpu_ainode_tenant_token',
+  'qingpu_ainode_base_url',
 ])
 
 export default defineEventHandler(async (event) => {

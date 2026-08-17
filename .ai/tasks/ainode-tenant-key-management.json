@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-tenant-key-management",
+  "title": "管理 AINode 租户密钥与 API Key 分组",
+  "problem": "租户后台尚不能在创建或维护租户时绑定 AINode API Key 分组，也不能安全轮换租户 integration token。",
+  "expectedOutcome": "管理员可为新租户选择 keyGroupId、查看并修改现有租户分组，并在明确确认后轮换 integration token；新 Token 只展示一次。",
+  "constraints": [
+    "浏览器继续使用 useExternalApi({ proxy: true }) 和 /api/proxy/external，固定调用 /api/admin/tenants 与 /api/admin/key-groups",
+    "租户更新必须携带 AINode 要求的 name、code、status、allowDirectLogin 和 keyGroupId 完整字段；keyGroupId=0 表示解除分组",
+    "创建与更新只允许选择当前 GET /api/admin/key-groups 返回的正整数 ID 或 0，不信任任意浏览器输入",
+    "Token 轮换 POST retry 为 0；确认文案明确旧 Token 立即失效，结果不确定时不得自动重试或宣称成功",
+    "轮换返回的 integrationToken 只保存在页面内存，关闭结果弹窗后清空，不写 localStorage、Cookie、APay 数据库或日志",
+    "不修改 AINode Go 仓、数据库、租户删除、资金配置或充值语义；保留其他任务全部未提交改动",
+    "失败与回滚边界仅限租户页面、双语后台文案、通用代理租户请求校验和双语 API 文档"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/externalProxy.ts",
+        "content/docs/20.ainode-tenant-admin.md",
+        "content/zh/docs/20.ainode-tenant-admin.md"
+      ],
+      "claims": [
+        "server/utils/externalProxy.ts",
+        "content/docs/20.ainode-tenant-admin.md",
+        "content/zh/docs/20.ainode-tenant-admin.md"
+      ]
+    },
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "admin/pages/tenants.vue",
+        "locales/admin/en.ts",
+        "locales/admin/zh.ts"
+      ],
+      "claims": [
+        "admin/pages/tenants.vue",
+        "locales/admin/en.ts",
+        "locales/admin/zh.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "租户页加载 /api/admin/key-groups 并显示租户的 keyGroupName；无分组时显示明确的未分组状态",
+    "新建租户表单支持选择分组并把 keyGroupId 传给 POST /api/admin/tenants",
+    "现有租户可通过 PUT /api/admin/tenants/{id} 绑定或解除分组，成功后刷新租户列表",
+    "管理员确认后可调用 POST /api/admin/tenants/{id}/rotate-token，旧 Token 失效警告清晰且请求不自动重试",
+    "创建和轮换返回的 Token 共用一次性结果弹窗，关闭后清空；失败或超时不展示虚假 Token，不自动重试",
+    "代理只转发受限的租户创建、更新和轮换字段，并拒绝非法租户 ID、分组 ID、状态或额外字段",
+    "中英文 API 文档说明 keyGroupId=0 解绑、完整更新体和 Token 轮换的不确定结果边界"
+  ],
+  "verification": [
+    {
+      "name": "租户代理与双语文档检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/utils/externalProxy.ts content/docs/20.ainode-tenant-admin.md content/zh/docs/20.ainode-tenant-admin.md"
+    },
+    {
+      "name": "租户页面与双语文案检查",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/tenants.vue locales/admin/en.ts locales/admin/zh.ts"
+    },
+    {
+      "name": "Nuxt 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=12288 ./node_modules/.bin/nuxt build"
+    }
+  ]
+}

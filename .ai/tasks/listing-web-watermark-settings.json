@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-web-watermark-settings",
+  "title": "在网页 Listing 配置项加入水印设置",
+  "problem": "网页端 /user/listing/settings 的任务策略只保留 galleryTarget、galleryStyles 和 aiAttributeFill，加载和保存时会丢掉引擎 AutomationConfig 已有的 watermark 开关；用户级水印模板也没有网页配置入口。",
+  "expectedOutcome": "网页 Listing 配置项在生图和省钱两种任务模式中分别提供主图加水印开关，并提供共用的完整文字/图片水印模板配置；模板和开关通过现有 Listing settings API 持久化，扩展端继续负责自动流水线执行。",
+  "constraints": [
+    "watermark 开关按 generate/cost 模式分别存入现有 listing.automationModes，模板只存一份 listing.watermarkConfig",
+    "模板字段兼容现有 WatermarkConfig：文字/图片、位置、字体、字号、图片比例、透明度、缩放、旋转、间距和边距",
+    "服务端必须对白名单字段、枚举、数值范围和图片 data URL 大小做归一化，不能原样保存任意对象",
+    "网页端本轮只负责配置；筛图、去水印、图片翻译和自动水印执行仍由扩展端完成，不伪装网页已执行",
+    "不修改数据库结构、engine vendor、水印算法、工作区图片链或发布链",
+    "避开当前已有未提交改动，不修改 locales/listing/{zh,en,ru}.ts",
+    "不提交、推送或部署本轮改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ],
+      "claims": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings-watermark.copy.ts",
+        "pages/user/listing/components/SettingsTaskStrategyCard.vue",
+        "pages/user/listing/components/SettingsWatermarkModal.vue",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts",
+        "scripts/check-listing-watermark-settings.mjs"
+      ],
+      "claims": [
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings-watermark.copy.ts",
+        "pages/user/listing/components/SettingsTaskStrategyCard.vue",
+        "pages/user/listing/components/SettingsWatermarkModal.vue",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts",
+        "scripts/check-listing-watermark-settings.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页 Listing 配置页的生图和省钱模式分别显示主图加水印开关，切换模式时状态互不覆盖",
+    "任务策略卡提供水印模板配置入口，并显示模板是否完整",
+    "水印弹窗支持文字和图片水印、五个单点位置、斜向重复、网格平铺、字体/字号、透明度、缩放、旋转、间距和边距",
+    "弹窗使用当前模板实时预览；图片水印支持上传和清除，并限制类型与体积",
+    "GET /api/qingpu/listing/settings 返回 watermarkConfig，POST 保存后再次读取保持归一化结果",
+    "保存网页配置时不丢失 automationModes 中的 watermark，也不覆盖模式中的其他扩展端字段",
+    "中英俄界面文案完整，现有 Listing 语言包的并行改动不被覆盖",
+    "专项守卫、Nuxt 类型检查和正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "水印配置合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-listing-watermark-settings.mjs"
+    },
+    {
+      "name": "主题范围格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/settings.vue pages/user/listing/settings.types.ts pages/user/listing/settings-watermark.copy.ts pages/user/listing/components/SettingsTaskStrategyCard.vue pages/user/listing/components/SettingsWatermarkModal.vue server/settings/helpers.ts server/settings/queries.ts scripts/check-listing-watermark-settings.mjs"
+    },
+    {
+      "name": "APay 文档格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- content/docs/12.qingpu-listing-products.md content/zh/docs/12.qingpu-listing-products.md"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run build"
+    }
+  ]
+}

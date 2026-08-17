@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-sku-inline-create",
+  "title": "Listing SKU 添加复制改为列表内联",
+  "problem": "Listing 的 SKU 添加与复制当前通过弹层填写，操作结果脱离 SKU 列表上下文，用户难以直观看到新增位置和对照源 SKU。",
+  "expectedOutcome": "添加 SKU 时在列表顶部插入未保存草稿行，复制 SKU 时在源行下方插入预填草稿行，并支持直接保存或取消。",
+  "constraints": [
+    "不修改 SKU API、持久化协议、价格库存口径或发布逻辑",
+    "复用现有创建与复制的校验及 payload 结构",
+    "不覆盖 Qingpu 主题内其他会话的 Studio、权限和服务端改动",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/WorkspaceSkuPanel.vue",
+        "pages/user/listing/components/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/WorkspaceSkuCreateModal.vue",
+        "pages/user/listing/components/WorkspaceSkuCreateRow.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/WorkspaceSkuPanel.vue",
+        "pages/user/listing/components/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/WorkspaceSkuCreateModal.vue",
+        "pages/user/listing/components/WorkspaceSkuCreateRow.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "点击添加 SKU 后列表顶部出现可编辑的未保存草稿行并自动定位",
+    "点击复制后源 SKU 下方出现继承原字段的未保存草稿行",
+    "草稿行可校验、保存和取消，重复规格继续被阻止",
+    "保存仍使用既有 WorkspaceSkuCreatePayload 与 SKU API",
+    "内容锁定时不能打开草稿行且已打开草稿会关闭"
+  ],
+  "verification": [
+    {
+      "name": "SKU 内联交互类型与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck && git diff --check -- app/themes/qingpu/pages/user/listing/components/WorkspaceSkuPanel.vue app/themes/qingpu/pages/user/listing/components/WorkspaceSkuPanelTable.vue app/themes/qingpu/pages/user/listing/components/WorkspaceSkuCreateModal.vue app/themes/qingpu/pages/user/listing/components/WorkspaceSkuCreateRow.vue"
+    }
+  ]
+}

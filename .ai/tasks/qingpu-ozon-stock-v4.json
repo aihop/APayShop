@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ozon-stock-v4",
+  "title": "迁移在线商品库存查询到 Ozon v4",
+  "problem": "Ozon 已下线 /v1/product/info/stocks，在线商品同步在库存步骤收到 HTTP 404，导致整次同步失败。",
+  "expectedOutcome": "在线商品同步改用 POST /v4/product/info/stocks，并按 v4 的 result.items 与 result.cursor 正确读取库存分页。",
+  "constraints": [
+    "不改变在线商品数据库与同步事务语义",
+    "继续按 product_id 分块查询，不扩大店铺数据范围",
+    "保留库存与锁定库存的原有聚合口径",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/channel-products/ozon.ts",
+        "scripts/check-channel-products.mjs"
+      ],
+      "claims": [
+        "server/channel-products/ozon.ts",
+        "scripts/check-channel-products.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "库存查询使用 /v4/product/info/stocks",
+    "请求保留 filter.product_id、visibility、cursor 与 limit",
+    "响应同时从 result.items 和 result.cursor 读取分页",
+    "在线商品专项守卫和格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "在线商品专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-channel-products.mjs"
+    },
+    {
+      "name": "修复文件格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/channel-products/ozon.ts scripts/check-channel-products.mjs"
+    }
+  ]
+}

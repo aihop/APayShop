@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ops-shell-p0",
+  "title": "建立店铺运营独立产品壳",
+  "problem": "在线商品已经具备独立事实源，但仍挂在会员中心页面结构中，无法为后续渠道订单、经营分析和跨域待办提供清晰且稳定的产品边界。",
+  "expectedOutcome": "新增 ops 目录级产品壳，将在线商品作为首个真实运营模块迁入 /user/ops/products，并保持 Listing、Studio 与会员中心为平级独立产品。",
+  "constraints": [
+    "ops 只做运营能力的页面聚合壳，不吞并 Listing、Studio 或会员中心领域模型",
+    "首版只展示已经可用的在线商品，不创建渠道订单和经营分析空页面",
+    "旧在线商品地址保留兼容跳转，不复制两份页面实现",
+    "不修改在线商品 API、数据库和同步语义，不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "locales/ops/**",
+        "pages/user/ops/**",
+        "scripts/check-ops-shell.mjs"
+      ],
+      "claims": [
+        "locales/ops/**",
+        "pages/user/ops/**",
+        "scripts/check-ops-shell.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "新增 pages/user/ops/layout.vue 作为店铺运营独立目录壳",
+    "/user/ops 与 /user/ops/products 均可进入在线商品能力",
+    "ops 壳只展示已上线模块，并提供上品工作台、Studio 与会员中心跳转",
+    "在线商品页面继续使用原 API、筛选、同步和 Qingpu 商品关联能力",
+    "目录结构保持 ops 聚合壳与 channel-products 事实域分离"
+  ],
+  "verification": [
+    {
+      "name": "店铺运营壳专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-ops-shell.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- locales/ops pages/user/ops scripts/check-ops-shell.mjs"
+    }
+  ]
+}

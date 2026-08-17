@@ -57,6 +57,14 @@ const emit = defineEmits<{
   (e: 'switch', code: any): void
 }>()
 
+const LOCALE_FLAGS: Record<string, string> = {
+  en: '🇺🇸',
+  zh: '🇨🇳',
+  ru: '🇷🇺',
+}
+
+const getFlag = (code: string) => LOCALE_FLAGS[code] ?? '🌐'
+
 const currentLocaleName = computed(() => {
   const found = (props.locales || []).find((l) => l.code === props.currentLocale)
   return found && found.name ? found.name : props.currentLocale
@@ -65,12 +73,11 @@ const currentLocaleName = computed(() => {
 const dropdownItems = computed(() => {
   return [
     (props.locales || []).map((loc) => ({
-      label: loc.name || loc.code,
-      icon:
-        props.currentLocale === loc.code ? 'ph:check-circle-fill' : 'ph:globe',
-      iconClass:
-        props.currentLocale === loc.code ? 'text-primary-400' : 'text-gray-500',
+      label: `${getFlag(loc.code)}  ${loc.name || loc.code}`,
       onSelect: () => emit('switch', loc.code),
+      ...(props.currentLocale === loc.code
+        ? { class: 'font-semibold text-gray-900 dark:text-white' }
+        : {}),
     })),
   ]
 })

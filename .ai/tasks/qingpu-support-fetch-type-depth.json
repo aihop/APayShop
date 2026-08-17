@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-support-fetch-type-depth",
+  "title": "修复 Qingpu 客服工具请求类型展开",
+  "problem": "QingpuSupportWidget 调用动态客服工具端点时触发 Nuxt 路由联合类型的过深实例化，导致全仓类型检查失败并阻塞其他任务完成。",
+  "expectedOutcome": "客服工具请求保留显式响应类型和现有运行时行为，同时不再递归展开全站路由类型，Nuxt 类型检查不再报告该组件错误。",
+  "constraints": [
+    "不改变客服 API 路径、请求体、响应结构或确认交互",
+    "不修改水印、权益、Listing Dashboard 或其他并行任务文件",
+    "不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["components/QingpuSupportWidget.vue"],
+      "claims": ["components/QingpuSupportWidget.vue"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "QingpuSupportWidget 的客服工具 POST 请求行为保持不变",
+    "Nuxt 类型检查不再报告 QingpuSupportWidget.vue 第 201 行的 TS2589 与 TS2345",
+    "组件差异通过格式检查"
+  ],
+  "verification": [
+    {
+      "name": "客服组件格式与 Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- components/QingpuSupportWidget.vue && cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

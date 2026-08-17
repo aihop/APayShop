@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-membership-checkout",
+  "title": "统一 Qingpu 三端未开通会员购买闭环",
+  "problem": "Listing、Studio、Ops 对明确未开通、员工无权和能力服务异常的体验不一致；部分页面使用弹窗或直接跳转套餐页，用户无法保留产品导航并了解各功能入口。",
+  "expectedOutcome": "Listing、Studio、Ops 都由持久布局消费 user-capabilities；未开通时保留导航与路由，在内容区展示开通说明，点击开通会员后才弹系统订阅套餐，下单成功后刷新能力；查询失败时只提供重试。",
+  "constraints": [
+    "user-capabilities 是产品准入唯一前端事实源，tenant key 不再由 Listing 页面读取",
+    "能力接口失败与 enabled=false 必须严格区分，服务异常不得展示付费引导",
+    "套餐只读取系统 /api/products 中符合 pricing 规则的 subscription 商品",
+    "复用现有 PaymentModal 与订单支付流程，不新增支付接口或依赖",
+    "员工无权限时继续提示联系店主，不向员工展示购买入口",
+    "Listing 保留首次免费试用入口，三端支付完成后都刷新 user-capabilities",
+    "Studio 与 Ops 未授权时不得由全局中间件重定向离开当前产品",
+    "不整理或覆盖 Listing Dashboard、导航及其他既有页面改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/QingpuSubscriptionPlans.vue",
+        "components/QingpuCapabilityGate.vue",
+        "middleware/user-capabilities.global.ts",
+        "server/user-grants/catalog.ts",
+        "pages/user/listing/layout.vue",
+        "pages/user/studio/layout.vue",
+        "pages/user/ops/layout.vue",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "locales/studio/en.ts",
+        "locales/studio/ru.ts",
+        "locales/studio/zh.ts",
+        "locales/ops/en.ts",
+        "locales/ops/ru.ts",
+        "locales/ops/zh.ts",
+        "scripts/check-listing-membership-checkout.mjs",
+        "scripts/check-user-capability-pages.mjs"
+      ],
+      "claims": [
+        "components/QingpuSubscriptionPlans.vue",
+        "components/QingpuCapabilityGate.vue",
+        "middleware/user-capabilities.global.ts",
+        "server/user-grants/catalog.ts",
+        "pages/user/listing/layout.vue",
+        "pages/user/studio/layout.vue",
+        "pages/user/ops/layout.vue",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "locales/studio/en.ts",
+        "locales/studio/ru.ts",
+        "locales/studio/zh.ts",
+        "locales/ops/en.ts",
+        "locales/ops/ru.ts",
+        "locales/ops/zh.ts",
+        "scripts/check-listing-membership-checkout.mjs",
+        "scripts/check-user-capability-pages.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Listing 页面不再调用 /api/qingpu/tenant-keys/current 或 employee-access",
+    "三端能力请求失败时显示服务异常和重试，不加载订阅套餐",
+    "能力明确禁用时显示当前未开通，并可在当前页选择月付或年付套餐",
+    "套餐来自系统 subscription products 且复用 PaymentModal 创建订单和支付",
+    "免费试用及购买成功后强制刷新 user-capabilities，能力生效后自动进入工作台",
+    "员工 actorAllowed=false 时只显示联系店主提示",
+    "Studio 和 Ops 的所有子路由保留导航、URL 与对应标题，不挂载受限页面内容或直接跳转 pricing",
+    "Listing、Studio、Ops 默认均未开通；有效订阅在商品未显式配置能力字段时兼容开通"
+  ],
+  "verification": [
+    {
+      "name": "三端页面能力状态守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-capability-pages.mjs"
+    },
+    {
+      "name": "Listing 会员闭环专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-membership-checkout.mjs"
+    },
+    {
+      "name": "能力边界回归守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-capabilities.mjs && node scripts/check-user-grants.mjs && node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "会员闭环格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- components/QingpuSubscriptionPlans.vue components/QingpuCapabilityGate.vue middleware/user-capabilities.global.ts server/user-grants/catalog.ts pages/user/listing/layout.vue pages/user/studio/layout.vue pages/user/ops/layout.vue locales/listing/en.ts locales/listing/ru.ts locales/listing/zh.ts locales/studio/en.ts locales/studio/ru.ts locales/studio/zh.ts locales/ops/en.ts locales/ops/ru.ts locales/ops/zh.ts scripts/check-listing-membership-checkout.mjs scripts/check-user-capability-pages.mjs"
+    }
+  ]
+}
