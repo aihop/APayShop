@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-customer-plan-operations",
+  "title": "Qingpu 客户管理：人工套餐开通与取消闭环",
+  "problem": "客户管理目前只能设置单项权益和充值，无法由运营为线下合同、补偿或测试客户手动开通套餐。若用权益覆盖模拟套餐，会丢失订阅事实、到期、AINode 套餐额度和 tenant key 联动。",
+  "expectedOutcome": "客户管理支持选择 Qingpu 套餐与有效天数进行人工开通或更换，也可立即取消当前套餐。人工套餐写入 APay subscriptions，AINode 接收 subscription.apply/cancel，Qingpu tenant keys 同步到期或失效。",
+  "constraints": [
+    "subscriptions/products 继续是套餐事实源；qingpu_user_grants 只做单项权益覆盖，不保存人工套餐",
+    "人工套餐使用 pay_method=admin_manual、amount=0，meta_data 记录 qingpu_admin 来源、管理员、原因、标价和天数，不伪造支付订单",
+    "只取消同用户的 Qingpu 套餐订阅，不影响其他产品订阅",
+    "AINode 用户 ID 必须按邮箱解析，禁止直接使用 Qingpu users.id",
+    "套餐开通后同步未撤销 tenant keys 的 subscription/product/expiry；取消后只失效绑定该订阅的 keys",
+    "跨库与跨系统无法原子提交，APay 订阅先落事实，再返回 tenant key / AINode 同步结果供运营识别",
+    "不修改 user-capabilities、SupportWidget、水印、Listing claims，不运行 Nuxt typecheck"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/shared/admin-subscriptions.ts",
+        "server/customer-subscriptions/**",
+        "server/ainode/admin.ts",
+        "server/tenant-keys/queries.ts",
+        "api/admin/user-grants.ts",
+        "admin/pages/customers.vue",
+        "scripts/check-customer-management.mjs",
+        "scripts/check-customer-plan-operations.mjs"
+      ],
+      "claims": [
+        "server/shared/admin-subscriptions.ts",
+        "server/customer-subscriptions/**",
+        "server/ainode/admin.ts",
+        "server/tenant-keys/queries.ts",
+        "api/admin/user-grants.ts",
+        "admin/pages/customers.vue",
+        "scripts/check-customer-management.mjs",
+        "scripts/check-customer-plan-operations.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "客户详情返回可选 Qingpu subscription 套餐目录及当前有效套餐",
+    "管理员可选择套餐和 1-3650 天开通，旧 Qingpu active 套餐被取消并新增 admin_manual 订阅",
+    "人工订阅 meta_data 留下管理员、原因、天数与套餐标价，核心 logs 只作补充审计",
+    "开通向 AINode 发送 subscription.apply 且使用按邮箱解析的 AINode 用户 ID",
+    "开通同步现有 tenant keys 到新订阅到期日，取消使对应 keys 失效并发送 subscription.cancel",
+    "页面明确显示人工套餐操作、原因、同步结果，单项权益和充值能力保持可用",
+    "专项守卫与局部格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "客户套餐操作边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-plan-operations.mjs"
+    },
+    {
+      "name": "客户管理回归守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-management.mjs"
+    },
+    {
+      "name": "局部格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/shared/admin-subscriptions.ts server/customer-subscriptions server/ainode/admin.ts server/tenant-keys/queries.ts api/admin/user-grants.ts admin/pages/customers.vue scripts/check-customer-management.mjs scripts/check-customer-plan-operations.mjs"
+    }
+  ]
+}
