@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-sale-readiness-reconciliation",
+  "title": "以 Ozon 权威回读确认商品可售并输出诊断",
+  "problem": "当前发布确认链路在导入任务成功且库存写请求成功后立即标记 published，没有权威回读商品价格、平台库存和激活状态，导致请求成功但买家仍不可购买时被误报为发布完成。",
+  "expectedOutcome": "商品上传并推送库存后统一回读 Ozon 商品与库存事实；只有任务内同一商品的全部 offer 都确认存在、未归档、有有效价格、有可售库存且已激活时才标记 published，否则保持 pending/publishing 并输出 offer 级可行动诊断。",
+  "constraints": [
+    "开发与验证只使用纯函数、mock 和 dry-run，不触发真实 Ozon 上架、改价或库存写入",
+    "Ozon 可售判定只在 qingpu-ai 共享 engine 定义，网页主题不得复制规则",
+    "保留现有发布主状态枚举，通过 readiness 快照补充阶段、证据和诊断，不新增数据库结构",
+    "未知或缺失的外部字段不能推断为可售；回读网络失败保持 pending，不误报 failed 或 succeeded",
+    "明确导入失败继续 failed；价格、库存或激活尚未收敛保持可重试状态",
+    "保留 APay、主题和 qingpu-ai 工作树中的所有无关改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/products/types.ts",
+        "src/shared/ozon-sale-readiness.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/engine/index.ts",
+        "tests/ozon-sale-readiness.test.ts",
+        "tests/ozon-import-sync.test.ts"
+      ],
+      "claims": [
+        "src/domain/products/types.ts",
+        "src/shared/ozon-sale-readiness.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/engine/index.ts",
+        "tests/ozon-sale-readiness.test.ts",
+        "tests/ozon-import-sync.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.confirm.ts",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/publish.confirm.ts",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "导入和库存写请求成功但权威回读无价格、无可售库存或未激活时不得标记 published",
+    "同一商品全部 offer 存在、未归档、有有效价格、有可售库存且已激活时才标记 published",
+    "部分 offer 缺失或未就绪时输出 offer 级问题 code 与可行动消息",
+    "Ozon 回读请求失败时保持 pending/publishing，并记录 reconciliation_unavailable 诊断",
+    "共享判定器宽容解析已知 Ozon 响应包装和字段形态，但未知字段不误判为 ready",
+    "现有库存失败、仓库未解析、无本地正库存和任务隔离行为继续通过"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 可售判定专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-sale-readiness.test.ts tests/ozon-import-sync.test.ts"
+    },
+    {
+      "name": "qingpu-ai 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "共享 engine 构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "任务范围格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/domain/products/types.ts src/shared/ozon-sale-readiness.ts src/shared/publish-tracking/ozon.ts src/engine/index.ts tests/ozon-sale-readiness.test.ts tests/ozon-import-sync.test.ts"
+    },
+    {
+      "name": "主题任务范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/listing/publish.confirm.ts server/vendor/qingpu-engine"
+    }
+  ]
+}
