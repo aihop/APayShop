@@ -193,7 +193,7 @@
             class="text-center mb-16 relative z-10"
             v-motion-fade-visible-once
           >
-            <h2 class="text-3xl font-bold mb-4">{{ $t('site.core.home.whyChoose', { siteName: getSetting('site_name') || 'APay' }) }}</h2>
+            <h2 class="text-3xl font-bold mb-4">{{ $t('site.core.home.whyChoose', { siteName: getLocalizedSetting('site_name', 'APay') }) }}</h2>
             <p class="text-gray-400 max-w-2xl mx-auto">{{ $t('site.core.home.whyChooseDesc') }}</p>
           </div>
 
@@ -273,11 +273,11 @@
 import { computed } from 'vue'
 import { useLocalizedProduct } from '~/composables/useLocalizedProduct'
 
-const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 const { getLocalizedProduct } = useLocalizedProduct()
 
 useHead({
-  title: computed(() => `${getSetting('site_name') || 'APay'} - AI-Powered Short Drama Content Platform`),
+  title: computed(() => `${getLocalizedSetting('site_name', 'APay')} - AI-Powered Short Drama Content Platform`),
   meta: [
     {
       name: 'description',

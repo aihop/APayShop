@@ -1,4 +1,4 @@
-import { users, orders, usersTokens, settings } from "../../db/schema"
+import { users, orders, usersTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { emitEvent } from "../../utils/eventActions"
@@ -7,6 +7,7 @@ import { sendEmail } from "../../utils/email"
 import { isMultiDeviceLoginDisabled, generateSessionId, EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
 import { bindInviteRelation, capturePromoTracking, ensurePromoMember, mergePromoTracking, readPromoTracking, requestPromoAgentJoin } from "../../promo/service"
 import { getRequestLocale } from "../../utils/requestLocale"
+import { getLocalizedSettingValue } from '../../utils/localizedSettings'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -132,11 +133,7 @@ export default defineEventHandler(async (event) => {
 
   const siteUrl = getRequestURL(event).origin
   const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
-  const siteNameSetting = await db.select()
-    .from(settings)
-    .where(eq(settings.key, 'site_name'))
-    .limit(1)
-  const siteName = String(siteNameSetting[0]?.value || 'APay').trim()
+  const siteName = await getLocalizedSettingValue('site_name', locale, 'APay')
 
   sendEmail({
     to: user.email,

@@ -519,7 +519,8 @@
       "general": {
         "title": "General Information",
         "site_name": "Site Name",
-        "site_name_desc": "Used in headers and page titles",
+        "site_name_desc": "Set the site name for each enabled language",
+        "site_name_locale_desc": "Name shown for {locale}; empty translations fall back to the default site name",
         "site_url": "Site URL",
         "site_url_desc": "The primary domain URL of your site",
         "site_logo": "Site Logo / Icon",

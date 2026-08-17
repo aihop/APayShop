@@ -1,5 +1,6 @@
 import { sendEmail } from '../../../utils/email'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { getLocalizedSettingValue } from '../../../utils/localizedSettings'
 
 export default defineEventHandler(async (event) => {
   const requestLocale = getRequestLocale(event)
@@ -10,14 +11,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: requestLocale === 'zh' ? 'to 和 templateCode 不能为空' : 'to and templateCode are required' })
   }
 
+  const templateLocale = String(locale || requestLocale)
+  const siteName = await getLocalizedSettingValue('site_name', templateLocale, 'APay')
+
   const result = await sendEmail({
     to,
     templateCode,
-    locale,
+    locale: templateLocale,
     templates,
     variables: {
       nickname: 'Test User',
-      site_name: 'APay',
+      site_name: siteName,
       verify_link: 'https://example.com/verify?token=test',
       order_id: 'TEST-001',
       amount: '99.00',

@@ -11,6 +11,7 @@ import { createNotification } from '../../utils/notifications'
 import { getAffectedRows } from '../../utils/dbResult'
 import { stripReservedOrderMeta } from '../../utils/orderMetaData'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { getLocalizedSettingValue } from '../../utils/localizedSettings'
 import { buildLocaleCurrencyQuote } from '../../utils/localeCurrency'
 import { getSiteLocaleConfig, resolveRequestLocale } from '../../utils/paymentMethodLocales'
 import {
@@ -85,22 +86,19 @@ const sendPendingOrderEmail = async (event: any, input: {
   productName: string
   amount: number
   currency: string
+  locale: string
 }) => {
   if (!isDeliverableEmail(input.email)) return
 
   const siteUrl = getRequestURL(event).origin
   const recipient = String(input.email || '').trim()
   const nickname = String(input.nickname || recipient.split('@')[0] || 'Customer').trim()
-  const siteNameSetting = await db.select()
-    .from(settings)
-    .where(eq(settings.key, 'site_name'))
-    .limit(1)
-  const siteName = String(siteNameSetting[0]?.value || 'APay').trim()
+  const siteName = await getLocalizedSettingValue('site_name', input.locale, 'APay')
 
   sendEmail({
     to: recipient,
     templateCode: 'order_pending',
-    locale: getPreferredLocale(event),
+    locale: input.locale,
     variables: {
       nickname,
       order_id: input.orderId,
@@ -512,6 +510,7 @@ export default defineEventHandler(async (event) => {
             productName: product.name,
             amount: totalAmount,
             currency: currencyQuote.currency,
+            locale: checkoutLocale,
           })
         }
 
@@ -608,6 +607,7 @@ export default defineEventHandler(async (event) => {
         productName: product.name,
         amount: totalAmount,
         currency: currencyQuote.currency,
+        locale: checkoutLocale,
       })
     }
     

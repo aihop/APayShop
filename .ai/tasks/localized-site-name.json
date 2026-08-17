@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "localized-site-name",
+  "title": "站点名称按语言独立配置与统一读取",
+  "problem": "后台基本信息目前只能保存单一 site_name，前台主题、后台品牌位、账单和邮件也都直接读取该键，切换语言后无法展示对应语言的站点名称。",
+  "expectedOutcome": "后台按已启用语言分别编辑站点名称；全站展示与邮件按当前或请求语言读取对应值，并在缺失时稳定回退到基础 site_name。",
+  "constraints": [
+    "沿用现有 SEO 的语言前缀设置键，不修改数据库 Schema、不新增迁移或依赖",
+    "site_name 保持为英文与历史兼容值，其他语言使用 zh_site_name、ru_site_name、zh_TW_site_name 等键",
+    "读取顺序为完整 locale、基础语言、site_name、调用方默认值，空翻译不得遮蔽回退值",
+    "不改变设置 API、邮件 API 或主题路由协议",
+    "保留当前工作区既有改动，不修改 app/composables/useSettings.ts、LanguageSwitcher 或 Qingpu 私有业务模块",
+    "失败时仅新增未被旧代码依赖的语言键；回滚代码后 site_name 仍可继续提供现有站名"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "shared/utils/localizedSettings.ts",
+        "app/composables/useLocalizedSettings.ts",
+        "server/utils/localizedSettings.ts",
+        "app/components/admin/settings/GeneralTab.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AdminMobileMenu.vue",
+        "app/components/AppHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AppFooter.vue",
+        "app/core/pages/index.vue",
+        "app/core/pages/payment/[order_id].vue",
+        "app/core/pages/user/orders/[order_id].vue",
+        "app/core/pages/user/orders/index.vue",
+        "app/core/pages/user/tokens/index.vue",
+        "app/themes/ainode/layouts/default.vue",
+        "app/themes/ainode/pages/contact-support.vue",
+        "app/themes/ainode/pages/user/invoice/[order_id].vue",
+        "app/themes/design/user/invoice/[order_id].vue",
+        "app/themes/minimal/pages/payment/[order_id].vue",
+        "app/themes/minimal/pages/user/invoice/[order_id].vue",
+        "app/themes/nft/layouts/default.vue",
+        "app/themes/official/layouts/default.vue",
+        "app/themes/panel/layouts/default.vue",
+        "server/api/auth/register.post.ts",
+        "server/api/orders/checkout.post.ts",
+        "server/api/admin/email/test.post.ts",
+        "locales/en.json",
+        "locales/zh.json",
+        "locales/ru.json"
+      ],
+      "claims": [
+        "shared/utils/localizedSettings.ts",
+        "app/composables/useLocalizedSettings.ts",
+        "server/utils/localizedSettings.ts",
+        "app/components/admin/settings/GeneralTab.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AdminMobileMenu.vue",
+        "app/components/AppHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AppFooter.vue",
+        "app/core/pages/index.vue",
+        "app/core/pages/payment/[order_id].vue",
+        "app/core/pages/user/orders/[order_id].vue",
+        "app/core/pages/user/orders/index.vue",
+        "app/core/pages/user/tokens/index.vue",
+        "app/themes/ainode/layouts/default.vue",
+        "app/themes/ainode/pages/contact-support.vue",
+        "app/themes/ainode/pages/user/invoice/[order_id].vue",
+        "app/themes/design/user/invoice/[order_id].vue",
+        "app/themes/minimal/pages/payment/[order_id].vue",
+        "app/themes/minimal/pages/user/invoice/[order_id].vue",
+        "app/themes/nft/layouts/default.vue",
+        "app/themes/official/layouts/default.vue",
+        "app/themes/panel/layouts/default.vue",
+        "server/api/auth/register.post.ts",
+        "server/api/orders/checkout.post.ts",
+        "server/api/admin/email/test.post.ts",
+        "locales/en.json",
+        "locales/zh.json",
+        "locales/ru.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台基本信息根据 supported_locales 显示语言标签，并可分别保存各语言站点名称",
+    "切换前台语言后，APay 核心及不冲突主题的页头、页脚、页面标题、联系页和账单展示对应语言站点名称",
+    "注册验证、待支付和测试邮件使用邮件语言对应的站点名称",
+    "某语言未填写或为空时依次回退基础语言与 site_name，旧配置无需迁移即可继续工作",
+    "现有设置、邮件和主题接口保持兼容，数据库三方言 Schema 不发生变化",
+    "Qingpu 主题现有并行改动保持原样，本任务不覆盖其布局与账单文件"
+  ],
+  "verification": [
+    {
+      "name": "多语言站名规则、格式与全量构建",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check && node --experimental-strip-types --input-type=module -e \"const { resolveLocalizedSetting } = await import('./shared/utils/localizedSettings.ts'); const settings = { site_name: 'APay', zh_site_name: '爱支付', zh_TW_site_name: '' }; if (resolveLocalizedSetting(settings, 'site_name', 'zh-TW') !== '爱支付') process.exit(1); if (resolveLocalizedSetting(settings, 'site_name', 'ru', 'Fallback') !== 'APay') process.exit(1)\" && npm run build"
+    }
+  ]
+}

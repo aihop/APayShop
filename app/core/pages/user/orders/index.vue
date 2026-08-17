@@ -216,13 +216,13 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useLocaleRouter } from '~/composables/useLocaleRouter'
-const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 const { formatDate } = useFormatTime()
 const { formatCurrencyAmount } = useCurrencyFormat()
 const { localePath } = useLocaleRouter()
 
 useHead({
-  title: `My Orders - ${getSetting('site_name')}`,
+  title: `My Orders - ${getLocalizedSetting('site_name')}`,
 })
 
 const { user } = useCustomerAuth()

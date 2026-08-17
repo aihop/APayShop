@@ -169,14 +169,14 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 
-const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 const { formatDate } = useFormatTime()
 const { locale } = useI18n()
 const toast = useToast()
 const { confirm } = useConfirm()
 
 useHead({
-  title: `API Tokens - ${getSetting('site_name')}`,
+  title: `API Tokens - ${getLocalizedSetting('site_name')}`,
 })
 
 const isZh = computed(() => locale.value.startsWith('zh'))

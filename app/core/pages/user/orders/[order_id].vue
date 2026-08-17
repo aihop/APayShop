@@ -293,10 +293,10 @@ const route = useRoute()
 const router = useRouter() 
 const orderId = route.params['slug']?.[2] as string
 
-const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 
 useHead({
-  title: `${t('site.payment.orderDetailPageTitle', { orderId })} - ${getSetting('site_name')}`,
+  title: `${t('site.payment.orderDetailPageTitle', { orderId })} - ${getLocalizedSetting('site_name')}`,
 })
 
 const { data: order, status } = await useFetch<any>(`/api/orders/detail`, {

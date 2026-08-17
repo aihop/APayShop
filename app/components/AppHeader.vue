@@ -9,12 +9,12 @@
           <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center p-1.5">
             <SiteLogo
               :logo-data="getSetting('site_logo')"
-              :alt="getSetting('site_name')"
+              :alt="getLocalizedSetting('site_name')"
               icon-color="white"
             />
           </div>
           <span class="font-extrabold tracking-wide text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
-            {{ getSetting('site_name') }}
+            {{ getLocalizedSetting('site_name') }}
           </span>
         </NuxtLink>
 
@@ -72,6 +72,7 @@
 // 2026-07 拆分:后台头部逻辑(语言切换/登出/用户菜单)移入 AdminHeader,
 // 本组件不再做 isAdminRoute 分支判断。
 const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 
 defineEmits(['open-mobile-menu'])
 </script>

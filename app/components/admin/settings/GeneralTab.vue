@@ -10,13 +10,32 @@
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.general.title') }}</h2>
     </div>
     <div class="p-6 space-y-6">
-
       <UFormField
         :label="$t('admin.settings.general.site_name')"
-        :description="$t('admin.settings.general.site_name_desc')"
+        :description="$t('admin.settings.general.site_name_locale_desc', { locale: activeLocale })"
       >
+        <div class="mb-3 flex gap-2 overflow-x-auto pb-1">
+          <button
+            v-for="localeOption in supportedLocales"
+            :key="localeOption.code"
+            type="button"
+            :class="[
+              'flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+              activeLocale === localeOption.code
+                ? 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-white',
+            ]"
+            @click="activeLocale = localeOption.code"
+          >
+            <UIcon
+              :name="localeOption.code === defaultLocale ? 'ph:star-fill' : 'ph:translate'"
+              :class="['h-4 w-4', localeOption.code === defaultLocale ? 'text-yellow-500' : '']"
+            />
+            {{ localeOption.name }} ({{ localeOption.code }})
+          </button>
+        </div>
         <UInput
-          v-model="form.site_name"
+          v-model="form[getSiteNameKey(activeLocale)]"
           placeholder="APay"
           icon="ph:text-t"
           size="md"
@@ -141,8 +160,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+
 const { t } = useI18n()
-import { ref } from 'vue'
 
 const props = defineProps<{
   form: any
@@ -152,6 +172,56 @@ const toast = useToast()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const logoInputRef = ref<HTMLInputElement | null>(null)
 const isUploadingLogo = ref(false)
+
+const allLocales = [
+  { code: 'en', name: 'English' },
+  { code: 'zh', name: '简体中文' },
+  { code: 'zh-TW', name: '繁體中文' },
+  { code: 'ja', name: '日本語' },
+  { code: 'ko', name: '한국어' },
+  { code: 'fr', name: 'Français' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'es', name: 'Español' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'pt', name: 'Português' },
+  { code: 'ar', name: 'العربية' },
+  { code: 'hi', name: 'हिन्दी' },
+]
+
+const supportedLocales = computed(() => {
+  const codes = String(props.form.supported_locales || 'en')
+    .split(',')
+    .map(code => code.trim())
+    .filter(Boolean)
+
+  return codes.map((code) => {
+    return allLocales.find(locale => locale.code === code) || { code, name: code.toUpperCase() }
+  })
+})
+
+const defaultLocale = computed(() => String(props.form.default_locale || 'en'))
+const activeLocale = ref(defaultLocale.value)
+
+const getSiteNameKey = (localeCode: string) => {
+  return localeCode === 'en' ? 'site_name' : `${localeCode.replaceAll('-', '_')}_site_name`
+}
+
+watch(
+  supportedLocales,
+  (locales) => {
+    if (!locales.some(locale => locale.code === activeLocale.value)) {
+      activeLocale.value = locales.some(locale => locale.code === defaultLocale.value)
+        ? defaultLocale.value
+        : locales[0]?.code || 'en'
+    }
+
+    for (const locale of locales) {
+      const key = getSiteNameKey(locale.code)
+      if (!(key in props.form)) props.form[key] = ''
+    }
+  },
+  { immediate: true, deep: true },
+)
 
 const uploadLogo = async (event: Event) => {
   const input = event.target as HTMLInputElement

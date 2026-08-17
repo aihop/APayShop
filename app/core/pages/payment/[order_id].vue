@@ -159,13 +159,13 @@ import { useLocaleRouter } from '~/composables/useLocaleRouter'
 const { t, locale } = useI18n()
 const { localePath } = useLocaleRouter()
 const { formatDateTime } = useFormatTime()
-const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 const { baseCurrency, currency: localeCurrency, convertAmount } = useLocaleCurrency()
 const route = useRoute()
 const orderId = route.params['slug']?.[1] as string
 
 useHead(() => ({
-  title: `${t('site.payment.checkoutPageTitle')} - ${getSetting('site_name')}`,
+  title: `${t('site.payment.checkoutPageTitle')} - ${getLocalizedSetting('site_name')}`,
   meta: [
     {
       name: 'description',

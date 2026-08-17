@@ -10,12 +10,12 @@
           <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center p-1.5">
             <SiteLogo
               :logo-data="getSetting('site_logo')"
-              :alt="getSetting('site_name')"
+              :alt="getLocalizedSetting('site_name')"
               icon-color="white"
             />
           </div>
           <span class="font-extrabold tracking-wide text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
-            {{ getSetting('site_name') }}
+            {{ getLocalizedSetting('site_name') }}
           </span>
         </NuxtLink>
 
@@ -101,6 +101,7 @@
 // 2026-07 从 AppHeader 的 isAdminRoute 分支拆出:前台商城头与后台头
 // 此前混在一个组件里靠 v-if 切换,互相牵制;拆分后两侧各自演进。
 const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 const { locale, locales, t } = useI18n()
 const colorMode = useColorMode()
 // Resolved here, in the synchronous setup context. Calling this inside the

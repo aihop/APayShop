@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto px-4">
       <div class="flex flex-col md:flex-row items-center justify-between">
         <p class="text-sm leading-6 text-gray-500 dark:text-gray-500">
-          &copy; {{ new Date().getFullYear() }} {{ getSetting('site_name') || 'Your Site' }}. All rights reserved.
+          &copy; {{ new Date().getFullYear() }} {{ getLocalizedSetting('site_name', 'Your Site') }}. All rights reserved.
           <span class="ml-1">Designed & Developed by <a
               href="https://apay.run/"
               target="_blank"
@@ -58,5 +58,5 @@
 </template>
 
 <script setup lang="ts">
-const { getSetting } = useSettings()
+const { getLocalizedSetting } = useLocalizedSettings()
 </script>

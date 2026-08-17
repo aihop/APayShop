@@ -518,7 +518,8 @@
       "general": {
         "title": "基本信息",
         "site_name": "站点名称",
-        "site_name_desc": "用于页面标题和导航栏",
+        "site_name_desc": "为每种已启用语言设置站点名称",
+        "site_name_locale_desc": "当前设置 {locale} 站点名称；留空时回退到默认站点名称",
         "site_url": "站点地址",
         "site_url_desc": "您网站的主域名 URL",
         "site_logo": "站点标志 / 图标",
