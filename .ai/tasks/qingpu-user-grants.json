@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-user-grants",
+  "title": "Qingpu 用户权益覆盖授予：统一解析、后台管理与运行时闸门",
+  "problem": "Qingpu 已有 APay 订阅套餐、店铺/员工配额、员工角色权限和设备 tenant key，但缺少按主用户临时授予或覆盖业务能力的主题私有事实源。运营无法为单个 users.id 开关 Studio 或调整资源上限；若直接改套餐、qingpu_settings 或 tenant key，会分别污染全套餐、用户偏好或设备凭证边界，且无法可靠审计、到期和撤销。",
+  "expectedOutcome": "新增 qingpu_user_grants 追加式审计表与 server/user-grants 统一领域服务；最终权益按“兼容默认值 -> APay 有效订阅套餐 -> 当前有效用户授予”解析，再与员工权限独立取交集。后台可按邮箱选择用户，查看套餐来源、最终值和历史，按权益 key 授予、设到期和撤销。现有店铺/员工配额改为消费统一权益，Studio API 由集中式账户权益闸门控制，默认值保持存量行为不变。",
+  "constraints": [
+    "主账户身份始终是核心 users.id，表名使用 qingpu_user_grants，字段使用 user_id；不引入 account/account_id，不给主题私有表建立跨数据库外键",
+    "APay subscriptions/products 继续是订阅与套餐定义事实源；主题表只保存单用户覆盖授予，不复制订阅行、价格、支付状态或钱包数据",
+    "ainode 继续负责余额、预扣、结算与模型消费上限；本任务不修改 ainode，不把金额或 token 余额写入 qingpu_user_grants",
+    "tenant key 只承担设备凭证和登录有效期，employee role/permissions 只承担操作者权限；账户权益不得并入二者，最终授权按账户权益与员工权限分别判断",
+    "权益 key、类型、默认值、套餐 meta 映射和公开性集中在 server/user-grants/catalog.ts；数据库和 API 不接受目录外任意 key 或类型不匹配的 value_json",
+    "兼容默认值保持现有行为：studio.enabled=true、stores.max_count=null、employees.max_count=null；null 对数量权益明确表示不限制，避免上线夹死存量用户",
+    "APay 有效订阅套餐权益覆盖兼容默认值，当前有效用户授予再覆盖套餐；订阅必须 status=active 且未超过 current_period_end",
+    "同一 user_id + grant_key 同时最多保留一个 active 授予；新授予在主题数据库事务内撤销旧 active 行并新增一行，撤销后回落套餐或默认值，不得让更老的授予意外复活",
+    "授予记录不物理删除；管理员 ID、原因、到期、撤销人和撤销时间必须留痕，核心 logs 仅作补充审计且不是权益事实源",
+    "starts_at 首期只支持立即生效，不实现未来排程；expires_at 可为空且必须晚于当前时间",
+    "功能访问闸门集中在 server/user-grants/access.ts，并从唯一身份入口 resolveApiAuth 调用；业务端点不得自行查询 qingpu_user_grants 或复制套餐/覆盖合并规则",
+    "员工路径白名单仍然 fail-closed，账户权益判断不能扩大员工可访问路径；员工必须同时通过员工权限和主账户权益两道闸门",
+    "后台使用 ext:qingpu:user-grants 分级权限，GET/HEAD 需要 view，授予/撤销需要 edit；不得复用 tenant-keys 权限扩大设备凭证管理者的能力",
+    "不修改当前并行 Studio 文件，不新增依赖，不执行生产数据库迁移、提交、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/user-grants.sql",
+        "server/db/pg.ts",
+        "server/user-grants/**",
+        "server/quota/index.ts",
+        "server/shared/coreStats.ts",
+        "server/shared/resolveApiUserId.ts",
+        "server/employees/access.ts",
+        "api/user-grants.ts",
+        "api/admin/user-grants.ts",
+        "admin/pages/user-grants.vue",
+        "theme.admin.json",
+        "scripts/check-user-grants.mjs",
+        "scripts/check-quota-gate.mjs",
+        "scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "database/user-grants.sql",
+        "server/db/pg.ts",
+        "server/user-grants/**",
+        "server/quota/index.ts",
+        "server/shared/coreStats.ts",
+        "server/shared/resolveApiUserId.ts",
+        "server/employees/access.ts",
+        "api/user-grants.ts",
+        "api/admin/user-grants.ts",
+        "admin/pages/user-grants.vue",
+        "theme.admin.json",
+        "scripts/check-user-grants.mjs",
+        "scripts/check-quota-gate.mjs",
+        "scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu_user_grants 表按 user_id + grant_key 保存追加式历史，支持 active/revoked、到期、管理员与原因留痕，没有 APay 跨库外键且不提供物理删除路径",
+    "权益目录首期定义 studio.enabled、stores.max_count、employees.max_count，严格校验布尔/非负整数/null，并给出保持存量行为的兼容默认值",
+    "统一解析器输出每个 key 的最终 value 与 default/subscription/user_grant 来源；有效用户授予覆盖套餐，撤销或到期后自动回落",
+    "套餐层继续读取 products.meta_data 的 studio_enabled/max_stores/max_employees，只有 active 且未过 current_period_end 的订阅生效",
+    "server/quota 不再自行解析订阅和套餐，店铺/员工创建闸门保持 402、软超限和缺配置不限制语义",
+    "Studio 主题 API 在 studio.enabled=false 时由集中闸门拒绝，默认 true 时行为不变；员工仍需先通过原有路径白名单",
+    "GET /api/qingpu/user-grants 只返回当前用户可公开的最终权益和值来源，不泄露管理员、原因或完整历史，并允许员工只读",
+    "后台账户权益页支持邮箱搜索、查看有效订阅/最终权益/当前覆盖/历史，以及立即授予、设置到期、撤销；所有写入必须填写原因",
+    "后台 API 使用 ext:qingpu:user-grants 权限并在表内留下管理员审计字段，主题 manifest 注册独立页面与权限单位",
+    "新表进入 assertQingpuSchemaReady；部署顺序明确为先执行 db:qingpu:init 再发布代码，缺表时保持现有 503 fail-fast",
+    "专项守卫锁定表名、解析优先级、集中闸门、无物理删除、配额接入和员工权限不扩张；APay Nuxt 类型检查不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "用户权益边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-grants.mjs"
+    },
+    {
+      "name": "配额闸门回归守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-quota-gate.mjs"
+    },
+    {
+      "name": "员工访问闸门回归守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs && node scripts/check-employee-login-flow.mjs"
+    },
+    {
+      "name": "格式与范围检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- database/user-grants.sql server/db/pg.ts server/user-grants server/quota/index.ts server/shared/coreStats.ts server/shared/resolveApiUserId.ts server/employees/access.ts api/user-grants.ts api/admin/user-grants.ts admin/pages/user-grants.vue theme.admin.json scripts/check-user-grants.mjs scripts/check-quota-gate.mjs scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
