@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-engine-ainode-base-url",
+  "title": "统一 Listing 引擎 AINode Base URL",
+  "problem": "Listing 文案生成和后台属性任务只向共享引擎传 API Key，会回退固定生产地址，无法跟随 Qingpu 系统级 Base URL。",
+  "expectedOutcome": "Listing 文案生成和后台属性任务同时传入系统级 qingpu_ainode_base_url。",
+  "constraints": [
+    "不改变 API Key、模型或任务逻辑",
+    "不读取用户 generalModelBaseUrl",
+    "不修改共享引擎 vendor"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/generate.ts",
+        "server/tasks/executors.ts",
+        "scripts/check-listing-engine-ainode-base-url.mjs"
+      ],
+      "claims": [
+        "server/listing/generate.ts",
+        "server/tasks/executors.ts",
+        "scripts/check-listing-engine-ainode-base-url.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Listing 文案生成读取 getQingpuAINodeBaseUrl",
+    "后台属性任务读取 getQingpuAINodeBaseUrl",
+    "两个调用点均不读取用户 generalModelBaseUrl"
+  ],
+  "verification": [
+    {
+      "name": "Listing 引擎 Base URL 守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-engine-ainode-base-url.mjs"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/listing/generate.ts server/tasks/executors.ts scripts/check-listing-engine-ainode-base-url.mjs"
+    }
+  ]
+}

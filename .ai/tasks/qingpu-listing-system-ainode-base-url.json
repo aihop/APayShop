@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-system-ainode-base-url",
+  "title": "移除 Listing 用户级 AINode Base URL",
+  "problem": "Listing 当前允许用户保存 generalModelBaseUrl，并由多个服务端调用优先读取，导致它可以覆盖 Qingpu 系统级 qingpu_ainode_base_url。",
+  "expectedOutcome": "Listing 页面和 API 不再收发 Base URL，Qingpu 的爬取、类目 AI、生图、视频和账号客服 AI 统一读取系统级 qingpu_ainode_base_url。",
+  "constraints": [
+    "保留历史 generalModelBaseUrl 存储字段的兼容解析，不执行数据迁移或删除",
+    "不改变用户 API Key、模型名、图像配置或价格配置",
+    "不新增可配置 API Key 分组",
+    "平台客服专用环境变量回退保持不变"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/settings.ts",
+        "pages/user/listing/components/SettingsGeneralCard.vue",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/settings.types.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "server/settings/helpers.ts",
+        "server/listing/ainode-crawl.ts",
+        "server/listing/category-learning/ai.ts",
+        "server/assets/image-settings.ts",
+        "server/assets/image-generate.ts",
+        "server/assets/video-generate.ts",
+        "server/support/ai-client.ts",
+        "server/support/context.ts",
+        "scripts/check-listing-system-ainode-base-url.mjs"
+      ],
+      "claims": [
+        "api/listing/settings.ts",
+        "pages/user/listing/components/SettingsGeneralCard.vue",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/settings.types.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "server/settings/helpers.ts",
+        "server/listing/ainode-crawl.ts",
+        "server/listing/category-learning/ai.ts",
+        "server/assets/image-settings.ts",
+        "server/assets/image-generate.ts",
+        "server/assets/video-generate.ts",
+        "server/support/ai-client.ts",
+        "server/support/context.ts",
+        "scripts/check-listing-system-ainode-base-url.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Listing 设置页不显示或提交 Base URL",
+    "Listing 设置 API 不返回或接受 generalModelBaseUrl",
+    "Qingpu AINode 运行时调用统一读取 getQingpuAINodeBaseUrl",
+    "历史用户设置中的 generalModelBaseUrl 不再覆盖系统配置",
+    "用户 API Key 和其他 Listing 设置行为保持不变"
+  ],
+  "verification": [
+    {
+      "name": "Listing 系统 Base URL 守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-system-ainode-base-url.mjs"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/listing/settings.ts pages/user/listing/components/SettingsGeneralCard.vue pages/user/listing/settings.vue pages/user/listing/settings.types.ts locales/listing/zh.ts locales/listing/en.ts locales/listing/ru.ts server/settings/helpers.ts server/listing/ainode-crawl.ts server/listing/category-learning/ai.ts server/assets/image-settings.ts server/assets/image-generate.ts server/assets/video-generate.ts server/support/ai-client.ts server/support/context.ts scripts/check-listing-system-ainode-base-url.mjs"
+    }
+  ]
+}
