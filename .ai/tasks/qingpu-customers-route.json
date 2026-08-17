@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-customers-route",
+  "title": "Qingpu 客户管理后台路由与权限语义改名",
+  "problem": "后台页面已经升级为客户管理，但仍使用 extensions/user-grants 路由、user-grants.vue 组件名和 ext:qingpu:user-grants 权限码，导航语义与页面职责不一致。",
+  "expectedOutcome": "后台入口改为 /admin/extensions/customers，组件改名 customers.vue，后台权限改为 ext:qingpu:customers；user-grants 继续作为底层权益表、领域模块和用户侧 API 名称。",
+  "constraints": [
+    "只改后台聚合入口命名，不重命名 qingpu_user_grants、server/user-grants 或用户侧 /api/qingpu/user-grants",
+    "管理员 API 文件可保留 api/admin/user-grants.ts，避免无业务收益的接口迁移；权限码必须与新页面 key 对齐",
+    "不运行 Nuxt typecheck，不修改 SupportWidget、水印、Listing 或 user-capabilities claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/user-grants.vue",
+        "admin/pages/customers.vue",
+        "api/admin/user-grants.ts",
+        "theme.admin.json",
+        "scripts/check-customer-management.mjs",
+        "scripts/check-user-grants.mjs"
+      ],
+      "claims": [
+        "admin/pages/user-grants.vue",
+        "admin/pages/customers.vue",
+        "api/admin/user-grants.ts",
+        "theme.admin.json",
+        "scripts/check-customer-management.mjs",
+        "scripts/check-user-grants.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "manifest 页面 key、route、component 分别为 customers、/admin/extensions/customers、customers.vue",
+    "管理员 API 使用 ext:qingpu:customers 分级权限",
+    "旧 user-grants.vue 后台组件不再存在，底层权益领域名称保持不变",
+    "客户管理与权益专项守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "客户管理边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-management.mjs"
+    },
+    {
+      "name": "用户权益回归守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-grants.mjs"
+    },
+    {
+      "name": "局部格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/customers.vue api/admin/user-grants.ts theme.admin.json scripts/check-customer-management.mjs scripts/check-user-grants.mjs"
+    }
+  ]
+}
