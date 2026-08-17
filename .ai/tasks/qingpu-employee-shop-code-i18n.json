@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-shop-code-i18n",
+  "title": "补齐员工管理与登录国际化",
+  "problem": "员工管理组件读取 shopCode 系列键，但中文语言包只定义了 enterpriseCode 系列键，导致中文界面显示原始国际化 key；员工登录页另有一套页内硬编码三语字典且术语不一致，管理与登录失败时还会把中文服务端错误直接显示在英文或俄文界面。",
+  "expectedOutcome": "员工管理与员工登录的全部可见文案统一从 Qingpu 正式语言包读取，中英俄键集合一致、店铺码术语一致，已知接口错误按当前语言显示。",
+  "constraints": [
+    "只修改员工管理组件、员工登录页和 Qingpu 三份顶层语言文件，不修改接口、会话、鉴权或数据逻辑",
+    "沿用组件、接口字段和英文、俄文现有的 shopCode 命名，不保留未使用的 enterpriseCode 文案别名",
+    "已知员工接口错误按 HTTP 状态码映射为本地文案，未知错误使用本地通用回退，不把服务端中文消息直接透传给其他语言",
+    "保留工作区全部既有并行改动，不提交、推送或部署"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "pages/auth/login/employee.vue",
+        "pages/user/components/AccountEmployeesTab.vue"
+      ],
+      "claims": [
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "pages/auth/login/employee.vue",
+        "pages/user/components/AccountEmployeesTab.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu.employeeManagement.shopCode 在中文界面显示为店铺码而非原始 key",
+    "copyShopCode 和 shopCodeCopied 的中文文案可被现有组件正常读取",
+    "员工登录页不再维护页内硬编码三语字典，全部文案通过 useI18n 读取",
+    "员工管理和员工登录的已知接口错误在中英俄界面按当前语言显示",
+    "中英俄 employeeManagement 文案的递归键集合一致"
+  ],
+  "verification": [
+    {
+      "name": "员工管理三语键集合",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/tsx -e \"const locales = await Promise.all(['zh','en','ru'].map(async locale => ({ locale, value: (await import('./locales/' + locale + '.ts')).default.employeeManagement }))); const flatten = (value, prefix = '') => Object.entries(value).flatMap(([key, child]) => child && typeof child === 'object' ? flatten(child, prefix + key + '.') : [prefix + key]); const expected = JSON.stringify(flatten(locales[0].value).sort()); for (const item of locales.slice(1)) if (JSON.stringify(flatten(item.value).sort()) !== expected) throw new Error(item.locale + ' employeeManagement keys differ'); for (const key of ['shopCode','copyShopCode','shopCodeCopied','login.title','login.fallbackError']) if (!flatten(locales[0].value).includes(key)) throw new Error('missing locale key: ' + key); console.log('employeeManagement locale keys aligned:', flatten(locales[0].value).length)\""
+    },
+    {
+      "name": "员工可见文案国际化",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q \"t\\('qingpu.employeeManagement.login.title'\\)\" pages/auth/login/employee.vue && ! rg -q 'const messages =|detail\\.data\\?\\.message|detail\\.message' pages/auth/login/employee.vue pages/user/components/AccountEmployeesTab.vue && ! rg -q 'enterpriseCode|copyEnterpriseCode|enterpriseCodeCopied' locales/zh.ts locales/en.ts locales/ru.ts pages/auth/login/employee.vue pages/user/components/AccountEmployeesTab.vue"
+    },
+    {
+      "name": "员工国际化范围格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- locales/zh.ts locales/en.ts locales/ru.ts pages/auth/login/employee.vue pages/user/components/AccountEmployeesTab.vue"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

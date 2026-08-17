@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-trial-policy-flow",
+  "title": "将 Qingpu 试用政策接入订单、审核与权益发放",
+  "problem": "后台试用政策当前只保存配置，实际领取仍硬编码商品 9、1 天、0.2 金币和 Listing 权限，审核、功能选择与数量限制均未生效。",
+  "expectedOutcome": "试用政策成为唯一配置源并关联一个启用中的零元专用商品；领取时以 APay 订单保存不可变政策快照和每用户唯一申请，免审申请立即履约，需审核申请由管理员批准或拒绝；批准后按快照幂等发放 AINode 赠送余额、产品功能和店铺/员工额度，并使用同一到期时间。",
+  "constraints": [
+    "关联商品只承载零元订单、审计与下游入账，不从商品元数据读取试用期限、金币或权益",
+    "领取和批准时都校验关联商品存在、启用且价格为 0",
+    "每个用户使用稳定订单幂等键，只能形成一条试用申请",
+    "政策在申请时冻结，后续设置变化不追溯影响既有申请",
+    "下游入账使用订单号作为稳定 source_id，响应丢失后的重试不得重复入账",
+    "订单未创建或待审核时不得发放任何权益；部分失败必须可以安全重试",
+    "不执行生产数据库迁移，不提交、不推送、不发布",
+    "保留并避免覆盖工作区内其他任务的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/qingpuTrialOrders.ts"
+      ],
+      "claims": [
+        "server/utils/qingpuTrialOrders.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/shared/apay-trial-orders.ts",
+        "server/trials/policy.ts",
+        "server/trials/pass.ts",
+        "api/trial.ts",
+        "api/admin/settings.ts",
+        "admin/pages/settings.vue",
+        "pages/user/listing/layout.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "scripts/check-trial-policy-flow.mjs",
+        "scripts/check-trial-policy-settings.mjs",
+        "scripts/check-user-capabilities.mjs"
+      ],
+      "claims": [
+        "server/shared/apay-trial-orders.ts",
+        "server/trials/policy.ts",
+        "server/trials/pass.ts",
+        "api/trial.ts",
+        "api/admin/settings.ts",
+        "admin/pages/settings.vue",
+        "pages/user/listing/layout.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "scripts/check-trial-policy-flow.mjs",
+        "scripts/check-trial-policy-settings.mjs",
+        "scripts/check-user-capabilities.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台政策可选择且只保存启用中的零元商品",
+    "关闭试用会拒绝新申请，开启审核只创建待审核订单且不发权益",
+    "管理员可在设置页查看、批准或拒绝待审核申请",
+    "批准或免审领取按申请快照发放金币、所选功能和两个数量限制",
+    "所有试用权益使用同一个冻结到期时间且重试不会重复发放",
+    "现有每用户限领一次、主账户限制和设备令牌解耦继续成立"
+  ],
+  "verification": [
+    {
+      "name": "APay 试用订单类型检查",
+      "repository": "apay",
+      "command": "git diff --check && npm run typecheck",
+      "always": true
+    },
+    {
+      "name": "Qingpu 试用流程专项守卫",
+      "repository": "qingpu-theme",
+      "command": "node scripts/check-trial-policy-flow.mjs && node scripts/check-trial-policy-settings.mjs && node scripts/check-user-capabilities.mjs && git diff --check",
+      "always": true
+    }
+  ]
+}

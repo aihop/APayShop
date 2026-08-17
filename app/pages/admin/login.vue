@@ -235,14 +235,13 @@ const handleLogin = async () => {
   // isRouteAllowedForAdmin() permits it for every admin regardless of grants.
   let redirectTarget = '/admin/profile'
   try {
+    // Always refresh before navigating, including when a redirect query is
+    // present. Otherwise the route middleware still sees the anonymous state
+    // cached when this login page opened and immediately sends us back here.
+    await loadAdmin(true)
     if (typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')) {
       redirectTarget = route.query.redirect
     } else {
-      // Force-refresh the shared admin state so it reflects the account that
-      // JUST logged in, not whatever this browser tab had cached (e.g. a
-      // previous admin who logged out in this same tab, or this account's own
-      // permissions from before they were last changed).
-      await loadAdmin(true)
       await fetchSettings()
       // Don't assume '/admin' (dashboard) is reachable — an admin without
       // the 'dashboard' permission needs to land on their first allowed page.

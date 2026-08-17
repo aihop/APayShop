@@ -143,7 +143,7 @@ const buildTenantDepositBody = (targetPath: string, body: unknown) => {
   if (!tenantAmountPattern.test(amount) || !/[1-9]/.test(amount)) {
     throw createError({ statusCode: 400, statusMessage: 'Amount must be greater than 0 with at most 8 decimals' })
   }
-  const [whole, fraction = ''] = amount.split('.')
+  const [whole = '0', fraction = ''] = amount.split('.')
   const scaledAmount = BigInt(whole) * BigInt('100000000') + BigInt(fraction.padEnd(8, '0') || '0')
   if (scaledAmount > BigInt('9223372036854775807')) {
     throw createError({ statusCode: 400, statusMessage: 'Amount exceeds the supported AINode range' })

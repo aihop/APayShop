@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-employee-support-chat-access",
+  "title": "允许员工子账号使用客服聊天",
+  "problem": "员工访问闸门默认拒绝整个 /support 路径，导致客服聊天 POST /api/qingpu/support/chat 在进入业务逻辑前返回 403。",
+  "expectedOutcome": "有效员工子账号可以使用客服聊天及读取聊天可用状态，同时诊断接口与其他支持域端点仍保持默认拒绝。",
+  "constraints": [
+    "仅精确放行 POST /support/chat 和只读 /support/status，不放行整个 /support 前缀",
+    "继续禁止员工访问 /support/diagnose，避免暴露账号、任务、发布或订阅诊断上下文",
+    "不修改客服聊天业务、会话归属、店主权限或设备令牌行为",
+    "保留工作区全部既有并行改动，不提交、推送或部署"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/employees/access.ts",
+        "scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "server/employees/access.ts",
+        "scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "member 和 manager 均可 POST /api/qingpu/support/chat",
+    "member 和 manager 均可 GET 或 HEAD /api/qingpu/support/status",
+    "员工仍不能访问 /api/qingpu/support/diagnose 或其他 /support 子路径",
+    "店主现有访问行为不变"
+  ],
+  "verification": [
+    {
+      "name": "员工访问闸门守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "员工客服权限边界",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/tsx -e \"const { isEmployeeAllowed } = await import('./server/employees/access.ts'); for (const role of ['member','manager'] as const) { if (!isEmployeeAllowed('/api/qingpu/support/chat', 'POST', role)) throw new Error(role + ' cannot chat'); if (!isEmployeeAllowed('/api/qingpu/support/status', 'GET', role)) throw new Error(role + ' cannot read status'); for (const [path, method] of [['/api/qingpu/support/chat','GET'], ['/api/qingpu/support/status','POST'], ['/api/qingpu/support/diagnose','POST'], ['/api/qingpu/support/anything','GET']] as const) if (isEmployeeAllowed(path, method, role)) throw new Error(role + ' unexpectedly allowed ' + method + ' ' + path); } console.log('employee support access boundaries verified')\""
+    },
+    {
+      "name": "员工客服权限格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/employees/access.ts scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

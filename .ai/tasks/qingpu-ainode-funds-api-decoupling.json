@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ainode-funds-api-decoupling",
+  "title": "拆分 Qingpu 权益与 AINode 资金管理接口",
+  "problem": "客户管理页把 AINode 钱包、资金流水和充值通过 resource/action 分支塞进 /api/qingpu/admin/user-grants，导致 Qingpu 主题自身权益 API 依赖外部资金系统；AINode 流水接口异常时也会表现为 user-grants 请求失败，领域边界和故障归属都不清晰。",
+  "expectedOutcome": "新增独立 /api/qingpu/admin/ainode-funds 接口承载 AINode 钱包、资金流水和充值；/api/qingpu/admin/user-grants 只保留 Qingpu 套餐与用户权益；客户管理页面分别调用两个接口，专项守卫锁定无反向耦合。",
+  "constraints": [
+    "user-grants 只管理 Qingpu 模板自身套餐与权益，不导入或动态加载 AINode 资金服务",
+    "AINode 钱包、流水和充值协议保持不变，不修改 AINode 仓库或数据库",
+    "新资金接口继续使用 ext:qingpu:customers 管理权限并保留独立审计日志",
+    "不保留 resource=ainode 或 action=recharge 兼容分支，避免形成双入口",
+    "不修改现有并行脏文件，不新增依赖，不提交、推送、发布或执行生产变更"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/admin/user-grants.ts",
+        "api/admin/ainode-funds.ts",
+        "admin/pages/customers.vue",
+        "scripts/check-customer-management.mjs",
+        "scripts/check-customer-plan-operations.mjs"
+      ],
+      "claims": [
+        "api/admin/user-grants.ts",
+        "api/admin/ainode-funds.ts",
+        "admin/pages/customers.vue",
+        "scripts/check-customer-management.mjs",
+        "scripts/check-customer-plan-operations.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/api/qingpu/admin/user-grants 不再识别 AINode resource 或 recharge action，也不依赖 server/ainode",
+    "/api/qingpu/admin/ainode-funds 独立提供客户钱包与资金流水查询和充值",
+    "客户详情的套餐与权益加载不受 AINode 资金接口失败影响",
+    "资金操作使用 qingpu.ainode-funds 独立审计来源",
+    "专项守卫和 Nuxt 类型检查不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "客户管理边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-management.mjs && node scripts/check-customer-plan-operations.mjs"
+    },
+    {
+      "name": "主题范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/admin/user-grants.ts api/admin/ainode-funds.ts admin/pages/customers.vue scripts/check-customer-management.mjs scripts/check-customer-plan-operations.mjs"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
