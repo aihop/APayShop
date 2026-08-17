@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-pricing-calculator-page",
+  "title": "实现可复用独立核价页面",
+  "problem": "当前核价能力只嵌在 Listing 工作区侧栏，选品或创建商品前无法独立试算，其他页面也缺少一个稳定的页面级核价输入输出合同。",
+  "expectedOutcome": "新增一个直接消费 Qingpu Engine 定价与物流事实的纯核价适配层、可复用计算器组件和独立 URL 页面；本期不修改用户中心导航与全局布局。",
+  "constraints": [
+    "佣金、物流、尾程和利润公式必须调用现有 qingpu-engine browser 出口，不复制公式",
+    "纯能力模块不得依赖 Vue、页面状态或浏览器 API",
+    "页面同时支持按售价看利润与按目标利润反推售价",
+    "参考或手填运费必须明确标记待确认，不得冒充已核验报价",
+    "不修改当前其他任务占用的 pages/user/layout.vue、根多语言文件或 Listing 工作区文件",
+    "不引入新依赖，不修改数据库，不触碰生产数据"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/pricing/PricingCalculator.vue",
+        "pages/user/tools/pricing-calculator.vue",
+        "scripts/check-pricing-calculator.mjs",
+        "utils/pricing-calculator.ts"
+      ],
+      "claims": [
+        "components/pricing/PricingCalculator.vue",
+        "pages/user/tools/pricing-calculator.vue",
+        "scripts/check-pricing-calculator.mjs",
+        "utils/pricing-calculator.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "访问 /user/tools/pricing-calculator 可使用完整核价表单",
+    "支持输入当前 Ozon 售价查看利润和输入目标售价利润率反推建议售价",
+    "结果展示采购成本、国内费用、头程、尾程、佣金、广告、退货、其他费用、总成本与利润",
+    "展示采购价利润率、成本利润率、售价利润率、体积重、计费重和物流证据",
+    "纯函数与组件均可被其他页面直接导入复用",
+    "页面不修改现有用户中心导航或 Listing 工作区"
+  ],
+  "verification": [
+    {
+      "name": "核价页面专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-pricing-calculator.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
