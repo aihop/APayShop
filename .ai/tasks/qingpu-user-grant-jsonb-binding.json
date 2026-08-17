@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-user-grant-jsonb-binding",
+  "title": "Qingpu 用户权益 JSONB 类型绑定修复",
+  "problem": "createUserGrant 将 JSON.stringify(value) 作为 postgres.js 参数再 cast jsonb，数据库实际得到 JSONB string，导致 boolean、number、null 全部违反 qingpu_user_grants_value_check。",
+  "expectedOutcome": "用户权益值通过 postgres.js sql.json 按原生 JSONB 类型写入，布尔权益、整数配额和 null 不限值均满足数据库约束。",
+  "constraints": [
+    "不放宽 qingpu_user_grants_value_check，继续由目录与数据库双重校验类型",
+    "只修改 qingpu_user_grants 的 SQL owner，不在 API 复制 raw SQL",
+    "不修改并行 user-capabilities claims，不运行 Nuxt typecheck"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/user-grants/queries.ts",
+        "scripts/check-user-grant-jsonb-binding.mjs"
+      ],
+      "claims": [
+        "server/user-grants/queries.ts",
+        "scripts/check-user-grant-jsonb-binding.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "createUserGrant 不再通过 JSON.stringify 写入 value_json",
+    "value_json 使用 postgres.js JSON 参数包装并保持 boolean、number、null 原生 JSONB 类型",
+    "专项守卫与局部格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "用户权益 JSONB 绑定守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-grant-jsonb-binding.mjs"
+    },
+    {
+      "name": "局部格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/user-grants/queries.ts scripts/check-user-grant-jsonb-binding.mjs"
+    }
+  ]
+}
