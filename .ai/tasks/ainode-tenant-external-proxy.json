@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-tenant-external-proxy",
+  "title": "将 AINode 租户资金后台迁移到现有外部代理",
+  "problem": "租户页当前使用独立 APay 管理路由，与现有 AINode 客户管理的 /api/proxy/external 调用链不一致；而通用代理携带 AINode 管理令牌时尚未限制上游 /api/admin/** 只能由 APay 管理员调用。",
+  "expectedOutcome": "租户创建、充值、余额对账和资金流水统一通过 /api/proxy/external?path=/api/admin/tenants... 调用，并为该代理的所有 AINode 管理路径补齐 APay 管理员门禁。",
+  "constraints": [
+    "浏览器沿用 useExternalApi({ proxy: true }) 和 /api/proxy/external，不保留重复的 /api/admin/ainode/tenants 路由",
+    "通用代理解析出目标路径后，任何 /api/admin 或 /api/admin/** 上游请求必须存在 APay 管理员会话；普通用户会话和 x-auth 不得获得 AINode 管理令牌能力",
+    "不改变非管理上游路径现有的用户、管理员和 x-auth 兼容行为",
+    "租户页只允许正向 credit 加款，充值类型限制为 deposit_topup、deposit_grant、opening_balance、admin_adjust",
+    "充值 POST retry 为 0，失败或超时保留相同 requestId，成功后才生成新 UUID；requestId 映射为稳定 eventId",
+    "金额最多 8 位小数；AINode 10^8 刻度整数及 64 位流水 ID 在前端通过原始 JSON 文本转换为字符串后解析，禁止经过 Number",
+    "不修改 AINode Go 仓、数据库、依赖、出资配置、负向扣款、租户删除或 Token 轮换",
+    "保留其他任务的所有未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/externalProxy.ts",
+        "content/docs/20.ainode-tenant-admin.md",
+        "content/zh/docs/20.ainode-tenant-admin.md"
+      ],
+      "claims": [
+        "server/utils/externalProxy.ts",
+        "content/docs/20.ainode-tenant-admin.md",
+        "content/zh/docs/20.ainode-tenant-admin.md"
+      ]
+    },
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "admin/pages/tenants.vue"
+      ],
+      "claims": [
+        "admin/pages/tenants.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "租户页列表、创建、充值汇总和流水均调用 /api/proxy/external，并传固定 /api/admin/tenants 路径",
+    "普通用户调用 external 代理访问任意 /api/admin 或子路径时在 APay 层收到 401，管理员保持现有调用能力",
+    "创建成功的一次性 integrationToken 不落持久化；创建请求不自动重试",
+    "充值只接受正金额、合法类型和必填备注，使用唯一 eventId 幂等，结果不确定时可用原 requestId 人工重试",
+    "充值成功后刷新租户列表、余额汇总和第一页流水；刷新失败不把已成功写入误报为充值失败",
+    "流水加载更多并展示上游实际字段；文档说明 10^8 精度、事务/幂等、对账，以及无 total/筛选/导出和不返回 operator/metadata 的缺口"
+  ],
+  "verification": [
+    {
+      "name": "通用代理管理门禁与文档检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/utils/externalProxy.ts content/docs/20.ainode-tenant-admin.md content/zh/docs/20.ainode-tenant-admin.md"
+    },
+    {
+      "name": "AINode 租户页面格式检查",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/tenants.vue"
+    },
+    {
+      "name": "Nuxt 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=12288 ./node_modules/.bin/nuxt build"
+    }
+  ]
+}

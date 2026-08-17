@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-tenant-admin-create",
+  "title": "在 AINode 主题后台新增租户管理入口",
+  "problem": "APay 的 AINode 主题后台尚未提供租户管理页面，管理员无法从 APay 调用 ainode 的租户接口查看或创建租户，也无法安全接收创建时只返回一次的 integration token。",
+  "expectedOutcome": "AINode 主题后台新增租户管理页，管理员可以查看 ainode 租户列表、创建租户，并在创建成功后一次性查看和复制 integration token；浏览器不直接持有 ainode 内部管理凭据。",
+  "constraints": [
+    "首版只实现租户列表与新增，不包含编辑、删除、Token 轮换、预存款或出资配置",
+    "AINode 管理调用必须经 /api/admin/ainode/tenants 专用服务端代理并受 APay 全局管理员鉴权保护，不得从页面直接调用通用外部代理",
+    "沿用现有 ai_gateway_url 与 integration_token/NUXT_SESSION_PASSWORD 配置，不新增凭据、数据库字段或依赖",
+    "租户 code 在前端提示并校验为小写字母、数字、下划线或连字符，且不得使用 default；服务端最终规则仍以 ainode 为准",
+    "创建接口成功后 integrationToken 只在当前结果弹窗展示，不写入日志、本地存储、Cookie 或 APay 数据库",
+    "创建请求响应丢失时不自动重试，避免把非幂等创建误判为安全重试；管理员应先刷新列表，再通过 ainode 的 Token 轮换能力人工恢复",
+    "不修改 /Users/hugh/code/aihop/ainode 当前工作区，也不触碰 APay 现有并行改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/ainode/theme.admin.json",
+        "app/themes/ainode/admin/pages/tenants.vue",
+        "app/themes/ainode/locales/admin/zh.ts",
+        "app/themes/ainode/locales/admin/en.ts",
+        "server/api/admin/ainode/tenants/index.get.ts",
+        "server/api/admin/ainode/tenants/index.post.ts",
+        "content/docs/20.ainode-tenant-admin.md",
+        "content/zh/docs/20.ainode-tenant-admin.md"
+      ],
+      "claims": [
+        "app/themes/ainode/theme.admin.json",
+        "app/themes/ainode/admin/pages/tenants.vue",
+        "app/themes/ainode/locales/admin/zh.ts",
+        "app/themes/ainode/locales/admin/en.ts",
+        "server/api/admin/ainode/tenants/index.get.ts",
+        "server/api/admin/ainode/tenants/index.post.ts",
+        "content/docs/20.ainode-tenant-admin.md",
+        "content/zh/docs/20.ainode-tenant-admin.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AINode 主题后台导航出现租户管理入口，页面能刷新并展示名称、code、状态、钱包数、直登设置和创建时间",
+    "管理员可填写租户名称、合法 code 与直登开关并提交到 ainode POST /api/admin/tenants",
+    "创建成功后页面明确提示 Token 只展示一次，并提供复制操作；关闭结果弹窗后页面状态不再保留明文 Token",
+    "重复 code、非法字段、网关未配置和上游失败均显示可理解的失败反馈，失败时不伪造成功或自动重试创建",
+    "新增 APay 管理 API 只转发 GET/POST /api/admin/tenants，浏览器请求无法指定任意上游路径",
+    "中英文后台文案与中英文 API 文档同步更新"
+  ],
+  "verification": [
+    {
+      "name": "AINode 租户后台类型与格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/themes/ainode/theme.admin.json app/themes/ainode/admin/pages/tenants.vue app/themes/ainode/locales/admin/zh.ts app/themes/ainode/locales/admin/en.ts server/api/admin/ainode/tenants/index.get.ts server/api/admin/ainode/tenants/index.post.ts content/docs/20.ainode-tenant-admin.md content/zh/docs/20.ainode-tenant-admin.md && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "APay 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    }
+  ]
+}

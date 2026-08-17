@@ -13,6 +13,82 @@ interface ProxyExternalRequestOptions {
   overrideQuery?: Record<string, string | number | boolean | null | undefined>
 }
 
+const tenantDepositPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)\/deposit$/
+const tenantDepositLikePathPattern = /^\/api\/admin\/tenants\/[^/]+\/deposit$/
+const tenantAdminPathPattern = /^\/api\/admin\/tenants(?:\/|$)/
+const tenantAmountFields = [
+  'depositBalance',
+  'scaledAmount',
+  'topup',
+  'grant',
+  'openingBalance',
+  'adminAdjust',
+  'issued',
+  'issuedFace',
+  'shadowIssued',
+  'derivedBalance',
+  'id',
+  'faceAmountCents',
+  'chargedAmountCents',
+  'beforeBalanceCents',
+  'afterBalanceCents',
+  'refTransactionId',
+]
+const tenantDepositTypes = new Set(['deposit_topup', 'deposit_grant', 'opening_balance', 'admin_adjust'])
+const tenantAmountPattern = /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/
+const requestIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const quoteIntegerFields = (raw: string, fields: string[]) => {
+  let result = raw
+  for (const field of fields) {
+    const escapedField = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    result = result.replace(
+      new RegExp(`("${escapedField}"\\s*:\\s*)(-?\\d+)(?=\\s*[,}])`, 'g'),
+      '$1"$2"',
+    )
+  }
+  return result
+}
+
+const buildTenantDepositBody = (targetPath: string, body: unknown) => {
+  const match = tenantDepositPathPattern.exec(targetPath)
+  if (!match) {
+    if (tenantDepositLikePathPattern.test(targetPath)) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid tenant ID' })
+    }
+    return body
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant deposit body' })
+  }
+
+  const input = body as Record<string, unknown>
+  const amount = typeof input.amount === 'string' ? input.amount.trim() : ''
+  const type = typeof input.type === 'string' ? input.type.trim().toLowerCase() : ''
+  const remark = typeof input.remark === 'string' ? input.remark.trim() : ''
+  const requestId = typeof input.requestId === 'string' ? input.requestId.trim().toLowerCase() : ''
+  if (!tenantAmountPattern.test(amount) || !/[1-9]/.test(amount)) {
+    throw createError({ statusCode: 400, statusMessage: 'Amount must be greater than 0 with at most 8 decimals' })
+  }
+  const [whole, fraction = ''] = amount.split('.')
+  const scaledAmount = BigInt(whole) * BigInt('100000000') + BigInt(fraction.padEnd(8, '0') || '0')
+  if (scaledAmount > BigInt('9223372036854775807')) {
+    throw createError({ statusCode: 400, statusMessage: 'Amount exceeds the supported AINode range' })
+  }
+  if (!tenantDepositTypes.has(type)) {
+    throw createError({ statusCode: 400, statusMessage: 'Unsupported deposit type' })
+  }
+  if (!remark || remark.length > 1000) {
+    throw createError({ statusCode: 400, statusMessage: 'Remark is required and must not exceed 1000 characters' })
+  }
+  if (!requestIdPattern.test(requestId)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid deposit request ID' })
+  }
+
+  const eventId = `apay-tenant-deposit:${match[1]}:${requestId}`
+  return `{"amount":${amount},"type":${JSON.stringify(type)},"direction":"credit","eventId":${JSON.stringify(eventId)},"remark":${JSON.stringify(remark)}}`
+}
+
 function normalizeGatewayUrl(raw: string | null | undefined) {
   const value = String(raw || '').trim()
   if (!value) {
@@ -221,6 +297,13 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     })
   }
 
+  if ((targetUrl.pathname === '/api/admin' || targetUrl.pathname.startsWith('/api/admin/')) && !adminId) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized: Admin access required for upstream admin APIs',
+    })
+  }
+
   const forwardQuery = { ...query }
   delete forwardQuery.target
   delete forwardQuery.path
@@ -230,6 +313,9 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
 
   if (['POST', 'PUT', 'PATCH'].includes(method)) {
     body = await readBody(event).catch(() => undefined)
+  }
+  if (method === 'POST') {
+    body = buildTenantDepositBody(targetUrl.pathname, body)
   }
 
   // 优先使用 integration_token，降级到系统 NUXT_SESSION_PASSWORD
@@ -243,7 +329,7 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
     Authorization: `Bearer ${authToken}`,
   }
 
-  console.log(`[${proxyLabel} Debug] target=${targetUrl.toString()} auth=${authToken ? 'Bearer ' + authToken.slice(0, 8) + '...' : 'none'} (source: ${integrationToken ? 'integration_token' : 'NUXT_SESSION_PASSWORD'})`)
+  console.log(`[${proxyLabel} Debug] target=${targetUrl.toString()} auth=${authToken ? 'configured' : 'none'} (source: ${integrationToken ? 'integration_token' : 'NUXT_SESSION_PASSWORD'})`)
 
   if (userId) {
     forwardHeaders['X-Internal-User-Id'] = String(userId)
@@ -299,7 +385,10 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
 
     // Try JSON first, fall back to raw text
     try {
-      return JSON.parse(text)
+      const responseText = tenantAdminPathPattern.test(targetUrl.pathname)
+        ? quoteIntegerFields(text, tenantAmountFields)
+        : text
+      return JSON.parse(responseText)
     } catch {
       return text
     }
