@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-workspace-quality-score-visible-entry",
+  "title": "把商品评分放到加工完成提示后",
+  "problem": "详情页评分浮动入口尺寸过小且位置不符合用户预期，用户无法快速发现。",
+  "expectedOutcome": "在加工详情顶部状态栏的“加工信息已完整，可以校验并进入待上架”后面同行显示商品评分入口。",
+  "constraints": ["只调整详情路由评分入口视觉，不修改评分算法与其他在途文件"],
+  "repositories": [{
+    "name": "qingpu-theme",
+    "path": "app/themes/qingpu",
+    "allowedPaths": ["pages/user/listing/workspaces/[productId].vue"],
+    "claims": ["pages/user/listing/workspaces/[productId].vue"]
+  }],
+  "acceptanceCriteria": [
+    "评分入口紧跟在加工完成提示文字后面",
+    "入口明确显示商品评分、分数和查看提分建议",
+    "点击入口打开五维评分与提分建议",
+    "移动端入口不遮挡主要操作"
+  ],
+  "verification": [{
+    "name": "评分入口格式检查",
+    "repository": "qingpu-theme",
+    "always": true,
+    "command": "git diff --check -- 'pages/user/listing/workspaces/[productId].vue'"
+  }]
+}
