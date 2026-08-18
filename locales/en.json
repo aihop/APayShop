@@ -533,7 +533,7 @@
         "footer_copyright": "Footer Copyright",
         "footer_copyright_desc": "Copyright text displayed in the site footer",
         "disable_multi_device_login": "Disable Multi-Device Login",
-        "disable_multi_device_login_desc": "When enabled, users can only login from one device at a time. Old API tokens will be invalidated when logging in.",
+        "disable_multi_device_login_desc": "When enabled, only the most recent web login remains active. Other web sessions show the new device, time, and IP before signing out. API tokens, extensions, and desktop sessions are unaffected.",
         "multi_device_login_warning": "Multi-device login is disabled",
         "multi_device_login_allowed": "Multi-device login is allowed",
         "toast_success": "Success",

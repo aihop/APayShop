@@ -1,4 +1,4 @@
-import { users, orders, products, subscriptions, oauthAccounts, usersTokens, visitorProfiles, promoMembers } from "../../../db/schema"
+import { users, orders, products, subscriptions, oauthAccounts, userTokens, visitorProfiles, promoMembers } from "../../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -89,13 +89,13 @@ export default defineEventHandler(async (event) => {
 
       // Token identity only — never the raw token value.
       db.select({
-        id: usersTokens.id,
-        name: usersTokens.name,
-        lastUsedAt: usersTokens.lastUsedAt,
-        expiresAt: usersTokens.expiresAt,
-        revoked: usersTokens.revoked,
-        createdAt: usersTokens.createdAt,
-      }).from(usersTokens).where(eq(usersTokens.userId, userId)).orderBy(desc(usersTokens.createdAt)),
+        id: userTokens.id,
+        name: userTokens.name,
+        lastUsedAt: userTokens.lastUsedAt,
+        expiresAt: userTokens.expiresAt,
+        revoked: userTokens.revoked,
+        createdAt: userTokens.createdAt,
+      }).from(userTokens).where(eq(userTokens.userId, userId)).orderBy(desc(userTokens.createdAt)),
 
       db.select().from(visitorProfiles).where(eq(visitorProfiles.userId, userId)).orderBy(desc(visitorProfiles.lastSeenAt)).limit(1),
 

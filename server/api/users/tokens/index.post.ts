@@ -1,6 +1,6 @@
 import crypto from "crypto"
 import { z } from "zod"
-import { usersTokens } from "../../../db/schema"
+import { userTokens } from "../../../db/schema"
 import { eq, and, ne, or, isNull, count } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from '../../../utils/auth'
@@ -40,11 +40,11 @@ export default defineEventHandler(async (event) => {
   const { name, expiresInDays } = parsed.data
 
   const [{ value: activeCount }] = await db.select({ value: count() })
-    .from(usersTokens)
+    .from(userTokens)
     .where(and(
-      eq(usersTokens.userId, userId),
-      eq(usersTokens.revoked, false),
-      or(isNull(usersTokens.name), ne(usersTokens.name, EMAIL_VERIFY_TOKEN_NAME)),
+      eq(userTokens.userId, userId),
+      eq(userTokens.revoked, false),
+      or(isNull(userTokens.name), ne(userTokens.name, EMAIL_VERIFY_TOKEN_NAME)),
     ))
   if (activeCount >= MAX_ACTIVE_TOKENS) {
     throw createError({
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
   const rawToken = `apay_${crypto.randomBytes(32).toString('base64url')}`
   const expiresAt = expiresInDays ? new Date(Date.now() + expiresInDays * 86400 * 1000) : null
 
-  const inserted = await db.insert(usersTokens).values({
+  const inserted = await db.insert(userTokens).values({
     userId,
     token: rawToken,
     name,
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     // The raw token is only ever returned here, at creation — it cannot be
-    // retrieved again afterwards (list/GET never selects usersTokens.token).
+    // retrieved again afterwards (list/GET never selects userTokens.token).
     token: rawToken,
     data: {
       id: inserted[0].id,

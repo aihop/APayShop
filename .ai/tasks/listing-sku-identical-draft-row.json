@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-sku-identical-draft-row",
+  "title": "Listing SKU 草稿行与正式行同构",
+  "problem": "SKU 添加与复制虽已进入列表，但草稿使用跨列大表单，与现有 SKU 表格列结构不一致，破坏列表整体感。",
+  "expectedOutcome": "添加和复制均插入一条与正式 SKU 相同列结构、列宽和编辑控件风格的草稿行，并在原位完成保存或取消。",
+  "constraints": [
+    "不修改 SKU API、持久化协议、价格库存口径或发布逻辑",
+    "继续使用 WorkspaceSkuCreatePayload，不把整卡字段伪造成 SKU 字段",
+    "新增草稿位于列表顶部，复制草稿紧跟源 SKU",
+    "不覆盖主题仓当前后台、Studio 与工程文档并行改动",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/WorkspaceSkuCreateRow.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/WorkspaceSkuCreateRow.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "新增和复制草稿均逐列对齐正式 SKU 行，不再出现跨列大表单",
+    "规格、价格库存、平台规格、型号和包装均在对应列可编辑",
+    "图片、整卡字段、状态和操作列与正式行视觉宽度一致",
+    "复制继承源 SKU 值且仍要求修改重复规格组合",
+    "保存和取消在当前草稿行原位完成"
+  ],
+  "verification": [
+    {
+      "name": "SKU 同构草稿行模板与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileTemplate}=require('@vue/compiler-sfc');for(const file of ['app/themes/qingpu/pages/user/listing/components/WorkspaceSkuPanelTable.vue','app/themes/qingpu/pages/user/listing/components/WorkspaceSkuCreateRow.vue']){const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]}\" && git diff --check -- app/themes/qingpu/pages/user/listing/components/WorkspaceSkuPanelTable.vue app/themes/qingpu/pages/user/listing/components/WorkspaceSkuCreateRow.vue"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

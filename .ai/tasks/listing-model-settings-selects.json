@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-model-settings-selects",
+  "title": "收敛铺货设置模型连接与模型选择",
+  "problem": "模型 API Key 已由系统自动发放并写入，设置页仍允许手工编辑，容易误改；四个模型用途又以静态卡片分散展示，未来增加可选模型时缺少统一入口。",
+  "expectedOutcome": "设置页只展示模型连接状态，不再暴露 API Key 输入框；一般、图片、视频、翻译模型在同一区域以独立下拉框展示，当前各自只有系统默认项，并保留后续扩展选项的结构。",
+  "constraints": [
+    "不删除 generalModelApiKey 字段，不改变服务端保存协议或运行时鉴权",
+    "不新增模型别名，不向用户暗示当前已有多个可切换模型",
+    "不修改已有并行会话正在编辑的语言文件",
+    "不引入依赖，不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/SettingsGeneralCard.vue",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/settings.types.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/SettingsGeneralCard.vue",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/settings.types.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "模型设置页不再显示或允许编辑 API Key",
+    "连接状态仍根据自动写入的 generalModelApiKey 正确显示",
+    "四个模型用途集中展示为下拉选择器",
+    "每个下拉当前仅包含对应的系统默认模型",
+    "保存时保留合法选择，并对未知值安全回落到默认模型"
+  ],
+  "verification": [
+    {
+      "name": "设置组件模板与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileTemplate}=require('@vue/compiler-sfc');const file='app/themes/qingpu/pages/user/listing/components/SettingsGeneralCard.vue';const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]\" && git diff --check -- app/themes/qingpu/pages/user/listing/components/SettingsGeneralCard.vue app/themes/qingpu/pages/user/listing/settings.vue app/themes/qingpu/pages/user/listing/settings.types.ts"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

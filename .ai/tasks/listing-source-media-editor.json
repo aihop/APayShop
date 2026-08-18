@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-source-media-editor",
+  "title": "补齐货源商品图片与视频编辑",
+  "problem": "货源商品编辑抽屉只能修改文字、价格与 SKU，来源 canonical 已保存图片和视频但详情接口没有返回，用户无法核对、增加、删除或调整来源媒体。",
+  "expectedOutcome": "编辑货源抽屉新增来源图片与视频区，图片支持预览、本地上传、URL 新增、删除和设为主图，视频支持预览、URL 新增和删除；保存时与文字及 SKU 共用 revision 乐观锁，并清理工作区中失效的来源媒体引用。",
+  "constraints": [
+    "canonical 继续作为来源图片与视频的唯一事实层，不把上传或生成素材混入 workspace 发布素材语义",
+    "图片本地文件仅在用户点击保存后上传，取消编辑不修改来源事实",
+    "当前 ainode 托管网关仅提供图片上传，因此视频新增使用公网 http(s) URL，不伪造本地视频上传能力",
+    "来源图片删除后清理 workspace 中对应 original 引用，来源视频删除后清理失效的 referenceVideoUrl",
+    "不修改仍被 listing-products-interaction-polish 租用的 products.vue、products.copy.ts 与 ListingPageHero.vue",
+    "不新增数据库表、字段、依赖或共享 engine 出口"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/products/source-media.ts",
+        "api/listing/products/source-media-upload.post.ts",
+        "pages/user/listing/components/ProductEditorDrawer.vue",
+        "pages/user/listing/components/ProductSourceMediaSection.vue",
+        "pages/user/listing/components/ProductSourceSkuSection.vue",
+        "pages/user/listing/product-editor-media.copy.ts",
+        "pages/user/listing/products.types.ts",
+        "scripts/check-listing-source-media-editor.mjs",
+        "server/listing/product-detail.source.ts",
+        "server/listing/source-media.ts"
+      ],
+      "claims": [
+        "api/listing/products/source-media.ts",
+        "api/listing/products/source-media-upload.post.ts",
+        "pages/user/listing/components/ProductEditorDrawer.vue",
+        "pages/user/listing/components/ProductSourceMediaSection.vue",
+        "pages/user/listing/components/ProductSourceSkuSection.vue",
+        "pages/user/listing/product-editor-media.copy.ts",
+        "pages/user/listing/products.types.ts",
+        "scripts/check-listing-source-media-editor.mjs",
+        "server/listing/product-detail.source.ts",
+        "server/listing/source-media.ts"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ],
+      "claims": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "编辑抽屉在基本信息之前展示来源图片和来源视频，并明确提示这些是采集事实而非发布素材",
+    "来源图片可大图预览、本地上传或 URL 新增、删除、设为主图，最多保留 50 张且至少保留一张",
+    "来源视频可直接播放、通过公网 URL 新增和删除，最多保留 10 条",
+    "SKU 行在来源存在 imageUrl 时展示对应规格图缩略图",
+    "媒体修改在点击抽屉保存后提交，成功后使用服务端最新 revision 继续保存文字与 SKU",
+    "服务端验证 URL、数量、图片文件类型和大小，并在乐观锁冲突时返回 currentRevision",
+    "删除来源媒体不会留下 workspace 的失效发布图、选图或参考视频引用"
+  ],
+  "verification": [
+    {
+      "name": "来源媒体编辑专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-source-media-editor.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "主题范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/listing/products/source-media.ts api/listing/products/source-media-upload.post.ts pages/user/listing/components/ProductEditorDrawer.vue pages/user/listing/components/ProductSourceMediaSection.vue pages/user/listing/components/ProductSourceSkuSection.vue pages/user/listing/product-editor-media.copy.ts pages/user/listing/products.types.ts scripts/check-listing-source-media-editor.mjs server/listing/product-detail.source.ts server/listing/source-media.ts"
+    },
+    {
+      "name": "API 文档格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- content/docs/12.qingpu-listing-products.md content/zh/docs/12.qingpu-listing-products.md"
+    }
+  ]
+}

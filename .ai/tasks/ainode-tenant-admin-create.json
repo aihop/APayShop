@@ -40,7 +40,7 @@
     }
   ],
   "acceptanceCriteria": [
-    "AINode 主题后台导航出现租户管理入口，页面能刷新并展示名称、code、状态、钱包数、直登设置和创建时间",
+    "AI主题后台导航出现租户管理入口，页面能刷新并展示名称、code、状态、钱包数、直登设置和创建时间",
     "管理员可填写租户名称、合法 code 与直登开关并提交到 ainode POST /api/admin/tenants",
     "创建成功后页面明确提示 Token 只展示一次，并提供复制操作；关闭结果弹窗后页面状态不再保留明文 Token",
     "重复 code、非法字段、网关未配置和上游失败均显示可理解的失败反馈，失败时不伪造成功或自动重试创建",
@@ -49,7 +49,7 @@
   ],
   "verification": [
     {
-      "name": "AINode 租户后台类型与格式检查",
+      "name": "AI租户后台类型与格式检查",
       "repository": "apay",
       "always": true,
       "command": "git diff --check -- app/themes/ainode/theme.admin.json app/themes/ainode/admin/pages/tenants.vue app/themes/ainode/locales/admin/zh.ts app/themes/ainode/locales/admin/en.ts server/api/admin/ainode/tenants/index.get.ts server/api/admin/ainode/tenants/index.post.ts content/docs/20.ainode-tenant-admin.md content/zh/docs/20.ainode-tenant-admin.md && ./node_modules/.bin/nuxt typecheck"

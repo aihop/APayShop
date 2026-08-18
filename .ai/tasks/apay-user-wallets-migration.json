@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-user-wallets-migration",
+  "title": "APay 用户钱包实体迁移与旧余额列退场",
+  "problem": "APay 仍把 cash/grant/sub 余额、订阅到期时间和 tier_level 混在 users 表中，余额流水也只按 user_id 归属。AINode 已把四池资金迁到独立钱包实体，APay 继续沿用用户列会让身份与资金生命周期耦合，并阻碍未来一个用户拥有独立钱包上下文。当前充值、退款、钱包页、后台客户统计、下单等级判断和 Qingpu 客服上下文都直接读取这些旧列，不能直接 DROP COLUMN。",
+  "expectedOutcome": "APay 新增自己数据库内的一对一 user_wallets，保存 cash/grant/sub/points、tier、订阅到期和状态；存量数据完整回填，balance_logs 关联 wallet_id，所有余额和本地等级消费者切到钱包实体，然后从 users 删除旧钱包字段。API 对外余额口径保持兼容。",
+  "constraints": [
+    "APay user_wallets 是 APay 自己数据库的表，不连接、不查询也不镜像 AINode 数据库表",
+    "资金金额继续使用 10^8 放大整数，迁移前后不得改变单位、入账幂等键、退款回收和消费顺序语义",
+    "user_wallets 当前保持每个 user_id 唯一；预留 points_balance，但 APay 不新增积分发放或消费行为",
+    "迁移必须先建表并从 users 回填，再回填 balance_logs.wallet_id，最后才删除 users 旧列",
+    "余额流水历史记录必须保留，event_id 唯一约束不得变化",
+    "PostgreSQL、MySQL、SQLite/D1 Schema 与迁移同步；不执行生产迁移",
+    "TierLevel 现有 Qingpu 套餐权限行为保持不变，只改变存储位置",
+    "不修改 AINode 仓库，不把 AINode 四池消费结果同步回 APay",
+    "不覆盖网页单会话、Listing、Qingpu Studio 及其他未提交改动，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "drizzle.config.ts",
+        "drizzle.mysql.config.ts",
+        "drizzle.pg.config.ts",
+        "docs/engineering-constraints.md",
+        "scripts/check-user-wallet-migration.mjs",
+        "scripts/migrate-local-ainode-apay-baseline.mjs",
+        "server/api/admin/users/[id].get.ts",
+        "server/api/admin/users/index.get.ts",
+        "server/api/admin/users/summary.get.ts",
+        "server/api/orders/checkout.post.ts",
+        "server/api/users/billing.get.ts",
+        "server/api/users/dashboard.get.ts",
+        "server/api/users/wallet.get.ts",
+        "server/api/users/wallet/logs.get.ts",
+        "server/db/migrations/mysql/0015_add_user_wallets.sql",
+        "server/db/migrations/mysql/meta/_journal.json",
+        "server/db/migrations/pg/0020_add_user_wallets.sql",
+        "server/db/migrations/pg/meta/_journal.json",
+        "server/db/migrations/sqlite/0018_add_user_wallets.sql",
+        "server/db/migrations/sqlite/meta/_journal.json",
+        "server/db/schema.mysql.ts",
+        "server/db/schema.pg.ts",
+        "server/db/schema.sqlite.ts",
+        "server/db/schema.ts",
+        "server/utils/balance.ts",
+        "server/utils/fulfillment.ts",
+        "server/utils/topup.ts",
+        "server/utils/userWallet.ts"
+      ],
+      "claims": [
+        "drizzle.config.ts",
+        "drizzle.mysql.config.ts",
+        "drizzle.pg.config.ts",
+        "docs/engineering-constraints.md",
+        "scripts/check-user-wallet-migration.mjs",
+        "scripts/migrate-local-ainode-apay-baseline.mjs",
+        "server/api/admin/users/[id].get.ts",
+        "server/api/admin/users/index.get.ts",
+        "server/api/admin/users/summary.get.ts",
+        "server/api/orders/checkout.post.ts",
+        "server/api/users/billing.get.ts",
+        "server/api/users/dashboard.get.ts",
+        "server/api/users/wallet.get.ts",
+        "server/api/users/wallet/logs.get.ts",
+        "server/db/migrations/mysql/0015_add_user_wallets.sql",
+        "server/db/migrations/mysql/meta/_journal.json",
+        "server/db/migrations/pg/0020_add_user_wallets.sql",
+        "server/db/migrations/pg/meta/_journal.json",
+        "server/db/migrations/sqlite/0018_add_user_wallets.sql",
+        "server/db/migrations/sqlite/meta/_journal.json",
+        "server/db/schema.mysql.ts",
+        "server/db/schema.pg.ts",
+        "server/db/schema.sqlite.ts",
+        "server/db/schema.ts",
+        "server/utils/balance.ts",
+        "server/utils/fulfillment.ts",
+        "server/utils/topup.ts",
+        "server/utils/userWallet.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-customer-plan-operations.mjs",
+        "server/shared/admin-subscriptions.ts",
+        "server/shared/supportCoreContext.ts"
+      ],
+      "claims": [
+        "scripts/check-customer-plan-operations.mjs",
+        "server/shared/admin-subscriptions.ts",
+        "server/shared/supportCoreContext.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "三方言均存在 user_wallets，user_id 唯一且包含 cash/grant/sub/points、tier、sub_expires_at、status 与创建时间",
+    "迁移把每个现有 users 行的钱包字段原值回填到 user_wallets，balance_logs 历史行关联到对应 wallet_id",
+    "迁移回填完成后删除 users.cash_balance、grant_balance、sub_balance、sub_expires_at、tier_level",
+    "充值到账、退款回收、余额读取与流水写入均以 user_wallets.id 为钱包事实源，event_id 幂等保持不变",
+    "新用户即使尚无钱包行，首次钱包读写或套餐等级同步也能幂等创建零余额钱包",
+    "用户钱包、账单、Dashboard 与后台客户 API 的既有响应字段和金额单位保持兼容",
+    "Qingpu 下单等级校验、管理员套餐同步和客服上下文改读 APay user_wallets",
+    "代码与迁移中不再存在对 users 旧钱包字段的业务引用",
+    "专项守卫、Nuxt 类型检查与构建通过，契约验证完成并释放租约"
+  ],
+  "verification": [
+    {
+      "name": "钱包迁移专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-user-wallet-migration.mjs"
+    },
+    {
+      "name": "APay 变更格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "APay 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    },
+    {
+      "name": "Qingpu 套餐钱包消费者守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-plan-operations.mjs && ! rg -n 'users\\.(CashBalance|GrantBalance|SubBalance|SubExpiresAt|TierLevel)' server/shared/admin-subscriptions.ts server/shared/supportCoreContext.ts"
+    }
+  ]
+}

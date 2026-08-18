@@ -1,10 +1,11 @@
-import { users, orders, usersTokens } from "../../db/schema"
+import { users, orders, userTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { emitEvent } from "../../utils/eventActions"
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { sendEmail } from "../../utils/email"
-import { isMultiDeviceLoginDisabled, generateSessionId, EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
+import { EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
+import { issueWebSession } from '../../utils/userSessions'
 import { bindInviteRelation, capturePromoTracking, ensurePromoMember, mergePromoTracking, readPromoTracking, requestPromoAgentJoin } from "../../promo/service"
 import { getRequestLocale } from "../../utils/requestLocale"
 import { getLocalizedSettingValue } from '../../utils/localizedSettings'
@@ -91,26 +92,7 @@ export default defineEventHandler(async (event) => {
     inviteCode: inviteCode,
   }).catch((err) => console.error('user.registered event actions failed', err))
 
-  // 检查是否禁止多设备登录
-  const isDisabled = await isMultiDeviceLoginDisabled()
-  let sessionId: string | undefined = undefined
-  if (isDisabled) {
-    // 生成新的会话 ID 并更新到用户表
-    sessionId = generateSessionId()
-    await db.update(users).set({ currentSessionId: sessionId }).where(eq(users.id, user.id))
-  }
-
-  // Set auth session
-  await setUserSession(event, {
-    user: {
-      id: user.id,
-      email: user.email,
-      nickname: user.nickname,
-      avatarUrl: user.avatarUrl
-    },
-    admin: null,
-    sessionId: sessionId // 存储会话 ID 用于验证
-  })
+  await issueWebSession(event, user, 'register')
 
   await trackVisitorEvent(event, {
     visitorId: ensureVisitorId(event),
@@ -120,11 +102,11 @@ export default defineEventHandler(async (event) => {
   })
 
   // Send email verification (non-blocking)
-  // Generate email verification token (24h expiry)，存进通用的 users_tokens 表
+  // Generate email verification token (24h expiry)，存进通用的 user_tokens 表
   // （name 标记为 EMAIL_VERIFY_TOKEN_NAME，中间件鉴权会排除这个 purpose，不会当成 API token）
   const verifyToken = crypto.randomUUID()
   const verifyExpiresAt = Math.floor(Date.now() / 1000) + 86400 // 24 hours
-  await db.insert(usersTokens).values({
+  await db.insert(userTokens).values({
     userId: user.id,
     token: verifyToken,
     name: EMAIL_VERIFY_TOKEN_NAME,

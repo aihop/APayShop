@@ -30,7 +30,31 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 
-export const usersTokens = pgTable('users_tokens', {
+export const userSessions = pgTable('user_sessions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  sessionIdHash: text('session_id_hash').notNull().unique(),
+  status: text('status').notNull().default('active'),
+  authMethod: text('auth_method').notNull().default('password'),
+  deviceType: text('device_type'),
+  browser: text('browser'),
+  os: text('os'),
+  userAgent: text('user_agent'),
+  ip: text('ip'),
+  country: text('country'),
+  region: text('region'),
+  city: text('city'),
+  loggedInAt: timestamp('logged_in_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  replacedBySessionId: text('replaced_by_session_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userStatusIdx: index('user_sessions_user_status_idx').on(table.userId, table.status),
+  lastSeenIdx: index('user_sessions_last_seen_idx').on(table.lastSeenAt),
+}))
+
+export const userTokens = pgTable('user_tokens', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   token: text('token').notNull().unique(),

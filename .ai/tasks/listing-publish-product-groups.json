@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-publish-product-groups",
+  "title": "按主商品聚合上架记录并区分合卡状态",
+  "problem": "上架记录按 SKU 平铺，用户无法快速判断一个主商品是否全部成功，也容易把 SKU 已发布误解为 Ozon 已完成合卡。",
+  "expectedOutcome": "上架记录默认按主商品和店铺分页展示，汇总全部成功、部分成功、处理中和失败 SKU；展开后保留逐 SKU 详情，并把上架状态与合卡验证状态分开呈现。",
+  "constraints": [
+    "保留现有 SKU 级数据库记录和原有非聚合 API 响应",
+    "不把 published 解释为合卡成功，没有真实对账依据时只显示尚未验证",
+    "不修改 Ozon 发布状态机、不执行真实发布、不新增依赖",
+    "不覆盖工作区已有改动或其他任务租约文件",
+    "使用页面私有三语文案，避免修改并行占用的全局语言文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/publish-records.ts",
+        "pages/user/listing/publish-records.vue",
+        "pages/user/listing/components/ListingPublishProductGroupsPanel.vue",
+        "pages/user/listing/publish-product-groups.copy.ts",
+        "scripts/check-listing-publish-product-groups.mjs",
+        "server/publish-records/queries.ts"
+      ],
+      "claims": [
+        "api/listing/publish-records.ts",
+        "pages/user/listing/publish-records.vue",
+        "pages/user/listing/components/ListingPublishProductGroupsPanel.vue",
+        "pages/user/listing/publish-product-groups.copy.ts",
+        "scripts/check-listing-publish-product-groups.mjs",
+        "server/publish-records/queries.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主列表按 source_product_id 与店铺聚合并以主商品数量分页，不会跨页拆散 SKU",
+    "主商品显示 SKU 总数以及成功、失败、处理中和已下架数量",
+    "聚合状态覆盖处理中、全部成功、部分成功、全部失败和已下架",
+    "上架状态与合卡状态分栏展示，多 SKU 已发布时明确显示尚未验证而不是合卡成功",
+    "用户可展开主商品查看每个 SKU，并继续打开现有完整记录详情",
+    "原有 SKU 级 API 在未传 grouped=true 时保持兼容"
+  ],
+  "verification": [
+    {
+      "name": "主商品聚合专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-product-groups.mjs && node scripts/check-listing-publish-record-details.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/listing/publish-records.ts pages/user/listing/publish-records.vue pages/user/listing/components/ListingPublishProductGroupsPanel.vue pages/user/listing/publish-product-groups.copy.ts scripts/check-listing-publish-product-groups.mjs server/publish-records/queries.ts"
+    }
+  ]
+}

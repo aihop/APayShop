@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-products-interaction-polish",
+  "title": "优化货源商品池关键交互",
+  "problem": "货源导入入口位于全局工具栏导致动作归属不清，搜索无结果与真实空库共用错误引导，行尾菜单缺少可访问名称，且中等宽度下关键状态和操作被压成竖排。",
+  "expectedOutcome": "导入入口归入货源商品池标题区，刷新归入列表工具栏；搜索、软删除和真实空库分别给出准确反馈；图标按钮具备可访问名称；中等宽度列表通过横向滚动保持关键信息可读。",
+  "constraints": [
+    "不修改 API、数据库、任务执行或删除语义",
+    "不修改正被并行任务占用的 Listing layout 与三份共享语言文件",
+    "页面私有三语文案放独立 copy 文件，不新增依赖",
+    "保留现有导入弹窗、搜索、分页、批量选择与行操作行为",
+    "任务抽屉降噪由当前 layout 并行任务负责，本任务只在最终浏览器复测中核对结果"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/products.vue",
+        "pages/user/listing/products.copy.ts",
+        "pages/user/listing/components/ListingPageHero.vue",
+        "scripts/check-listing-products-ux.mjs"
+      ],
+      "claims": [
+        "pages/user/listing/products.vue",
+        "pages/user/listing/products.copy.ts",
+        "pages/user/listing/components/ListingPageHero.vue",
+        "scripts/check-listing-products-ux.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "货源商品池标题区右侧显示商品总数与导入货源主按钮，全局顶栏不再显示导入和刷新",
+    "刷新作为列表查询区次要动作，并保留加载反馈",
+    "搜索无结果、已软删为空、真实货源为空显示不同标题、说明和可执行动作",
+    "搜索结果支持一键清空筛选，切换进行中与已软删时保留但明确展示当前搜索条件",
+    "行尾更多按钮和全选框具备可访问名称",
+    "900px 宽度下表格保持最小可读宽度并由容器横向滚动，不把状态和主操作压成逐字竖排"
+  ],
+  "verification": [
+    {
+      "name": "货源商品页交互专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-products-ux.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/products.vue pages/user/listing/products.copy.ts pages/user/listing/components/ListingPageHero.vue scripts/check-listing-products-ux.mjs"
+    }
+  ]
+}

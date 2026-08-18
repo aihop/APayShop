@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-publish-guided-confirmation",
+  "title": "将待上架发布改为自动检查与用户确认",
+  "problem": "待上架页面把选择、干跑、确认令牌和草稿版本直接暴露给用户；工作区版本变化还会把一份本身合格的待上架版本判成必须返回修复，确认结果过期后只能由用户理解并手工重试。",
+  "expectedOutcome": "用户选择商品和店铺后由系统自动完成上架前检查，只在检查通过后询问是否正式上架；待上架版本落后于工作区时显示非阻塞提醒并发布用户确认的待上架版本；确认结果过期时自动重新检查但绝不自动正式上架。",
+  "constraints": [
+    "保留服务端预检令牌与一次性消费安全门禁，不改变真实发布接口的 dry_run/live 兼容协议",
+    "自动检查不得触发真实上架，真实上架始终需要用户点击确认",
+    "待上架版本过期但自身仍通过实时校验时只给警告，不要求修复，也不隐式换成未确认的工作区最新版",
+    "只有真实校验错误才显示需要处理，部分通过时只发布用户确认的可上架商品",
+    "不修改数据库、不新增依赖、不执行真实发布、不覆盖工作区并行改动",
+    "三份 Listing 语言文件当前由并行任务租约占用，本任务使用页面私有三语文案并删除页面对旧 dryRun 文案键的消费；待占用任务完成后再单独清理语言包死键"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/channels.copy.ts",
+        "pages/user/listing/PRODUCT_SPEC.md",
+        "server/listing/publish.run.ts",
+        "server/listing/publish-confirmation.ts",
+        "scripts/check-listing-publish-guided-flow.mjs"
+      ],
+      "claims": [
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/channels.copy.ts",
+        "pages/user/listing/PRODUCT_SPEC.md",
+        "server/listing/publish.run.ts",
+        "server/listing/publish-confirmation.ts",
+        "scripts/check-listing-publish-guided-flow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "发布弹窗不再出现干跑、提交体、确认令牌或草稿已过期等内部术语",
+    "选择或切换店铺后自动执行上架前检查，并清楚展示检查中、可上架、内容有更新和需要处理",
+    "正式上架按钮说明将上架的商品数量；无可上架商品时解释原因而非只显示无说明的禁用按钮",
+    "工作区版本晚于待上架版本但待上架版本实时校验仍合格时允许用户确认发布，并明确发布的是当前待上架版本",
+    "正式确认过期或被消费后自动重新检查，仍合格时要求用户再次点击确认，不自动提交",
+    "原 dryRunFingerprint、干跑按钮和页面内 dryRun 文案消费被删除"
+  ],
+  "verification": [
+    {
+      "name": "发布引导流程专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-guided-flow.mjs && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-facts.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/channels.vue pages/user/listing/channels.copy.ts pages/user/listing/PRODUCT_SPEC.md server/listing/publish.run.ts server/listing/publish-confirmation.ts scripts/check-listing-publish-guided-flow.mjs"
+    }
+  ]
+}

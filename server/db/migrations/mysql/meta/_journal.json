@@ -99,6 +99,13 @@
       "when": 1785300007002,
       "tag": "0013_add_order_source_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787036400000,
+      "tag": "0014_add_user_sessions",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,17 @@ declare module '#auth-utils' {
     } | null
     sessionId?: string
     loggedInAt?: Date | string
+    sessionReplaced?: {
+      code: 'SESSION_REPLACED'
+      deviceType: string | null
+      browser: string | null
+      os: string | null
+      ip: string | null
+      country: string | null
+      region: string | null
+      city: string | null
+      loggedInAt: string | null
+    }
     /**
      * 委派会话:会话背后的操作者不是 user 本人,而是被授权代表其操作的第三方
      * (由主题定义具体是谁,核心不关心)。

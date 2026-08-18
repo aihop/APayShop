@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-settings-strategy-pricing-row",
+  "title": "让任务策略与定价参数同排展示",
+  "problem": "设置页使用三列网格，任务策略占一列而定价参数强制占三列，导致任务策略所在行中间留下两个空格。",
+  "expectedOutcome": "桌面宽屏下任务策略占一列、定价参数占两列，两块共同填满同一行；窄屏仍自然单列堆叠。",
+  "constraints": [
+    "只调整定价卡响应式跨列，不修改表单、保存协议或用户刚完成的其他精简",
+    "不引入依赖，不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/SettingsPricingCard.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/SettingsPricingCard.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "xl 三列布局下任务策略与定价参数处于同一行并填满三列",
+    "定价参数内部仍保持双列表单",
+    "小屏布局不受影响"
+  ],
+  "verification": [
+    {
+      "name": "定价卡模板与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileScript,compileTemplate}=require('@vue/compiler-sfc');const file='app/themes/qingpu/pages/user/listing/components/SettingsPricingCard.vue';const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];compileScript(parsed.descriptor,{id:file});const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0];if(!source.includes('xl:col-span-2'))throw new Error('pricing card must span two xl columns')\" && git diff --check -- app/themes/qingpu/pages/user/listing/components/SettingsPricingCard.vue"
+    }
+  ]
+}

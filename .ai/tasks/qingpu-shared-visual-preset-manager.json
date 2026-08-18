@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-shared-visual-preset-manager",
+  "title": "抽取 Qingpu 通用视觉预设管理弹层",
+  "problem": "Listing Workspace 与 Studio 都使用同一套视觉预设，但管理能力被写死在 Studio 路由页中；Listing 点击管理只能跳离当前商品，且两个产品无法复用同一管理交互。",
+  "expectedOutcome": "将视觉预设列表、创建、复制、编辑和删除抽成 Qingpu 顶层通用组件，并提供可复用弹层；Listing Workspace 与 Studio 工作台点击管理均原地打开，Studio 预设页继续复用同一主体。",
+  "constraints": [
+    "不修改预设 API、数据库、配置合同或项目快照语义",
+    "通用组件放在主题顶层 components，Listing 与 Studio 不互相 import 页面实现",
+    "保留系统预设、个人预设、创建、复制、编辑、删除和多语言能力",
+    "弹层保存或删除后刷新调用方选择列表，失效选择安全回落到智能推荐",
+    "不触碰当前并行修改的 SKU 草稿行和图片编辑链路",
+    "不引入新依赖，不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/QingpuVisualPresetManager.vue",
+        "components/QingpuVisualPresetManagerModal.vue",
+        "components/QingpuVisualPresetManager.copy.ts",
+        "pages/user/listing/components/ListingVisualPresetPicker.vue",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/presets.vue",
+        "pages/user/studio/presets.copy.ts",
+        "scripts/check-presets.mjs"
+      ],
+      "claims": [
+        "components/QingpuVisualPresetManager.vue",
+        "components/QingpuVisualPresetManagerModal.vue",
+        "components/QingpuVisualPresetManager.copy.ts",
+        "pages/user/listing/components/ListingVisualPresetPicker.vue",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/presets.vue",
+        "pages/user/studio/presets.copy.ts",
+        "scripts/check-presets.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Listing Workspace 点击视觉预设管理不再跳转 Studio，而是在当前页打开管理弹层",
+    "Studio 商品图工作台点击管理同样原地打开通用弹层",
+    "Studio 视觉预设专页复用同一个通用管理主体，不保留第二套 CRUD",
+    "系统与个人预设的创建、复制、编辑、删除功能保持可用",
+    "弹层内变更后调用方预设选择列表立即刷新",
+    "通用组件不依赖 Listing 或 Studio 页面目录"
+  ],
+  "verification": [
+    {
+      "name": "统一预设专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-presets.mjs"
+    },
+    {
+      "name": "视觉预设共享组件模板与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileTemplate}=require('@vue/compiler-sfc');for(const file of ['app/themes/qingpu/components/QingpuVisualPresetManager.vue','app/themes/qingpu/components/QingpuVisualPresetManagerModal.vue','app/themes/qingpu/pages/user/listing/components/ListingVisualPresetPicker.vue','app/themes/qingpu/pages/user/studio/index.vue','app/themes/qingpu/pages/user/studio/presets.vue']){const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]}\" && git diff --check -- app/themes/qingpu/components/QingpuVisualPresetManager.vue app/themes/qingpu/components/QingpuVisualPresetManagerModal.vue app/themes/qingpu/components/QingpuVisualPresetManager.copy.ts app/themes/qingpu/pages/user/listing/components/ListingVisualPresetPicker.vue app/themes/qingpu/pages/user/studio/index.vue app/themes/qingpu/pages/user/studio/presets.vue app/themes/qingpu/scripts/check-presets.mjs"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

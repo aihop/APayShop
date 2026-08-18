@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-workspace-readiness-p0",
+  "title": "收敛加工详情顶部引导与 SKU 检查",
+  "problem": "加工详情同时展示生图模式、省钱模式、执行任务和保存渠道草稿，缺少当前阶段、总体准备度、阻塞原因与唯一下一步；SKU 就绪徽标又与类目参数说明共用入口，用户无法区分 SKU 完整度、类目参数和渠道草稿校验。",
+  "expectedOutcome": "移除生图模式和省钱模式切换，在详情顶部固定展示当前阶段、总体准备度、阻塞原因与唯一下一步；SKU 徽标明确为 SKU 完整度并打开逐项检查清单，类目参数保留独立入口。",
+  "constraints": [
+    "不修改 SKU 状态、就绪度、渠道草稿校验或发布服务端语义",
+    "不触发真实生成、保存草稿或发布操作",
+    "顶部只保留一个与当前状态对应的主动作，其他操作降为次级入口",
+    "逐项检查必须定位到 SKU 或全局检查项，不能只重复展示总数",
+    "保留目标文件中已有的素材上传、全宽 SKU、精修和视觉预设改动",
+    "中文、英文和俄文用户文案同步，不硬编码单一语言",
+    "不引入新依赖，不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/components/WorkspaceSkuPanel.vue",
+        "pages/user/listing/components/WorkspaceSkuPanelHeader.vue",
+        "pages/user/listing/components/WorkspaceSkuReadinessModal.vue",
+        "scripts/check-workspace-readiness-p0.mjs"
+      ],
+      "claims": [
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/components/WorkspaceSkuPanel.vue",
+        "pages/user/listing/components/WorkspaceSkuPanelHeader.vue",
+        "pages/user/listing/components/WorkspaceSkuReadinessModal.vue",
+        "scripts/check-workspace-readiness-p0.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "详情页不再展示生图模式和省钱模式切换",
+    "顶部固定摘要同时展示当前阶段、总体准备度、阻塞原因和唯一下一步",
+    "总体准备度明确区分 SKU、类目、文案、素材和渠道草稿准备状态",
+    "原 8/8 就绪文案改为 SKU 8/8 完整，并且点击打开逐项检查清单",
+    "SKU 检查清单展示每行状态、缺项或核价问题，并提供对应处理入口",
+    "类目参数说明拥有独立且可发现的入口，不再由 SKU 完整度徽标打开",
+    "现有生成任务、图片、视频、详情正文和保存渠道草稿能力保持可用"
+  ],
+  "verification": [
+    {
+      "name": "加工详情就绪引导专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-workspace-readiness-p0.mjs"
+    },
+    {
+      "name": "加工详情 Vue 模板检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileTemplate}=require('@vue/compiler-sfc');for(const file of ['app/themes/qingpu/pages/user/listing/components/WorkspaceDetailPage.vue','app/themes/qingpu/pages/user/listing/components/WorkspaceReadinessSummary.vue','app/themes/qingpu/pages/user/listing/components/WorkspaceSkuPanel.vue','app/themes/qingpu/pages/user/listing/components/WorkspaceSkuPanelHeader.vue','app/themes/qingpu/pages/user/listing/components/WorkspaceSkuReadinessModal.vue']){const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]}\""
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "加工详情格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- locales/listing/en.ts locales/listing/ru.ts locales/listing/zh.ts pages/user/listing/components/WorkspaceDetailPage.vue pages/user/listing/components/WorkspaceReadinessSummary.vue pages/user/listing/components/WorkspaceSkuPanel.vue pages/user/listing/components/WorkspaceSkuPanelHeader.vue pages/user/listing/components/WorkspaceSkuReadinessModal.vue scripts/check-workspace-readiness-p0.mjs"
+    }
+  ]
+}

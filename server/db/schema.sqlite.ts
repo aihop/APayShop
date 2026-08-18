@@ -29,7 +29,31 @@ export const users = sqliteTable('users', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
-export const usersTokens = sqliteTable('users_tokens', {
+export const userSessions = sqliteTable('user_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  sessionIdHash: text('session_id_hash').notNull().unique(),
+  status: text('status').notNull().default('active'),
+  authMethod: text('auth_method').notNull().default('password'),
+  deviceType: text('device_type'),
+  browser: text('browser'),
+  os: text('os'),
+  userAgent: text('user_agent'),
+  ip: text('ip'),
+  country: text('country'),
+  region: text('region'),
+  city: text('city'),
+  loggedInAt: integer('logged_in_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  endedAt: integer('ended_at', { mode: 'timestamp' }),
+  replacedBySessionId: text('replaced_by_session_id'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+}, (table) => ({
+  userStatusIdx: index('user_sessions_user_status_idx').on(table.userId, table.status),
+  lastSeenIdx: index('user_sessions_last_seen_idx').on(table.lastSeenAt),
+}))
+
+export const userTokens = sqliteTable('user_tokens', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
   token: text('token').notNull().unique(),

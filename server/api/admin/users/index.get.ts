@@ -1,4 +1,4 @@
-import { users, usersTokens } from "../../../db/schema"
+import { users, userTokens } from "../../../db/schema"
 import { count, desc, like, or, sql, eq, and } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -128,21 +128,21 @@ export default defineEventHandler(async (event) => {
     if (userIds.length > 0) {
       const activeKeysResult = await db
         .select({
-          userId: usersTokens.userId,
+          userId: userTokens.userId,
           count: count(),
         })
-        .from(usersTokens)
+        .from(userTokens)
         .where(
           and(
-            sql`${usersTokens.userId} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`,
-            eq(usersTokens.revoked, false),
+            sql`${userTokens.userId} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`,
+            eq(userTokens.revoked, false),
             or(
-              sql`${usersTokens.expiresAt} IS NULL`,
-              sql`${usersTokens.expiresAt} > NOW()`
+              sql`${userTokens.expiresAt} IS NULL`,
+              sql`${userTokens.expiresAt} > NOW()`
             )
           )
         )
-        .groupBy(usersTokens.userId) as ActiveKeyRow[]
+        .groupBy(userTokens.userId) as ActiveKeyRow[]
 
       activeKeysResult.forEach(row => {
         activeKeyCountMap.set(Number(row.userId), Number(row.count || 0))

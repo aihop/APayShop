@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Soft revoke — keeps the row (and its lastUsedAt/createdAt history)
-    // instead of deleting, matching users_tokens' own revoked-flag intent.
+    // instead of deleting, matching user_tokens' own revoked-flag intent.
     await db.update(adminTokens)
       .set({ revoked: true })
       .where(eq(adminTokens.id, id))

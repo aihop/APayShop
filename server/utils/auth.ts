@@ -1,37 +1,24 @@
-import { users, oauthAccounts, usersTokens, settings } from "../db/schema"
+import { users, oauthAccounts, userTokens } from "../db/schema"
 import { eq, and } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { H3Event } from 'h3'
 import { ensureVisitorId, trackVisitorEvent } from "./visitorAnalytics"
+import {
+  createWebSessionId,
+  issueWebSession,
+  readSingleWebSessionPolicy,
+  readSingleWebSessionPolicyStrict,
+} from './userSessions'
 
-// users_tokens.name 里的保留值：标记这条 token 只能用于邮箱验证，
+// user_tokens.name 里的保留值：标记这条 token 只能用于邮箱验证，
 // 不是站内 API token —— server/middleware/auth.ts 靠这个把它挡在
 // 「凭 token 直接登录/调 API」的通用鉴权之外（验证链接可能经邮件/日志外泄，
 // 绝不能顺带拿到完整账号权限）。
 export const EMAIL_VERIFY_TOKEN_NAME = 'email_verify'
 
-/**
- * 检查是否禁止多设备登录
- */
-export async function isMultiDeviceLoginDisabled(): Promise<boolean> {
-  try {
-    const result = await db.select().from(settings).where(eq(settings.key, 'disable_multi_device_login')).limit(1);
-    if (result.length > 0 && result[0].value) {
-      return result[0].value.toLowerCase() === 'true' || result[0].value === '1';
-    }
-  } catch (err) {
-    console.error('[Auth] Failed to check multi-device login setting:', err);
-  }
-  return false;
-}
-
-/**
- * 生成新的会话 ID
- */
-export function generateSessionId(): string {
-  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
+export const generateSessionId = createWebSessionId
+export const isMultiDeviceLoginDisabled = readSingleWebSessionPolicy
+export const requireMultiDeviceLoginDisabled = readSingleWebSessionPolicyStrict
 
 
 interface OAuthProfile {
@@ -127,31 +114,12 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
     }
   }
 
-  // 检查是否禁止多设备登录
-  const isDisabled = await isMultiDeviceLoginDisabled()
-  let sessionId: string | undefined = undefined
-  if (isDisabled) {
-    // 生成新的会话 ID 并更新到用户表
-    sessionId = generateSessionId()
-    await db.update(users).set({ currentSessionId: sessionId }).where(eq(users.id, finalUserId))
-  }
-
-  // Set user session
-  await setUserSession(event, {
-    user: {
-      id: finalUserId,
-      email: finalUserEmail,
-      nickname: finalUserNickname,
-      avatarUrl: finalUserAvatar
-    },
-    admin: null,
-    sessionId: sessionId // 存储会话 ID 用于验证
-  })
-
-  // Update last login
-  await db.update(users)
-    .set({ lastLoginAt: new Date() })
-    .where(eq(users.id, finalUserId))
+  await issueWebSession(event, {
+    id: finalUserId,
+    email: finalUserEmail,
+    nickname: finalUserNickname,
+    avatarUrl: finalUserAvatar,
+  }, 'oauth')
 
   // Track login/register event for visitor stats
   trackVisitorEvent(event, {

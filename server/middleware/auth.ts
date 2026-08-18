@@ -1,7 +1,13 @@
-import { users, usersTokens, admins, adminTokens, settings } from "../db/schema"
+import { users, userTokens, admins, adminTokens } from "../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from '../utils/auth'
+import {
+  getSessionReplacement,
+  readSingleWebSessionPolicyStrict,
+  SESSION_REPLACED,
+  touchWebSession,
+} from '../utils/userSessions'
 import {
   matchPermissionForApiPath,
   adminHasPermission,
@@ -31,17 +37,16 @@ const DELEGATED_SESSION_CORE_ALLOWLIST = [
   '/api/posts',          // 公开只读（无 requireUserSession）：博客页
 ]
 
-async function isMultiDeviceLoginDisabled(): Promise<boolean> {
-  try {
-    const result = await db.select().from(settings).where(eq(settings.key, 'disable_multi_device_login')).limit(1)
-    if (result.length > 0 && result[0].value) {
-      return result[0].value.toLowerCase() === 'true' || result[0].value === '1'
-    }
-  } catch (err) {
-    console.error('[Auth] Failed to check multi-device login setting:', err)
-  }
-  return false
-}
+const WEB_SESSION_ESTABLISH_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/google',
+  '/api/auth/github',
+  '/api/minimal/auth/signin',
+  '/api/minimal/auth/signup',
+  '/api/minimal/auth/connect/callback',
+  '/api/qingpu/checkout-handoff/consume',
+])
 
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
@@ -56,34 +61,56 @@ export default defineEventHandler(async (event) => {
 
   let session: any = { user: undefined, admin: undefined }
   let authenticatedFromToken = false
+  const incomingHeaders = event.node.req.headers
+  const authHeader = incomingHeaders.authorization
+  const xApiKey = incomingHeaders['x-api-key']
+  const hasExplicitApiToken = Boolean(
+    (typeof authHeader === 'string' && authHeader.startsWith('Bearer '))
+    || (typeof xApiKey === 'string' && xApiKey),
+  )
 
-  try {
-    // 2. 先尝试从 cookie 获取 session（原有方式）
-    session = await getUserSession(event)
-    
-    // 3. 如果是从 cookie 会话登录，检查会话是否有效
-    //    委派会话（见下方 delegated 说明）跳过这条：它的 user.id 是**店主**，
-    //    而 currentSessionId 是店主本人登录时写的。员工登录既不该改写店主那一行
-    //    （会让店主和其他员工互相踢下线），又不可能匹配上——不跳过的话，站点一旦
-    //    打开「禁止多设备登录」，员工登录成功后的下一个请求就会被判为「已被挤掉」。
-    //    委派会话的生命周期由签发方自己复核（每请求查员工状态，停用即时掉线）。
-    if (session.user && session.user.id && !session.employee) {
-      const checkDisabled = await isMultiDeviceLoginDisabled()
-      if (checkDisabled) {
-        // 检查当前 cookie 会话的 sessionId 是否与用户表中的 currentSessionId 匹配
-        const foundUsers = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)
-        if (foundUsers.length > 0) {
-          const user = foundUsers[0]
-          // 如果 session 中没有 sessionId 或者不匹配，说明会话已被挤掉
-          if (!session.sessionId || session.sessionId !== user.currentSessionId) {
-            // 清除这个过期的会话
-            await clearUserSession(event)
-            session.user = null
-          }
+  // 显式 API Token 优先于浏览器 Cookie，避免脚本或调试请求因同时带着旧 Cookie
+  // 被网页单会话策略误伤。Token 分支会在下方独立验证，不读取 user_sessions。
+  session = hasExplicitApiToken
+    ? { user: undefined, admin: undefined }
+    : await getUserSession(event).catch(() => ({ user: undefined, admin: undefined }))
+
+  // 员工委派会话由主题逐请求复核，不参与店主网页会话互踢。
+  if (session.user?.id && !session.employee && !WEB_SESSION_ESTABLISH_PATHS.has(pathname)) {
+    const singleSessionEnabled = await readSingleWebSessionPolicyStrict().catch((error: unknown) => {
+      console.error('[Auth] Failed to load web session policy:', error)
+      throw createError({ statusCode: 503, message: 'Session policy is temporarily unavailable' })
+    })
+
+    if (singleSessionEnabled) {
+      const replacement = await getSessionReplacement(Number(session.user.id), session.sessionId || '').catch((error: unknown) => {
+        console.error('[Auth] Failed to validate web session:', error)
+        throw createError({ statusCode: 503, message: 'Session validation is temporarily unavailable' })
+      })
+      if (replacement) {
+        session = { user: undefined, admin: undefined, sessionReplaced: replacement }
+        const runtimeConfig = useRuntimeConfig(event)
+        const sessionName = (runtimeConfig.session as any)?.name || 'nuxt-session'
+        const cachedSession = (event.context.sessions as any)?.[sessionName]
+        if (cachedSession) cachedSession.data = session
+        const shouldRejectApiRequest = pathname.startsWith('/api/')
+          && pathname !== '/api/_auth/session'
+          && pathname !== '/api/auth/session-status'
+          && pathname !== '/api/auth/logout'
+        if (shouldRejectApiRequest) {
+          throw createError({
+            statusCode: 401,
+            message: 'Your account was signed in on another device',
+            data: { ...replacement, code: SESSION_REPLACED },
+          })
         }
+      } else if (session.sessionId) {
+        void touchWebSession(session.sessionId).catch(() => {})
       }
+    } else if (session.sessionId) {
+      void touchWebSession(session.sessionId).catch(() => {})
     }
-  } catch {}
+  }
 
   // 3.5 委派会话（delegated session）的作用域闸门。
   //
@@ -112,7 +139,6 @@ export default defineEventHandler(async (event) => {
 
   // 4. 如果没有 session，尝试从 header 或 query 获取 token（API token 不受多设备限制）
   if (!session.user && !session.admin) {
-    const incomingHeaders = event.node.req.headers
     let token: string | null = null
     
     // 只从 header 取 token:
@@ -120,12 +146,9 @@ export default defineEventHandler(async (event) => {
     // - X-Api-Key: <token>
     // 已移除 ?api_key= 查询参数分支——URL 会被 access log / 代理日志原样记录,
     // 是公认的 token 泄露面(全仓无调用方依赖此方式)
-    const authHeader = incomingHeaders['authorization'] as string
-    const xApiKey = incomingHeaders['x-api-key'] as string
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       token = authHeader.slice(7)
-    } else if (xApiKey) {
+    } else if (typeof xApiKey === 'string' && xApiKey) {
       token = xApiKey
     }
 
@@ -182,10 +205,10 @@ export default defineEventHandler(async (event) => {
         }
       }
     } else if (token) {
-      // 从 users_tokens 表查找 token
+      // 从 user_tokens 表查找 token
       const foundTokens = await db.select()
-        .from(usersTokens)
-        .where(eq(usersTokens.token, token))
+        .from(userTokens)
+        .where(eq(userTokens.token, token))
         .limit(1)
 
       if (foundTokens.length > 0) {
@@ -233,7 +256,7 @@ export default defineEventHandler(async (event) => {
             }
 
             // 更新 lastUsedAt
-            await db.update(usersTokens).set({ lastUsedAt: now }).where(eq(usersTokens.id, tokenRecord.id))
+            await db.update(userTokens).set({ lastUsedAt: now }).where(eq(userTokens.id, tokenRecord.id))
           }
         }
       }

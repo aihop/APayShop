@@ -9,7 +9,8 @@ export default defineConfig({
   },
   tablesFilter: [
     "users",
-    "users_tokens",
+    "user_sessions",
+    "user_tokens",
     "posts",
     "admins",
     "admin_tokens",

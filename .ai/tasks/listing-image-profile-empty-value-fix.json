@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-image-profile-empty-value-fix",
+  "title": "修复图片方案空值选择报错",
+  "problem": "图片方案的“跟随上方字段”选项使用空字符串 value，新版 USelectMenu/Combobox 禁止 ComboboxItem 使用空字符串，打开选择器即抛错。",
+  "expectedOutcome": "默认方案选项使用非空 UI 值，组件内部映射回原有空字符串存储语义，选择、删除按钮与保存协议保持正确。",
+  "constraints": [
+    "不改变 activeImageProfileId 空字符串代表不用方案的持久化协议",
+    "不迁移已有设置数据，不引入依赖",
+    "只修改图片设置卡组件，不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/SettingsImageCard.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/SettingsImageCard.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "打开图片方案选择器不再出现空字符串 ComboboxItem 异常",
+    "未启用方案时仍显示“跟随上方字段（不用方案）”",
+    "选择默认项后 activeImageProfileId 仍保存为空字符串",
+    "未启用方案时删除按钮保持禁用"
+  ],
+  "verification": [
+    {
+      "name": "图片设置卡模板脚本与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileScript,compileTemplate}=require('@vue/compiler-sfc');const file='app/themes/qingpu/pages/user/listing/components/SettingsImageCard.vue';const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];compileScript(parsed.descriptor,{id:file});const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]\" && git diff --check -- app/themes/qingpu/pages/user/listing/components/SettingsImageCard.vue"
+    }
+  ]
+}

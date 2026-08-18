@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-publish-record-details",
+  "title": "补齐上架记录失败详情与恢复动作",
+  "problem": "上架记录列表把失败原因截断为两行并依赖鼠标悬停，移动端无法查看完整内容；用户也无法在同一处确认记录上下文、复制错误或直接进入修复位置。AI 诊断虽返回判断依据，但客服组件没有渲染这些证据。",
+  "expectedOutcome": "点击任一上架记录可打开响应式详情抽屉；失败记录完整展示脱敏错误和发布上下文，并提供复制、打开商品、AI 解释及刷新动作；AI 诊断展示真实判断依据。",
+  "constraints": [
+    "不修改 API、数据库、发布状态机、重试事务或真实发布行为",
+    "不修改正被并行任务占用的三份 Listing 语言文件，页面私有三语文案放独立 copy 文件",
+    "只展示列表接口已经返回的用户所属记录，不在浏览器暴露 payload、凭证或服务端敏感数据",
+    "AI 诊断是辅助解释入口，不作为查看原始失败详情的前置条件",
+    "不覆盖工作区现有改动，不新增依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/QingpuSupportWidget.vue",
+        "pages/user/listing/components/ListingPublishRecordDetails.vue",
+        "pages/user/listing/components/ListingPublishRecordsPanel.vue",
+        "pages/user/listing/publish-records.copy.ts",
+        "scripts/check-listing-publish-record-details.mjs"
+      ],
+      "claims": [
+        "components/QingpuSupportWidget.vue",
+        "pages/user/listing/components/ListingPublishRecordDetails.vue",
+        "pages/user/listing/components/ListingPublishRecordsPanel.vue",
+        "pages/user/listing/publish-records.copy.ts",
+        "scripts/check-listing-publish-record-details.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "桌面和移动端都能点击记录查看完整详情，不依赖 hover 或被截断的表格单元格",
+    "失败详情直接显示完整失败原因、商品、店铺、Offer、记录编号、任务、平台回执和时间",
+    "失败详情提供复制错误、进入对应商品工作区、AI 解释和刷新状态动作",
+    "非失败记录也可查看完整发布上下文，但不显示误导性的失败操作",
+    "AI 诊断卡展示服务端返回的判断依据和失败摘要",
+    "摘要卡和状态筛选覆盖提交中、待确认、成功、失败和已下架状态"
+  ],
+  "verification": [
+    {
+      "name": "上架记录详情专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-record-details.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- components/QingpuSupportWidget.vue pages/user/listing/components/ListingPublishRecordDetails.vue pages/user/listing/components/ListingPublishRecordsPanel.vue pages/user/listing/publish-records.copy.ts scripts/check-listing-publish-record-details.mjs"
+    }
+  ]
+}

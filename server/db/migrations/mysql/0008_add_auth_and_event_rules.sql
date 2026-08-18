@@ -1,6 +1,6 @@
 ALTER TABLE `users` ADD COLUMN `current_session_id` text;
 --> statement-breakpoint
-CREATE TABLE `users_tokens` (
+CREATE TABLE `user_tokens` (
         `id` int AUTO_INCREMENT NOT NULL,
         `user_id` int NOT NULL,
         `token` text NOT NULL,
@@ -9,9 +9,9 @@ CREATE TABLE `users_tokens` (
         `last_used_at` timestamp,
         `revoked` boolean DEFAULT false NOT NULL,
         `created_at` timestamp NOT NULL DEFAULT (now()),
-        CONSTRAINT `users_tokens_id` PRIMARY KEY(`id`),
-        CONSTRAINT `users_tokens_token_unique` UNIQUE(`token`),
-        CONSTRAINT `users_tokens_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action
+        CONSTRAINT `user_tokens_id` PRIMARY KEY(`id`),
+        CONSTRAINT `user_tokens_token_unique` UNIQUE(`token`),
+        CONSTRAINT `user_tokens_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action
 );
 --> statement-breakpoint
 CREATE TABLE `event_rules` (

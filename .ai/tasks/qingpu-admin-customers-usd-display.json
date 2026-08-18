@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-admin-customers-usd-display",
+  "title": "Qingpu 客户管理资金统一显示美元",
+  "problem": "/admin/extensions/customers 涉及的 AINode 钱包余额、余额流水和套餐标价当前只显示裸数字，充值金额输入也没有币种提示，运营人员无法从页面确认这些资金均以美元计价。",
+  "expectedOutcome": "客户管理页所有资金展示统一使用美元标识，金额以 USD 美元格式显示，充值输入明确标注美元，同时保持现有金额数值、接口载荷和业务语义不变。",
+  "constraints": [
+    "只调整客户管理页的资金显示和对应静态守卫，不修改接口、数据库、支付、充值或套餐业务逻辑",
+    "金额继续按原始数值保留两位小数，不做汇率换算或单位缩放",
+    "美元格式必须稳定显示 USD 币种和美元符号，不依赖浏览器当前语言环境",
+    "不修改或整理主题仓现有并行任务改动，不新增依赖",
+    "回滚边界仅为 admin/pages/customers.vue 与 scripts/check-customer-management.mjs"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/customers.vue",
+        "scripts/check-customer-management.mjs"
+      ],
+      "claims": [
+        "admin/pages/customers.vue",
+        "scripts/check-customer-management.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "客户列表和客户详情中的 AINode 钱包余额均显示明确的美元标识",
+    "AINode 余额流水金额显示明确的美元标识并保留正负号语义",
+    "套餐选项中的标价显示明确的美元标识",
+    "AI充值金额字段明确标注 USD，并在输入框展示美元符号",
+    "不改变充值请求金额、钱包余额或套餐价格的数值"
+  ],
+  "verification": [
+    {
+      "name": "客户管理美元显示守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-customer-management.mjs"
+    },
+    {
+      "name": "客户管理文件格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/customers.vue scripts/check-customer-management.mjs"
+    }
+  ]
+}

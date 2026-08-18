@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-guard-triage",
+  "title": "修复失效守卫并纠正 ainode 默认网关明文回归",
+  "problem": "主题 34 个守卫脚本全量执行后有 5 个失败。逐条查证:check-ainode-tenant-token-setting 是真回归——DEFAULT_QINGPU_AINODE_BASE_URL 在 0052c2a 这个 checkpoint 提交里从 https 降级成 http,该常量是未配置站点设置时的兜底,租户令牌会走明文传输;另外 4 个是守卫自身写死实现细节导致的误报:merge-card-codes 写死调用点在 mapper.ts 而函数已移到 merge-card-groups.ts,listing-watermark-table 写死整串解构字段列表而 API 新增了一个字段,channel-products 用 readFile 读一个按设计应当已经消失的 legacy 页面导致 ENOENT,employee-login-flow 断言 listing 布局调用 /api/qingpu/employee-access 而权限校验已改走统一 user-capabilities。守卫长期不接线,这些失效状态无人发现,也让「接线全部守卫」这一步无法进行。",
+  "expectedOutcome": "ainode 默认网关地址恢复 https;四个误报守卫改为校验行为与不变量而非实现细节位置或语法形状;34 个守卫全部通过,为后续按不变量分类接线扫清障碍。",
+  "constraints": [
+    "只修复守卫脚本自身与 ainode 默认网关常量,不改动其他业务代码、SQL 或数据库结构",
+    "不得为了让守卫变绿而放宽其保护的真实不变量;只允许把写死的实现细节换成等价的行为校验",
+    "ainode 默认地址恢复 https 后不改动任何读取该常量的调用点与站点设置逻辑",
+    "employee-access 端点疑似已无调用方,本次只更新守卫断言到当前机制,不删除该端点",
+    "不触碰其他会话在途的 SKU 相关文件与 checkout-handoff 改动",
+    "不提交或推进 APay gitlink"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/ainode/config.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "scripts/check-listing-watermark-table.mjs",
+        "scripts/check-channel-products.mjs",
+        "scripts/check-employee-login-flow.mjs"
+      ],
+      "claims": [
+        "server/ainode/config.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "scripts/check-listing-watermark-table.mjs",
+        "scripts/check-channel-products.mjs",
+        "scripts/check-employee-login-flow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "DEFAULT_QINGPU_AINODE_BASE_URL 恢复为 https 前缀",
+    "merge-card-codes 在整个 ozon 渠道映射目录范围内校验签名函数被调用,不再写死单一文件",
+    "listing-watermark-table 校验 watermarkConfig 被从请求体解构出来,不再写死完整字段列表",
+    "channel-products 断言 legacy 页面不存在,而不是读取它",
+    "employee-login-flow 断言当前的能力校验机制,不再要求 listing 布局调用旧端点",
+    "34 个守卫脚本全部通过",
+    "APay 类型检查相对改动前不新增错误"
+  ],
+  "verification": [
+    {
+      "name": "默认网关恢复 https",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q \"DEFAULT_QINGPU_AINODE_BASE_URL = 'https://api.ainode.run'\" server/ainode/config.ts && ! rg -q \"DEFAULT_QINGPU_AINODE_BASE_URL = 'http://\" server/ainode/config.ts"
+    },
+    {
+      "name": "守卫不再写死实现细节",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "! rg -q \"channel-products/index.vue', import.meta.url\\)\\,\" scripts/check-channel-products.mjs && ! rg -q 'automation, automationModes, watermarkConfig, ' scripts/check-listing-watermark-table.mjs"
+    },
+    {
+      "name": "34 个守卫全部通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "fail=0; for f in scripts/check-*.mjs; do node \"$f\" >/dev/null 2>&1 || { echo \"FAIL $f\"; fail=1; }; done; test $fail -eq 0"
+    },
+    {
+      "name": "APay 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

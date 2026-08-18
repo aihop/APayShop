@@ -30,7 +30,31 @@ export const users = mysqlTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
-export const usersTokens = mysqlTable('users_tokens', {
+export const userSessions = mysqlTable('user_sessions', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull().references(() => users.id),
+  sessionIdHash: varchar('session_id_hash', { length: 64 }).notNull().unique(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  authMethod: varchar('auth_method', { length: 32 }).notNull().default('password'),
+  deviceType: varchar('device_type', { length: 32 }),
+  browser: varchar('browser', { length: 64 }),
+  os: varchar('os', { length: 64 }),
+  userAgent: text('user_agent'),
+  ip: varchar('ip', { length: 64 }),
+  country: varchar('country', { length: 100 }),
+  region: varchar('region', { length: 100 }),
+  city: varchar('city', { length: 100 }),
+  loggedInAt: timestamp('logged_in_at').notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  endedAt: timestamp('ended_at'),
+  replacedBySessionId: varchar('replaced_by_session_id', { length: 64 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  userStatusIdx: index('user_sessions_user_status_idx').on(table.userId, table.status),
+  lastSeenIdx: index('user_sessions_last_seen_idx').on(table.lastSeenAt),
+}))
+
+export const userTokens = mysqlTable('user_tokens', {
   id: int('id').autoincrement().primaryKey(),
   userId: int('user_id').notNull().references(() => users.id),
   token: text('token').notNull().unique(),

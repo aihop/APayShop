@@ -532,7 +532,7 @@
         "footer_copyright": "页脚版权",
         "footer_copyright_desc": "在站点页脚显示的版权文本",
         "disable_multi_device_login": "禁用多设备登录",
-        "disable_multi_device_login_desc": "启用后，用户同一时间只能从一台设备登录。登录时会失效旧的 API Token。",
+        "disable_multi_device_login_desc": "启用后，同一账号只保留最近一次网页登录。其他网页会话会显示新登录设备、时间和 IP 后退出；API Token、扩展和桌面端登录不受影响。",
         "multi_device_login_warning": "多设备登录已禁用",
         "multi_device_login_allowed": "允许多设备登录",
         "toast_success": "成功",

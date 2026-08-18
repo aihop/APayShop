@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "id": "web-single-session-management",
+  "title": "APay 网页单会话管理与异地登录提示",
+  "problem": "disable_multi_device_login 当前只用 users.currentSessionId 判活，无法保存新旧登录设备、时间和 IP，也不能向被替换的旧页面返回结构化原因；后台文案还错误声称会撤销 API Token。多个登录入口重复实现 sessionId 写入，find-or-create 甚至会把服务端身份解析请求写成浏览器 Cookie Session并触发挤下线。",
+  "expectedOutcome": "启用系统设置后，同一用户只保留一个网页 Cookie 会话；新登录会记录设备、浏览器、系统、IP、地区和登录时间，旧页面在下一次状态检查或 API 请求时收到 SESSION_REPLACED 详情并展示全局弹窗。API Token、Qingpu 扩展设备令牌和员工委派会话不受网页单会话策略影响。",
+  "constraints": [
+    "核心 Schema 与迁移必须兼容 PostgreSQL、MySQL、SQLite/D1",
+    "user_tokens 继续只承载 API Token 和专用一次性 Token，不参与网页会话替换",
+    "Qingpu 扩展 qingpu_device_tokens 不得被网页登录挤掉",
+    "员工委派会话保持独立生命周期，不写店主网页会话指针",
+    "设备信息只展示可靠识别的设备类型、操作系统和浏览器，不声称识别物理设备型号",
+    "IP 必须复用可信代理解析，响应只返回已存储的登录快照",
+    "find-or-create 保留服务端身份解析返回，但不得再写浏览器 Session或更新网页登录状态",
+    "不执行生产迁移、不提交、不推送、不覆盖现有 Qingpu gitlink及其他未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/web-single-session-management.json",
+        "auth.d.ts",
+        "content/docs/2.authentication.md",
+        "content/zh/docs/2.authentication.md",
+        "drizzle.config.ts",
+        "drizzle.mysql.config.ts",
+        "drizzle.pg.config.ts",
+        "locales/en.json",
+        "locales/zh.json",
+        "server/db/schema.ts",
+        "server/db/schema.mysql.ts",
+        "server/db/schema.pg.ts",
+        "server/db/schema.sqlite.ts",
+        "server/db/migrations/mysql/0014_add_user_sessions.sql",
+        "server/db/migrations/mysql/meta/_journal.json",
+        "server/db/migrations/pg/0019_add_user_sessions.sql",
+        "server/db/migrations/pg/meta/_journal.json",
+        "server/db/migrations/sqlite/0017_add_user_sessions.sql",
+        "server/db/migrations/sqlite/meta/_journal.json",
+        "server/utils/auth.ts",
+        "server/utils/userSessions.ts",
+        "server/middleware/auth.ts",
+        "server/api/auth/login.post.ts",
+        "server/api/auth/register.post.ts",
+        "server/api/auth/find-or-create.post.ts",
+        "server/api/auth/logout.post.ts",
+        "server/api/auth/session-status.get.ts",
+        "app/app.vue",
+        "app/components/SessionReplacedModal.vue",
+        "app/composables/useWebSessionMonitor.ts"
+      ],
+      "claims": [
+        ".ai/tasks/web-single-session-management.json",
+        "auth.d.ts",
+        "content/docs/2.authentication.md",
+        "content/zh/docs/2.authentication.md",
+        "drizzle.config.ts",
+        "drizzle.mysql.config.ts",
+        "drizzle.pg.config.ts",
+        "locales/en.json",
+        "locales/zh.json",
+        "server/db/schema.ts",
+        "server/db/schema.mysql.ts",
+        "server/db/schema.pg.ts",
+        "server/db/schema.sqlite.ts",
+        "server/db/migrations/mysql/0014_add_user_sessions.sql",
+        "server/db/migrations/mysql/meta/_journal.json",
+        "server/db/migrations/pg/0019_add_user_sessions.sql",
+        "server/db/migrations/pg/meta/_journal.json",
+        "server/db/migrations/sqlite/0017_add_user_sessions.sql",
+        "server/db/migrations/sqlite/meta/_journal.json",
+        "server/utils/auth.ts",
+        "server/utils/userSessions.ts",
+        "server/middleware/auth.ts",
+        "server/api/auth/login.post.ts",
+        "server/api/auth/register.post.ts",
+        "server/api/auth/find-or-create.post.ts",
+        "server/api/auth/logout.post.ts",
+        "server/api/auth/session-status.get.ts",
+        "app/app.vue",
+        "app/components/SessionReplacedModal.vue",
+        "app/composables/useWebSessionMonitor.ts"
+      ]
+    },
+    {
+      "name": "minimal-theme",
+      "path": "app/themes/minimal",
+      "allowedPaths": [
+        "server/auth/upstreamSync.ts"
+      ],
+      "claims": [
+        "server/auth/upstreamSync.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/checkout-handoff/index.ts",
+        "api/checkout-handoff/consume.ts"
+      ],
+      "claims": [
+        "api/checkout-handoff/index.ts",
+        "api/checkout-handoff/consume.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "设置关闭时允许多个网页会话同时有效，设置开启后新登录将同用户先前网页会话标记为 replaced",
+    "被替换会话的下一次请求返回 401 SESSION_REPLACED，并带新登录设备、浏览器、系统、时间和 IP/地区快照",
+    "全局页面在启动、聚焦、恢复可见和低频轮询时检查会话，被替换后弹窗提示并清除本地登录状态",
+    "密码登录、注册、OAuth、Minimal 上游认证和 Qingpu handoff 通过同一网页会话签发服务",
+    "find-or-create 不再创建 Cookie Session、更新 lastLoginAt 或触发网页会话替换",
+    "后台中英文说明明确 API Token、扩展和桌面登录不受网页单会话设置影响",
+    "三方言 Schema、迁移和 drizzle tablesFilter 同步",
+    "契约验证通过并释放文件租约"
+  ],
+  "verification": [
+    {
+      "name": "代码格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "网页会话静态契约",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');for(const f of ['server/db/schema.pg.ts','server/db/schema.mysql.ts','server/db/schema.sqlite.ts']){const s=fs.readFileSync(f,'utf8');if(!s.includes('userSessions')||!s.includes('replacedBySessionId'))process.exit(1)}const m=fs.readFileSync('server/middleware/auth.ts','utf8');if(!m.includes('SESSION_REPLACED'))process.exit(1);const x=fs.readFileSync('server/api/auth/find-or-create.post.ts','utf8');if(x.includes('setUserSession(event')||x.includes('currentSessionId'))process.exit(1)\""
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Minimal 网页会话签发守卫",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "node -e \"const s=require('node:fs').readFileSync('server/auth/upstreamSync.ts','utf8');if(!s.includes('issueWebSession')||s.includes('currentSessionId')||s.includes('setUserSession(event'))process.exit(1)\""
+    },
+    {
+      "name": "Qingpu handoff 会话签发守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const a=fs.readFileSync('api/checkout-handoff/index.ts','utf8');const b=fs.readFileSync('api/checkout-handoff/consume.ts','utf8');if(!a.includes('userTokens')||a.includes('usersTokens')||!b.includes('issueWebSession')||b.includes('setUserSession(event'))process.exit(1)\""
+    }
+  ]
+}
