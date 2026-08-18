@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-image-editor-local-draft",
+  "title": "Listing 图片精修本地草稿与版本保存",
+  "problem": "Listing 精修保存会立即上传并关闭，上传失败或直接关闭时编辑现场丢失；网页端还会覆盖原资产 URL，无法保留精修版本链。",
+  "expectedOutcome": "编辑过程自动暂存本机，保存失败或意外退出后可恢复；保存到服务器后编辑器保持打开，关闭未提交修改时提供保存、放弃或继续编辑；每次服务器保存新增 edited 衍生版本。",
+  "constraints": [
+    "跨域 postMessage 既有消息类型只能兼容新增，不改变已有语义",
+    "本地草稿按用户、商品和资产隔离，不上传到 design.qingpu.ai",
+    "服务器保存失败必须保留编辑现场和本地草稿",
+    "发布引用继续通过共享图片版本链口径解析",
+    "不引入新依赖，不修改数据库结构，不触发真实发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/features/image-editor/embed-protocol.ts",
+        "src/features/image-editor/EditImageModal.vue",
+        "src/features/image-editor/composables/useEditImageCanvas.ts",
+        "web/embed/embed.ts",
+        "web/image-editor/EditorHost.vue",
+        "web/image-editor/local-draft.ts",
+        "tests/image-editor-embed-protocol.test.ts",
+        "tests/image-editor-local-draft.test.ts",
+        "docs/design-web-image-editor.md",
+        "docs/image-editor-embed-guide.md"
+      ],
+      "claims": [
+        "src/features/image-editor/embed-protocol.ts",
+        "src/features/image-editor/EditImageModal.vue",
+        "src/features/image-editor/composables/useEditImageCanvas.ts",
+        "web/embed/embed.ts",
+        "web/image-editor/EditorHost.vue",
+        "web/image-editor/local-draft.ts",
+        "tests/image-editor-embed-protocol.test.ts",
+        "tests/image-editor-local-draft.test.ts",
+        "docs/design-web-image-editor.md",
+        "docs/image-editor-embed-guide.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "server/listing/image.refine.ts",
+        "api/listing/images/refine-save.ts",
+        "api/listing/images/editor-scene.ts",
+        "server/listing/queries.products.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "server/listing/image.refine.ts",
+        "api/listing/images/refine-save.ts",
+        "api/listing/images/editor-scene.ts",
+        "server/listing/queries.products.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "编辑变化自动写入 IndexedDB，并能在刷新或重开同一资产时恢复",
+    "服务器上传失败后编辑器保持打开且本地草稿仍存在",
+    "保存成功后编辑器保持打开并显示已保存状态",
+    "关闭存在未提交修改时可选择保存并关闭、放弃修改或继续编辑",
+    "服务器保存生成新的 edited 资产，原资产和旧版本保持不变",
+    "Listing 刷新后显示并跟随新版本"
+  ],
+  "verification": [
+    {
+      "name": "编辑器协议与本地草稿测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/image-editor-embed-protocol.test.ts tests/image-editor-local-draft.test.ts"
+    },
+    {
+      "name": "编辑器类型与网页构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run build:web"
+    },
+    {
+      "name": "Listing 主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Listing 精修格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/listing/components/useWorkspaceGalleryImageTasks.ts server/listing/image.refine.ts api/listing/images/refine-save.ts api/listing/images/editor-scene.ts server/listing/queries.products.ts locales/listing/zh.ts locales/listing/en.ts locales/listing/ru.ts"
+    }
+  ]
+}
