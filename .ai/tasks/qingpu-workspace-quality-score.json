@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-workspace-quality-score",
+  "title": "加工箱增加商品质量评分与提分建议",
+  "problem": "加工箱目前只显示 SKU 数量、更新时间和发布状态，用户无法判断商品资料准备得有多完整，也不知道优先补哪些内容能提升上架质量。",
+  "expectedOutcome": "加工箱列表展示 0-100 商品质量分；点击后展示参数、SKU、图片、文案定价和视频分项，并提供可直接进入商品工作区处理的提分动作。",
+  "constraints": [
+    "复用当前 vendor 已有的 buildListingWorkbenchRowModel 作为类目、属性、图片、包装、定价和 SKU 基础事实，不修改或复制共享 engine",
+    "首版网页适配层将 engine 基础分折算为 90 分并增加 10 分视频增强项；待当前 engine 发布任务完成后再下沉为三端统一分项合同",
+    "质量分与发布阻塞严格分开，缺视频只影响分数、不阻止发布",
+    "评分通过独立批量摘要接口加载，商品列表响应不返回完整 canonical/workspace",
+    "每个建议返回稳定 action key、当前依据和可提升分数，按可提升分数降序展示",
+    "不修改数据库、发布协议、共享 vendor、现有三语 locale 或商品详情页",
+    "不引入新依赖，不覆盖其他任务改动，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/workspace-quality.ts",
+        "api/listing/workspaces/quality-scores.post.ts",
+        "pages/user/listing/workspaces.types.ts",
+        "pages/user/listing/workspaces.vue",
+        "pages/user/listing/components/WorkspaceRecentList.vue",
+        "pages/user/listing/components/WorkspaceQualityScoreModal.vue",
+        "pages/user/listing/workspace-quality.copy.ts",
+        "scripts/check-workspace-quality-score.mjs"
+      ],
+      "claims": [
+        "server/listing/workspace-quality.ts",
+        "api/listing/workspaces/quality-scores.post.ts",
+        "pages/user/listing/workspaces.types.ts",
+        "pages/user/listing/workspaces.vue",
+        "pages/user/listing/components/WorkspaceRecentList.vue",
+        "pages/user/listing/components/WorkspaceQualityScoreModal.vue",
+        "pages/user/listing/workspace-quality.copy.ts",
+        "scripts/check-workspace-quality-score.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "加工箱每个有效商品卡显示 0-100 分、质量等级和最大短板，已软删商品不提供提分动作",
+    "点击评分打开分项面板，展示基础资料完整度 90 分和视频增强 10 分的依据",
+    "面板展示类目参数、SKU、图片、文案定价和视频诊断，并按可提升分数排序建议",
+    "点击建议进入对应商品工作区；建议 action key 可供后续细化为页内锚点",
+    "缺视频不会导致发布按钮禁用，发布阻塞原因也不会被质量分替代",
+    "批量接口限制商品数量、按当前用户鉴权，并只返回评分摘要"
+  ],
+  "verification": [
+    {
+      "name": "网页评分专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-workspace-quality-score.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/listing/workspace-quality.ts api/listing/workspaces/quality-scores.post.ts pages/user/listing/workspaces.types.ts pages/user/listing/workspaces.vue pages/user/listing/components/WorkspaceRecentList.vue pages/user/listing/components/WorkspaceQualityScoreModal.vue pages/user/listing/workspace-quality.copy.ts scripts/check-workspace-quality-score.mjs"
+    }
+  ]
+}
