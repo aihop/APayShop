@@ -11,6 +11,11 @@ import { createOrderAttribution, settlePromoCommission } from '../promo/service'
 import { deliverMinimalCheckoutPaid } from '../../app/themes/minimal/server/checkout/notify'
 import { readMinimalCheckoutBridgeMeta } from '../../app/themes/minimal/server/checkout/bridge'
 import { fulfillMinimalCheckoutRelay } from '../../app/themes/minimal/server/checkout/fulfillment'
+import { fulfillPaidTrialOrder } from '../../app/themes/qingpu/server/trials/pass'
+import {
+  markQingpuTrialPaymentReceived,
+  QINGPU_TRIAL_ORDER_SOURCE,
+} from './qingpuTrialOrders'
 
 export type MarkOrderPaidOutcome =
   | 'paid'          // 本次调用真正完成了置为已支付 + 履约
@@ -63,6 +68,10 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
   }
 
   if (order.payStatus === ORDER_PAY_STATUS.PAID) {
+    if (order.source === QINGPU_TRIAL_ORDER_SOURCE) {
+      const next = await markQingpuTrialPaymentReceived(orderId)
+      if (next === 'ready') await fulfillPaidTrialOrder(orderId)
+    }
     return { outcome: 'already_paid', order }
   }
 
@@ -109,6 +118,13 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
   })
 
   const orderMeta = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
+  if (order.source === QINGPU_TRIAL_ORDER_SOURCE) {
+    const next = await markQingpuTrialPaymentReceived(orderId)
+    if (next === 'ready') {
+      await fulfillPaidTrialOrder(orderId)
+    }
+    return { outcome: 'paid', order }
+  }
   const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(orderMeta))
   const fulfilledOrder = isMinimalRelay
     ? await fulfillMinimalCheckoutRelay(orderId)

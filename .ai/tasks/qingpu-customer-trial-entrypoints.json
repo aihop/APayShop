@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-customer-trial-entrypoints",
+  "title": "Qingpu 客户站试用入口与本地币种展示",
+  "problem": "付费试用链路只在铺货权限拦截页可见，首页与价格页缺少明确入口，客户无法在了解产品和比较套餐时直接进入试用转化链。",
+  "expectedOutcome": "首页首屏展示动态试用价格按钮，价格页在正式套餐前展示一次性试用卡；两处读取后台美元试用价并通过站点既有语言币种汇率配置展示，点击后统一进入现有铺货试用申请与支付链路。",
+  "constraints": [
+    "后台仍只维护美元试用价，入口不写死金额或汇率",
+    "展示金额复用 useLocaleCurrency，不新增第二套语言汇率规则",
+    "试用关闭时不展示入口，零元试用显示免费文案",
+    "点击只进入现有 /user/listing 权限门禁，不复制下单与支付实现",
+    "中文、英文、俄文文案同步，不引入新依赖",
+    "不修改当前付费试用契约已租赁的 API、支付或履约文件",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/QingpuTrialEntry.vue",
+        "pages/index.vue",
+        "pages/pricing.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "scripts/check-trial-entrypoints.mjs"
+      ],
+      "claims": [
+        "components/QingpuTrialEntry.vue",
+        "pages/index.vue",
+        "pages/pricing.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "scripts/check-trial-entrypoints.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "首页首屏主操作展示后台当前试用价格并进入铺货试用链路",
+    "价格页在订阅套餐之前展示一次性试用卡及试用天数",
+    "中文、英文、俄文按各自语言绑定币种与汇率展示试用金额",
+    "后台改价后两处入口自动更新，关闭试用后两处入口自动隐藏",
+    "零元试用不显示零金额而显示本地化免费文案",
+    "入口不创建平行订单逻辑，最终申请、支付和权益发放继续走现有链路"
+  ],
+  "verification": [
+    {
+      "name": "试用入口专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-trial-entrypoints.mjs"
+    },
+    {
+      "name": "主题构建",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt build"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- components/QingpuTrialEntry.vue pages/index.vue pages/pricing.vue locales/zh.ts locales/en.ts locales/ru.ts scripts/check-trial-entrypoints.mjs"
+    }
+  ]
+}
