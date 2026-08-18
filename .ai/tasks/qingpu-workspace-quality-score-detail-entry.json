@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-workspace-quality-score-detail-entry",
+  "title": "加工详情页补充商品评分入口",
+  "problem": "商品质量评分只显示在加工箱列表卡片，用户直接进入商品加工详情页时完全看不到评分入口，接口失败时也会静默隐藏。",
+  "expectedOutcome": "商品加工详情页固定显示商品质量分入口，支持加载、失败重试和点击查看五维评分及提分建议。",
+  "constraints": [
+    "复用现有评分 API、评分弹窗和三语文案，不修改评分算法与发布校验",
+    "不修改正在被其他任务编辑的 WorkspaceDetailPage.vue",
+    "接口失败必须保留可见入口并允许重试",
+    "不引入依赖、不修改数据库、不覆盖其他任务改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/workspaces/[productId].vue"
+      ],
+      "claims": [
+        "pages/user/listing/workspaces/[productId].vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "商品加工详情页始终显示商品质量分浮动入口",
+    "加载完成后入口展示 0-100 分和质量等级",
+    "点击评分打开现有五维评分与提分建议弹窗",
+    "评分接口失败时入口显示失败状态，点击可重试",
+    "点击提分建议关闭弹窗并保留在当前商品加工页"
+  ],
+  "verification": [
+    {
+      "name": "详情评分入口格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- 'pages/user/listing/workspaces/[productId].vue'"
+    },
+    {
+      "name": "网页评分专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-workspace-quality-score.mjs"
+    }
+  ]
+}
