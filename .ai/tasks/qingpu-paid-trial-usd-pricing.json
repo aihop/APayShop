@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-paid-trial-usd-pricing",
+  "title": "Qingpu 试用美元定价与人民币支付闭环",
+  "problem": "现有 Qingpu 试用只能零元领取，后台无法设置试用价格，也没有把试用订单接入统一支付回调与幂等权益履约。",
+  "expectedOutcome": "管理员按美元配置试用价，系统按固定 1 USD = 7 CNY 生成人民币待支付订单；客户付款后自动或经审核发放试用权益，重复请求与回调不会重复扣款或发放。",
+  "constraints": [
+    "试用美元价格保留两位小数，人民币金额按分四舍五入",
+    "固定汇率为 7，不调用外部汇率服务",
+    "后台配置、客户展示、订单金额和履约读取同一政策快照",
+    "已创建订单冻结美元价格、汇率与人民币金额，后续改价不追溯",
+    "兼容既有零元试用订单与人工审核流程",
+    "试用商品继续仅作为审计载体，实际试用价格来自政策配置",
+    "不新增数据库表或迁移，不引入新依赖，不提交、不推送、不发布",
+    "只在隔离工作树修改，不覆盖主工作区其他任务"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/qingpuTrialOrders.ts",
+        "server/utils/orderPayment.ts"
+      ],
+      "claims": [
+        "server/utils/qingpuTrialOrders.ts",
+        "server/utils/orderPayment.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/settings.vue",
+        "api/trial.ts",
+        "pages/user/listing/layout.vue",
+        "server/trials/pass.ts",
+        "server/trials/policy.ts",
+        "scripts/check-trial-paid-flow.mjs"
+      ],
+      "claims": [
+        "admin/pages/settings.vue",
+        "api/trial.ts",
+        "pages/user/listing/layout.vue",
+        "server/trials/pass.ts",
+        "server/trials/policy.ts",
+        "scripts/check-trial-paid-flow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台可设置试用美元价格并实时预览按 7 倍汇率换算的人民币金额",
+    "服务端拒绝负数、超过上限或超过两位小数的试用价格",
+    "客户点击试用会创建或复用本人待支付试用订单并打开现有支付工作台",
+    "订单冻结 USD 价格、固定汇率 7 和 CNY 实付金额，支付回调校验人民币金额",
+    "支付成功后免审核订单自动发放，需审核订单进入待审核，失败可重试",
+    "历史零元试用仍可直接按原有路径发放",
+    "同一用户重复点击或支付回调不会创建第二笔试用订单或重复发放权益"
+  ],
+  "verification": [
+    {
+      "name": "付费试用专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-trial-policy-settings.mjs && node scripts/check-trial-policy-flow.mjs && node scripts/check-trial-paid-flow.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "宿主类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/utils/qingpuTrialOrders.ts server/utils/orderPayment.ts && git -C app/themes/qingpu diff --check -- admin/pages/settings.vue api/trial.ts pages/user/listing/layout.vue server/trials/pass.ts server/trials/policy.ts scripts/check-trial-paid-flow.mjs"
+    }
+  ]
+}

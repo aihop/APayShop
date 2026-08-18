@@ -11,16 +11,20 @@ export const QINGPU_TRIAL_ORDER_SOURCE = 'qingpu_trial'
 
 export interface QingpuTrialPolicySnapshot {
   productId: number
+  priceUsd: number
+  exchangeRate: 7
+  paymentAmountCny: number
+  reviewRequired: boolean
   durationDays: number
   grantAmount: number
   features: { listing: boolean, studio: boolean, ops: boolean }
   limits: { stores: number, employees: number }
 }
 
-export type QingpuTrialOrderState = 'pending_review' | 'processing' | 'failed' | 'approved' | 'rejected'
+export type QingpuTrialOrderState = 'pending_payment' | 'pending_review' | 'processing' | 'failed' | 'approved' | 'rejected'
 
 interface QingpuTrialMeta {
-  version: 1
+  version: 2
   state: QingpuTrialOrderState
   policy: QingpuTrialPolicySnapshot
   requestedAt: string
@@ -59,12 +63,32 @@ const normalizeMeta = (value: unknown): Record<string, unknown> => {
   }
 }
 
+const normalizeLegacyPolicy = (value: Record<string, unknown>): QingpuTrialPolicySnapshot => ({
+  productId: Number(value.productId),
+  priceUsd: Number(value.priceUsd || 0),
+  exchangeRate: 7,
+  paymentAmountCny: Number(value.paymentAmountCny || 0),
+  reviewRequired: Boolean(value.reviewRequired),
+  durationDays: Number(value.durationDays),
+  grantAmount: Number(value.grantAmount),
+  features: value.features as QingpuTrialPolicySnapshot['features'],
+  limits: value.limits as QingpuTrialPolicySnapshot['limits'],
+})
+
 const readTrialMeta = (value: unknown): QingpuTrialMeta => {
   const meta = normalizeMeta(value).qingpuTrial
-  if (!meta || typeof meta !== 'object' || !('version' in meta) || meta.version !== 1) {
+  if (!meta || typeof meta !== 'object' || !('version' in meta)) {
     throw new Error('Invalid Qingpu trial order snapshot')
   }
-  return meta as QingpuTrialMeta
+  const input = meta as Record<string, unknown>
+  if (input.version !== 1 && input.version !== 2) {
+    throw new Error('Unsupported Qingpu trial order snapshot')
+  }
+  return {
+    ...input,
+    version: 2,
+    policy: normalizeLegacyPolicy(input.policy as Record<string, unknown>),
+  } as QingpuTrialMeta
 }
 
 const mergeTrialMeta = (value: unknown, trial: QingpuTrialMeta) => ({
@@ -137,41 +161,60 @@ export async function createQingpuTrialOrder(input: {
 
   const requestedAt = new Date().toISOString()
   const orderId = `TR${requestedAt.slice(0, 10).replaceAll('-', '')}${crypto.randomBytes(7).toString('hex').toUpperCase()}`
+  const paidTrial = input.policy.paymentAmountCny > 0
+  const state: QingpuTrialOrderState = paidTrial
+    ? 'pending_payment'
+    : input.reviewRequired ? 'pending_review' : 'processing'
   const trial: QingpuTrialMeta = {
-    version: 1,
-    state: input.reviewRequired ? 'pending_review' : 'processing',
+    version: 2,
+    state,
     policy: structuredClone(input.policy),
     requestedAt,
-    ...(input.reviewRequired ? {} : {
+    ...(!paidTrial && !input.reviewRequired ? {
       reviewedAt: requestedAt,
       expiresAt: new Date(Date.now() + input.policy.durationDays * 86_400_000).toISOString(),
-    }),
+    } : {}),
   }
-  const metaData = { qingpuTrial: trial }
+  const metaData = {
+    currencySnapshot: {
+      locale: 'zh-cn',
+      baseCurrency: 'USD',
+      baseAmount: input.policy.priceUsd,
+      currency: 'CNY',
+      exchangeRate: input.policy.exchangeRate,
+      amount: input.policy.paymentAmountCny,
+      source: 'qingpu-trial-policy',
+    },
+    qingpuTrial: trial,
+  }
   try {
     await db.insert(orders).values({
       id: orderId,
-      amount: 0,
-      currency: 'USD',
+      amount: input.policy.paymentAmountCny,
+      currency: 'CNY',
       source: QINGPU_TRIAL_ORDER_SOURCE,
       externalOrderId: `user:${input.userId}`,
       productId: input.policy.productId,
       userId: input.userId,
       contactEmail: input.email,
-      payMethod: 'trial',
-      status: input.reviewRequired ? ORDER_STATUS.NONE : ORDER_STATUS.PROCESSING,
-      payStatus: ORDER_PAY_STATUS.PENDING,
-      deliveryInfo: input.reviewRequired ? 'Trial review pending' : 'Trial fulfillment processing',
+      payMethod: paidTrial ? 'none' : 'trial',
+      status: paidTrial || input.reviewRequired ? ORDER_STATUS.NONE : ORDER_STATUS.PROCESSING,
+      payStatus: paidTrial || input.reviewRequired ? ORDER_PAY_STATUS.PENDING : ORDER_PAY_STATUS.PAID,
+      paidAt: paidTrial || input.reviewRequired ? null : new Date(),
+      deliveryInfo: paidTrial ? 'Trial payment pending' : input.reviewRequired ? 'Trial review pending' : 'Trial fulfillment processing',
       metaData,
       createdAt: new Date(),
     })
-    return { order: toTrialOrder({
-      id: orderId,
-      userId: input.userId,
-      contactEmail: input.email,
-      productId: input.policy.productId,
-      metaData,
-    }), created: true }
+    return {
+      order: toTrialOrder({
+        id: orderId,
+        userId: input.userId,
+        contactEmail: input.email,
+        productId: input.policy.productId,
+        metaData,
+      }),
+      created: true,
+    }
   } catch (error) {
     const concurrent = await findTrialOrderByUserId(input.userId)
     if (concurrent) return { order: toTrialOrder(concurrent), created: false }
@@ -187,6 +230,39 @@ export async function listQingpuTrialOrders(limit = 100): Promise<QingpuTrialOrd
   return rows.map(toTrialOrder)
 }
 
+export async function markQingpuTrialPaymentReceived(orderId: string): Promise<'pending_review' | 'ready'> {
+  const rows = await db.select().from(orders).where(and(
+    eq(orders.id, orderId),
+    eq(orders.source, QINGPU_TRIAL_ORDER_SOURCE),
+  )).limit(1)
+  const row = rows[0]
+  if (!row) throw createError({ statusCode: 404, message: '试用订单不存在' })
+  const current = readTrialMeta(row.metaData)
+  if (current.state !== 'pending_payment') {
+    return current.state === 'pending_review' ? 'pending_review' : 'ready'
+  }
+  const next: QingpuTrialMeta = {
+    ...current,
+    state: current.policy.reviewRequired ? 'pending_review' : 'pending_payment',
+  }
+  const moved = await db.update(orders).set({
+    status: ORDER_STATUS.NONE,
+    deliveryInfo: current.policy.reviewRequired
+      ? 'Trial payment received; review pending'
+      : 'Trial payment received; fulfillment ready',
+    metaData: mergeTrialMeta(row.metaData, next),
+  }).where(and(
+    eq(orders.id, orderId),
+    eq(orders.deliveryInfo, 'Trial payment pending'),
+  ))
+  if (getAffectedRows(moved) > 0) {
+    return current.policy.reviewRequired ? 'pending_review' : 'ready'
+  }
+  const latest = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
+  const latestMeta = readTrialMeta(latest[0]?.metaData)
+  return latestMeta.state === 'pending_review' ? 'pending_review' : 'ready'
+}
+
 export async function beginQingpuTrialFulfillment(orderId: string, adminId: number | null) {
   const rows = await db.select().from(orders).where(and(
     eq(orders.id, orderId),
@@ -197,6 +273,15 @@ export async function beginQingpuTrialFulfillment(orderId: string, adminId: numb
   const current = readTrialMeta(row.metaData)
   if (current.state === 'approved') return { order: toTrialOrder(row), claimed: false }
   if (current.state === 'rejected') throw createError({ statusCode: 409, message: '试用申请已拒绝' })
+  if (current.state === 'pending_payment' && row.payStatus !== ORDER_PAY_STATUS.PAID) {
+    throw createError({ statusCode: 409, message: '试用订单尚未支付' })
+  }
+  if (current.state === 'pending_payment' && row.deliveryInfo === 'Trial payment pending') {
+    throw createError({ statusCode: 409, message: '试用订单支付状态正在确认' })
+  }
+  if (current.state === 'pending_review' && !adminId) {
+    throw createError({ statusCode: 409, message: '试用申请等待管理员审核' })
+  }
   if (current.state === 'processing') {
     const processingSince = Date.parse(current.reviewedAt || current.requestedAt)
     if (Number.isFinite(processingSince) && Date.now() - processingSince < 5 * 60 * 1000) {
