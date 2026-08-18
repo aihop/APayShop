@@ -33,7 +33,8 @@
     "ai:demo:complete": "node scripts/ai-task-flow.mjs complete --contract .ai/tasks/hello-ai-task.demo.json --agent demo-ai",
     "check:qingpu-listing-publish-facts": "node app/themes/qingpu/scripts/check-listing-publish-facts.mjs",
     "check:qingpu-employee-access-gate": "node app/themes/qingpu/scripts/check-employee-access-gate.mjs",
-    "check:qingpu-quota-gate": "node app/themes/qingpu/scripts/check-quota-gate.mjs"
+    "check:qingpu-quota-gate": "node app/themes/qingpu/scripts/check-quota-gate.mjs",
+    "check:qingpu-table-ownership": "node app/themes/qingpu/scripts/check-table-ownership.mjs"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-idempotency-anchor",
+  "title": "写死 Studio 付费生成的幂等键落点",
+  "problem": "Listing 链路的防重复扣费凭据持久化在 workspace.media.imageAssets[].meta 的 asyncSubmissionKey 与 remoteTaskId 上,由 engine runImageMode 在提交前读回复用、拿到远程 id 后落库、仅在终态失败时轮换。Studio 的资产权威是 qingpu_assets,没有 workspace,这个落点在 Studio 侧根本不存在。而 qingpu_task_items.remote_task_id 只是 onRemoteTask 写入的账本副本,蓝图链路从不读它决定是否重投,极易被误认为续领保护已经具备。Studio 阶段 4 一旦按 3.2 的语义自行编排生成,就会在看似有保护的情况下每次瞬态重试都真实重复扣费。",
+  "expectedOutcome": "Studio 开发提示词写死付费生成的幂等键落点与四条关键语义,明确 Studio 必须在 qingpu_assets.meta 上自建等价机制且沿用同名字段,明确 qingpu_task_items.remote_task_id 只是账本副本不得当作续领凭据,并把崩溃后不产生第二次远程提交列入阶段 4 验收。",
+  "constraints": [
+    "只修改 Studio 目录级开发提示词,不修改任何代码、SQL、engine 出口或数据库结构",
+    "不改变 Listing 现有的幂等与续领实现,也不要求把 Listing 迁到 qingpu_assets",
+    "描述的机制必须与 engine 当前实现一致,不得写入未经代码验证的字段名或流程",
+    "字段名沿用 asyncSubmissionKey 与 remoteTaskId,不为 Studio 另造同义命名",
+    "文档保持自包含,不引用其他仓库的绝对路径",
+    "不覆盖三个仓库中其他会话的未提交改动,不提交或推进 APay gitlink"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/AGENTS.md"
+      ],
+      "claims": [
+        "pages/user/studio/AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "文档写明幂等凭据当前持久化在资产 meta 上,而非函数签名或任务账本",
+    "文档列出 asyncSubmissionKey 与 remoteTaskId 两个字段及各自作用",
+    "文档写明 key 必须在提交之前落库,否则崩溃后重试会真实重复扣费",
+    "文档写明只有确认终态失败才轮换 key 并清 remoteTaskId",
+    "文档写明认领结果前需校验两个字段与本次尝试一致",
+    "文档写明 Studio 落点是 qingpu_assets.meta 且沿用同名字段",
+    "文档显式声明 qingpu_task_items.remote_task_id 是账本副本,不是续领凭据",
+    "阶段 4 验收包含崩溃重启后不产生第二次远程提交"
+  ],
+  "verification": [
+    {
+      "name": "幂等机制写死",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q 'asyncSubmissionKey' pages/user/studio/AGENTS.md && rg -q 'remoteTaskId' pages/user/studio/AGENTS.md && rg -q 'qingpu_assets\\.meta' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "账本副本误解被显式排除",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '账本副本' pages/user/studio/AGENTS.md && rg -q 'qingpu_task_items' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "关键语义与验收落位",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q '提交之前' pages/user/studio/AGENTS.md && rg -q '终态失败' pages/user/studio/AGENTS.md && rg -q '第二次远程提交' pages/user/studio/AGENTS.md"
+    },
+    {
+      "name": "文档无跨仓绝对路径",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/aihop' pages/user/studio/AGENTS.md"
+    }
+  ]
+}

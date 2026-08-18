@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-table-ownership-guard",
+  "title": "新增主题表所有权守卫并冻结存量基线",
+  "problem": "主题 AGENTS.md §4 要求「一张表的 SQL 只出现在其所有者 queries 文件，跨模块取数调用导出函数，不以 raw SQL 访问其他模块的表」，但 33 个守卫脚本没有一个校验这条。现状已大面积越界：qingpu_assets 被 listing、presets、studio 三个域直接读写，qingpu_tasks 与 qingpu_task_items 被 studio 与 listing 直接访问，qingpu_listing_products 被 tasks 访问，qingpu_settings/qingpu_stores/qingpu_rule_bundles 被 listing 访问，api/admin 直接读 device_tokens/publish_records/stores；database/product-facts.sql 的视图还跨文件读 listing 两张表。新引入的域用零 import 达成隔离，却把耦合沉到 SQL 层，编译器与既有守卫都看不见，Listing 改表结构不会产生任何编译错误。",
+  "expectedOutcome": "主题新增 check-table-ownership 守卫：表清单从 database/*.sql 自动发现，所有权在脚本内显式声明，扫描 server 与 api 的 TS 以及 database 的 SQL，任何非所有者的访问必须出现在基线文件中；新增越界直接失败，基线条目失效也失败以保证只减不增。存量全部冻结进基线，不做任何代码搬迁。守卫接入 APay package.json 并在主题 AGENTS.md 登记。",
+  "constraints": [
+    "只新增守卫脚本、基线文件与其接线和文档，不修改任何业务代码、SQL 或数据库结构",
+    "不因为守卫失败去改动现有越界代码；存量一律冻结进基线",
+    "所有权声明必须覆盖 database/*.sql 里发现的全部表，缺声明要显式失败而不是静默放行",
+    "server/db/pg.ts 的 REQUIRED_TABLES 是启动自检注册表，作为显式豁免，不计入越界",
+    "基线只减不增：新增越界失败，基线中已消失的条目也失败并提示删除该行",
+    "不覆盖三个仓库中其他会话的未提交改动，不提交或推进 APay gitlink"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-table-ownership.mjs",
+        "scripts/table-ownership-baseline.json",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "scripts/check-table-ownership.mjs",
+        "scripts/table-ownership-baseline.json",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "package.json"
+      ],
+      "claims": [
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "守卫从 database/*.sql 自动发现表，未声明所有者的表导致失败",
+    "守卫扫描 server 与 api 下的 TS 文件以及 database 下的 SQL 文件",
+    "非所有者访问且不在基线中时守卫失败并列出文件与表名",
+    "基线中不再成立的条目导致守卫失败并提示删除",
+    "server/db/pg.ts 显式豁免",
+    "基线冻结当前全部存量越界，守卫在当前工作区通过",
+    "APay package.json 有独立的 check:qingpu-table-ownership 入口",
+    "主题 AGENTS.md 记录该守卫与基线只减不增的规则"
+  ],
+  "verification": [
+    {
+      "name": "守卫在当前工作区通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-table-ownership.mjs"
+    },
+    {
+      "name": "守卫能拦住新增越界",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cp server/watermarks/queries.ts /tmp/qingpu-guard-probe.bak && printf '\\n// probe\\nconst probe = `select 1 from qingpu_listing_products`\\n' >> server/watermarks/queries.ts && (node scripts/check-table-ownership.mjs; test $? -ne 0) && cp /tmp/qingpu-guard-probe.bak server/watermarks/queries.ts && node scripts/check-table-ownership.mjs"
+    },
+    {
+      "name": "基线与豁免落位",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test -s scripts/table-ownership-baseline.json && rg -q 'server/db/pg.ts' scripts/check-table-ownership.mjs && rg -q 'check-table-ownership' AGENTS.md"
+    },
+    {
+      "name": "守卫已接线",
+      "repository": "apay",
+      "always": true,
+      "command": "rg -q 'check:qingpu-table-ownership' package.json && npm run check:qingpu-table-ownership --silent"
+    }
+  ]
+}
