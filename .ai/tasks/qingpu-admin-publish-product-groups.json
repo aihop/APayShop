@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-admin-publish-product-groups",
+  "title": "管理端按主商品聚合发布记录",
+  "problem": "管理端发布记录仍按 SKU 平铺，管理员难以快速判断一个用户主商品的整体发布结果，也容易把 SKU 已发布误解为 Ozon 已完成合卡。",
+  "expectedOutcome": "管理端发布记录默认按用户、店铺和主商品分页展示，展开后保留逐 SKU 回执和错误详情，并把上架状态与 Ozon 合卡验证状态分开呈现。",
+  "constraints": [
+    "保留现有 SKU 级数据库记录和未传 grouped=true 的管理 API 响应",
+    "不把 published 解释为合卡成功，没有真实对账依据时只显示尚未验证",
+    "不修改发布状态机、不执行真实发布、不新增依赖",
+    "不覆盖工作区已有改动或其他任务租约文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/publish-records.vue",
+        "api/admin/publish-records.ts",
+        "scripts/check-admin-publish-product-groups.mjs"
+      ],
+      "claims": [
+        "admin/pages/publish-records.vue",
+        "api/admin/publish-records.ts",
+        "scripts/check-admin-publish-product-groups.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "管理员列表按用户、source_product_id、渠道和店铺聚合并按主商品分页，不会跨页拆散 SKU",
+    "主商品显示 SKU 总数以及成功、失败、处理中和已下架数量",
+    "聚合状态覆盖处理中、全部成功、部分成功、全部失败和已下架",
+    "上架状态与 Ozon 合卡状态分开，多 SKU 已发布时显示尚未验证而不是合卡成功",
+    "管理员可展开主商品查看每个 SKU 的平台回执、失败详情和更新时间",
+    "管理 API 未传 grouped=true 时保持原 SKU 响应兼容"
+  ],
+  "verification": [
+    {
+      "name": "管理端主商品聚合专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-admin-publish-product-groups.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/publish-records.vue api/admin/publish-records.ts scripts/check-admin-publish-product-groups.mjs"
+    }
+  ]
+}
