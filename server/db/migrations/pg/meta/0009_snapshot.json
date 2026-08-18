@@ -1366,8 +1366,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users_tokens": {
-      "name": "users_tokens",
+    "public.user_tokens": {
+      "name": "user_tokens",
       "schema": "",
       "columns": {
         "id": {
@@ -1423,9 +1423,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "users_tokens_user_id_users_id_fk": {
-          "name": "users_tokens_user_id_users_id_fk",
-          "tableFrom": "users_tokens",
+        "user_tokens_user_id_users_id_fk": {
+          "name": "user_tokens_user_id_users_id_fk",
+          "tableFrom": "user_tokens",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -1439,8 +1439,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_tokens_token_unique": {
-          "name": "users_tokens_token_unique",
+        "user_tokens_token_unique": {
+          "name": "user_tokens_token_unique",
           "nullsNotDistinct": false,
           "columns": [
             "token"

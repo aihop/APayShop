@@ -25,7 +25,7 @@ FROM `failures`;
 --> statement-breakpoint
 ALTER TABLE `users` ADD COLUMN `current_session_id` text;
 --> statement-breakpoint
-CREATE TABLE `users_tokens` (
+CREATE TABLE `user_tokens` (
         `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
         `user_id` integer NOT NULL,
         `token` text NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE `users_tokens` (
         `revoked` integer DEFAULT 0 NOT NULL,
         `created_at` integer DEFAULT (unixepoch()) NOT NULL,
         FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
-        CONSTRAINT `users_tokens_token_unique` UNIQUE(`token`)
+        CONSTRAINT `user_tokens_token_unique` UNIQUE(`token`)
 );
 --> statement-breakpoint
 CREATE TABLE `event_rules` (

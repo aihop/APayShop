@@ -39,7 +39,7 @@ const activeSchema = resolveSchema() as typeof pgSchema & typeof sqliteSchema & 
 
 export const {
   users,
-  usersTokens,
+  userTokens,
   admins,
   adminTokens,
   oauthAccounts,

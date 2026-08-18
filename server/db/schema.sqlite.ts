@@ -29,7 +29,7 @@ export const users = sqliteTable('users', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
-export const usersTokens = sqliteTable('users_tokens', {
+export const userTokens = sqliteTable('user_tokens', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
   token: text('token').notNull().unique(),

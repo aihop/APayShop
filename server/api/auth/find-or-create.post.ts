@@ -1,4 +1,4 @@
-import { users, usersTokens } from "../../db/schema"
+import { users, userTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { ensureVisitorId, trackVisitorEvent } from "../../utils/visitorAnalytics"
@@ -112,8 +112,8 @@ export default defineEventHandler(async (event) => {
       expiresAt.setDate(expiresAt.getDate() + Number(apiTokenExpiresInDays))
     }
 
-    // 在 users_tokens 表中创建 token
-    await db.insert(usersTokens).values({
+    // 在 user_tokens 表中创建 token
+    await db.insert(userTokens).values({
       userId: user.id,
       token: apiToken,
       name: apiTokenName || 'Auto-generated',

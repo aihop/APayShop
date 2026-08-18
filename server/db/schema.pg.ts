@@ -30,7 +30,7 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 
-export const usersTokens = pgTable('users_tokens', {
+export const userTokens = pgTable('user_tokens', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   token: text('token').notNull().unique(),

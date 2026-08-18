@@ -1,4 +1,4 @@
-import { users, usersTokens } from "../../../db/schema"
+import { users, userTokens } from "../../../db/schema"
 import { count, like, or, sql, eq, and } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -117,14 +117,14 @@ export default defineEventHandler(async (event) => {
       const userIds = filteredUsers.map(u => u.id)
       const activeKeysResult = await db
         .select({ count: count() })
-        .from(usersTokens)
+        .from(userTokens)
         .where(
           and(
-            sql`${usersTokens.userId} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`,
-            eq(usersTokens.revoked, false),
+            sql`${userTokens.userId} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`,
+            eq(userTokens.revoked, false),
             or(
-              sql`${usersTokens.expiresAt} IS NULL`,
-              sql`${usersTokens.expiresAt} > NOW()`
+              sql`${userTokens.expiresAt} IS NULL`,
+              sql`${userTokens.expiresAt} > NOW()`
             )
           )
         )

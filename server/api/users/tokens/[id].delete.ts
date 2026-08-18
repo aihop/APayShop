@@ -1,4 +1,4 @@
-import { usersTokens } from "../../../db/schema"
+import { userTokens } from "../../../db/schema"
 import { eq, and } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -20,9 +20,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: locale === 'zh' ? '请求无效' : 'Invalid request' })
   }
 
-  const existing = await db.select({ id: usersTokens.id })
-    .from(usersTokens)
-    .where(and(eq(usersTokens.id, id), eq(usersTokens.userId, userId)))
+  const existing = await db.select({ id: userTokens.id })
+    .from(userTokens)
+    .where(and(eq(userTokens.id, id), eq(userTokens.userId, userId)))
     .limit(1)
 
   if (existing.length === 0) {
@@ -31,9 +31,9 @@ export default defineEventHandler(async (event) => {
 
   // Soft revoke — keeps the row (and its lastUsedAt/createdAt history)
   // instead of deleting, matching the schema's own `revoked` column intent.
-  await db.update(usersTokens)
+  await db.update(userTokens)
     .set({ revoked: true })
-    .where(eq(usersTokens.id, id))
+    .where(eq(userTokens.id, id))
 
   return { success: true }
 })

@@ -1,4 +1,4 @@
-import { users, orders, usersTokens } from "../../db/schema"
+import { users, orders, userTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { emitEvent } from "../../utils/eventActions"
@@ -120,11 +120,11 @@ export default defineEventHandler(async (event) => {
   })
 
   // Send email verification (non-blocking)
-  // Generate email verification token (24h expiry)，存进通用的 users_tokens 表
+  // Generate email verification token (24h expiry)，存进通用的 user_tokens 表
   // （name 标记为 EMAIL_VERIFY_TOKEN_NAME，中间件鉴权会排除这个 purpose，不会当成 API token）
   const verifyToken = crypto.randomUUID()
   const verifyExpiresAt = Math.floor(Date.now() / 1000) + 86400 // 24 hours
-  await db.insert(usersTokens).values({
+  await db.insert(userTokens).values({
     userId: user.id,
     token: verifyToken,
     name: EMAIL_VERIFY_TOKEN_NAME,

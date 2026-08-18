@@ -10,7 +10,7 @@ export default defineConfig({
   schemaFilter: ["public"],
   tablesFilter: [
     "users",
-    "users_tokens",
+    "user_tokens",
     "posts",
     "admins",
     "admin_tokens",

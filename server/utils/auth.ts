@@ -1,10 +1,10 @@
-import { users, oauthAccounts, usersTokens, settings } from "../db/schema"
+import { users, oauthAccounts, userTokens, settings } from "../db/schema"
 import { eq, and } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { H3Event } from 'h3'
 import { ensureVisitorId, trackVisitorEvent } from "./visitorAnalytics"
 
-// users_tokens.name 里的保留值：标记这条 token 只能用于邮箱验证，
+// user_tokens.name 里的保留值：标记这条 token 只能用于邮箱验证，
 // 不是站内 API token —— server/middleware/auth.ts 靠这个把它挡在
 // 「凭 token 直接登录/调 API」的通用鉴权之外（验证链接可能经邮件/日志外泄，
 // 绝不能顺带拿到完整账号权限）。

@@ -232,7 +232,7 @@ const ensureApayTables = async () => {
       CONSTRAINT products_slug_unique UNIQUE(slug)
     );
 
-    CREATE TABLE IF NOT EXISTS public.users_tokens (
+    CREATE TABLE IF NOT EXISTS public.user_tokens (
       id serial PRIMARY KEY NOT NULL,
       user_id integer NOT NULL REFERENCES public.users(id),
       token text NOT NULL,
@@ -241,7 +241,7 @@ const ensureApayTables = async () => {
       last_used_at timestamp with time zone,
       revoked boolean DEFAULT false NOT NULL,
       created_at timestamp with time zone DEFAULT now() NOT NULL,
-      CONSTRAINT users_tokens_token_unique UNIQUE(token)
+      CONSTRAINT user_tokens_token_unique UNIQUE(token)
     );
 
     CREATE TABLE IF NOT EXISTS public.oauth_accounts (
@@ -593,7 +593,7 @@ const ensureApayTables = async () => {
 
 const verifySchema = async (productMigration) => {
   const expectedTables = [
-    'users', 'users_tokens', 'admins', 'admin_tokens', 'oauth_accounts', 'products', 'cards',
+    'users', 'user_tokens', 'admins', 'admin_tokens', 'oauth_accounts', 'products', 'cards',
     'payment_methods', 'email_providers', 'orders', 'subscriptions', 'settings', 'payment_failures',
     'webhooks', 'event_rules', 'logs', 'visitor_profiles', 'visitor_events', 'access_logs',
     'operation_logs', 'posts', 'notifications', 'balance_logs', 'promo_agent_tiers', 'promo_members',

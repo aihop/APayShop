@@ -30,7 +30,7 @@ export const users = mysqlTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 })
 
-export const usersTokens = mysqlTable('users_tokens', {
+export const userTokens = mysqlTable('user_tokens', {
   id: int('id').autoincrement().primaryKey(),
   userId: int('user_id').notNull().references(() => users.id),
   token: text('token').notNull().unique(),

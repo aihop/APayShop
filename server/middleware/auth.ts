@@ -1,4 +1,4 @@
-import { users, usersTokens, admins, adminTokens, settings } from "../db/schema"
+import { users, userTokens, admins, adminTokens, settings } from "../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from '../utils/auth'
@@ -182,10 +182,10 @@ export default defineEventHandler(async (event) => {
         }
       }
     } else if (token) {
-      // 从 users_tokens 表查找 token
+      // 从 user_tokens 表查找 token
       const foundTokens = await db.select()
-        .from(usersTokens)
-        .where(eq(usersTokens.token, token))
+        .from(userTokens)
+        .where(eq(userTokens.token, token))
         .limit(1)
 
       if (foundTokens.length > 0) {
@@ -233,7 +233,7 @@ export default defineEventHandler(async (event) => {
             }
 
             // 更新 lastUsedAt
-            await db.update(usersTokens).set({ lastUsedAt: now }).where(eq(usersTokens.id, tokenRecord.id))
+            await db.update(userTokens).set({ lastUsedAt: now }).where(eq(userTokens.id, tokenRecord.id))
           }
         }
       }
