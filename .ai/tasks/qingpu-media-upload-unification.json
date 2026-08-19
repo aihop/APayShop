@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-media-upload-unification",
+  "title": "统一 Qingpu 全部图片视频上传资产合同",
+  "problem": "Qingpu 仍有 Studio、Listing 来源媒体和 Listing 素材上传各自实现图片校验与托管，Studio 素材选择器仍直连 APay 通用上传；本地视频文件没有受控上传入口，门禁还保留业务豁免。",
+  "expectedOutcome": "Qingpu 所有业务文件上传都收口到同一个资产服务，图片和视频使用稳定 assetId 写入 qingpu_assets；Studio 不再直连 APay 通用上传，Listing 可上传受校验的本地视频，机器门禁禁止重新分叉。",
+  "constraints": [
+    "APay 只提供 uploads 公开读取基础设施，Qingpu 资产身份和来源语义继续留在主题私有域",
+    "media_type 只允许 image 或 video，上传来源统一使用 meta.source=upload，业务入口使用 context/mode 区分",
+    "图片继续使用已确认的 AINode 图片托管合同；视频使用 NuxtHub Blob 或本地 uploads 存储，不伪造 AINode 视频上传接口",
+    "服务端必须校验 MIME、文件魔数和大小；视频仅支持 MP4、WebM、MOV、M4V，最大 50MB",
+    "保留各业务 API 的鉴权和产品校验，业务 API 只能作为统一资产服务的薄适配层",
+    "保留已提交的 Studio UI 样式，不改数据库，不删除存量文件，不发布生产"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/routes/uploads/[...slug].ts",
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ],
+      "claims": [
+        "server/routes/uploads/[...slug].ts",
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/assets/upload.post.ts",
+        "api/listing/materials/upload.post.ts",
+        "api/listing/products/source-media-upload.post.ts",
+        "api/studio/uploads.ts",
+        "pages/user/listing/components/ProductEditorDrawer.vue",
+        "pages/user/listing/components/ProductSourceMediaSection.vue",
+        "pages/user/listing/product-editor-media.copy.ts",
+        "pages/user/listing/products.types.ts",
+        "pages/user/studio/components/StudioMediaSourcePicker.vue",
+        "scripts/check-asset-upload-contract.mjs",
+        "server/assets/user-media-upload.ts",
+        "server/listing/material-upload.ts",
+        "server/listing/source-media.ts",
+        "server/studio/upload.ts"
+      ],
+      "claims": [
+        "api/assets/upload.post.ts",
+        "api/listing/materials/upload.post.ts",
+        "api/listing/products/source-media-upload.post.ts",
+        "api/studio/uploads.ts",
+        "pages/user/listing/components/ProductEditorDrawer.vue",
+        "pages/user/listing/components/ProductSourceMediaSection.vue",
+        "pages/user/listing/product-editor-media.copy.ts",
+        "pages/user/listing/products.types.ts",
+        "pages/user/studio/components/StudioMediaSourcePicker.vue",
+        "scripts/check-asset-upload-contract.mjs",
+        "server/assets/user-media-upload.ts",
+        "server/listing/material-upload.ts",
+        "server/listing/source-media.ts",
+        "server/studio/upload.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Qingpu components/pages 中除账户头像外不再调用 /api/users/upload，门禁删除 Studio 豁免",
+    "Studio 两条图片上传、轻量工具、Listing 来源图片和 Listing 素材都调用统一资产上传服务",
+    "Listing 来源媒体支持本地 MP4、WebM、MOV、M4V 文件，上传后保存 URL 并实时写入 qingpu_assets(media_type=video, source=upload)",
+    "所有成功上传返回稳定 assetId、mediaType 和 URL；失败资产保留 pending/failed 可审计状态",
+    "本地 uploads 路由为受支持图片视频返回明确 Content-Type 与 nosniff",
+    "上传合同门禁与范围格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 全媒体上传合同门禁",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:qingpu-asset-upload-contract"
+    },
+    {
+      "name": "APay 上传读取与文档格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- 'server/routes/uploads/[...slug].ts' content/docs/12.qingpu-listing-products.md content/zh/docs/12.qingpu-listing-products.md"
+    },
+    {
+      "name": "Qingpu 上传统一范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/assets/upload.post.ts api/listing/materials/upload.post.ts api/listing/products/source-media-upload.post.ts api/studio/uploads.ts pages/user/listing/components/ProductEditorDrawer.vue pages/user/listing/components/ProductSourceMediaSection.vue pages/user/listing/product-editor-media.copy.ts pages/user/listing/products.types.ts pages/user/studio/components/StudioMediaSourcePicker.vue scripts/check-asset-upload-contract.mjs server/assets/user-media-upload.ts server/listing/material-upload.ts server/listing/source-media.ts server/studio/upload.ts"
+    }
+  ]
+}
