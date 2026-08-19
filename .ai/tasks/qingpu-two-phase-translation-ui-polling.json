@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-two-phase-translation-ui-polling",
+  "title": "修复双阶段翻译的补参轮询状态",
+  "problem": "attributes intent 新增 translate_facts 前置任务后，SKU 补参入口仍取响应中的第一个 taskId 再只查询 attributes，可能拿前置翻译 id 去匹配补参任务而永久轮询；统一内容任务投影也过滤了新节点。",
+  "expectedOutcome": "补参入口按 attributes 任务终态收敛，不错误绑定前置翻译 id；内容任务状态同时追踪 translate_facts 与 attributes，任一阶段运行时保持补参 loading。",
+  "constraints": [
+    "只修改 SKU 表工作流状态 composable，不改变 API、任务或工作流协议",
+    "保持现有轮询间隔、错误提示和商品切换取消语义",
+    "不覆盖其他未提交改动，不推送或执行生产迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["pages/user/listing/components/useWorkspaceDetailSkuTable.ts"],
+      "claims": ["pages/user/listing/components/useWorkspaceDetailSkuTable.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "attributes intent 不再把第一个 workflow outcome 的 taskId 当作 attributes taskId",
+    "translate_facts 进入 workflowTasks 与 activeTasks，前置翻译期间 skuAiFilling 保持 true",
+    "attributes 成功或失败后现有刷新与提示正常结束"
+  ],
+  "verification": [
+    {
+      "name": "补参轮询静态合同",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "rg -q \"translate_facts\" pages/user/listing/components/useWorkspaceDetailSkuTable.ts && git diff --check -- pages/user/listing/components/useWorkspaceDetailSkuTable.ts"
+    }
+  ]
+}
