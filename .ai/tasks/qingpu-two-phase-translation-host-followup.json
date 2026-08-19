@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-two-phase-translation-host-followup",
+  "title": "补齐双阶段翻译宿主入队与重试边界",
+  "problem": "新增 translate_facts 节点后，Listing 入队 API 的 readiness 类型仍只表示工作流节点，无法类型安全读取外部 category 前置条件；通用失败重试白名单也尚未包含新任务类型。",
+  "expectedOutcome": "入队 API 显式分离 category 就绪位与工作流节点 readiness，人工和支持重试允许 translate_facts，且不改变其他任务控制语义。",
+  "constraints": [
+    "只修改入队 API 与任务 queue 的精确边界，不扩大工作流或数据库方案",
+    "category 仍是工作流外部前置条件，不伪装成 ListingWorkflowNodeKey",
+    "保留所有并行未提交改动，不提交、不推送、不执行生产迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/tasks/enqueue.ts",
+        "server/tasks/queue.ts"
+      ],
+      "claims": [
+        "api/listing/tasks/enqueue.ts",
+        "server/tasks/queue.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "category 前置条件从 readiness 映射外单独读取，工作流 readiness 只包含 ListingWorkflowNodeKey",
+    "translate_facts 失败任务可通过现有 Listing 和支持重试入口重新排队",
+    "主题工作流守卫与精确文件格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "宿主工作流边界",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs && rg -q \"translate_facts\" server/tasks/queue.ts && git diff --check -- api/listing/tasks/enqueue.ts server/tasks/queue.ts"
+    }
+  ]
+}

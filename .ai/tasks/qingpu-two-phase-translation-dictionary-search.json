@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-two-phase-translation-dictionary-search",
+  "title": "拆分 Listing 双阶段翻译并接入 Ozon 字典搜索",
+  "problem": "当前 Listing 自动链先补参再翻译：补参的大字典候选排序拿不到采集事实俄语译文，正确候选可能被 60 条窗口截掉；若简单反转顺序，补参生成的中文自由文本属性又不会进入译文表，发布校验会报文本属性译文缺失。",
+  "expectedOutcome": "共享工作流先翻译采集事实，再补齐 Ozon 参数，最后复用完整翻译节点翻译补参产出的自由文本；大字典优先用俄语事实走 Ozon 官方搜索，搜索不可用或无结果时回退现有全量字典拉取。",
+  "constraints": [
+    "保留现有 translate 节点与任务类型的完整翻译和手动重跑语义，新增 translate_facts 前置节点，不把已有 translate 改成仅翻补参值",
+    "事实翻译不得把仅本阶段完成写成整商品 translationsDone，完整翻译仍以全部缺口清零为准",
+    "字典属性仍必须精确命中官方候选并缓存 dictionary_value_id 对应条目，搜索失败不得放宽校验",
+    "Ozon 搜索能力通过目录 gateway 注入，扩展宿主不具备搜索时安全回退全量拉取",
+    "不手改 engine vendor；先提交 qingpu-ai 源码，再由 engine:release 生成主题 vendor",
+    "保留两仓所有无关未提交改动，不整理、不覆盖、不混提，不执行生产迁移或推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/presenters/listing-status-presenter.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/app/workflows/ozon-content-steps.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "src/engine/index.ts",
+        "src/shared/ozon-catalog-gateway.ts",
+        "tests/ai-attribute-fill-dictionaries.test.ts",
+        "tests/listing-workflow-contract.test.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/product-text-translation.test.ts"
+      ],
+      "claims": [
+        "src/app/presenters/listing-status-presenter.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/app/workflows/ozon-content-steps.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "src/engine/index.ts",
+        "src/shared/ozon-catalog-gateway.ts",
+        "tests/ai-attribute-fill-dictionaries.test.ts",
+        "tests/listing-workflow-contract.test.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/product-text-translation.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/tasks.sql",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "server/tasks/executors.ts",
+        "server/tasks/queries.ts",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "database/tasks.sql",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "server/tasks/executors.ts",
+        "server/tasks/queries.ts",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "自动完整链按 translate_facts、attributes、translate、copy 顺序执行，images 只要求 translate_facts 成功",
+    "前置事实翻译只收集采集属性、SKU 与富文本事实，不收集 manualOverrides.ozonAttributes，也不提前写整商品 translationsDone",
+    "最终 translate 收集补参生成的普通非字典中文文本属性并保持现有发布自愈能力",
+    "补参优先使用译文表中与目标属性相关的俄语值调用官方字典搜索，结果仍受 60 条和总 token 预算约束",
+    "搜索无查询词、无结果、接口失败或宿主未实现搜索时回退现有全量字典拉取",
+    "网页任务账本支持 translate_facts 独立执行、查询和展示，新任务类型通过 SQL 白名单与 executor 注册",
+    "engine 专项测试、类型与依赖守卫以及主题工作流守卫通过，vendor sourceCommit 与源码提交一致"
+  ],
+  "verification": [
+    {
+      "name": "双阶段翻译与字典搜索专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/product-text-translation.test.ts tests/ai-attribute-fill-dictionaries.test.ts tests/listing-workflow-graph.test.ts tests/listing-workflow-contract.test.ts"
+    },
+    {
+      "name": "Engine 类型与依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && node scripts/check-unified-listing-workflow.mjs"
+    },
+    {
+      "name": "主题工作流与任务类型守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs && rg -q \"translate_facts\" database/tasks.sql server/tasks/executors.ts && git diff --check"
+    }
+  ]
+}
