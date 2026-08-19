@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-asset-upload-contract",
+  "title": "统一 Qingpu 图片上传资产合同并增加门禁",
+  "problem": "Qingpu 的 Studio 与轻量创作工具仍有入口直接调用 APay /api/users/upload，只得到裸 URL 而不登记 qingpu_assets；不同业务上传还重复实现文件校验、托管和来源字段，无法保证上传素材实时进入统一资源库。",
+  "expectedOutcome": "Qingpu 创作工具通过统一受鉴权上传 API 完成服务端文件签名校验、AINode 托管、稳定 assetId 和 qingpu_assets 登记；图片与视频生成入口优先消费资产身份；机器门禁阻止新增裸 URL 上传和绕过统一服务的实现。",
+  "constraints": [
+    "资产身份、来源和媒体语义只落 Qingpu 私有 qingpu_assets，不修改 APay 核心 Schema",
+    "media_type 只使用 image 或 video；用户上传来源使用 meta.source=upload，具体场景使用 context/mode 表达",
+    "当前 AINode 只有已确认的图片托管合同，本任务不伪造本地视频文件上传；AI 视频产物继续以 media_type=video 写入资产表",
+    "上传必须在服务端校验 MIME、文件签名和大小，浏览器 accept 与文件扩展名不作为安全边界",
+    "不覆盖 Studio 交互简化任务已有未提交 UI 改动；StudioMediaSourcePicker 的存量裸上传仅作为门禁中的单文件显式基线，禁止新增第二处",
+    "不修改数据库结构，不物理删除存量文件或资产，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "package.json"
+      ],
+      "claims": [
+        "package.json"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/assets/upload.post.ts",
+        "api/tools/image-edit/generate.ts",
+        "api/tools/video/generate.ts",
+        "api/tools/ecommerce-image/generate.ts",
+        "components/ImageEditStudio.vue",
+        "components/VideoGenerationStudio.vue",
+        "pages/ecommerce-image.vue",
+        "server/assets/user-media-upload.ts",
+        "scripts/check-asset-upload-contract.mjs"
+      ],
+      "claims": [
+        "api/assets/upload.post.ts",
+        "api/tools/image-edit/generate.ts",
+        "api/tools/video/generate.ts",
+        "api/tools/ecommerce-image/generate.ts",
+        "components/ImageEditStudio.vue",
+        "components/VideoGenerationStudio.vue",
+        "pages/ecommerce-image.vue",
+        "server/assets/user-media-upload.ts",
+        "scripts/check-asset-upload-contract.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "轻量单图编辑、视频首帧和电商图片的本地图片上传返回稳定 assetId、hosted URL 和媒体类型，并实时出现在 qingpu_assets",
+    "上传资产统一记录 source=upload、context、原文件名、MIME、字节数和本地执行引用，失败状态可追踪",
+    "图片编辑与视频生成接口按当前用户校验 referenceAssetId，不允许引用其他用户或非 hosted 图片资产",
+    "Qingpu 业务上传门禁禁止新增 /api/users/upload 直连，且统一 API 必须调用资产上传服务",
+    "门禁保留的唯一 StudioMediaSourcePicker 存量例外数量固定为 1，不允许扩散",
+    "专项门禁与范围格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 资产上传合同门禁",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:qingpu-asset-upload-contract"
+    },
+    {
+      "name": "上传规范范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/assets/upload.post.ts api/tools/image-edit/generate.ts api/tools/video/generate.ts api/tools/ecommerce-image/generate.ts components/ImageEditStudio.vue components/VideoGenerationStudio.vue pages/ecommerce-image.vue server/assets/user-media-upload.ts scripts/check-asset-upload-contract.mjs"
+    }
+  ]
+}

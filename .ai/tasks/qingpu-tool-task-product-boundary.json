@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-tool-task-product-boundary",
+  "title": "修复独立创作工具任务的商品边界",
+  "problem": "独立图片与视频工具使用虚拟 product_id 归档任务和资产，但任务 Runner 将所有非空 product_id 都当作 Listing 商品校验，导致工具任务在执行前以‘任务对应商品不存在’失败；图片工具 ID 还会重复添加 tool: 前缀。",
+  "expectedOutcome": "已注册的独立图片与视频工具任务可使用虚拟 product_id 执行，真实 Listing 任务继续严格校验商品存在性；新生成的工具 ID 始终只有一个 tool: 前缀，历史重复前缀任务仍可重试。",
+  "constraints": [
+    "只豁免显式注册的 tool_image_generate 与 tool_video_generate，不按 product_id 字符串前缀放行",
+    "未知和未来任务默认继续要求真实 Listing 商品",
+    "不修改数据库结构，不迁移或删除历史任务和资产",
+    "保留工具任务现有虚拟 product_id 租约与资产归档语义",
+    "不修改任务轮询响应合同或重试接口",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/assets/image-generate.ts",
+        "server/assets/tool-product-id.ts",
+        "server/tasks/shared.ts",
+        "server/tasks/runner.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ],
+      "claims": [
+        "server/assets/image-generate.ts",
+        "server/assets/tool-product-id.ts",
+        "server/tasks/shared.ts",
+        "server/tasks/runner.ts",
+        "scripts/check-task-runner-concurrency.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "tool_image_generate 与 tool_video_generate 不因虚拟 product_id 缺少 Listing 商品行而失败",
+    "Listing 图片、视频、文案、发布及未知任务仍校验真实商品存在性",
+    "buildToolProductId 对裸 scope、已带 tool: 和重复 tool: 前缀均输出单一规范 ID",
+    "历史 tool:tool:* 失败任务无需数据迁移即可走现有重试接口重新执行",
+    "任务 Runner 专项守卫与 Nuxt 类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "工具任务商品边界专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-runner-concurrency.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

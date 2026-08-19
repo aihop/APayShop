@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "main": "index.js",
   "scripts": {
-    "prebuild": "npm run check:qingpu-listing-publish-facts && npm run check:qingpu-listing-layout && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate",
+    "prebuild": "npm run check:qingpu-listing-publish-facts && npm run check:qingpu-listing-layout && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate && npm run check:qingpu-asset-upload-contract",
     "build": "node scripts/run-nuxt-build.mjs",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
     "predev": "node scripts/reset-theme-manifest.mjs && node scripts/generate-theme-build.mjs --all",
@@ -35,7 +35,8 @@
     "check:qingpu-listing-layout": "node app/themes/qingpu/scripts/check-listing-layout.mjs",
     "check:qingpu-employee-access-gate": "node app/themes/qingpu/scripts/check-employee-access-gate.mjs",
     "check:qingpu-quota-gate": "node app/themes/qingpu/scripts/check-quota-gate.mjs",
-    "check:qingpu-table-ownership": "node app/themes/qingpu/scripts/check-table-ownership.mjs"
+    "check:qingpu-table-ownership": "node app/themes/qingpu/scripts/check-table-ownership.mjs",
+    "check:qingpu-asset-upload-contract": "node app/themes/qingpu/scripts/check-asset-upload-contract.mjs"
   },
   "keywords": [],
   "author": "",
