@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-unified-listing-workflow-ledger",
+  "title": "统一三端 Listing 工作流与执行账本",
+  "problem": "网页、扩展和桌面端只共享部分工作流节点，内容准备仍由多个入口手写编排；云端任务行同时承担逻辑任务、当前执行与历史，重试会覆盖失败证据，页面也无法区分从未执行、已执行未补齐和业务完成。",
+  "expectedOutcome": "AI 补参、事实翻译、上架文案和生图由共享 Workflow Registry 生成统一计划，三端提交云端权威账本；每次执行新增不可覆盖 Attempt，逐项结果可审计，页面消费统一状态投影；删除覆盖式重试、重复编排和本地内容准备权威账本职责，并以机器门禁防止回退。",
+  "constraints": [
+    "共享工作流节点、依赖、完成判据与结果语义只在 qingpu-ai Engine 定义",
+    "qingpu_tasks 保留为 Task Run 当前汇总，新增 Workflow Run 与不可变 Task Attempt；重试只新增 Attempt，不覆盖历史",
+    "qingpu_task_items 承载属性、SKU 与图片槽位逐项结果，已有远程图片凭据与防重复扣费语义必须保留",
+    "不同商品并行、单商品串行、图片槽位独立并行和租约恢复语义保持有效",
+    "扩展与桌面端本地存储可保留采集、本地图片处理缓存和远程续领凭据，但不得继续作为 Listing 内容准备权威账本",
+    "未上线代码不保留旧编排兼容层，不新增同义状态或第二套 Registry",
+    "不修改 Studio 项目编排、正式发布事务、支付入账或生产数据",
+    "中文、英文、俄文状态文案同步，不引入新依赖",
+    "保留三个仓库中与本任务无关的既有脏改动，不整理、不覆盖、不混提"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md",
+        "app/themes/qingpu"
+      ],
+      "claims": [
+        "content/docs/12.qingpu-listing-products.md",
+        "content/zh/docs/12.qingpu-listing-products.md",
+        "app/themes/qingpu"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/tasks.sql",
+        "server/tasks/**",
+        "server/listing/readiness.ts",
+        "api/listing/tasks/**",
+        "api/listing/blueprint.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "pages/user/listing/components/useWorkspaceDetailSkuTable.ts",
+        "pages/user/listing/layout.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "scripts/apply-qingpu-sql.mjs",
+        "scripts/check-table-ownership.mjs",
+        "scripts/check-unified-listing-workflow.mjs",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "database/tasks.sql",
+        "server/tasks/**",
+        "server/listing/readiness.ts",
+        "api/listing/tasks/**",
+        "api/listing/blueprint.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "pages/user/listing/components/useWorkspaceDetailSkuTable.ts",
+        "pages/user/listing/layout.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "scripts/apply-qingpu-sql.mjs",
+        "scripts/check-table-ownership.mjs",
+        "scripts/check-unified-listing-workflow.mjs",
+        "server/vendor/qingpu-engine/**"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/**",
+        "src/shared/listing-workflow-client.ts",
+        "src/shared/task-ledger.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/listing-workflow-contract.test.ts",
+        "tests/task-ledger.test.ts",
+        "tests/task-scheduler.test.ts",
+        "tests/automation-ledger-settle.test.ts",
+        "tests/task-recovery-generation.test.ts",
+        "docs/task-system.md",
+        "docs/registry-catalog.md",
+        "docs/prompts-inventory.md",
+        "scripts/check-unified-listing-workflow.mjs",
+        "package.json"
+      ],
+      "claims": [
+        "src/app/workflows/**",
+        "src/shared/listing-workflow-client.ts",
+        "src/shared/task-ledger.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/listing-workflow-contract.test.ts",
+        "tests/task-ledger.test.ts",
+        "tests/task-scheduler.test.ts",
+        "tests/automation-ledger-settle.test.ts",
+        "tests/task-recovery-generation.test.ts",
+        "docs/task-system.md",
+        "docs/registry-catalog.md",
+        "docs/prompts-inventory.md",
+        "scripts/check-unified-listing-workflow.mjs",
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "共享 Registry 是 Listing 内容准备节点、依赖、taskType、结果与完成判据的唯一事实源，新增步骤不要求页面或 API 再写映射",
+    "网页、扩展与桌面端通过同一云端 API 创建 Workflow Run，并获得同一状态投影",
+    "每次领取或人工重试都新增 qingpu_task_attempts 记录，旧状态、错误、起止时间和结果不可被覆盖",
+    "AI 补参逐项记录候选的 filled、skipped 或 rejected 结果及原因摘要；任务成功和业务完整度分离",
+    "AI 补参执行后页面能显示从未执行、执行中、已执行未补齐、已补齐和失败，不再把已执行未补齐显示为未执行",
+    "任务列表 API 返回最新 Attempt、执行次数、标准结果摘要和业务准备状态",
+    "不同商品并行、单商品串行、图片槽位并行、暂停恢复、远程续领与幂等提交保持通过",
+    "本地 qingpu_task_ledger 不再编排或记录 Listing 内容准备步骤，相关旧 Pipeline 调用被删除",
+    "机器门禁拒绝页面本地 taskType 映射、API 手写依赖链、覆盖式重试和本地内容准备账本回归",
+    "三端类型检查、相关测试、主题专项守卫及 APay 构建通过"
+  ],
+  "verification": [
+    {
+      "name": "共享工作流专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-graph.test.ts tests/listing-workflow-contract.test.ts tests/task-ledger.test.ts tests/task-scheduler.test.ts tests/automation-ledger-settle.test.ts tests/task-recovery-generation.test.ts"
+    },
+    {
+      "name": "共享工作流防漂移门禁",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs"
+    },
+    {
+      "name": "Engine 类型与依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps"
+    },
+    {
+      "name": "主题统一工作流门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs"
+    },
+    {
+      "name": "任务并发与控制回归",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-task-runner-concurrency.mjs && node --experimental-strip-types scripts/check-task-controls.mjs"
+    },
+    {
+      "name": "主题表所有权与格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-table-ownership.mjs && git diff --check"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    }
+  ]
+}
