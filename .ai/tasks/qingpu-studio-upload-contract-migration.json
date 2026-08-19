@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-upload-contract-migration",
+  "title": "迁移 Studio 上传消费者到统一资产协议",
+  "problem": "Studio 上传已经调用统一资产服务，但项目创建消费者仍校验旧的 studio_upload mode/source，上传适配器因此暂时保留了一次兼容二次写入。",
+  "expectedOutcome": "Studio 项目创建直接校验统一 source=upload 与 context/role，上传适配器不再覆盖统一资产元数据，门禁禁止旧 studio_upload 协议回归。",
+  "constraints": [
+    "只迁移 Studio 上传资产识别合同，不改项目表、生成任务或页面交互",
+    "保留 kind=studio_reference、media_type=image、hosted 和 role 一致性校验",
+    "不迁移历史资产；当前功能尚未发布，统一协议从本次代码生效",
+    "不提交、不推送、不发布生产"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-asset-upload-contract.mjs",
+        "server/studio/service.ts",
+        "server/studio/upload.ts"
+      ],
+      "claims": [
+        "scripts/check-asset-upload-contract.mjs",
+        "server/studio/service.ts",
+        "server/studio/upload.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Studio 项目创建接受统一上传服务产生的 product/style reference 资产",
+    "Studio 上传适配器只调用一次统一上传服务，不再二次 upsert 旧协议",
+    "门禁禁止 server/studio 恢复 studio_upload source/mode",
+    "专项门禁与格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 全媒体上传合同门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-asset-upload-contract.mjs"
+    },
+    {
+      "name": "Studio 上传协议格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- scripts/check-asset-upload-contract.mjs server/studio/service.ts server/studio/upload.ts"
+    }
+  ]
+}
