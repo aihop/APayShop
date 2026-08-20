@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-orchestration-debt",
+  "title": "收口上品任务编排的重试级联、重复入队与旧代码",
+  "problem": "统一编排落地后仍有三处结构性缺口:重试失败任务不刷新 workflow run、也不复活被自动阻断的下游;工作流 dedupe key 内嵌 runId 导致 already_active 去重永远不生效;启动自检只校验表和列,漏掉枚举型 CHECK 取值集,translate_facts 因此长期入队即回滚而前端只显示「跳过」。另有 image_review→sync 存储替身、零调用方函数与手抄漂移的节点类型联合等旧代码。",
+  "expectedOutcome": "重试可恢复整条链并同步 run 投影;同商品同节点只允许一条活动任务,重复入队复用在飞 run 而不是新建;启动自检覆盖 qingpu_tasks 类型取值集与活动任务唯一索引;网页、插件、桌面三端共用同一份 HTTP 契约与引擎节点词汇,旧替身与死代码清除。",
+  "constraints": [
+    "不修改 qingpu-ai 源码,不执行 engine:release(该仓有并行会话的大量未提交改动)",
+    "节点词汇一律从 @qingpu-vendor/qingpu-engine 导入,主题不得重定义",
+    "不得破坏 /api/qingpu/listing/tasks/enqueue 与 /workflow 的既有契约:插件端 enqueueCloudListingWorkflow 依赖返回非空 workflowRunIds",
+    "不提交、不推送、不部署、不执行数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/blueprint.ts",
+        "api/listing/tasks/enqueue.ts",
+        "database/tasks.sql",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "pages/user/listing/components/useWorkspaceDetailSkuTable.ts",
+        "pages/user/listing/products.vue",
+        "scripts/check-unified-listing-workflow.mjs",
+        "server/db/pg.ts",
+        "server/tasks/queue.ts",
+        "server/tasks/runner.ts",
+        "server/tasks/shared.ts",
+        "server/tasks/workflows.ts"
+      ],
+      "claims": [
+        "api/listing/blueprint.ts",
+        "api/listing/tasks/enqueue.ts",
+        "database/tasks.sql",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "pages/user/listing/components/useWorkspaceDetailSkuTable.ts",
+        "pages/user/listing/products.vue",
+        "scripts/check-unified-listing-workflow.mjs",
+        "server/db/pg.ts",
+        "server/tasks/queue.ts",
+        "server/tasks/runner.ts",
+        "server/tasks/shared.ts",
+        "server/tasks/workflows.ts"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "package.json"
+      ],
+      "claims": [
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "重试失败任务时同事务复活从未执行过的被阻断下游,并刷新所属 workflow run 投影",
+    "同一 user+product 的 translate_facts/attributes/translate/copy/blueprint 至多一条活动任务,由部分唯一索引担保",
+    "命中活动任务时 enqueueListingWorkflow 不新建 run,返回在飞 run id 与 already_active,插件端仍能拿到非空 workflowRunIds",
+    "启动自检断言 TASK_EXECUTORS 每个 key 都被 qingpu_tasks_type_check 接受,并断言活动任务唯一索引存在",
+    "image_review 直接以自身类型入库,runner 不再为 type='sync' 特判",
+    "retireObsoleteFailedTask 与 completeTaskMerged 删除,listingTasksFeed 的 workflowNodeKey 改为引擎 ListingWorkflowNodeKey",
+    "生图前置未就绪返回可操作的中文 409,不再泄漏英文 500"
+  ],
+  "verification": [
+    {
+      "name": "统一编排主题守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs"
+    },
+    {
+      "name": "工作区准备项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-workspace-readiness-p0.mjs"
+    },
+    {
+      "name": "主题精确格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "主仓守卫接线",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:qingpu-unified-listing-workflow"
+    }
+  ]
+}
