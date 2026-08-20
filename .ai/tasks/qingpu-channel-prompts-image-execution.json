@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-prompts-image-execution",
+  "title": "Qingpu 渠道提示词图片执行消费",
+  "problem": "图片入队已冻结 ChannelPromptSnapshot，但主题执行适配器未把快照传给 engine 图片模式，engine Prompt Plan 也未在所有模板与回退分支消费快照。",
+  "expectedOutcome": "图片 executor 只消费冻结规格并把快照透传到 engine；engine 在图片 Prompt Plan 最终汇聚点追加管理员策略与最终硬守卫，重试恢复不读取最新数据库配置。",
+  "constraints": [
+    "保留 qingpu-ai 的参考图守卫未提交改动和主题上一租约的图片入口改动，不覆盖、不回退、不混入",
+    "最终安全守卫必须最后追加；管理员策略不能替换模板、商品事实或输出合同",
+    "不新增 executor 数据库查询，不修改 Studio 独立链路",
+    "不手工修改主题 vendor，不 commit、不 push、不迁移数据库"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "tests/channel-prompt-image-execution.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "tests/channel-prompt-image-execution.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/assets/image-generation-contract.ts",
+        "server/listing/image.generate.ts",
+        "tests/channel-prompt-image-execution.test.ts"
+      ],
+      "claims": [
+        "server/assets/image-generation-contract.ts",
+        "server/listing/image.generate.ts",
+        "tests/channel-prompt-image-execution.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "runProductImageGenerationTaskSpec 将冻结 channelPromptSnapshot 传入 engine 图片模式",
+    "engine MainImageGenerateImageModeHandler 将快照传给 buildMainImagePromptPlan",
+    "图片 Prompt Plan 在模板分支和 goal/layout 回退分支都合并渠道正负策略",
+    "engine 最终硬守卫位于管理员策略、视觉预设和任务要求之后",
+    "旧任务没有 channelPromptSnapshot 时保持原图片 Prompt 行为",
+    "图片重试和恢复仍只复用原 taskSpec，不查询 active 配置"
+  ],
+  "verification": [
+    {
+      "name": "Engine 图片执行专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm_config_cache=/private/tmp/qingpu-channel-prompts-npm-cache npx --yes vitest@4.1.11 run tests/channel-prompt-image-execution.test.ts tests/channel-prompts.test.ts"
+    },
+    {
+      "name": "Engine 类型与依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && git diff --check"
+    },
+    {
+      "name": "主题图片执行专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm_config_cache=/private/tmp/qingpu-channel-prompts-npm-cache npx --yes vitest@4.1.11 run tests/channel-prompt-image-execution.test.ts tests/channel-prompts-image-freeze.test.ts"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

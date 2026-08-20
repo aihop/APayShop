@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-prompts-image-freeze",
+  "title": "Qingpu 渠道提示词图片任务冻结收口",
+  "problem": "渠道提示词已具备 engine、存储、管理 API 和视频链路，但 Listing 图片单图与蓝图入队尚未查询 active 策略并冻结 ChannelPromptSnapshot；表所有权基线仍保留两条已修复误报。",
+  "expectedOutcome": "Listing 图片在入队时解析商品渠道、类目 ID、稳定 Profile、用途和基础轮播槽位，冻结 active 渠道提示词快照；旧任务保持兼容；表所有权守卫基线只保留真实存量越界。",
+  "constraints": [
+    "保留 qingpu-ai/src/prompts/hero_visual_consistency.ts 与 qingpu-ai/tests/asset-prompt-contracts.test.ts 未提交改动，不覆盖、不回退、不混入本任务",
+    "不手工修改 server/vendor/qingpu-engine；本任务不执行 engine:release",
+    "图片策略只在任务入队时读取，executor、重试和恢复不得重新查询最新配置",
+    "categoryId 始终按字符串传递，categoryProfileKey 与 slotKey 只由 engine resolver 解析",
+    "不提交、不 push、不迁移数据库"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/images/generate.ts",
+        "api/listing/blueprint.ts",
+        "scripts/table-ownership-baseline.json",
+        "tests/channel-prompts-image-freeze.test.ts"
+      ],
+      "claims": [
+        "api/listing/images/generate.ts",
+        "api/listing/blueprint.ts",
+        "scripts/table-ownership-baseline.json",
+        "tests/channel-prompts-image-freeze.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "单图 image_generate 入队前冻结 ChannelPromptSnapshot 并写入 taskSpec",
+    "蓝图 images workflow 的每个 main、sku、gallery taskSpec 在入队前冻结对应快照",
+    "gallery 槽位使用基础 slotKey；usage-scene::2 归一化由 engine 完成",
+    "无配置时快照为空匹配且图片行为与旧逻辑一致；旧任务无快照仍可执行",
+    "表所有权基线删除 api/listing/blueprint.ts::qingpu_listing_workspaces 与 server/listing/image.refine.ts::qingpu_assets",
+    "图片冻结专项测试、主题专项测试和表所有权守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "图片冻结专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm_config_cache=/private/tmp/qingpu-channel-prompts-npm-cache npx --yes vitest@4.1.11 run tests/channel-prompts-image-freeze.test.ts tests/channel-prompts.test.ts tests/listing-product-video-task.test.ts"
+    },
+    {
+      "name": "主题表所有权守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run check:qingpu-table-ownership"
+    },
+    {
+      "name": "图片改动格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

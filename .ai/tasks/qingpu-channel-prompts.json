@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-prompts",
+  "title": "Qingpu 渠道提示词后台与冻结任务策略",
+  "problem": "Listing 图片与商品视频缺少由管理员按渠道、用途、类目范围和轮播样式配置的安全附加提示词，视频入口仍可提交完整执行 Prompt，任务也未冻结渠道策略版本。",
+  "expectedOutcome": "qingpu-ai 提供 Registry + Factory、匹配合并、安全守卫和图片/视频冻结合同；Qingpu 主题以独立 PostgreSQL 域提供版本化配置、管理 API、审计与后台 UI，并在 Listing 图片和商品视频入队时冻结 active 策略。",
+  "constraints": [
+    "保留 APay、Qingpu 主题和 qingpu-ai 的既有未提交修改，不修改 qingpu-ai/src/prompts/hero_visual_consistency.ts 与 qingpu-ai/tests/asset-prompt-contracts.test.ts",
+    "渠道分发、白名单、轮播样式、类目 Profile、匹配顺序和 Prompt 合并只定义在 qingpu-ai Registry + Factory，主题不得复制",
+    "管理员内容只能追加 positiveInstruction 与 negativeInstruction，不能替换底层 Prompt、协议、Provider 参数或最终安全守卫",
+    "PostgreSQL 配置由 server/channel-prompts 独占；草稿、发布、回滚和停用使用事务、nullable 逻辑唯一键与乐观并发控制",
+    "图片和 Listing 商品视频在入队时冻结 ChannelPromptSnapshot；旧图片任务无快照时保持旧行为，Studio 通用视频链路保持兼容",
+    "不手工修改 server/vendor/qingpu-engine，不 commit、不 push、不执行 engine:release、不发布、不操作生产数据库",
+    "由于本轮未获 engine:release 授权，主题源码对新增 engine 出口的最终接通以生成 vendor 后的验证为发布前置条件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-prompts/**",
+        "src/domain/image-generation-tasks/**",
+        "src/domain/asset-prompts/builder.ts",
+        "src/domain/asset-prompts/types.ts",
+        "src/engine/index.ts",
+        "tests/channel-prompts.test.ts",
+        "tests/image-generation-task-factory.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-prompts/**",
+        "src/domain/image-generation-tasks/**",
+        "src/domain/asset-prompts/builder.ts",
+        "src/domain/asset-prompts/types.ts",
+        "src/engine/index.ts",
+        "tests/channel-prompts.test.ts",
+        "tests/image-generation-task-factory.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/channel-prompts.sql",
+        "server/channel-prompts/**",
+        "api/admin/channel-prompts/**",
+        "admin/components/AdminChannelPromptsDrawer.vue",
+        "admin/pages/channel-products.vue",
+        "server/assets/image-task-spec.ts",
+        "server/assets/video-generate.ts",
+        "server/tasks/executors.ts",
+        "api/listing/videos/generate.ts",
+        "scripts/check-table-ownership.mjs",
+        "tests/channel-prompts.test.ts",
+        "tests/listing-product-video-task.test.ts"
+      ],
+      "claims": [
+        "database/channel-prompts.sql",
+        "server/channel-prompts/**",
+        "api/admin/channel-prompts/**",
+        "admin/components/AdminChannelPromptsDrawer.vue",
+        "admin/pages/channel-products.vue",
+        "server/assets/image-task-spec.ts",
+        "server/assets/video-generate.ts",
+        "server/tasks/executors.ts",
+        "api/listing/videos/generate.ts",
+        "scripts/check-table-ownership.mjs",
+        "tests/channel-prompts.test.ts",
+        "tests/listing-product-video-task.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Ozon image/video 与指定 outputUsage、categoryId、categoryProfileKey、gallery 基础 slotKey 经 Registry + Factory 严格校验，未注册组合明确 unsupported",
+    "匹配按渠道通用、Profile、精确类目、交集从通用到具体追加，gallery 每层先统一策略再独立 slot 策略",
+    "正向与负向策略稳定合并去重，最终安全守卫最后追加且管理员冲突指令不能移除商品保真、证据和结构合同",
+    "数据库每逻辑目标最多一个 draft 和 active，版本单调递增；发布、回滚、停用事务化并保留历史，冲突返回 409",
+    "管理 API 使用 ext:qingpu:channel-products、严格服务端校验并对发布、回滚、停用写管理员操作审计；预览不调用模型或创建任务",
+    "渠道产品页通过独立抽屉完成筛选、单目标草稿、预览、发布、历史、回滚、停用和恢复默认，并显示安全边界",
+    "Listing 图片与 product_video 在入队时冻结 selector、命中策略 ID/版本及合并结果；重试恢复只消费原规格",
+    "Listing 商品视频 API 不再拼完整执行 Prompt；Studio 工具视频仍保持兼容",
+    "数据库无配置和旧图片任务无 channelPromptSnapshot 时行为保持现状"
+  ],
+  "verification": [
+    {
+      "name": "渠道提示词共享合同测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/channel-prompts.test.ts tests/image-generation-task-factory.test.ts"
+    },
+    {
+      "name": "引擎类型与依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && git diff --check"
+    },
+    {
+      "name": "主题渠道提示词专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/channel-prompts.test.ts tests/listing-product-video-task.test.ts"
+    },
+    {
+      "name": "主题表所有权与格式守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run check:qingpu-table-ownership && git -C app/themes/qingpu diff --check"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}
