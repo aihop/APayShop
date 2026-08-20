@@ -202,12 +202,12 @@ export default defineNuxtConfig({
                 let route = file.replace(apiDir, '').replace(/\.ts$/, '')
                 let method: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' | undefined
                 route = route.split(path.sep).join('/')
-                if (route.endsWith('/index')) route = route.replace('/index', '')
                 const methodMatch = route.match(/\.(get|post|put|patch|delete|head|options)$/)
                 if (methodMatch) {
                   method = methodMatch[1] as typeof method
                   route = route.slice(0, -methodMatch[0].length)
                 }
+                if (route.endsWith('/index')) route = route.slice(0, -'/index'.length)
                 route = route
                   .replace(/\/\[\.\.\.[^\]]+\]/g, '/**')
                   .replace(/\/\[([^\]]+)\]/g, '/:$1')

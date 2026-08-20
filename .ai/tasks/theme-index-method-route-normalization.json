@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "theme-index-method-route-normalization",
+  "title": "主题 index 方法路由归一化修复",
+  "problem": "主题 API 扫描器在剥离 .get/.post 方法后缀前判断 /index，导致 index.get.ts 被注册为 /index 路径，渠道提示词 GET 接口实际路由与前端合同不一致。",
+  "expectedOutcome": "所有主题 index.<method>.ts 文件先解析方法后缀、再折叠 /index，渠道提示词 GET 正确注册为 /api/qingpu/admin/channel-prompts。",
+  "constraints": [
+    "保持现有主题 API 双前缀兼容与方法限制",
+    "不改渠道提示词前端请求合同，不影响非 index API",
+    "不 push、不发布、不操作数据库"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "nuxt.config.ts",
+        "scripts/check-theme-api-route-normalization.mjs"
+      ],
+      "claims": [
+        "nuxt.config.ts",
+        "scripts/check-theme-api-route-normalization.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "index.get.ts 归一化为父目录 GET 路由",
+    "普通 draft.post.ts 继续归一化为 /draft POST 路由",
+    "无方法后缀的 index.ts 继续归一化为父目录全方法路由",
+    "渠道提示词 GET 路由不再包含 /index"
+  ],
+  "verification": [
+    {
+      "name": "主题 API 路由归一化守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-theme-api-route-normalization.mjs"
+    },
+    {
+      "name": "主仓格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- nuxt.config.ts scripts/check-theme-api-route-normalization.mjs"
+    }
+  ]
+}
