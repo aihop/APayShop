@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-prompts-standalone-entry",
+  "title": "Qingpu 渠道提示词独立后台入口",
+  "problem": "渠道提示词当前作为渠道产品页内按钮和抽屉出现，信息架构未体现其独立后台配置域。",
+  "expectedOutcome": "后台扩展菜单新增独立的渠道提示词入口和页面，渠道产品页不再展示渠道提示词按钮或组件。",
+  "constraints": [
+    "复用现有 AdminChannelPromptsDrawer 业务组件和 channel-prompts API，不复制配置逻辑",
+    "权限继续使用用户原始要求 ext:qingpu:channel-products",
+    "不修改数据库、engine、vendor，不 push、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "theme.admin.json",
+        "admin/pages/channel-products.vue",
+        "admin/pages/channel-prompts.vue",
+        "admin/components/AdminChannelPromptsDrawer.vue",
+        "tests/channel-prompts-standalone-entry.test.ts"
+      ],
+      "claims": [
+        "theme.admin.json",
+        "admin/pages/channel-products.vue",
+        "admin/pages/channel-prompts.vue",
+        "admin/components/AdminChannelPromptsDrawer.vue",
+        "tests/channel-prompts-standalone-entry.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "theme.admin.json 注册 /admin/extensions/channel-prompts 独立菜单",
+    "独立页面展示渠道提示词标题、安全边界和配置界面",
+    "渠道产品页不再包含渠道提示词按钮、状态或组件",
+    "配置 API、权限和数据模型保持不变"
+  ],
+  "verification": [
+    {
+      "name": "独立入口专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm_config_cache=/private/tmp/qingpu-channel-prompts-npm-cache npx --yes vitest@4.1.11 run tests/channel-prompts-standalone-entry.test.ts tests/channel-prompts.test.ts"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}
