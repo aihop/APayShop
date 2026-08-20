@@ -41,7 +41,7 @@
   ],
   "acceptanceCriteria": [
     "/user/listing 不再重定向，直接展示上品工作台 Dashboard",
-    "Dashboard 展示采集箱、加工箱、待上架、上架记录四阶段真实数量",
+    "Dashboard 展示货源商品、加工箱、待上架、上架记录四阶段真实数量",
     "Dashboard 根据发布风险、待上架、加工中和采集商品计算唯一动态下一步",
     "首次空状态引导用户先跑通一个真实商品，不暴露内部 canonical、workspace、draft 术语",
     "最近商品可直接继续对应阶段，上架记录可从 Dashboard 参数直达",

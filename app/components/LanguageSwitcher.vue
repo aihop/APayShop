@@ -8,6 +8,14 @@
         item: 'px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50',
       }"
     >
+      <template #item="{ item }">
+        <div class="flex w-full items-center gap-1.5">
+          <span class="w-5 shrink-0 text-center text-base leading-none">{{ item.flag }}</span>
+          <span class="flex-1 truncate text-left">{{ item.label }}</span>
+          <UIcon v-if="item.checked" name="ph:check-bold" class="h-4 w-4 shrink-0 text-[#6d4cff]" />
+        </div>
+      </template>
+
       <UButton
         color="neutral"
         variant="ghost"
@@ -73,7 +81,9 @@ const currentLocaleName = computed(() => {
 const dropdownItems = computed(() => {
   return [
     (props.locales || []).map((loc) => ({
-      label: `${getFlag(loc.code)}  ${loc.name || loc.code}`,
+      label: loc.name || loc.code,
+      flag: getFlag(loc.code),
+      checked: props.currentLocale === loc.code,
       onSelect: () => emit('switch', loc.code),
       ...(props.currentLocale === loc.code
         ? { class: 'font-semibold text-gray-900 dark:text-white' }

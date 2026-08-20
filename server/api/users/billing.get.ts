@@ -1,9 +1,10 @@
 import { eq, desc, and, gte, inArray, ne } from 'drizzle-orm'
 import { db } from '../../db/runtime'
-import { users, orders, products } from '../../db/schema'
+import { userWallets, orders, products } from '../../db/schema'
 import { getRequestLocale } from '../../utils/requestLocale'
 import { aggregateOrderAccountingTotals } from '../../utils/orderCurrency'
 import { toIsoTimestamp } from '../../utils/dbTime'
+import { getOrCreateUserWallet } from '../../utils/userWallet'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -23,10 +24,11 @@ export default defineEventHandler(async (event) => {
   const tab = (query.tab as string) || 'pending'
 
   // 1. Get user balance (divide by 10^8 since it's stored as BIGINT)
-  const userRecord: any = await db.select().from(users as any).where(eq(users.id as any, userId)).limit(1)
+  const walletRecord = await getOrCreateUserWallet(Number(userId))
+  const userRecord: any = await db.select().from(userWallets as any).where(eq(userWallets.id as any, walletRecord.id)).limit(1)
 
-  const cash = Number(userRecord[0]?.CashBalance || 0) / 100000000
-  const grant = Number(userRecord[0]?.GrantBalance || 0) / 100000000
+  const cash = Number(userRecord[0]?.cashBalance || 0) / 100000000
+  const grant = Number(userRecord[0]?.grantBalance || 0) / 100000000
   const availableBalance = cash + grant
 
   // 2. Calculate 30D Spend from Orders (amount is real, so no division needed)

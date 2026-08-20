@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-admin-settings-dialogs",
+  "title": "将 Qingpu 后台低频设置收纳到弹层",
+  "problem": "Qingpu 设置页将试用政策、试用申请和 AINode 凭据完整纵向展开，低频设置长期占用大面积并造成页面信息密度过高。",
+  "expectedOutcome": "设置首页仅展示三个带状态摘要的入口卡片，点击后在大尺寸弹层中完成原有政策编辑、申请审核和凭据维护，所有数据合同与业务行为保持不变。",
+  "constraints": [
+    "只调整后台设置页的展示结构和弹层状态",
+    "不修改设置 API、试用政策字段、审核行为或凭据合同",
+    "保留原有校验、提示、暗色模式和移动端滚动能力",
+    "不引入新依赖，不提交、不推送",
+    "保留并避免覆盖工作区内其他任务的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/settings.vue"
+      ],
+      "claims": [
+        "admin/pages/settings.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "设置首页不再直接展开三块大型设置内容",
+    "三个入口展示当前状态或数量并可打开对应弹层",
+    "试用政策仍可完整编辑和保存",
+    "试用申请仍可查看、批准、重试和拒绝",
+    "AINode Token 仍可保存、清除和刷新"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 设置专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-trial-policy-flow.mjs && node scripts/check-trial-policy-settings.mjs && node scripts/check-ainode-tenant-token-setting.mjs"
+    },
+    {
+      "name": "设置页模板、类型与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck && git diff --check -- app/themes/qingpu/admin/pages/settings.vue"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-store-form-modal",
+  "title": "将 Qingpu 店铺接入封装为通用弹层",
+  "problem": "顶部店铺菜单的添加入口会先跳转店铺管理页再打开表单，新增与编辑表单也内嵌在页面中，导致跨入口复用困难且操作被页面跳转打断。",
+  "expectedOutcome": "新增与编辑店铺统一复用独立弹层组件；从顶部店铺菜单添加店铺时原地弹出表单，成功后刷新全局店铺状态，不再跳转店铺管理页。",
+  "constraints": [
+    "只调整用户端店铺表单组件、店铺菜单和店铺管理页",
+    "不修改店铺 API、凭证协议、权限口径或数据结构",
+    "保留现有新增、编辑、提示、暗色模式和多语言文案",
+    "店铺列表与全局当前店铺状态在新增或编辑成功后保持同步",
+    "不引入新依赖，不提交、不推送",
+    "保留并避免覆盖工作区内其他任务的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/QingpuStoreFormModal.vue",
+        "components/QingpuStoreMenu.vue",
+        "pages/user/stores.vue"
+      ],
+      "claims": [
+        "components/QingpuStoreFormModal.vue",
+        "components/QingpuStoreMenu.vue",
+        "pages/user/stores.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "顶部店铺菜单点击添加店铺后在当前页面直接打开接入弹层",
+    "新增成功后弹层关闭且顶部店铺列表立即刷新",
+    "店铺管理页的新增和编辑继续使用相同行为与校验",
+    "编辑入口仍跳转店铺管理页并自动打开对应店铺",
+    "员工店铺管理权限限制保持不变"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 店铺弹层类型与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck && git diff --check -- app/themes/qingpu/components/QingpuStoreFormModal.vue app/themes/qingpu/components/QingpuStoreMenu.vue app/themes/qingpu/pages/user/stores.vue"
+    }
+  ]
+}

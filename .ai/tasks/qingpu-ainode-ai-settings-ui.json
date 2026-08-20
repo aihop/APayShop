@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ainode-ai-settings-ui",
+  "title": "展示 AINode 分组与模型参考价格",
+  "problem": "Qingpu 后台 AI 租户连接弹层尚未展示 AINode 返回的分组和模型价格。",
+  "expectedOutcome": "设置页根据服务端响应展示连接状态、当前与可选 Key Group、模型倍率以及 token、按次和按秒最终参考价格。",
+  "constraints": [
+    "只展示 AINode effective 价格字段，不在前端重算倍率",
+    "不把 Key Group 作为 Qingpu 本地设置保存",
+    "保留现有 Token 与 Base URL 管理能力",
+    "不提交、不推送，不覆盖其他任务改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/settings.vue"
+      ],
+      "claims": [
+        "admin/pages/settings.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "入口卡展示当前分组与模型数量",
+    "弹层可选择并保存 AINode 返回的分组",
+    "token 模型展示输入输出与缓存最终价格",
+    "request 模型展示按次或按秒最终价格",
+    "AINode 错误有明确提示且不影响连接凭据维护"
+  ],
+  "verification": [
+    {
+      "name": "设置页专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-ainode-ai-settings.mjs && node scripts/check-ainode-tenant-token-setting.mjs"
+    },
+    {
+      "name": "设置页模板与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileTemplate}=require('@vue/compiler-sfc');const file='app/themes/qingpu/admin/pages/settings.vue';const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]\" && git diff --check -- app/themes/qingpu/admin/pages/settings.vue"
+    }
+  ]
+}

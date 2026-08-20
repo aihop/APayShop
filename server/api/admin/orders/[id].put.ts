@@ -10,7 +10,10 @@ import { readMinimalCheckoutBridgeMeta } from '../../../../app/themes/minimal/se
 import { fulfillMinimalCheckoutRelay } from '../../../../app/themes/minimal/server/checkout/fulfillment'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { setAuditMeta } from '../../../utils/auditLog'
-import { clawbackTopup } from '../../../utils/balance'
+import { refundTopup, settlePaidTopup } from '../../../utils/topupLedger'
+import { recoverCreditedApayTopup } from '../../../utils/apayTopupFulfillment'
+import { fulfillPaidTrialOrder } from '../../../../app/themes/qingpu/server/trials/pass'
+import { markQingpuTrialPaymentReceived, QINGPU_TRIAL_ORDER_SOURCE } from '../../../utils/qingpuTrialOrders'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -48,23 +51,32 @@ export default defineEventHandler(async (event) => {
 
   // 2. If payStatus changed to 'paid', trigger fulfillment + webhook
   const wasAlreadyPaid = existing.length > 0 && existing[0].payStatus === ORDER_PAY_STATUS.PAID
-  if (body.payStatus === ORDER_PAY_STATUS.PAID && !wasAlreadyPaid) {
+  if (body.payStatus === ORDER_PAY_STATUS.PAID) {
     const updatedOrder = result[0]
-    await createOrderAttribution({
-      orderId: id,
-      buyerUserId: updatedOrder?.userId,
-      metaData: updatedOrder?.metaData,
-    })
     const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(updatedOrder?.metaData))
-    const fulfilledOrder = isMinimalRelay
-      ? await fulfillMinimalCheckoutRelay(id)
-      : await fulfillOrder(id)
-    if (fulfilledOrder) {
-      await settlePromoCommission(id)
-      if (isMinimalRelay) {
-        await deliverMinimalCheckoutPaid(fulfilledOrder)
-      } else {
-        await dispatchEvent('order.paid', fulfilledOrder)
+    const isApayTopup = readMinimalCheckoutBridgeMeta(updatedOrder?.metaData)?.attach?.walletOwner === 'apay'
+    if (!wasAlreadyPaid) {
+      await createOrderAttribution({
+        orderId: id,
+        buyerUserId: updatedOrder?.userId,
+        metaData: updatedOrder?.metaData,
+      })
+    }
+    if (updatedOrder?.source === QINGPU_TRIAL_ORDER_SOURCE) {
+      const next = await markQingpuTrialPaymentReceived(id)
+      if (next === 'ready') await fulfillPaidTrialOrder(id)
+    } else if (isApayTopup) {
+      await settlePaidTopup(id)
+      await recoverCreditedApayTopup(id)
+    } else if (!wasAlreadyPaid) {
+      const fulfilledOrder = isMinimalRelay ? await fulfillMinimalCheckoutRelay(id) : await fulfillOrder(id)
+      if (fulfilledOrder) {
+        await settlePromoCommission(id)
+        if (isMinimalRelay) {
+          await deliverMinimalCheckoutPaid(fulfilledOrder)
+        } else {
+          await dispatchEvent('order.paid', fulfilledOrder)
+        }
       }
     }
   }
@@ -73,16 +85,11 @@ export default defineEventHandler(async (event) => {
   //    退款只退了钱,余额里那份还在——不回收等于白送。只处理确实入过账的充值单
   //    (clawbackTopup 会核对 topup 流水存在与否),幂等键 refund:<orderId>,
   //    重复标记退款不会重复扣。
-  const wasRefunded = existing.length > 0 && existing[0].payStatus === ORDER_PAY_STATUS.REFUNDED
-  if (body.payStatus === ORDER_PAY_STATUS.REFUNDED && !wasRefunded) {
+  if (body.payStatus === ORDER_PAY_STATUS.REFUNDED) {
     const refundedOrder = result[0]
     if (refundedOrder?.userId) {
       try {
-        const clawback = await clawbackTopup({
-          userId: Number(refundedOrder.userId),
-          orderId: id,
-          remark: `订单退款回收 ${id}`,
-        })
+        const clawback = await refundTopup(id)
         if (clawback.shortfall > 0) {
           // 用户已经花掉了这笔余额,扣不回来的部分需要人工跟进(不制造负余额)
           console.warn(`[Balance] refund clawback short by ${clawback.shortfall} for order ${id} (user ${refundedOrder.userId})`)

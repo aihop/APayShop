@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-task-strategy-state-machine",
+  "title": "统一上品任务策略与实时推荐状态机",
+  "problem": "当前任务策略按省钱/生图分裂，推荐下一步又散落在网页并混用历史失败、局部 readiness 与最近任务列表，导致策略关闭流程时伪造完成、推荐动作与商品实时状态不一致。",
+  "expectedOutcome": "共享 Engine 提供单一自动/手动流程策略、旧配置兼容归一、策略化自动计划与实时推荐选择器；策略只控制自动执行，不改变真实 readiness，显式单项重跑不受策略限制。",
+  "constraints": [
+    "不修改正在并行重构的 Engine 设置类型、TaskStrategyModal 或出口文件",
+    "不改变工作流节点依赖语义与持久化任务状态字面量",
+    "旧 cost/generate 和 aiAttributeFill 只用于兼容读取，新共享策略不产生省钱模式",
+    "不提交、不推送、不发布 vendor"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "单一任务策略覆盖事实翻译、AI 补参、补参结果翻译、上架文案和图片生成的 auto/manual",
+    "旧 aiAttributeFill=false 兼容归一为 attributeFill=manual，不伪造 attributes readiness",
+    "组合意图只自动计划 auto 节点，显式单节点意图无论策略为何都可重跑",
+    "推荐优先返回当前商品的活跃任务，再依据真实 readiness、依赖状态和策略选择动作",
+    "已完成 readiness 不受历史失败影响；全为手动缺口时明确返回人工处理而非完成"
+  ],
+  "verification": [
+    {
+      "name": "工作流状态机测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-graph.test.ts"
+    },
+    {
+      "name": "Engine 精确格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/app/workflows/listing-workflow-graph.ts tests/listing-workflow-graph.test.ts"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ozon-safe-default-rules",
+  "title": "收口 Ozon 安全确定性默认规则",
+  "problem": "Ozon 原产国和商品件数默认规则散落在 AI 工作流，原产国无来源平台与进口反证保护，且品牌仍被缺口判断误认为总能自动填充。",
+  "expectedOutcome": "共享领域规则仅对国内平台、无海外反证的商品默认中国；无多件装信号时默认件数 1；没有来源品牌时保持为待补参数。",
+  "constraints": [
+    "仅实施第一批确定性规则，不修改数据库、店铺白牌开关或 VAT 策略",
+    "原产国仅对 1688、淘宝、拼多多来源默认中国，存在进口或海外制造反证时不得默认",
+    "商品件数仅在没有多件装或套装信号时默认 1",
+    "已有人工覆盖与明确清空优先，字典属性必须命中带 ID 的当前候选",
+    "保留当前其他未提交内容，不修改品牌切片和国际化文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/engine/index.ts",
+        "tests/ai-attribute-fill-dictionaries.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/engine/index.ts",
+        "tests/ai-attribute-fill-dictionaries.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "1688、淘宝和拼多多商品在无海外反证且官方字典含中国时自动填写中国及其字典 ID",
+    "进口标题或非中国原产国、产地、生产国、制造国属性阻止中国默认值",
+    "没有多件装信号时商品件数默认 1，存在多件装或套装信号时不默认",
+    "人工覆盖和明确清空不被默认规则覆盖",
+    "没有来源值的必填品牌继续进入补参数流程",
+    "共享引擎导出确定性默认规则入口"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 确定性默认规则测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ai-attribute-fill-dictionaries.test.ts tests/ozon-attribute-mapping.test.ts"
+    },
+    {
+      "name": "共享引擎依赖边界检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "声明文件补丁格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/domain/channel-mappers/ozon/default-rules.ts src/app/workflows/ai-attribute-fill-workflow.ts src/engine/index.ts tests/ai-attribute-fill-dictionaries.test.ts"
+    }
+  ]
+}

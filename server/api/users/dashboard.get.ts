@@ -1,4 +1,4 @@
-import { users, orders, products } from "../../db/schema"
+import { users, userWallets, orders, products } from "../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from "../../utils/requestLocale"
@@ -12,8 +12,14 @@ export default defineEventHandler(async (event) => {
   
   const userId = session.user.id
 
-  // 1. 获取用户信息 (包含余额等)
-  const userRecords = await db.select().from(users as any).where(eq(users.id as any, userId))
+  // 1. 获取用户与钱包信息
+  const userRecords = await db.select({
+    createdAt: users.createdAt,
+    cashBalance: userWallets.cashBalance,
+    grantBalance: userWallets.grantBalance,
+  }).from(users)
+    .leftJoin(userWallets, eq(userWallets.userId, users.id))
+    .where(eq(users.id, userId))
   const user: any = userRecords[0]
 
   // 2. 获取订单统计
@@ -42,8 +48,8 @@ export default defineEventHandler(async (event) => {
   return {
     code: 0,
     data: {
-      createdAt: user.CreatedAt || user.createdAt || null,
-      cashBalance: (Number(user.CashBalance || 0) + Number(user.GrantBalance || 0)) / 100000000,
+      createdAt: user.createdAt || null,
+      cashBalance: (Number(user.cashBalance || 0) + Number(user.grantBalance || 0)) / 100000000,
       stats: {
         totalOrders,
         paidOrders,

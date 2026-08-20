@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-interaction-simplification",
+  "title": "精简 Qingpu Studio 页面与交互",
+  "problem": "Studio 各页面重复解释较多、首屏层级偏重、选项密度高且关键下一步不够突出，增加了用户理解和完成任务的成本。",
+  "expectedOutcome": "Studio 以用户任务为中心呈现更短的信息层级、更直接的选择反馈和始终清晰的下一步，同时保持现有能力、接口与任务行为不变。",
+  "constraints": [
+    "只修改 Studio 用户页面、局部组件和局部三语文案",
+    "不修改 API、服务端、数据库、任务合同、费用或生成行为",
+    "不改动已有未提交的 Studio AGENTS.md 与 PRODUCT_SPEC.md",
+    "保留桌面、窄屏、暗色模式和键盘可访问性",
+    "不引入新依赖，不提交、不推送",
+    "保留并避免覆盖工作区内其他任务的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/studio/layout.vue",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/single-edit.vue",
+        "pages/user/studio/video-gen.vue",
+        "pages/user/studio/compliance.vue",
+        "pages/user/studio/projects/index.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/StudioAssetUpload.vue",
+        "pages/user/studio/components/StudioMediaSourcePicker.vue",
+        "pages/user/studio/components/StudioModeCard.vue",
+        "pages/user/studio/components/StudioProjectCard.vue",
+        "pages/user/studio/components/WorkbenchSection.vue",
+        "pages/user/studio/locales/zh.ts",
+        "pages/user/studio/locales/en.ts",
+        "pages/user/studio/locales/ru.ts"
+      ],
+      "claims": [
+        "pages/user/studio/layout.vue",
+        "pages/user/studio/index.vue",
+        "pages/user/studio/single-edit.vue",
+        "pages/user/studio/video-gen.vue",
+        "pages/user/studio/compliance.vue",
+        "pages/user/studio/projects/index.vue",
+        "pages/user/studio/projects/[id].vue",
+        "pages/user/studio/components/StudioAssetUpload.vue",
+        "pages/user/studio/components/StudioMediaSourcePicker.vue",
+        "pages/user/studio/components/StudioModeCard.vue",
+        "pages/user/studio/components/StudioProjectCard.vue",
+        "pages/user/studio/components/WorkbenchSection.vue",
+        "pages/user/studio/locales/zh.ts",
+        "pages/user/studio/locales/en.ts",
+        "pages/user/studio/locales/ru.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "进入 Studio 各工作台后可在首屏理解当前任务并直接开始",
+    "重复的说明、徽标和装饰层级明显减少，核心输入与主操作更突出",
+    "选项具备清晰的选中、禁用、数量和可用状态反馈",
+    "桌面端保持高效双栏，窄屏没有横向溢出且主操作容易触达",
+    "项目记录、合规与详情页保留现有数据和操作能力"
+  ],
+  "verification": [
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Studio 范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/studio/layout.vue pages/user/studio/index.vue pages/user/studio/single-edit.vue pages/user/studio/video-gen.vue pages/user/studio/compliance.vue pages/user/studio/projects/index.vue 'pages/user/studio/projects/[id].vue' pages/user/studio/components/StudioAssetUpload.vue pages/user/studio/components/StudioMediaSourcePicker.vue pages/user/studio/components/StudioModeCard.vue pages/user/studio/components/StudioProjectCard.vue pages/user/studio/components/WorkbenchSection.vue pages/user/studio/locales/zh.ts pages/user/studio/locales/en.ts pages/user/studio/locales/ru.ts"
+    }
+  ]
+}

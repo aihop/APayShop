@@ -30,6 +30,13 @@ json_tags_case_style: camel
 
 API 与前端统一 camelCase；手写 db struct 不得重复定义 sqlc 模型。
 
+### 1.4 用户与钱包
+
+- `users` 只承载 APay 身份与登录状态；资金、钱包状态、套餐等级和订阅到期时间归 `user_wallets`。
+- APay 当前每个用户只有一个本地钱包，`user_wallets.user_id` 保持唯一；所有余额流水同时记录 `user_id` 与非空 `wallet_id`。
+- APay 与 AINode 使用独立数据库，各自拥有自己的 `user_wallets`；不得共享、直连或互相镜像钱包表。
+- APay 充值、退款和本地展示只操作 APay 钱包；AINode 四池消费与余额展示继续通过 AINode API 获取。
+
 ## 2. Nuxt 与主题
 
 - 多主题 Catch-all 与后台扩展扫描使用 `import.meta.glob(..., { eager: true })`，保证 SSR SEO 与构建映射。

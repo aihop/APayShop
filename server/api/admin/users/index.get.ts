@@ -1,4 +1,4 @@
-import { users, userTokens } from "../../../db/schema"
+import { users, userWallets, userTokens } from "../../../db/schema"
 import { count, desc, like, or, sql, eq, and } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -71,9 +71,9 @@ export default defineEventHandler(async (event) => {
       createdAt: users.createdAt,
       status: users.status,
       lastLoginAt: users.lastLoginAt,
-      cashBalance: users.CashBalance,
-      grantBalance: users.GrantBalance,
-    }).from(users)
+      cashBalance: userWallets.cashBalance,
+      grantBalance: userWallets.grantBalance,
+    }).from(users).leftJoin(userWallets, eq(userWallets.userId, users.id))
 
     if (keyword) {
       usersQuery = usersQuery.where(or(

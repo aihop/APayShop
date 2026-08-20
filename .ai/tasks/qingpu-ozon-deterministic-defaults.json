@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ozon-deterministic-defaults",
+  "title": "修复 Ozon 品牌来源优先映射",
+  "problem": "Ozon 品牌在属性巡检和发布层被一律强制为无品牌，导致真实品牌丢失并可能绕过官方字典约束。",
+  "expectedOutcome": "品牌按来源证据映射，真实品牌保留；只有明确的中性、无品牌、OEM 或 ODM 来源映射为无品牌，且必须命中当前类目的官方字典 ID。",
+  "constraints": [
+    "本切片仅实施第一批中的品牌来源优先规则，不修改数据库、店铺白牌开关或 VAT 策略",
+    "已有人工覆盖与明确清空优先，任何字典属性都不得提交裸文本值",
+    "不得手工修改 APay 主题中的 qingpu-engine vendor，不覆盖当前其他未提交内容"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "tests/ozon-attribute-mapping.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "tests/ozon-attribute-mapping.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "来源为中性、无品牌、OEM 或 ODM 时映射官方无品牌字典项",
+    "真实来源品牌保持原值并使用对应官方字典 ID，不再被发布层覆盖",
+    "无品牌字典项缺失时不提交裸文本，并由必填校验阻断"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 品牌属性映射测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-attribute-mapping.test.ts"
+    },
+    {
+      "name": "Ozon 映射类型与依赖边界检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps"
+    },
+    {
+      "name": "声明文件补丁格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/domain/channel-mappers/ozon/attribute-values.ts src/domain/channel-mappers/ozon/attribute-inspection.ts tests/ozon-attribute-mapping.test.ts"
+    }
+  ]
+}

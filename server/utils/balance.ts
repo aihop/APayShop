@@ -1,11 +1,12 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../db/runtime'
-import { balanceLogs, users } from '../db/schema'
+import { balanceLogs, userWallets } from '../db/schema'
+import { getOrCreateUserWallet } from './userWallet'
 
 /**
  * 余额入账/出账的唯一入口。
  *
- * 口径：users.CashBalance / GrantBalance 与 balance_logs.amount_cents 都是**放大 10^8 的整数**。
+ * 口径：user_wallets 各余额池与 balance_logs.amount_cents 都是**放大 10^8 的整数**。
  * 业务侧传的是记账币种金额（如 12.5），换算只在本文件做（toScaled/fromScaled），
  * 其它地方一律不要自己乘除 1e8。
  *
@@ -22,7 +23,7 @@ import { balanceLogs, users } from '../db/schema'
  * 流水里的 before/after 是写入时刻的快照，只作展示，不参与任何计算。
  */
 
-/** 记账放大倍数，与 users 表注释一致 */
+/** 记账放大倍数，与 user_wallets 表注释一致 */
 export const BALANCE_SCALE = 100_000_000
 
 export type BalanceType = 'cash' | 'grant'
@@ -58,8 +59,9 @@ export const fromScaled = (scaled: bigint | number | string | null | undefined):
 
 /** 读取用户某一池余额（记账币种） */
 export async function getUserBalance(userId: number, balanceType: BalanceType): Promise<number> {
-  const rows = await db.select({ cash: users.CashBalance, grant: users.GrantBalance })
-    .from(users).where(eq(users.id, userId)).limit(1)
+  const wallet = await getOrCreateUserWallet(userId)
+  const rows = await db.select({ cash: userWallets.cashBalance, grant: userWallets.grantBalance })
+    .from(userWallets).where(eq(userWallets.id, wallet.id)).limit(1)
   if (rows.length === 0) return 0
   return fromScaled(balanceType === 'grant' ? rows[0].grant : rows[0].cash)
 }
@@ -83,6 +85,7 @@ export async function changeBalance(input: BalanceChangeInput): Promise<BalanceC
   }
 
   const balanceType = input.balanceType
+  const wallet = await getOrCreateUserWallet(input.userId)
   const scaled = toScaled(amount)
   const delta = direction === 'debit' ? -scaled : scaled
   const before = await getUserBalance(input.userId, balanceType)
@@ -91,6 +94,7 @@ export async function changeBalance(input: BalanceChangeInput): Promise<BalanceC
   try {
     await db.insert(balanceLogs).values({
       userId: input.userId,
+      walletId: wallet.id,
       balanceType,
       actionType: input.actionType || (direction === 'debit' ? 'consume' : 'topup'),
       amountCents: delta,
@@ -113,13 +117,13 @@ export async function changeBalance(input: BalanceChangeInput): Promise<BalanceC
 
   // 2) 再改余额（相对写法，数据库内原子）
   if (balanceType === 'grant') {
-    await db.update(users)
-      .set({ GrantBalance: sql`${users.GrantBalance} + ${delta}` as any })
-      .where(eq(users.id, input.userId))
+    await db.update(userWallets)
+      .set({ grantBalance: sql`${userWallets.grantBalance} + ${delta}` as any })
+      .where(eq(userWallets.id, wallet.id))
   } else {
-    await db.update(users)
-      .set({ CashBalance: sql`${users.CashBalance} + ${delta}` as any })
-      .where(eq(users.id, input.userId))
+    await db.update(userWallets)
+      .set({ cashBalance: sql`${userWallets.cashBalance} + ${delta}` as any })
+      .where(eq(userWallets.id, wallet.id))
   }
 
   return { applied: true, balanceType, balance: await getUserBalance(input.userId, balanceType) }
@@ -221,7 +225,8 @@ export async function listBalanceLogs(query: BalanceLogQuery) {
   const page = Math.max(1, Number(query.page) || 1)
   const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 20))
 
-  const conditions = [eq(balanceLogs.userId, query.userId)]
+  const wallet = await getOrCreateUserWallet(query.userId)
+  const conditions = [eq(balanceLogs.walletId, wallet.id)]
   if (query.balanceType) conditions.push(eq(balanceLogs.balanceType, query.balanceType))
   if (query.actionType) conditions.push(eq(balanceLogs.actionType, query.actionType))
   const where = conditions.length > 1 ? and(...conditions) : conditions[0]

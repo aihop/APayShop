@@ -78,6 +78,7 @@ const routes = computed(() => {
   const adminRoutes = [
     { id: 'admin-dashboard', label: t('admin.nav.dashboard'), icon: 'ph:squares-four', to: '/admin', permission: 'dashboard' },
     { id: 'admin-orders', label: t('admin.nav.orders'), icon: 'ph:shopping-cart', to: '/admin/orders', permission: 'orders' },
+    { id: 'admin-topups', label: t('admin.nav.topups'), icon: 'ph:wallet', to: '/admin/topups', permission: 'orders' },
     { id: 'admin-stats', label: t('admin.nav.stats'), icon: 'ph:chart-bar', to: '/admin/stats', permission: 'stats' },
     { id: 'admin-products', label: t('admin.nav.products'), icon: 'ph:package', to: '/admin/products', permission: 'products' },
     { id: 'admin-customers', label: t('admin.nav.customers'), icon: 'ph:users', to: '/admin/customers', permission: 'customers' },

@@ -16,6 +16,8 @@ import {
   markQingpuTrialPaymentReceived,
   QINGPU_TRIAL_ORDER_SOURCE,
 } from './qingpuTrialOrders'
+import { settlePaidTopup } from './topupLedger'
+import { recoverCreditedApayTopup } from './apayTopupFulfillment'
 
 export type MarkOrderPaidOutcome =
   | 'paid'          // 本次调用真正完成了置为已支付 + 履约
@@ -72,6 +74,10 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
       const next = await markQingpuTrialPaymentReceived(orderId)
       if (next === 'ready') await fulfillPaidTrialOrder(orderId)
     }
+    else {
+      await settlePaidTopup(orderId)
+      await recoverCreditedApayTopup(orderId)
+    }
     return { outcome: 'already_paid', order }
   }
 
@@ -94,7 +100,11 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
       source,
       details: { tradeNo },
     })
-    return { outcome: 'already_paid', order }
+    const currentRows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
+    const current = currentRows[0] || order
+    await settlePaidTopup(orderId)
+    await recoverCreditedApayTopup(orderId)
+    return { outcome: 'already_paid', order: current }
   }
 
   await logger.info(`Order ${orderId} paid via ${payMethod || order.payMethod || 'unknown'}`, {
@@ -125,10 +135,15 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
     }
     return { outcome: 'paid', order }
   }
+  await settlePaidTopup(orderId)
   const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(orderMeta))
-  const fulfilledOrder = isMinimalRelay
-    ? await fulfillMinimalCheckoutRelay(orderId)
-    : await fulfillOrder(orderId)
+  const isApayTopup = readMinimalCheckoutBridgeMeta(orderMeta)?.attach?.walletOwner === 'apay'
+  if (isApayTopup) {
+    const recovered = await recoverCreditedApayTopup(orderId)
+    return { outcome: 'paid', order: recovered ? { ...order, status: ORDER_STATUS.DELIVERED } : order }
+  }
+
+  const fulfilledOrder = isMinimalRelay ? await fulfillMinimalCheckoutRelay(orderId) : await fulfillOrder(orderId)
   if (fulfilledOrder) {
     await settlePromoCommission(orderId)
     if (isMinimalRelay) {

@@ -380,6 +380,7 @@ export default defineNuxtConfig({
       'admin/logs': false,
       'admin/stats': false,
       'admin/promo': false,
+      'admin/topups': false,
     }
   },
   hub: {

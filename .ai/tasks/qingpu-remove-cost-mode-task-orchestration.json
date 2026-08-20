@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-remove-cost-mode-task-orchestration",
+  "title": "删除省钱模式并接入可配置任务编排",
+  "problem": "省钱/生图双模式同时存在于扩展设置、网页设置、工作区字段和服务端任务分支，增加用户理解成本；任务推荐未统一消费实时 readiness、最新商品任务和流程自动/手动策略。",
+  "expectedOutcome": "彻底删除用户可见和运行时省钱模式，迁移为单一任务策略；五个准备流程可配置自动/手动，自动链按策略编排，准备项可显式单步重跑，推荐下一步消费商品实时状态且不伪造 readiness。",
+  "constraints": [
+    "在隔离 worktree 实施并验证，不覆盖当前共享工作树并行改动",
+    "历史已排队任务继续按冻结 payload 执行，不改任务状态字面量",
+    "旧 automationModes 与 work_mode 只作为迁移输入，迁移保存后物理移除",
+    "不提交、不推送、不部署"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai-isolated",
+      "path": "/private/tmp/qingpu-task-strategy-engine",
+      "allowedPaths": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/domain/settings/automation.ts",
+        "src/domain/settings/types.ts",
+        "src/shared/settings-normalize.ts",
+        "src/components/TaskStrategyModal.vue",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/review-workflow.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/automation-quota.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/domain/settings/automation.ts",
+        "src/domain/settings/types.ts",
+        "src/shared/settings-normalize.ts",
+        "src/components/TaskStrategyModal.vue",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/review-workflow.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/automation-quota.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme-isolated",
+      "path": "/private/tmp/qingpu-task-strategy-theme",
+      "allowedPaths": [
+        "api/listing/blueprint.ts",
+        "api/listing/settings.ts",
+        "api/listing/tasks/enqueue.ts",
+        "database/workspaces.sql",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/SettingsTaskStrategyCard.vue",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/workspaces.types.ts",
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/queries.publish.ts",
+        "server/listing/queries.shared.ts",
+        "server/listing/workspace-quality.ts",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts",
+        "server/tasks/workflows.ts",
+        "server/vendor/qingpu-engine/**",
+        "scripts/check-listing-watermark-settings.mjs",
+        "scripts/check-unified-listing-workflow.mjs",
+        "scripts/check-workspace-readiness-p0.mjs"
+      ],
+      "claims": [
+        "api/listing/blueprint.ts",
+        "api/listing/settings.ts",
+        "api/listing/tasks/enqueue.ts",
+        "database/workspaces.sql",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/SettingsTaskStrategyCard.vue",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "pages/user/listing/workspaces.types.ts",
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/queries.publish.ts",
+        "server/listing/queries.shared.ts",
+        "server/listing/workspace-quality.ts",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts",
+        "server/tasks/workflows.ts",
+        "server/vendor/qingpu-engine/**",
+        "scripts/check-listing-watermark-settings.mjs",
+        "scripts/check-unified-listing-workflow.mjs",
+        "scripts/check-workspace-readiness-p0.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页和扩展不再展示或写入省钱模式、cost 或双 automationModes",
+    "单策略为五个流程分别保存 auto/manual，并保留图片张数、风格、审核和水印参数",
+    "组合任务按策略自动编排，显式准备项执行不受手动策略限制",
+    "readiness 始终按真实数据计算，关闭自动补参不得伪造完成",
+    "推荐下一步优先当前商品 queued/running，再按 readiness、依赖和策略选择",
+    "work_mode 字段和运行时分支从主题移除，历史任务冻结 payload 不受影响"
+  ],
+  "verification": [
+    {
+      "name": "Engine 工作流与设置测试",
+      "repository": "qingpu-ai-isolated",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-graph.test.ts tests/listing-workflow-contract.test.ts tests/automation-quota.test.ts"
+    },
+    {
+      "name": "Engine 类型检查",
+      "repository": "qingpu-ai-isolated",
+      "always": true,
+      "command": "npm run typecheck -- --pretty false"
+    },
+    {
+      "name": "主题工作流守卫",
+      "repository": "qingpu-theme-isolated",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs && node scripts/check-workspace-readiness-p0.mjs && node scripts/check-listing-watermark-settings.mjs"
+    },
+    {
+      "name": "精确格式检查",
+      "repository": "qingpu-theme-isolated",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS,ORDER_STATUS } from '../../utils/constants'
 import { readRawBody, readBody } from 'h3'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { markTopupPaymentFailed } from '../../utils/topupLedger'
 
 // 写日志时对回调 payload 脱敏:授权/签名类头域打码,rawBody 只留长度(防签名
 // 与 PII 落库)。query/urlOrderId 保留供排查
@@ -82,6 +83,7 @@ export default defineEventHandler(async (event) => {
 
     // 查询订房是否已完成支付
     if (order.payStatus === ORDER_PAY_STATUS.PAID) {
+      await markOrderPaid({ orderId: order.id, source: 'webhook-retry' })
       return "success"
     }
     
@@ -219,9 +221,12 @@ export default defineEventHandler(async (event) => {
           if (result.tradeNo) updateData.tradeNo = result.tradeNo
 
           // 条件更新:失败回调不得覆盖已支付订单(乱序/迟到的失败推送)
-          await db.update(orders)
+          const failedUpdate = await db.update(orders)
             .set(updateData)
             .where(and(eq(orders.id, result.orderId), ne(orders.payStatus, ORDER_PAY_STATUS.PAID)))
+          if (getAffectedRows(failedUpdate) > 0) {
+            await markTopupPaymentFailed(order.id, `支付网关 ${realMethodCode} 返回失败`)
+          }
         }
       } else {
         await logger.error(`Order ${result.orderId} not found in database`, { 

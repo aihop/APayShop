@@ -7,7 +7,7 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
   { code: 'dashboard', apiPrefixes: ['dashboard'] },
   { code: 'stats', apiPrefixes: ['stats'] },
   { code: 'products', apiPrefixes: ['products'] },
-  { code: 'orders', apiPrefixes: ['orders'] },
+  { code: 'orders', apiPrefixes: ['orders', 'topups'] },
   { code: 'payments', apiPrefixes: ['payments'] },
   { code: 'customers', apiPrefixes: ['customers', 'users'] },
   { code: 'cards', apiPrefixes: ['cards'] },

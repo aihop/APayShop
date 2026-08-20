@@ -31,7 +31,7 @@ export interface TopupCurrencyOption {
 
 export interface TopupRules {
   enabled: boolean
-  /** 余额的记账单位,与 users.CashBalance 同口径 */
+  /** 余额的记账单位,与 user_wallets.cash_balance 同口径 */
   accountingCurrency: string
   options: Record<string, TopupCurrencyOption>
 }

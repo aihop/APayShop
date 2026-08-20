@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-image-edit-remote-source",
+  "title": "统一图片编辑工具的上传与链接来源",
+  "problem": "图生图、图片增强和背景移除共用的图片编辑界面目前只能上传本地图片，不能直接填写公网图片链接；直接让执行器抓取任意 URL 又会引入 SSRF、超大响应和伪造图片风险。",
+  "expectedOutcome": "三类图片编辑工具都可选择上传图片或填写公网 HTTP(S) 图片链接；远程图片先经过服务端地址、重定向、类型、签名和 10MB 上限校验，再导入为当前用户受控资产，生成链继续只消费 assetId。",
+  "constraints": [
+    "远程地址只允许 HTTP(S)，禁止凭据、私网、回环、链路本地、保留地址和非公网重定向",
+    "最多跟随三次重定向，每一跳重新解析并固定已校验的公网 IP",
+    "只接受 JPEG、PNG、WebP、AVIF，响应与文件均不超过 10MB",
+    "不修改正在由其他任务租用的 user-media-upload.ts 和 upload.post.ts",
+    "不让 image-edit generate API 或底层执行器直接抓取任意远程 URL",
+    "不新增依赖，不触发真实模型任务"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/assets/import-image-url.post.ts",
+        "server/assets/remote-image-import.ts",
+        "components/ImageEditStudio.vue",
+        "scripts/check-remote-image-import.mjs"
+      ],
+      "claims": [
+        "api/assets/import-image-url.post.ts",
+        "server/assets/remote-image-import.ts",
+        "components/ImageEditStudio.vue",
+        "scripts/check-remote-image-import.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "图生图、图片增强和背景移除共用界面均支持上传或填写链接",
+    "链接图片导入成功后生成请求只提交当前用户 referenceAssetId",
+    "私网、回环、保留 IP、DNS 非公网结果和重定向越界均在服务端拒绝",
+    "无效协议、URL 凭据、非图片响应、伪造签名、空文件及超过 10MB 均被拒绝",
+    "专项门禁、独立编译和 diff 检查通过"
+  ],
+  "verification": [
+    {
+      "name": "远程图片来源专项门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-remote-image-import.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

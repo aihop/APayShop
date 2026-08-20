@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-remove-legacy-mode-entrypoints",
+  "title": "删除扩展旧模式入口并收紧任务策略类型",
+  "problem": "Dash 顶栏、单品处理和 Lite 工作台仍读取或写入 cost/generate 与 aiAttributeFill，导致新五步任务策略被旧双模式覆盖。",
+  "expectedOutcome": "Dash 与 Lite 只消费五步 auto/manual 任务策略，不再展示、构造或分支处理 cost/generate；公共 AutomationConfig 删除旧字段，存量值只在归一化边界作为迁移输入读取。",
+  "constraints": [
+    "继续使用隔离 qingpu-ai worktree，不覆盖主工作区并行改动",
+    "不提交、不推送、不发布",
+    "历史持久化数据仅在归一化边界兼容读取，不继续向运行时类型传播"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai-isolated",
+      "path": "/private/tmp/qingpu-task-strategy-engine-final",
+      "allowedPaths": [
+        "entrypoints/dash/DashHeader.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/composables/useDashProductActions.ts",
+        "entrypoints/dash/composables/useDashPublishFlow.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/image-prep-workflow.ts",
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/app/workflows/review-workflow.ts",
+        "src/components/TaskStrategyModal.vue",
+        "src/domain/settings/automation.ts",
+        "src/domain/settings/types.ts",
+        "src/domain/workspace/types.ts",
+        "src/engine/browser.ts",
+        "src/engine/index.ts",
+        "src/shared/settings-normalize.ts",
+        "tests/automation-ledger-settle.test.ts",
+        "tests/automation-quota.test.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/task-ledger.test.ts"
+      ],
+      "claims": [
+        "entrypoints/dash/DashHeader.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/composables/useDashProductActions.ts",
+        "entrypoints/dash/composables/useDashPublishFlow.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/image-prep-workflow.ts",
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/app/workflows/review-workflow.ts",
+        "src/components/TaskStrategyModal.vue",
+        "src/domain/settings/automation.ts",
+        "src/domain/settings/types.ts",
+        "src/domain/workspace/types.ts",
+        "src/engine/browser.ts",
+        "src/engine/index.ts",
+        "src/shared/settings-normalize.ts",
+        "tests/automation-ledger-settle.test.ts",
+        "tests/automation-quota.test.ts",
+        "tests/listing-workflow-graph.test.ts",
+        "tests/task-ledger.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Dash 顶栏不再显示省钱/生图模式徽标",
+    "Dash 与 Lite 不再读取或写入 AutomationConfig.mode/aiAttributeFill",
+    "Lite 不再强制覆写为 generate，而是完整尊重五步任务策略",
+    "公共 AutomationConfig 五步策略字段恢复为必填",
+    "相关运行时与用户可见源码不存在省钱模式或 cost 分支"
+  ],
+  "verification": [
+    {
+      "name": "Engine 类型检查",
+      "repository": "qingpu-ai-isolated",
+      "always": true,
+      "command": "npm run typecheck -- --pretty false"
+    },
+    {
+      "name": "策略与账本测试",
+      "repository": "qingpu-ai-isolated",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-graph.test.ts tests/listing-workflow-contract.test.ts tests/automation-quota.test.ts tests/automation-ledger-settle.test.ts tests/task-ledger.test.ts"
+    },
+    {
+      "name": "旧模式残留检查",
+      "repository": "qingpu-ai-isolated",
+      "always": true,
+      "command": "if rg -n \"mode: 'cost'|=== 'cost'|省钱模式|taskMode|automation\\.mode|config\\.mode|aiAttributeFill\" entrypoints src --glob '*.{ts,vue}'; then exit 1; fi"
+    },
+    {
+      "name": "精确格式检查",
+      "repository": "qingpu-ai-isolated",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

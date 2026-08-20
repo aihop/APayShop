@@ -10,6 +10,7 @@ export default defineConfig({
   schemaFilter: ["public"],
   tablesFilter: [
     "users",
+    "user_wallets",
     "user_sessions",
     "user_tokens",
     "posts",
@@ -21,6 +22,7 @@ export default defineConfig({
     "install_events",
     "oauth_accounts",
     "orders",
+    "topups",
     "payment_methods",
     "products",
     "settings",
@@ -32,6 +34,7 @@ export default defineConfig({
     "email_providers",
     "event_rules",
     "notifications",
+    "balance_logs",
     "promo_agent_tiers",
     "promo_members",
     "promo_invite_relations",

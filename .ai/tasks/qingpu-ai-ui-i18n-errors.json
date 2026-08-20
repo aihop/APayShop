@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ai-ui-i18n-errors",
+  "title": "补齐 Qingpu 扩展与桌面端界面国际化",
+  "problem": "qingpu-ai 的 Dash、Lite、Popup、页面浮窗和图片编辑器已具备三语 i18n 基础设施，但绝大多数用户文案仍为中文硬编码，浮窗入口尚未挂载 i18n，部分错误直接展示异常原文。共享 API 客户端及其测试已有其他任务的未提交改动，本阶段不触碰。",
+  "expectedOutcome": "扩展与桌面端现有用户界面全部使用中英俄同结构语言键；页面浮窗正确挂载 i18n；用户错误提示采用清晰、安全、可操作的本地化回退；自动守卫阻止语言键漂移、界面硬编码和高风险错误透传回归。",
+  "constraints": [
+    "只修改当前干净的 qingpu-ai 界面、入口、语言包和专项守卫，不触碰 src/shared/api-client.ts 与 tests/llm-error.test.ts",
+    "不改变业务流程、消息协议、存储结构、发布、生成、价格或外部 API 行为",
+    "开发日志和持久化协议字面量不作为用户文案迁移，品牌名、平台名、单位和外部字段可保留",
+    "底层原始错误继续可供日志排查，界面层对网络、未知异常和内部技术信息使用安全回退",
+    "不新增依赖，不提交、不推送，不覆盖其他任务未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/**",
+        "src/components/**",
+        "src/content/**",
+        "src/features/image-editor/**",
+        "src/popup/**",
+        "src/locales/**",
+        "src/shared/i18n.ts",
+        "scripts/check-user-facing-i18n.mjs",
+        "tests/user-facing-i18n.test.ts",
+        "package.json"
+      ],
+      "claims": [
+        "entrypoints/**",
+        "src/components/**",
+        "src/content/**",
+        "src/features/image-editor/**",
+        "src/popup/**",
+        "src/locales/**",
+        "src/shared/i18n.ts",
+        "scripts/check-user-facing-i18n.mjs",
+        "tests/user-facing-i18n.test.ts",
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Dash、Lite、Popup、页面浮窗和图片编辑器的现有用户文案均随中文、英文、俄文设置切换",
+    "中英俄语言包键结构完全一致，插值参数保持一致",
+    "浮窗入口挂载与其他三个入口相同的 i18n 实例",
+    "网络、超时、鉴权、限流、前置条件、并发占用和未知失败均有清晰的本地化回退",
+    "用户界面不直接展示 fetch failed、Failed to fetch、堆栈、SQL、内部路径或无上下文 Error/Unknown error",
+    "自动守卫在新增未登记硬编码、语言键缺失或高风险错误透传时失败"
+  ],
+  "verification": [
+    {
+      "name": "扩展国际化专项测试与守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "node scripts/check-user-facing-i18n.mjs && npx vitest run tests/user-facing-i18n.test.ts"
+    },
+    {
+      "name": "扩展类型与分层检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps"
+    },
+    {
+      "name": "扩展构建与格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build && git diff --check -- entrypoints src/components src/content src/features/image-editor src/popup src/locales src/shared/i18n.ts scripts/check-user-facing-i18n.mjs tests/user-facing-i18n.test.ts package.json"
+    }
+  ]
+}

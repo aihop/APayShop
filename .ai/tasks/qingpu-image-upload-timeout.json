@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-image-upload-timeout",
+  "title": "避免图片托管请求长时间卡住",
+  "problem": "共享图片上传器对 storage_disabled 等明确配置错误仍按 5xx 重试，且上传与查重 fetch 没有超时，导致 /assets/upload 长时间停留在进行中。",
+  "expectedOutcome": "图片托管请求有明确单次超时；AINode 返回 storage_disabled 时立即失败且不重试；瞬时网络错误、408、429 和普通 5xx 仍保留有限重试。",
+  "constraints": [
+    "只调整共享图片上传器的超时与重试分类，不实现分片上传",
+    "storage_disabled 必须保留网关原始可读错误信息并立即失败",
+    "不改变上传 API、返回 URL 字段或图片存储协议",
+    "不手改主题 vendor，只通过 engine:release 生成",
+    "只提交本任务文件，不包含其他未提交改动，不 push、不部署"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/pipeline/image-uploader.ts",
+        "tests/ozon-image-hosting-fallback.test.ts"
+      ],
+      "claims": [
+        "src/shared/pipeline/image-uploader.ts",
+        "tests/ozon-image-hosting-fallback.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "上传 POST 和内容哈希预检 GET 均携带超时信号",
+    "storage_disabled 的上传请求只发送一次并立即返回可读错误",
+    "普通可重试 5xx 仍最多尝试三次",
+    "相关测试通过且新 vendor 的 sourceCommit 指向本次 qingpu-ai 源提交"
+  ],
+  "verification": [
+    {
+      "name": "图片托管回退测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ozon-image-hosting-fallback.test.ts"
+    },
+    {
+      "name": "共享上传器格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check -- src/shared/pipeline/image-uploader.ts tests/ozon-image-hosting-fallback.test.ts"
+    },
+    {
+      "name": "引擎 vendor 锚点检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test \"$(node -p \"require('./server/vendor/qingpu-engine/version.json').sourceCommit\")\" = \"$(git -C ../../../../qingpu-ai rev-parse --short HEAD)\" && git diff --check -- server/vendor/qingpu-engine"
+    }
+  ]
+}

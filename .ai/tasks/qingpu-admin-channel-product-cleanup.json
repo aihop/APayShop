@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-admin-channel-product-cleanup",
+  "title": "清理后台渠道商品旧接口",
+  "problem": "待上架商品页面已经迁移到支持预览和代编辑的新管理员端点，旧只读列表端点及其安全清单登记成为重复逻辑；新端点还需登记其 requireAdmin 鉴权方式。",
+  "expectedOutcome": "删除无人调用的旧渠道商品列表端点，并让员工访问门禁清单只登记新的两个 requireAdmin 管理端点。",
+  "constraints": [
+    "只删除确认无人调用的旧端点",
+    "新端点继续使用 requireAdmin，不向员工会话开放",
+    "不修改其他并行任务文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["api/admin/channel-products.ts", "scripts/check-employee-access-gate.mjs"],
+      "claims": ["api/admin/channel-products.ts", "scripts/check-employee-access-gate.mjs"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "旧 api/admin/channel-products.ts 已删除",
+    "两个新管理员端点登记为 requireAdmin 豁免",
+    "员工访问门禁专项检查通过"
+  ],
+  "verification": [
+    {
+      "name": "员工访问门禁检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-employee-access-gate.mjs"
+    },
+    {
+      "name": "旧接口引用检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "test ! -f api/admin/channel-products.ts && ! rg -n \"/api/qingpu/admin/channel-products\" admin pages api --glob '*.{vue,ts}'"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-admin-channel-product-assistance",
+  "title": "后台待上架商品预览与代编辑",
+  "problem": "渠道产品后台把待上架草稿当作只读排障列表，管理员既无法看到当前工作区的渠道效果，也无法在明确用户上下文中协助修正商品；可上架草稿在工作区更新后也没有独立状态，容易与真实校验失败混淆。",
+  "expectedOutcome": "将页面明确为待上架商品，提供当前工作区渠道预览与管理员代编辑基础商品资料的能力；保存只更新目标用户工作区、刷新就绪度并留下审计，不自动重建草稿或正式上架。",
+  "constraints": [
+    "管理员接口必须显式接收 targetUserId，并验证管理员编辑权限和目标用户待上架草稿归属",
+    "复用现有商品编辑与渠道预览组件，普通用户接口和交互保持兼容",
+    "编辑继续使用 revision 乐观锁、任务互斥和跨端编辑占用机制",
+    "管理员保存后刷新就绪度但不自动提交渠道草稿、不调用真实发布接口",
+    "管理员代编辑写入不可清空的 operation_logs 审计表",
+    "不新增数据库结构或依赖，不修改工作区内其他任务的文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/channel-products.vue",
+        "api/admin/channel-product-editor.ts",
+        "api/admin/channel-product-media-upload.post.ts",
+        "server/listing/queries.channels.ts",
+        "admin/components/AdminChannelPreviewModal.vue",
+        "admin/components/AdminChannelProductEditor.vue",
+        "scripts/check-admin-channel-product-assistance.mjs"
+      ],
+      "claims": [
+        "admin/pages/channel-products.vue",
+        "api/admin/channel-product-editor.ts",
+        "api/admin/channel-product-media-upload.post.ts",
+        "server/listing/queries.channels.ts",
+        "admin/components/AdminChannelPreviewModal.vue",
+        "admin/components/AdminChannelProductEditor.vue",
+        "scripts/check-admin-channel-product-assistance.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台页面名称与说明明确其数据是待上架商品而非平台在线商品",
+    "列表按可上架、内容有更新、需要处理三态展示和筛选，内容更新不再被描述为修复失败",
+    "管理员可预览目标用户当前工作区的 Ozon 展示效果，并可打开带目标用户提示的基础编辑抽屉",
+    "管理员可编辑来源标题、描述、价格、库存、属性、SKU 和来源媒体，保存后增加 revision 并刷新列表",
+    "管理员读取和写入均验证目标用户、商品、渠道待上架关系，写入操作记录管理员、目标用户、商品和版本",
+    "页面中不存在直接上架或自动更新渠道草稿的操作"
+  ],
+  "verification": [
+    {
+      "name": "后台代编辑专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-admin-channel-product-assistance.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/channel-products.vue admin/components/AdminChannelPreviewModal.vue admin/components/AdminChannelProductEditor.vue api/admin/channel-product-editor.ts api/admin/channel-product-media-upload.post.ts server/listing/queries.channels.ts scripts/check-admin-channel-product-assistance.mjs"
+    }
+  ]
+}

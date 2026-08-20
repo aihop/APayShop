@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-ainode-ai-settings",
+  "title": "接入 AINode 租户模型价格与分组设置",
+  "problem": "Qingpu 后台只能维护 AINode 租户 Token，无法查看租户分组、严格白名单模型及倍率后的参考价格，也无法调用租户接口切换分组。",
+  "expectedOutcome": "Qingpu 服务端以租户 Token 代理 AINode AI settings 接口，后台设置弹层展示当前/可选 Key Group、倍率后的 token 与按次价格，并可保存 AINode 返回的可选分组。",
+  "constraints": [
+    "Key Group 不保存为 Qingpu 本地设置，AINode 是唯一事实源",
+    "Qingpu 不复制价格或倍率算法，只展示 AINode 返回的 effective 字段",
+    "不把租户 Token 或 AINode 内部错误响应下发到浏览器",
+    "AINode 不可用时不能阻断试用政策与本地连接设置读取",
+    "不修改 AINode 仓库，不提交、不推送",
+    "保留并避免覆盖工作区内其他任务的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/ainode/ai-settings.ts",
+        "api/admin/settings.ts",
+        "scripts/check-ainode-ai-settings.mjs"
+      ],
+      "claims": [
+        "server/ainode/ai-settings.ts",
+        "api/admin/settings.ts",
+        "scripts/check-ainode-ai-settings.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "服务端使用 Qingpu 租户 Token 读取 AINode AI settings",
+    "上游不可用时设置页其他数据仍能返回",
+    "Key Group 切换直接写入 AINode 且不新增本地 setting key",
+    "响应保留倍率后的 token、按次和按秒价格字段",
+    "浏览器永远拿不到原始租户 Token"
+  ],
+  "verification": [
+    {
+      "name": "AINode AI 设置专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-ainode-ai-settings.mjs && node scripts/check-ainode-tenant-token-setting.mjs && node scripts/check-trial-policy-settings.mjs"
+    },
+    {
+      "name": "服务端文件格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/ainode/ai-settings.ts api/admin/settings.ts scripts/check-ainode-ai-settings.mjs"
+    }
+  ]
+}

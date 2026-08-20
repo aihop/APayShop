@@ -10,7 +10,7 @@ export const useCheckout = () => {
   const { getSetting } = useSettings()
   const { loggedIn } = useCustomerAuth()
   const { localePath } = useLocaleRouter()
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   
   const isCreatingOrder = ref(false)
   const isOrderModalOpen = ref(false)
@@ -36,8 +36,8 @@ export const useCheckout = () => {
     }
 
     toast.add({
-      title: 'Payment Successful',
-      description: `Order ${targetOrderId} has been completed.`,
+      title: t('site.payment.checkoutToastSuccessTitle'),
+      description: t('site.payment.checkoutToastSuccessDescription', { orderId: targetOrderId }),
       color: 'success',
       icon: 'ph:check-circle-bold',
     })
@@ -58,11 +58,11 @@ export const useCheckout = () => {
         handleFreeOrderSuccess(targetOrderId)
         return true
       }
-      throw new Error(res?.message || 'Failed to complete free order')
+      throw new Error(res?.message || t('site.payment.checkoutToastFailedCompleteFree'))
     } catch (e: any) {
       toast.add({
-        title: 'Checkout Failed',
-        description: e.message || e.data?.message || 'Failed to complete free order',
+        title: t('site.payment.checkoutToastFailedTitle'),
+        description: e.message || e.data?.message || t('site.payment.checkoutToastFailedCompleteFree'),
         color: 'error',
       })
       return false
@@ -78,8 +78,8 @@ export const useCheckout = () => {
     const allowGuestCheckout = getSetting('allow_guest_checkout', 'true') === 'true'
     if (!allowGuestCheckout && !loggedIn.value) {
       toast.add({
-        title: 'Authentication Required',
-        description: 'Guest checkout is disabled. Please log in to continue your purchase.',
+        title: t('site.payment.checkoutAuthRequiredTitle'),
+        description: t('site.payment.checkoutAuthRequiredDescription'),
         color: 'warning',
         icon: 'ph:lock-key-bold',
       })
@@ -120,12 +120,12 @@ export const useCheckout = () => {
         orderId.value = newOrderId
         isOrderModalOpen.value = true
       } else {
-        throw new Error(res?.message || 'Failed to create order')
+        throw new Error(res?.message || t('site.payment.checkoutToastFailedCreateOrder'))
       }
     } catch (e: any) {
       toast.add({
-        title: 'Checkout Failed',
-        description: e.message || e.data?.message || 'Failed to initialize transaction',
+        title: t('site.payment.checkoutToastFailedTitle'),
+        description: e.message || e.data?.message || t('site.payment.checkoutToastFailedInitTransaction'),
         color: 'error',
       })
     } finally {
@@ -142,8 +142,8 @@ export const useCheckout = () => {
     const allowGuestCheckout = getSetting('allow_guest_checkout', 'true') === 'true'
     if (!allowGuestCheckout && !loggedIn.value) {
       toast.add({
-        title: 'Authentication Required',
-        description: 'Guest checkout is disabled. Please log in to continue your purchase.',
+        title: t('site.payment.checkoutAuthRequiredTitle'),
+        description: t('site.payment.checkoutAuthRequiredDescription'),
         color: 'warning',
         icon: 'ph:lock-key-bold',
       })
@@ -157,8 +157,8 @@ export const useCheckout = () => {
 
     if (!orderId.value) {
       toast.add({
-        title: 'Order ID is required',
-        description: 'Please create an order first',
+        title: t('site.payment.checkoutOrderIdRequiredTitle'),
+        description: t('site.payment.checkoutOrderIdRequiredDescription'),
         color: 'error',
       })
       return

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-dashboard-trial-quick-review",
+  "title": "Qingpu 运营看板增加试用申请快捷审批",
+  "problem": "管理员需要进入轻铺设置弹层才能发现和处理试用申请，运营看板缺少待处理提醒与直接审核入口。",
+  "expectedOutcome": "运营看板直接展示待处理试用申请，管理员可在当前页面批准、拒绝或重试权益发放，操作后列表和数量即时刷新。",
+  "constraints": [
+    "复用现有试用订单、批准、拒绝和权益发放逻辑",
+    "只展示需要操作的待审核、处理中和发放失败记录",
+    "不修改数据库、试用政策、申请状态机或设置页行为",
+    "仪表盘接口继续使用 ext:qingpu:dashboard 管理员权限",
+    "不引入新依赖，不提交、不推送",
+    "保留并避免覆盖工作区内其他任务的未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/pages/dashboard.vue",
+        "api/admin/dashboard.ts",
+        "scripts/check-dashboard-trial-review.mjs"
+      ],
+      "claims": [
+        "admin/pages/dashboard.vue",
+        "api/admin/dashboard.ts",
+        "scripts/check-dashboard-trial-review.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "运营看板显示当前待处理试用申请数量和申请人、时间、政策快照、状态",
+    "待审核申请可直接批准或拒绝，处理中和发放失败记录可直接重试",
+    "单条操作期间有明确加载态，成功或失败均有反馈",
+    "审批成功后待处理列表、数量和看板更新时间同步刷新",
+    "没有待处理申请时显示清晰空状态并保留前往完整设置页的入口"
+  ],
+  "verification": [
+    {
+      "name": "看板快捷审批专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-dashboard-trial-review.mjs && node scripts/check-trial-policy-flow.mjs"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "范围格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- admin/pages/dashboard.vue api/admin/dashboard.ts scripts/check-dashboard-trial-review.mjs"
+    }
+  ]
+}

@@ -37,7 +37,10 @@ export const reconcileOrder = async (orderId: string, source = 'reconcile'): Pro
     if (found.length === 0) return { outcome: 'order_not_found' }
     const order = found[0]
 
-    if (order.payStatus === ORDER_PAY_STATUS.PAID) return { outcome: 'already_paid' }
+    if (order.payStatus === ORDER_PAY_STATUS.PAID) {
+      await markOrderPaid({ orderId, source })
+      return { outcome: 'already_paid' }
+    }
 
     // 下单失败时 payMethod 不会被写入(见 initiate.post.ts),所以这里允许调用方
     // 在订单没记录支付方式时按传入的方式查——但仍以订单上的记录优先。

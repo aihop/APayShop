@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-translate-facts-action-wiring",
+  "title": "修复事实翻译按钮任务串线",
+  "problem": "工作区就绪按钮把 translate_facts 显示为事实翻译，却复用 attributes action，点击后执行 AI 补参；入队 API 又不接受 translate_facts 且会把非法 only 静默回退为整条内容链。",
+  "expectedOutcome": "事实翻译按钮只提交 translate_facts，AI 补参仍提交 attributes；入队 API 严格接受受支持的单节点意图并拒绝非法 only；任务中心可显示 translate_facts 而不暴露缺失翻译键。",
+  "constraints": [
+    "不修改 qingpu-ai Engine 或 vendor，当前 0.7.125 已支持 translate_facts 单节点",
+    "不修改数据库、任务依赖图或 AI 补参先翻译的设计行为",
+    "保留所有既有未提交改动，不提交、不推送、不部署"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/tasks/enqueue.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/layout.vue",
+        "scripts/check-unified-listing-workflow.mjs"
+      ],
+      "claims": [
+        "api/listing/tasks/enqueue.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/layout.vue",
+        "scripts/check-unified-listing-workflow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "translate_facts 就绪动作提交 only=translate_facts，不再调用 AI 补参入口",
+    "attributes 就绪动作保持现有 AI 补参行为",
+    "入队 API 对 translate_facts 建立单节点工作流，对非法 only 返回 400",
+    "任务中心将 translate_facts 映射到已有事实翻译文案，避免缺失键",
+    "统一工作流守卫覆盖上述接线并通过"
+  ],
+  "verification": [
+    {
+      "name": "事实翻译接线守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs"
+    },
+    {
+      "name": "Vue 模板编译",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && node -e \"const fs=require('node:fs');const {parse,compileTemplate}=require('@vue/compiler-sfc');for(const file of ['app/themes/qingpu/pages/user/listing/components/WorkspaceDetailPage.vue','app/themes/qingpu/pages/user/listing/layout.vue']){const source=fs.readFileSync(file,'utf8');const parsed=parse(source,{filename:file});if(parsed.errors.length)throw parsed.errors[0];const result=compileTemplate({source:parsed.descriptor.template.content,filename:file,id:file});if(result.errors.length)throw result.errors[0]}\""
+    },
+    {
+      "name": "精确文件格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- api/listing/tasks/enqueue.ts pages/user/listing/components/WorkspaceDetailPage.vue pages/user/listing/layout.vue scripts/check-unified-listing-workflow.mjs"
+    }
+  ]
+}

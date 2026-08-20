@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-task-strategy-engine-delivery",
+  "title": "交付五步任务策略并删除扩展旧模式",
+  "problem": "需要在可重复验证的干净工作树交付五步任务策略、统一编排和 Dash/Lite 旧模式删除。",
+  "expectedOutcome": "扩展仅使用五步 auto/manual 策略，显式单项可重跑，自动编排按依赖推进，不再展示或运行 cost/generate 双模式。",
+  "constraints": ["不提交、不推送、不发布", "不覆盖主工作区并行改动", "旧未知存储键不透传到归一化结果"],
+  "repositories": [{
+    "name": "qingpu-ai-delivery",
+    "path": "/private/tmp/qingpu-task-strategy-engine-delivery",
+    "allowedPaths": [
+      "entrypoints/dash/DashHeader.vue", "entrypoints/dash/DashLayout.vue", "entrypoints/dash/composables/useDashProductActions.ts", "entrypoints/dash/composables/useDashPublishFlow.ts", "entrypoints/lite/composables/useLiteWorkbench.ts",
+      "src/app/workflows/automation-pipeline.ts", "src/app/workflows/automation-stations.ts", "src/app/workflows/image-prep-workflow.ts", "src/app/workflows/listing-workflow-graph.ts", "src/app/workflows/review-workflow.ts", "src/components/TaskStrategyModal.vue", "src/domain/settings/automation.ts", "src/domain/settings/types.ts", "src/domain/workspace/types.ts", "src/engine/browser.ts", "src/engine/index.ts", "src/shared/settings-normalize.ts",
+      "tests/automation-ledger-settle.test.ts", "tests/automation-quota.test.ts", "tests/listing-workflow-graph.test.ts", "tests/task-ledger.test.ts"
+    ],
+    "claims": [
+      "entrypoints/dash/DashHeader.vue", "entrypoints/dash/DashLayout.vue", "entrypoints/dash/composables/useDashProductActions.ts", "entrypoints/dash/composables/useDashPublishFlow.ts", "entrypoints/lite/composables/useLiteWorkbench.ts",
+      "src/app/workflows/automation-pipeline.ts", "src/app/workflows/automation-stations.ts", "src/app/workflows/image-prep-workflow.ts", "src/app/workflows/listing-workflow-graph.ts", "src/app/workflows/review-workflow.ts", "src/components/TaskStrategyModal.vue", "src/domain/settings/automation.ts", "src/domain/settings/types.ts", "src/domain/workspace/types.ts", "src/engine/browser.ts", "src/engine/index.ts", "src/shared/settings-normalize.ts",
+      "tests/automation-ledger-settle.test.ts", "tests/automation-quota.test.ts", "tests/listing-workflow-graph.test.ts", "tests/task-ledger.test.ts"
+    ]
+  }],
+  "acceptanceCriteria": [
+    "任务策略五个流程分别支持 auto/manual",
+    "Dash/Lite 不再显示或读写 cost/generate 模式",
+    "自动链只执行 auto 节点，显式节点可重跑",
+    "推荐使用 readiness、任务状态、依赖和策略",
+    "归一化结果只包含白名单策略字段"
+  ],
+  "verification": [
+    {"name":"Engine 类型检查","repository":"qingpu-ai-delivery","always":true,"command":"npm run typecheck -- --pretty false"},
+    {"name":"策略与账本测试","repository":"qingpu-ai-delivery","always":true,"command":"npx vitest run tests/listing-workflow-graph.test.ts tests/listing-workflow-contract.test.ts tests/automation-quota.test.ts tests/automation-ledger-settle.test.ts tests/task-ledger.test.ts"},
+    {"name":"旧模式残留检查","repository":"qingpu-ai-delivery","always":true,"command":"if rg -n \"mode: 'cost'|=== 'cost'|省钱模式|taskMode|automation\\.mode\\b|config\\.mode\\b|aiAttributeFill\" entrypoints src --glob '*.{ts,vue}'; then exit 1; fi"},
+    {"name":"精确格式检查","repository":"qingpu-ai-delivery","always":true,"command":"git diff --check"}
+  ]
+}

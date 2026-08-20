@@ -15,18 +15,24 @@ export const users = sqliteTable('users', {
   avatarUrl: text('avatar_url'),
   lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
   currentSessionId: text('current_session_id'), // 当前有效的会话 ID
-  
-  // 融合自 PROMPT.md 中转站用户属性
-  CashBalance: integer('cash_balance', { mode: 'number' }).default(0), // 充值余额（永不过期），金额放大 10^8 倍存储
-  GrantBalance: integer('grant_balance', { mode: 'number' }).default(0), // 订阅周期赠送余额（按周期清零），金额放大 10^8 倍存储
-  SubBalance: integer('sub_balance', { mode: 'number' }).default(0), // 订阅余额（按周期清零），金额放大 10^8 倍存储
-  SubExpiresAt: integer('sub_expires_at', { mode: 'timestamp' }), // 订阅过期时间
-  TierLevel: integer('tier_level', { mode: 'number' }).default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
   status: integer('status').default(1), // 1: 正常, 0: 禁用
 
   emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }), // 邮箱验证时间
 
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
+export const userWallets = sqliteTable('user_wallets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  cashBalance: integer('cash_balance', { mode: 'number' }).notNull().default(0),
+  grantBalance: integer('grant_balance', { mode: 'number' }).notNull().default(0),
+  subBalance: integer('sub_balance', { mode: 'number' }).notNull().default(0),
+  pointsBalance: integer('points_balance', { mode: 'number' }).notNull().default(0),
+  tierLevel: integer('tier_level', { mode: 'number' }).notNull().default(0),
+  subExpiresAt: integer('sub_expires_at', { mode: 'timestamp' }),
+  status: integer('status').notNull().default(1),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 })
 
 export const userSessions = sqliteTable('user_sessions', {
@@ -173,6 +179,34 @@ export const orders = sqliteTable('orders', {
 }, (table) => [
   uniqueIndex('orders_source_external_order_unique').on(table.source, table.externalOrderId),
 ])
+
+export const topups = sqliteTable('topups', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  orderId: text('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }).unique(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  walletId: integer('wallet_id').notNull().references(() => userWallets.id),
+  source: text('source').notNull().default('order'),
+  paymentAmount: real('payment_amount').notNull(),
+  paymentCurrency: text('payment_currency').notNull(),
+  creditAmountCents: integer('credit_amount_cents', { mode: 'number' }).notNull(),
+  creditCurrency: text('credit_currency').notNull(),
+  exchangeRate: real('exchange_rate').notNull().default(1),
+  balanceType: text('balance_type').notNull().default('cash'),
+  status: text('status').notNull().default('pending'),
+  creditEventId: text('credit_event_id').notNull().unique(),
+  refundEventId: text('refund_event_id').unique(),
+  retryCount: integer('retry_count').notNull().default(0),
+  shortfallCents: integer('shortfall_cents', { mode: 'number' }).notNull().default(0),
+  lastError: text('last_error'),
+  paidAt: integer('paid_at', { mode: 'timestamp' }),
+  creditedAt: integer('credited_at', { mode: 'timestamp' }),
+  refundedAt: integer('refunded_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+}, (table) => ({
+  userCreatedAtIdx: index('idx_topups_user_created_at').on(table.userId, table.createdAt),
+  statusUpdatedAtIdx: index('idx_topups_status_updated_at').on(table.status, table.updatedAt),
+}))
 
 // ==========================================
 // Subscriptions Table (Adyen/PayPal Recurring)
@@ -394,7 +428,7 @@ export const notifications = sqliteTable('notifications', {
 
 
 // 余额变更流水（充值到账、后台直充/赠送、消费扣减…）。
-// 与 users.CashBalance / GrantBalance 同口径：金额放大 10^8 存储。
+// 与 user_wallets 各余额池同口径：金额放大 10^8 存储。
 //
 // 与 ainode 同名表的两点差异：
 //  1. 去掉 transaction_id 外键——apay 没有 transactions 表，溯源改用 sourceType/sourceId
@@ -404,9 +438,10 @@ export const notifications = sqliteTable('notifications', {
 export const balanceLogs = sqliteTable('balance_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
+  walletId: integer('wallet_id').notNull().references(() => userWallets.id),
   balanceType: text('balance_type').notNull(),
   actionType: text('action_type').notNull().default('topup'),
-  // 与本文件 users.CashBalance 保持一致：sqlite 侧用 number 而非 bigint，
+  // 与本文件 userWallets.cashBalance 保持一致：sqlite 侧用 number 而非 bigint，
   // 否则同一份业务代码在三方言下拿到的类型不一致（bigint vs number）
   amountCents: integer('amount_cents', { mode: 'number' }).notNull(),
   beforeBalanceCents: integer('before_balance_cents', { mode: 'number' }).notNull(),
@@ -418,7 +453,9 @@ export const balanceLogs = sqliteTable('balance_logs', {
   operatorName: text('operator_name').notNull().default(''),
   remark: text('remark').notNull().default(''),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
-})
+}, (table) => ({
+  walletCreatedAtIdx: index('idx_balance_logs_wallet_created_at').on(table.walletId, table.createdAt),
+}))
 
 export const promoMembers = sqliteTable('promo_members', {
   id: integer('id').primaryKey({ autoIncrement: true }),

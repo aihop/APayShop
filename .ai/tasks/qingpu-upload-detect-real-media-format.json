@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-upload-detect-real-media-format",
+  "title": "兼容扩展名与真实格式不一致的图片上传",
+  "problem": "浏览器按错误扩展名上报 multipart MIME 时，统一上传器会按声明 MIME 校验文件头，导致内容合法的 PNG 等图片被误拒绝。",
+  "expectedOutcome": "统一上传器从文件字节识别受支持的真实媒体格式；文件名或声明 MIME 错误时仍按真实 MIME 和扩展名保存，无法识别或不受支持的内容继续拒绝。",
+  "constraints": [
+    "继续只允许现有 JPEG、PNG、WebP、AVIF、MP4、WebM、MOV 和 M4V 白名单",
+    "不根据扩展名放宽内容校验，不新增依赖",
+    "图片专用入口不得接受视频内容",
+    "保存扩展名、Blob MIME 和资产 contentType 必须使用探测到的真实格式",
+    "不修改外部 API 响应结构，不覆盖其他未提交改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/assets/media-format.ts",
+        "server/assets/user-media-upload.ts",
+        "scripts/check-user-media-format.mjs",
+        "scripts/check-asset-upload-contract.mjs"
+      ],
+      "claims": [
+        "server/assets/media-format.ts",
+        "server/assets/user-media-upload.ts",
+        "scripts/check-user-media-format.mjs",
+        "scripts/check-asset-upload-contract.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "真实 PNG 内容即使被声明为 image/jpeg 也按 image/png 和 png 处理",
+    "JPEG、PNG、WebP、AVIF 以及既有视频格式仍可从文件头识别",
+    "无法识别的内容和图片入口收到的视频仍被拒绝",
+    "真实格式继续驱动大小限制、持久化扩展名、Blob MIME 与资产元数据"
+  ],
+  "verification": [
+    {
+      "name": "媒体格式字节级回归检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-user-media-format.mjs"
+    },
+    {
+      "name": "统一上传契约守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-asset-upload-contract.mjs"
+    },
+    {
+      "name": "上传兼容改动格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/assets/media-format.ts server/assets/user-media-upload.ts scripts/check-user-media-format.mjs scripts/check-asset-upload-contract.mjs"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ]
+}

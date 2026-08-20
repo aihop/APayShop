@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-user-facing-i18n-errors",
+  "title": "补齐 Qingpu 全端国际化并改善错误提示",
+  "problem": "Qingpu 用户实际经过的 APay 公共壳、网页主题和扩展/桌面端存在语言键不对齐、中文或英文硬编码、技术异常原文直接展示，以及失败提示缺少对象、原因或下一步建议的问题。扩展/桌面端虽然提供三语切换，但当前 36 个 Vue 界面中 33 个仍含中文文案且没有界面使用 i18n。",
+  "expectedOutcome": "Qingpu 的中文、英文、俄文界面结构一致；所有用户可见操作、状态和失败提示随当前语言显示；已知失败说明发生了什么并给出可执行下一步；未知或底层异常使用安全回退，不直接暴露内部技术细节；新增自动检查防止语言键和硬编码文案再次漂移。",
+  "constraints": [
+    "范围只覆盖 Qingpu 产品实际使用的 APay 公共壳、Qingpu 网页主题和 qingpu-ai 扩展/桌面端，不修改 minimal、ainode、official、design 等独立主题",
+    "保留现有中文产品术语、业务行为、API 协议、数据模型、支付、发布和生成逻辑",
+    "服务端与遥测继续保留可排障原始错误；面向用户的界面只展示本地化、安全且可操作的说明",
+    "外部平台明确返回且对用户有帮助的业务校验信息可以保留，但网络、堆栈、SQL、路径、内部状态和未知异常不得原样透传",
+    "不新增运行时依赖，不修改生成的 qingpu-engine vendor，不覆盖或整理其他任务的未提交内容",
+    "新增检查必须区分用户界面文案、开发日志、协议字面量、品牌名和外部字段，避免用大面积豁免掩盖遗漏"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "locales/**",
+        "app/components/**",
+        "app/composables/**",
+        "scripts/check-user-facing-i18n.mjs",
+        "package.json"
+      ],
+      "claims": [
+        "locales/**",
+        "app/components/PaymentWorkspace.vue",
+        "app/composables/useCheckout.ts",
+        "scripts/check-user-facing-i18n.mjs",
+        "package.json"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "locales/**",
+        "components/**",
+        "layouts/**",
+        "pages/**",
+        "utils/**",
+        "scripts/check-user-facing-i18n.mjs"
+      ],
+      "claims": [
+        "locales/**",
+        "components/**",
+        "layouts/**",
+        "pages/**",
+        "utils/**",
+        "scripts/check-user-facing-i18n.mjs"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/**",
+        "tests/**",
+        "scripts/check-user-facing-i18n.mjs",
+        "package.json"
+      ],
+      "claims": [
+        "src/**",
+        "tests/**",
+        "scripts/check-user-facing-i18n.mjs",
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "APay 公共语言包、Qingpu 主题各域语言包和 qingpu-ai 语言包的中英俄键结构完全一致",
+    "Qingpu 用户可见 Vue 模板、toast、弹窗、表单校验、空状态和操作结果不存在未登记的中文或英文硬编码",
+    "扩展、浮窗、Dash 和桌面壳的现有用户界面全部接入当前语言，切换语言后无需重装即可在相应入口生效",
+    "网络失败、鉴权、限流、超时、并发占用、前置条件、外部校验和未知失败均有清晰的本地化回退",
+    "用户提示不展示堆栈、SQL、内部路径、fetch failed、Failed to fetch 或无上下文的 Error/Unknown error",
+    "自动检查能在语言键缺失、用户界面新增硬编码文案或直接展示高风险底层异常时失败"
+  ],
+  "verification": [
+    {
+      "name": "APay 国际化守卫与格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-user-facing-i18n.mjs && git diff --check -- locales app/components/PaymentWorkspace.vue app/composables/useCheckout.ts scripts/check-user-facing-i18n.mjs package.json"
+    },
+    {
+      "name": "Qingpu 网页主题国际化守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-user-facing-i18n.mjs && git diff --check -- locales components layouts pages utils scripts/check-user-facing-i18n.mjs"
+    },
+    {
+      "name": "Qingpu 网页主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "扩展与桌面端国际化守卫和测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "node scripts/check-user-facing-i18n.mjs && npm run typecheck && npm test && git diff --check -- src tests scripts/check-user-facing-i18n.mjs package.json"
+    }
+  ]
+}

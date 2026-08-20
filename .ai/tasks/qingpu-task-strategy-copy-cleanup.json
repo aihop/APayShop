@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-task-strategy-copy-cleanup",
+  "title": "清理网页最后旧模式文案与参数",
+  "problem": "水印模板文案仍提到省钱模式，Listing smoke 仍传已删除的 workMode 参数。",
+  "expectedOutcome": "用户可见文案只描述任务策略，smoke 脚本不再发送 workMode。",
+  "constraints": ["不提交、不推送、不部署"],
+  "repositories": [{
+    "name": "qingpu-theme-copy-cleanup",
+    "path": "/private/tmp/qingpu-task-strategy-theme-final",
+    "allowedPaths": ["pages/user/listing/settings-watermark.copy.ts", "scripts/listing-flow-smoke.mjs"],
+    "claims": ["pages/user/listing/settings-watermark.copy.ts", "scripts/listing-flow-smoke.mjs"]
+  }],
+  "acceptanceCriteria": ["水印文案不再提省钱/生图双模式", "smoke 脚本不再传 workMode"],
+  "verification": [
+    {"name":"旧模式文案与参数检查","repository":"qingpu-theme-copy-cleanup","always":true,"command":"if rg -n \"省钱模式|workMode\" pages/user/listing/settings-watermark.copy.ts scripts/listing-flow-smoke.mjs; then exit 1; fi"},
+    {"name":"精确格式检查","repository":"qingpu-theme-copy-cleanup","always":true,"command":"git diff --check"}
+  ]
+}

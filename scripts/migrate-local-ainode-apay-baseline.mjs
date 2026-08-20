@@ -13,6 +13,8 @@ const fail = (message) => {
   throw new Error(message)
 }
 
+fail('This shared-database baseline is retired: APay and AINode must use separate databases because each service owns an incompatible user_wallets table.')
+
 const connectionString = String(process.env.DATABASE_URL || '').replaceAll('"', '').trim()
 if (!connectionString) fail('DATABASE_URL is required')
 

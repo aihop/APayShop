@@ -1,4 +1,4 @@
-import { users, orders, products, subscriptions, oauthAccounts, userTokens, visitorProfiles, promoMembers } from "../../../db/schema"
+import { users, userWallets, orders, products, subscriptions, oauthAccounts, userTokens, visitorProfiles, promoMembers } from "../../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -23,12 +23,14 @@ export default defineEventHandler(async (event) => {
       createdAt: users.createdAt,
       lastLoginAt: users.lastLoginAt,
       emailVerifiedAt: users.emailVerifiedAt,
-      cashBalance: users.CashBalance,
-      grantBalance: users.GrantBalance,
-      subBalance: users.SubBalance,
-      tierLevel: users.TierLevel,
-      subExpiresAt: users.SubExpiresAt,
-    }).from(users).where(eq(users.id, userId)).limit(1)
+      cashBalance: userWallets.cashBalance,
+      grantBalance: userWallets.grantBalance,
+      subBalance: userWallets.subBalance,
+      tierLevel: userWallets.tierLevel,
+      subExpiresAt: userWallets.subExpiresAt,
+    }).from(users)
+      .leftJoin(userWallets, eq(userWallets.userId, users.id))
+      .where(eq(users.id, userId)).limit(1)
 
     const user = userRows[0]
     if (!user) {

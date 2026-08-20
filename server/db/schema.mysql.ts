@@ -15,19 +15,24 @@ export const users = mysqlTable('users', {
   avatarUrl: text('avatar_url'),
   lastLoginAt: timestamp('last_login_at'),
   currentSessionId: text('current_session_id'), // 当前有效的会话 ID
-  
-  CashBalance: bigint('cash_balance', { mode: 'bigint' }).default(sql`0`), // 充值余额（永不过期），金额放大 10^8 倍存储
-  GrantBalance: bigint('grant_balance', { mode: 'bigint' }).default(sql`0`), // 订阅周期赠送余额（按周期清零），金额放大 10^8 倍存储
-  SubBalance: bigint('sub_balance', { mode: 'bigint' }).default(sql`0`), // 订阅余额（按周期清零），金额放大 10^8 倍存储
-  
-  TierLevel: int('tier_level').default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
-  SubExpiresAt: timestamp('sub_expires_at'), // 订阅过期时间
-  
   status: int('status').default(1), // 1: 正常, 0: 禁用
 
   emailVerifiedAt: timestamp('email_verified_at'), // 邮箱验证时间
 
   createdAt: timestamp('created_at').notNull().defaultNow()
+})
+
+export const userWallets = mysqlTable('user_wallets', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  cashBalance: bigint('cash_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  grantBalance: bigint('grant_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  subBalance: bigint('sub_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  pointsBalance: bigint('points_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  tierLevel: int('tier_level').notNull().default(0),
+  subExpiresAt: timestamp('sub_expires_at'),
+  status: int('status').notNull().default(1),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
 export const userSessions = mysqlTable('user_sessions', {
@@ -178,6 +183,34 @@ export const orders = mysqlTable('orders', {
 }, (table) => [
   uniqueIndex('orders_source_external_order_unique').on(table.source, table.externalOrderId),
 ])
+
+export const topups = mysqlTable('topups', {
+  id: int('id').autoincrement().primaryKey(),
+  orderId: varchar('order_id', { length: 191 }).notNull().unique(),
+  userId: int('user_id').notNull().references(() => users.id),
+  walletId: int('wallet_id').notNull().references(() => userWallets.id),
+  source: varchar('source', { length: 32 }).notNull().default('order'),
+  paymentAmount: real('payment_amount').notNull(),
+  paymentCurrency: varchar('payment_currency', { length: 16 }).notNull(),
+  creditAmountCents: bigint('credit_amount_cents', { mode: 'bigint' }).notNull(),
+  creditCurrency: varchar('credit_currency', { length: 16 }).notNull(),
+  exchangeRate: real('exchange_rate').notNull().default(1),
+  balanceType: varchar('balance_type', { length: 20 }).notNull().default('cash'),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  creditEventId: varchar('credit_event_id', { length: 255 }).notNull().unique(),
+  refundEventId: varchar('refund_event_id', { length: 255 }).unique(),
+  retryCount: int('retry_count').notNull().default(0),
+  shortfallCents: bigint('shortfall_cents', { mode: 'bigint' }).notNull().default(sql`0`),
+  lastError: text('last_error'),
+  paidAt: timestamp('paid_at'),
+  creditedAt: timestamp('credited_at'),
+  refundedAt: timestamp('refunded_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  userCreatedAtIdx: index('idx_topups_user_created_at').on(table.userId, table.createdAt),
+  statusUpdatedAtIdx: index('idx_topups_status_updated_at').on(table.status, table.updatedAt),
+}))
 
 // ==========================================
 // Subscriptions Table (Adyen/PayPal Recurring)
@@ -401,7 +434,7 @@ export const notifications = mysqlTable('notifications', {
 
 
 // 余额变更流水（充值到账、后台直充/赠送、消费扣减…）。
-// 与 users.CashBalance / GrantBalance 同口径：金额放大 10^8 存储。
+// 与 user_wallets 各余额池同口径：金额放大 10^8 存储。
 //
 // 与 ainode 同名表的两点差异：
 //  1. 去掉 transaction_id 外键——apay 没有 transactions 表，溯源改用 sourceType/sourceId
@@ -411,6 +444,7 @@ export const notifications = mysqlTable('notifications', {
 export const balanceLogs = mysqlTable('balance_logs', {
   id: int('id').primaryKey().autoincrement(),
   userId: int('user_id').notNull().references(() => users.id),
+  walletId: int('wallet_id').notNull().references(() => userWallets.id),
   balanceType: varchar('balance_type', { length: 20 }).notNull(),
   actionType: varchar('action_type', { length: 50 }).notNull().default('topup'),
   amountCents: bigint('amount_cents', { mode: 'bigint' }).notNull(),
@@ -423,7 +457,9 @@ export const balanceLogs = mysqlTable('balance_logs', {
   operatorName: varchar('operator_name', { length: 100 }).notNull().default(''),
   remark: text('remark'),
   createdAt: timestamp('created_at').notNull().defaultNow()
-})
+}, (table) => ({
+  walletCreatedAtIdx: index('idx_balance_logs_wallet_created_at').on(table.walletId, table.createdAt),
+}))
 
 export const promoAgentTiers = mysqlTable('promo_agent_tiers', {
   id: int('id').autoincrement().primaryKey(),

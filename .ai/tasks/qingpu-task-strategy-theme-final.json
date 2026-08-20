@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-task-strategy-theme-final",
+  "title": "整合网页任务策略与准备项实时执行",
+  "problem": "网页需要把已验证的单策略、准备项重做与实时推荐整合到干净基线，同时修正图片审核字段归一和采集事实翻译显式入口。",
+  "expectedOutcome": "网页只保存单一五步策略，准备项可准确执行或重做，推荐消费当前商品状态；显式采集事实翻译可入队，图片审核字段不丢失，vendor 与最终引擎一致。",
+  "constraints": [
+    "在最终隔离主题 worktree 实施，不覆盖主工作区并行改动",
+    "vendor 只允许 engine:release 生成；若源提交门禁阻止则不手改",
+    "不提交、不推送、不部署、不执行数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme-final",
+      "path": "/private/tmp/qingpu-task-strategy-theme-final",
+      "allowedPaths": [
+        "api/listing/blueprint.ts",
+        "api/listing/settings.ts",
+        "api/listing/tasks/enqueue.ts",
+        "database/workspaces.sql",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/SettingsTaskStrategyCard.vue",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "scripts/check-listing-watermark-settings.mjs",
+        "scripts/check-unified-listing-workflow.mjs",
+        "scripts/check-workspace-readiness-p0.mjs",
+        "server/listing/product-detail.workspace.ts",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts",
+        "server/tasks/workflows.ts",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "api/listing/blueprint.ts",
+        "api/listing/settings.ts",
+        "api/listing/tasks/enqueue.ts",
+        "database/workspaces.sql",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "locales/listing/zh.ts",
+        "pages/user/listing/components/SettingsTaskStrategyCard.vue",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/components/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/useWorkspaceGalleryImageTasks.ts",
+        "pages/user/listing/settings.types.ts",
+        "pages/user/listing/settings.vue",
+        "scripts/check-listing-watermark-settings.mjs",
+        "scripts/check-unified-listing-workflow.mjs",
+        "scripts/check-workspace-readiness-p0.mjs",
+        "server/listing/product-detail.workspace.ts",
+        "server/settings/helpers.ts",
+        "server/settings/queries.ts",
+        "server/tasks/workflows.ts",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "网页设置只展示和保存五步 auto/manual 单策略",
+    "准备项支持单项执行和重新执行，运行中禁止重复点击",
+    "推荐下一步使用当前商品 readiness、最新任务状态、类目与策略",
+    "translate_facts 显式动作可入队且不串成 attributes",
+    "图片审核 imageReview 在读取和保存后保持一致",
+    "网页源码不再写 automationModes 或 work_mode"
+  ],
+  "verification": [
+    {
+      "name": "主题工作流守卫",
+      "repository": "qingpu-theme-final",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs && node scripts/check-workspace-readiness-p0.mjs && node scripts/check-listing-watermark-settings.mjs"
+    },
+    {
+      "name": "精确格式检查",
+      "repository": "qingpu-theme-final",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -15,19 +15,24 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   currentSessionId: text('current_session_id'), // 当前有效的会话 ID
-  
-  CashBalance: bigint('cash_balance', { mode: 'bigint' }).default(sql`0`), // 充值余额（永不过期），金额放大 10^8 倍存储
-  GrantBalance: bigint('grant_balance', { mode: 'bigint' }).default(sql`0`), // 订阅周期赠送余额（按周期清零），金额放大 10^8 倍存储
-  SubBalance: bigint('sub_balance', { mode: 'bigint' }).default(sql`0`), // 订阅余额（按周期清零），金额放大 10^8 倍存储
-  
-  TierLevel: integer('tier_level').default(0), // 订阅等级 (0: Free, 1: Pro, 2: Enterprise)，用于网关高并发优先级控制
-  SubExpiresAt: timestamp('sub_expires_at', { withTimezone: true }), // 订阅过期时间
-  
   status: integer('status').default(1), // 1: 正常, 0: 禁用
 
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }), // 邮箱验证时间
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+})
+
+export const userWallets = pgTable('user_wallets', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  cashBalance: bigint('cash_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  grantBalance: bigint('grant_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  subBalance: bigint('sub_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  pointsBalance: bigint('points_balance', { mode: 'bigint' }).notNull().default(sql`0`),
+  tierLevel: integer('tier_level').notNull().default(0),
+  subExpiresAt: timestamp('sub_expires_at', { withTimezone: true }),
+  status: integer('status').notNull().default(1),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const userSessions = pgTable('user_sessions', {
@@ -178,6 +183,34 @@ export const orders = pgTable('orders', {
 }, (table) => [
   uniqueIndex('orders_source_external_order_unique').on(table.source, table.externalOrderId),
 ])
+
+export const topups = pgTable('topups', {
+  id: serial('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }).unique(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  walletId: integer('wallet_id').notNull().references(() => userWallets.id),
+  source: text('source').notNull().default('order'),
+  paymentAmount: real('payment_amount').notNull(),
+  paymentCurrency: text('payment_currency').notNull(),
+  creditAmountCents: bigint('credit_amount_cents', { mode: 'bigint' }).notNull(),
+  creditCurrency: text('credit_currency').notNull(),
+  exchangeRate: real('exchange_rate').notNull().default(1),
+  balanceType: text('balance_type').notNull().default('cash'),
+  status: text('status').notNull().default('pending'),
+  creditEventId: text('credit_event_id').notNull().unique(),
+  refundEventId: text('refund_event_id').unique(),
+  retryCount: integer('retry_count').notNull().default(0),
+  shortfallCents: bigint('shortfall_cents', { mode: 'bigint' }).notNull().default(sql`0`),
+  lastError: text('last_error'),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+  creditedAt: timestamp('credited_at', { withTimezone: true }),
+  refundedAt: timestamp('refunded_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userCreatedAtIdx: index('idx_topups_user_created_at').on(table.userId, table.createdAt),
+  statusUpdatedAtIdx: index('idx_topups_status_updated_at').on(table.status, table.updatedAt),
+}))
 
 // ==========================================
 // Subscriptions Table (Adyen/PayPal Recurring)
@@ -399,7 +432,7 @@ export const notifications = pgTable('notifications', {
 
 
 // 余额变更流水（充值到账、后台直充/赠送、消费扣减…）。
-// 与 users.CashBalance / GrantBalance 同口径：金额放大 10^8 存储。
+// 与 user_wallets 各余额池同口径：金额放大 10^8 存储。
 //
 // 与 ainode 同名表的两点差异：
 //  1. 去掉 transaction_id 外键——apay 没有 transactions 表，溯源改用 sourceType/sourceId
@@ -409,6 +442,7 @@ export const notifications = pgTable('notifications', {
 export const balanceLogs = pgTable('balance_logs', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
+  walletId: integer('wallet_id').notNull().references(() => userWallets.id),
   balanceType: text('balance_type').notNull(), // cash | grant
   actionType: text('action_type').notNull().default('topup'), // topup | admin_recharge | order_payment | refund | adjust
   /** 本次变更金额，放大 10^8；正=入账，负=出账 */
@@ -423,7 +457,9 @@ export const balanceLogs = pgTable('balance_logs', {
   operatorName: text('operator_name').notNull().default(''),
   remark: text('remark').notNull().default(''),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-})
+}, (table) => ({
+  walletCreatedAtIdx: index('idx_balance_logs_wallet_created_at').on(table.walletId, table.createdAt),
+}))
 
 export const promoAgentTiers = pgTable('promo_agent_tiers', {
   id: serial('id').primaryKey(),

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-friendly-upstream-network-error",
+  "title": "优化上游中转站网络失败提示",
+  "problem": "AI 上游中转站连接失败时，统一客户端会把底层 fetch failed 原样展示给用户，缺少失败对象、重试建议和管理员排查方向。",
+  "expectedOutcome": "AI 请求发生传输层网络失败时，用户看到可理解且可操作的中文提示；原始错误对象仍作为 cause 保留，便于日志和调试工具追查。",
+  "constraints": [
+    "只调整共享 AI 客户端的网络错误规范化，不修改业务页面或外部 API 协议",
+    "网关返回的规范错误、鉴权、限流、5xx 和超时提示保持现有语义",
+    "不得把所有未知错误都误判为中转站网络失败",
+    "不新增依赖，不修改当前其他未提交内容"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/api-client.ts",
+        "tests/llm-error.test.ts"
+      ],
+      "claims": [
+        "src/shared/api-client.ts",
+        "tests/llm-error.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "fetch failed 和 failed to fetch 等传输层网络异常不再原样展示",
+    "网络失败提示明确暂时无法连接 AI 服务，并建议稍后重试或联系管理员",
+    "网络失败仍使用稳定的 LlmRequestError 类型和错误码",
+    "现有规范错误、状态码和超时错误测试继续通过"
+  ],
+  "verification": [
+    {
+      "name": "LLM 错误规范化测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/llm-error.test.ts"
+    },
+    {
+      "name": "共享客户端类型与格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && git diff --check -- src/shared/api-client.ts tests/llm-error.test.ts"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { capturePromoTracking, createOrderAttribution, mergePromoTracking, readP
 import { createNotification } from '../../utils/notifications'
 import { buildTopupQuote, ensureTopupCarrierProduct, getTopupRules, TopupValidationError } from '../../utils/topup'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { createTopupRecord } from '../../utils/topupLedger'
 import {
   buildMinimalCheckoutBridgeMeta,
   getMinimalCheckoutAdminConfig,
@@ -147,6 +148,7 @@ export default defineEventHandler(async (event) => {
     attach: {
       channel: 'qingpu-wallet',
       businessType: 'topup',
+      walletOwner: 'apay',
       sourceProductId: carrier.id,
       productName: carrier.name,
       productMeta: carrier.metaData,
@@ -183,6 +185,25 @@ export default defineEventHandler(async (event) => {
     metaData: prepareOrderMetaForInsert(relayOrderMeta),
     createdAt: new Date(),
   })
+
+  try {
+    await createTopupRecord({
+      orderId,
+      userId: Number(userId),
+      paymentAmount: quote.amount,
+      paymentCurrency: quote.currency,
+      creditAmount: quote.rechargeAmount,
+      creditCurrency: quote.accountingCurrency,
+      exchangeRate,
+      balanceType: 'cash',
+      source: 'quick_topup',
+      createdAt: new Date(),
+    })
+  } catch (error) {
+    await db.update(orders).set({ payStatus: ORDER_PAY_STATUS.FAILED, status: ORDER_STATUS.FAILED })
+      .where(eq(orders.id, orderId))
+    throw error
+  }
 
   await createOrderAttribution({
     orderId,

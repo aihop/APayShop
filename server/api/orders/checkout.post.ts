@@ -1,4 +1,4 @@
-import { orders, products, settings, users } from "../../db/schema"
+import { orders, products, settings, users, userWallets } from "../../db/schema"
 import { eq, and, desc, gte } from "drizzle-orm"
 import crypto from "crypto"
 import { z } from "zod"
@@ -22,6 +22,7 @@ import {
 } from '../../../app/themes/minimal/server/checkout/bridge'
 import { fulfillMinimalCheckoutRelay } from '../../../app/themes/minimal/server/checkout/fulfillment'
 import { deliverMinimalCheckoutPaid } from '../../../app/themes/minimal/server/checkout/notify'
+import { ensureTopupRecordForOrder, settlePaidTopup } from '../../utils/topupLedger'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -153,6 +154,8 @@ export default defineEventHandler(async (event) => {
           invalidProductInfo: '商品信息无效',
           productNotFound: '商品不存在',
           productUnavailable: '商品当前不可售',
+          topupLoginRequired: '请先登录后再充值',
+          invalidTopupAmount: '充值到账金额必须大于 0',
           activeSubscriptionExists: '您当前已拥有同级有效订阅，请升级到更高等级的套餐。',
           purchaseLimitExceeded: '您已达到该商品的购买上限，无法再次购买。',
           purchaseLimitExceededWithCount: '该商品每人最多可购买 {limit} 次，您已购买过 {count} 次。',
@@ -166,6 +169,8 @@ export default defineEventHandler(async (event) => {
           invalidProductInfo: 'Invalid product information',
           productNotFound: 'Product not found',
           productUnavailable: 'Product is not available for sale',
+          topupLoginRequired: 'Please log in before topping up',
+          invalidTopupAmount: 'Top-up credit amount must be greater than 0',
           activeSubscriptionExists: 'You already have an active subscription at this tier. Please upgrade to a higher plan.',
           purchaseLimitExceeded: 'You have reached the purchase limit for this product.',
           purchaseLimitExceededWithCount: 'This product can only be purchased {limit} time(s) per user. You have already purchased it {count} time(s).',
@@ -262,6 +267,9 @@ export default defineEventHandler(async (event) => {
     if (product.isActive === false) {
       return { code: 1, message: messages.productUnavailable }
     }
+    if (product.type === 'topup' && !userId) {
+      throw createError({ statusCode: 401, message: messages.topupLoginRequired })
+    }
     
     // Prepare metaData for the order by merging product's plan_ids (if any) with user's metaData
     let productMetaData = product.metaData || {}
@@ -283,6 +291,13 @@ export default defineEventHandler(async (event) => {
       checkoutLocale,
     )
     const totalAmount = currencyQuote.amount
+    const configuredRechargeAmount = Number((productMetaData as any).recharge_amount || 0)
+    const rechargeAmount = configuredRechargeAmount > 0
+      ? configuredRechargeAmount
+      : currencyQuote.baseAmount
+    if (product.type === 'topup' && (!(totalAmount > 0) || !(rechargeAmount > 0))) {
+      throw createError({ statusCode: 400, message: messages.invalidTopupAmount })
+    }
     const currencySnapshot = {
       locale: currencyQuote.locale,
       baseCurrency: currencyQuote.baseCurrency,
@@ -303,10 +318,6 @@ export default defineEventHandler(async (event) => {
     }
     
     const buildRelayOrderMeta = (externalOrderId: string) => {
-      const configuredRechargeAmount = Number((productMetaData as any).recharge_amount || 0)
-      const rechargeAmount = configuredRechargeAmount > 0
-        ? configuredRechargeAmount
-        : currencyQuote.baseAmount
       const rechargeCurrency = String(
         (productMetaData as any).display_unit || currencyQuote.baseCurrency,
       ).trim().toUpperCase()
@@ -338,6 +349,7 @@ export default defineEventHandler(async (event) => {
           productMeta: productMetaData,
           quantity: productNum,
           userId,
+          walletOwner: product.type === 'topup' ? 'apay' : 'external',
         },
       })
       return mergeMinimalCheckoutMeta(finalMetaData, bridgeMeta)
@@ -352,13 +364,14 @@ export default defineEventHandler(async (event) => {
     // ==========================================
     // 订阅升级校验 (Subscription Upgrade Check)
     // ==========================================
-    // 如果商品是 subscription 类型且用户已登录，检查用户当前 TierLevel
+    // 如果商品是 subscription 类型且用户已登录，检查用户当前钱包 TierLevel
     // 只允许升级（新商品 level > 用户当前 TierLevel），不允许同级或降级重复购买
     if (product.type === 'subscription' && userId) {
       const productLevel = (productMetaData as any)?.level
       if (productLevel !== undefined) {
-        const userRecord = await db.select({ TierLevel: users.TierLevel }).from(users).where(eq(users.id, userId)).limit(1)
-        const currentLevel = userRecord.length > 0 ? (userRecord[0].TierLevel || 0) : 0
+        const walletRecord = await db.select({ tierLevel: userWallets.tierLevel })
+          .from(userWallets).where(eq(userWallets.userId, userId)).limit(1)
+        const currentLevel = walletRecord.length > 0 ? (walletRecord[0].tierLevel || 0) : 0
         if (Number(productLevel) <= Number(currentLevel)) {
           throw createError({
             statusCode: 409,
@@ -464,6 +477,10 @@ export default defineEventHandler(async (event) => {
             .where(eq(orders.id, pendingOrder.id))
         }
 
+        if (product.type === 'topup') {
+          await ensureTopupRecordForOrder(pendingOrder.id)
+        }
+
         await createOrderAttribution({
           orderId: pendingOrder.id,
           buyerUserId: userId,
@@ -497,6 +514,7 @@ export default defineEventHandler(async (event) => {
           // 只经这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,
           // 不在这里发就永远不入账(试用开通"送钱"断链的真实事故)
           if (getAffectedRows(claim) > 0) {
+            if (product.type === 'topup') await settlePaidTopup(pendingOrder.id)
             await fulfillFreeRelayOrder(pendingOrder.id).catch((e) =>
               console.error('[Checkout] Free relay order reuse fulfillment failed:', pendingOrder.id, e),
             )
@@ -568,6 +586,15 @@ export default defineEventHandler(async (event) => {
     
     await db.insert(orders).values(orderData).returning()
 
+    if (product.type === 'topup') {
+      try {
+        await ensureTopupRecordForOrder(orderId)
+      } catch (error) {
+        await db.update(orders).set({ payStatus: ORDER_PAY_STATUS.FAILED, status: ORDER_STATUS.FAILED }).where(eq(orders.id, orderId))
+        throw error
+      }
+    }
+
     await createOrderAttribution({
       orderId,
       buyerUserId: userId,
@@ -587,6 +614,7 @@ export default defineEventHandler(async (event) => {
       // 履约后必须派发 order.paid:integration.transaction(如试用商品的送钱)只经
       // 这个事件到达 ainode——真实支付路径由回调派发,0 元单没有回调,这里不发就
       // 永远不入账(试用开通"送钱"断链的真实事故)
+      if (product.type === 'topup') await settlePaidTopup(orderId)
       await fulfillFreeRelayOrder(orderId).catch((e) =>
         console.error('[Checkout] Free relay order fulfillment failed:', orderId, e),
       )
