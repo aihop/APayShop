@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-prompts-ozon-category-picker",
+  "title": "渠道提示词接入真实 Ozon 类目选择器",
+  "problem": "渠道提示词后台当前要求管理员手工输入 categoryId，容易录入不存在或不属于 Ozon 的类目，也没有复用系统已有的真实 Ozon 分层类目树。",
+  "expectedOutcome": "管理员通过服务端有限搜索筛选 Ozon 真实叶子类目，页面保存字符串 categoryId 和展示完整路径，服务端拒绝未知 Ozon 类目 ID，后台不下载完整类目树。",
+  "constraints": [
+    "复用现有 Ozon 类目目录服务，不复制或新增第二份类目事实源",
+    "渠道提示词逻辑继续独立于商品编辑 API，不修改 qingpu-ai Registry 与 Factory 合同",
+    "categoryId 在渠道提示词合同、请求和存储中始终按字符串处理",
+    "不 push、不发布 engine、不迁移数据库"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/components/AdminChannelPromptsDrawer.vue",
+        "admin/components/AdminOzonCategoryPicker.vue",
+        "server/listing/categories.ts",
+        "server/channel-prompts/category-catalog.ts",
+        "server/channel-prompts/service.ts",
+        "tests/channel-prompts-ozon-category-picker.test.ts"
+      ],
+      "claims": [
+        "admin/components/AdminChannelPromptsDrawer.vue",
+        "admin/components/AdminOzonCategoryPicker.vue",
+        "server/listing/categories.ts",
+        "server/channel-prompts/category-catalog.ts",
+        "server/channel-prompts/service.ts",
+        "tests/channel-prompts-ozon-category-picker.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "精确平台类目范围不再提供自由 categoryId 文本输入",
+    "管理员输入关键词后只收到有限数量的 Ozon 真实叶子类目结果",
+    "选择后展示完整类目路径并提交字符串 categoryId",
+    "渠道提示词后台不下载完整 Ozon 类目树",
+    "服务端拒绝不属于 Ozon 真实类目目录的 categoryId",
+    "渠道通用与类目 Profile 范围不加载或提交 categoryId"
+  ],
+  "verification": [
+    {
+      "name": "Ozon 类目选择器专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm_config_cache=/private/tmp/qingpu-channel-prompts-npm-cache npx --yes vitest@4.1.11 run tests/channel-prompts-ozon-category-picker.test.ts tests/channel-prompts.test.ts tests/channel-prompts-standalone-entry.test.ts"
+    },
+    {
+      "name": "主题 Vue 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node --input-type=module -e \"import { readFileSync } from 'node:fs'; import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc'; for (const file of ['admin/components/AdminOzonCategoryPicker.vue','admin/components/AdminChannelPromptsDrawer.vue']) { const { descriptor, errors } = parse(readFileSync(file, 'utf8'), { filename: file }); if (errors.length) throw errors[0]; compileScript(descriptor, { id: file }); const result = compileTemplate({ source: descriptor.template?.content || '', filename: file, id: file }); if (result.errors.length) throw result.errors[0]; }\""
+    },
+    {
+      "name": "主题表所有权守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-table-ownership.mjs"
+    },
+    {
+      "name": "主题精确格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}
