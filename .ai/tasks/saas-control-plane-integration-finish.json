@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "saas-control-plane-integration-finish",
+  "title": "完成 SaaS 控制中心集成收尾",
+  "problem": "可选 SaaS 控制中心模块已经安装，但后台全局搜索仍按当前主题生成权限码，双语使用文档尚未进入主工作区，且删除旧核心 API 草稿后需要重建并证明产物边界。",
+  "expectedOutcome": "后台搜索使用扩展页显式权限，双语文档说明模块配置与 Provider 边界，最终产物只保留模块 API 而不再包含旧的 /api/admin/saas 路由。",
+  "constraints": [
+    "只修改后台搜索与 SaaS 控制中心双语文档",
+    "不修改 Minimal 或其他主题仓",
+    "不修改 APay 核心 Schema、Shoply 代码或外部数据",
+    "不恢复被否决的 APay 核心 SaaS API",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/RouteSearch.vue",
+        "content/docs/21.saas-control-plane.md",
+        "content/zh/docs/21.saas-control-plane.md"
+      ],
+      "claims": [
+        "app/components/RouteSearch.vue",
+        "content/docs/21.saas-control-plane.md",
+        "content/zh/docs/21.saas-control-plane.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "全局搜索优先使用扩展页 permissionCode，并按 extensionKey 回退生成权限",
+    "中英文文档说明模块开关、凭证密钥、私网开关、权限和只读 Provider 契约",
+    "旧 server/api/admin/saas 与 shoplySaasAdmin 草稿不存在",
+    "core-only 产物不包含 /api/admin/saas 路由，并保留 /api/saas-control-plane/admin 模块能力"
+  ],
+  "verification": [
+    {
+      "name": "SaaS 模块专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-saas-control-plane-module.mjs"
+    },
+    {
+      "name": "搜索、文档与旧源码边界",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const route=fs.readFileSync('app/components/RouteSearch.vue','utf8');if(!route.includes('page.permissionCode || themeExtensionPermissionCode(page.extensionKey, page.key)'))throw new Error('RouteSearch permission fallback missing');for(const file of ['content/docs/21.saas-control-plane.md','content/zh/docs/21.saas-control-plane.md']){const text=fs.readFileSync(file,'utf8');for(const value of ['APAY_SAAS_CREDENTIAL_KEY','APAY_SAAS_CONTROL_PLANE_ENABLED','APAY_SAAS_ALLOW_PRIVATE_NETWORK','/api/saas-control-plane/admin'])if(!text.includes(value))throw new Error(file+' missing '+value)}for(const file of ['server/api/admin/saas/overview.get.ts','server/api/admin/saas/stores.get.ts','server/utils/shoplySaasAdmin.ts'])if(fs.existsSync(file))throw new Error('legacy SaaS core source remains: '+file)\""
+    },
+    {
+      "name": "Core-only 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "DB_DIALECT=sqlite DATABASE_URL= POSTGRES_URL= POSTGRESQL_URL= NUXT_DATABASE_URL= MYSQL_URL= QINGPU_DATABASE_URL=postgres://build:build@127.0.0.1:1/build APAY_BUILD_THEMES=core-only NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "构建产物路由边界",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');const path=require('node:path');const legacy='/.output/server/chunks/routes/api/admin/saas';if(fs.existsSync(path.join(process.cwd(),legacy)))throw new Error('legacy /api/admin/saas build routes remain');const files=[];const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);e.isDirectory()?walk(p):files.push(p)}};walk('.output/server');if(!files.some(file=>fs.readFileSync(file).includes('/api/saas-control-plane/admin')))throw new Error('module API route missing from build output')\""
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/RouteSearch.vue content/docs/21.saas-control-plane.md content/zh/docs/21.saas-control-plane.md"
+    }
+  ]
+}

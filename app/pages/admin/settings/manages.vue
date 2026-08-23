@@ -193,11 +193,11 @@
               </div>
             </div>
 
-            <template v-if="extensionPermissionDefs.length">
-              <div class="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-500 mt-4 mb-2">{{ themeSectionTitle }}</div>
+            <template v-for="section in extensionPermissionSections" :key="section.key">
+              <div class="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-500 mt-4 mb-2">{{ section.title }}</div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <label
-                  v-for="def in extensionPermissionDefs"
+                  v-for="def in section.defs"
                   :key="def.code"
                   class="flex items-start gap-2.5 rounded-lg border border-gray-200 dark:border-white/5 px-3 py-2.5 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] has-[:checked]:border-purple-300 has-[:checked]:bg-purple-50/60 dark:has-[:checked]:border-purple-500/30 dark:has-[:checked]:bg-purple-500/10"
                 >
@@ -253,7 +253,14 @@ const toast = useToast()
 const { confirm } = useConfirm()
 
 const { loadAdmin, hasPerm: hasAdminPerm, labelFor, permissions: currentAdminPerms, isSuper } = useAdminPermissions()
-const { extensionPermissionDefs, themeSectionTitle } = useAdminExtensions()
+const { extensionPermissionDefs, extensionSections } = useAdminExtensions()
+const extensionPermissionSections = computed(() => extensionSections.value.map(section => ({
+  key: section.key,
+  title: section.title,
+  defs: extensionPermissionDefs.value.filter(def =>
+    section.pages.some(page => (page.permissionCode || themeExtensionPermissionCode(page.extensionKey, page.key)) === def.code)
+  ),
+})))
 
 onMounted(async () => {
   await loadAdmin()

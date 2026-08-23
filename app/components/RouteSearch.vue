@@ -44,7 +44,7 @@ const isOpen = ref(false)
 const selected = ref<any>(null)
 const router = useRouter()
 const { t } = useI18n()
-const { activeTheme, extensionPages } = useAdminExtensions()
+const { extensionPages } = useAdminExtensions()
 const { hasPerm: hasAdminPerm, loadAdmin } = useAdminPermissions()
 
 onMounted(async () => {
@@ -94,7 +94,7 @@ const routes = computed(() => {
   ].filter(route => hasAdminPerm(route.permission))
 
   const themeRoutes = extensionPages.value
-    .filter((page: any) => hasAdminPerm(themeExtensionPermissionCode(activeTheme.value, page.key)))
+    .filter((page: any) => hasAdminPerm(page.permissionCode || themeExtensionPermissionCode(page.extensionKey, page.key)))
     .map((page: any) => ({
       id: `theme-extension-${page.key}`,
       label: page.title,

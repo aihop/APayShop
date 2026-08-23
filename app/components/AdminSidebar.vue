@@ -82,7 +82,7 @@ import { computed, onMounted } from 'vue'
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 
 const route = useRoute()
-const { activeTheme, extensionPages, themeSectionTitle } = useAdminExtensions()
+const { extensionSections } = useAdminExtensions()
 const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes, hasPermissionFor } = useAdminNav()
 const { adminSectionTitleClass } = useAdminNavStyle()
 
@@ -105,16 +105,17 @@ const sections = computed(() => {
     },
   ]
 
-  const allowedExtensionPages = extensionPages.value.filter(page =>
-    hasPermissionFor(themeExtensionPermissionCode(activeTheme.value, page.key))
-  )
-  if (allowedExtensionPages.length) {
+  extensionSections.value.forEach((section) => {
+    const allowedExtensionPages = section.pages.filter(page =>
+      hasPermissionFor(page.permissionCode || themeExtensionPermissionCode(page.extensionKey, page.key))
+    )
+    if (!allowedExtensionPages.length) return
     list.push({
-      key: 'extensions',
-      title: themeSectionTitle.value,
+      key: `extensions-${section.key}`,
+      title: section.title,
       entries: allowedExtensionPages.map(page => ({ to: page.route, icon: page.icon, label: page.title, exact: true })),
     })
-  }
+  })
 
   list.push({
     key: 'config',

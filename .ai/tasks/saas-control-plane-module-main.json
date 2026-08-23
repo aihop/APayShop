@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "saas-control-plane-module-main",
+  "title": "安装通用 SaaS 控制中心模块",
+  "problem": "APay 需要可选的通用 SaaS 控制面，且不能把 Shoply 专属能力写进核心或 Minimal 主题。",
+  "expectedOutcome": "主工作区安装已在隔离 worktree 验证的 saas-control-plane 模块、独立后台扩展入口、Provider 配置与 Shoply 只读适配器。",
+  "constraints": [
+    "不修改 Minimal 或其他主题仓",
+    "不修改 APay 核心 Schema",
+    "不触及旧任务租约占用的 server/api/admin/saas 与 server/utils/shoplySaasAdmin.ts",
+    "Provider 凭证认证加密、响应只返回掩码",
+    "外部业务能力首期只读",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/AdminMobileMenu.vue",
+        "app/components/AdminSidebar.vue",
+        "app/composables/useAdminExtensions.ts",
+        "app/pages/admin/settings/manages.vue",
+        "docs/engineering-constraints.md",
+        "modules/saas-control-plane/**",
+        "nuxt.config.ts",
+        "scripts/check-saas-control-plane-module.mjs"
+      ],
+      "claims": [
+        "app/components/AdminMobileMenu.vue",
+        "app/components/AdminSidebar.vue",
+        "app/composables/useAdminExtensions.ts",
+        "app/pages/admin/settings/manages.vue",
+        "docs/engineering-constraints.md",
+        "modules/saas-control-plane/**",
+        "nuxt.config.ts",
+        "scripts/check-saas-control-plane-module.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "模块不依赖 active_theme 且可通过环境变量关闭",
+    "后台提供 /admin/saas 与独立扩展权限",
+    "支持多个 Provider 连接、加密密钥、测试连接和敏感操作审计",
+    "Shoply 适配器可读取总览、租户、套餐和订阅",
+    "专项守卫、core-only 生产构建与差异检查通过"
+  ],
+  "verification": [
+    {
+      "name": "SaaS 模块专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-saas-control-plane-module.mjs"
+    },
+    {
+      "name": "Core-only 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=core-only NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/AdminMobileMenu.vue app/components/AdminSidebar.vue app/composables/useAdminExtensions.ts app/pages/admin/settings/manages.vue docs/engineering-constraints.md modules/saas-control-plane nuxt.config.ts scripts/check-saas-control-plane-module.mjs"
+    }
+  ]
+}
