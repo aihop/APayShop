@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "saas-minimal-migration-cleanup",
+  "title": "清理 SaaS 模块迁往 Minimal 后的根仓遗留",
+  "problem": "旧 saas-control-plane 模块已经删除，但专项检查脚本、模块后台扩展兼容逻辑和工程规则仍描述旧方向，导致守卫失败并让后续维护误判能力归属。",
+  "expectedOutcome": "APay 根仓不再检查或注册已删除的 SaaS 模块，后台扩展只消费当前主题清单，工程规则明确主题绑定的 SaaS 集成归主题所有。",
+  "constraints": [
+    "不修改 Minimal 或其他主题仓",
+    "不修改 APay 数据库、支付、鉴权和生产配置",
+    "保留主题后台扩展的导航、搜索和权限能力",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/composables/useAdminExtensions.ts",
+        "docs/engineering-constraints.md",
+        "scripts/check-saas-control-plane-module.mjs"
+      ],
+      "claims": [
+        "app/composables/useAdminExtensions.ts",
+        "docs/engineering-constraints.md",
+        "scripts/check-saas-control-plane-module.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "已删除模块的专项脚本不再留在仓库",
+    "后台扩展不再读取 appConfig.adminExtensions，只读取当前主题 theme.admin.json",
+    "主题绑定集成与真正主题无关模块的所有权规则不再冲突",
+    "Minimal 的后台扩展页仍可由现有 extensionPages/extensionSections 消费"
+  ],
+  "verification": [
+    {
+      "name": "SaaS 旧模块残留检查",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');if(fs.existsSync('scripts/check-saas-control-plane-module.mjs'))throw new Error('stale SaaS module check remains');const source=fs.readFileSync('app/composables/useAdminExtensions.ts','utf8');for(const value of ['appConfig.adminExtensions','moduleExtensionSections','modulePages'])if(source.includes(value))throw new Error('stale module extension support remains: '+value);if(!source.includes('themeAdminManifestModules')||!source.includes('extensionSections'))throw new Error('theme extension support was removed')\""
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useAdminExtensions.ts docs/engineering-constraints.md scripts/check-saas-control-plane-module.mjs"
+    }
+  ]
+}

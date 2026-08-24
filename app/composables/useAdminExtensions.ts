@@ -16,10 +16,6 @@ type AdminExtensionManifest = {
   pages?: AdminExtensionManifestPage[]
 }
 
-type AdminExtensionGroup = AdminExtensionManifest & {
-  key: string
-}
-
 const normalizeRoute = (route: string, key: string) => {
   if (!route) {
     return `/admin/extensions/${key}`
@@ -46,7 +42,6 @@ const formatThemeName = (theme: string) =>
 
 export const useAdminExtensions = () => {
   const { getSetting } = useSettings()
-  const appConfig = useAppConfig()
 
   const activeTheme = computed(() => {
     const theme = getSetting('active_theme') || ''
@@ -62,18 +57,10 @@ export const useAdminExtensions = () => {
     return manifest.value.name || `${formatThemeName(activeTheme.value)} Admin`
   })
 
-  const moduleExtensionSections = computed<AdminExtensionGroup[]>(() => {
-    const configured = (appConfig as Record<string, unknown>).adminExtensions
-    if (!Array.isArray(configured)) return []
-    return configured.filter((group): group is AdminExtensionGroup =>
-      Boolean(group && typeof group === 'object' && typeof group.key === 'string' && Array.isArray(group.pages))
-    )
-  })
-
   const extensionPages = computed(() => {
     const pages = manifest.value.pages || []
 
-    const themePages = pages
+    return pages
       .map((page) => {
         const route = normalizeRoute(page.route, page.key)
         const component = normalizeComponent(page.component, page.key)
@@ -90,6 +77,8 @@ export const useAdminExtensions = () => {
           componentPath,
           icon: page.icon || 'ph:puzzle-piece',
           order: page.order ?? 999,
+          extensionKey: activeTheme.value,
+          sectionTitle: themeSectionTitle.value,
         }
       })
       .filter(Boolean)
@@ -100,23 +89,6 @@ export const useAdminExtensions = () => {
           order: number
         }
       >
-
-    const modulePages = moduleExtensionSections.value.flatMap(section =>
-      (section.pages || []).map(page => ({
-        ...page,
-        route: normalizeRoute(page.route, page.key),
-        icon: page.icon || 'ph:puzzle-piece',
-        order: page.order ?? 999,
-        extensionKey: section.key,
-        sectionTitle: section.name || formatThemeName(section.key),
-      }))
-    )
-
-    return [...themePages.map(page => ({
-      ...page,
-      extensionKey: activeTheme.value,
-      sectionTitle: themeSectionTitle.value,
-    })), ...modulePages]
   })
 
   const extensionSections = computed(() => {
@@ -135,11 +107,11 @@ export const useAdminExtensions = () => {
 
   const resolveExtensionComponent = (path: string) => {
     const page = findExtensionPage(path)
-    if (!page || !('componentPath' in page)) {
+    if (!page) {
       return null
     }
 
-    return themeBuild.themeAdminPageModules[String(page.componentPath)] || null
+    return themeBuild.themeAdminPageModules[page.componentPath] || null
   }
 
   // One permission per extension page, namespaced to the active theme so a

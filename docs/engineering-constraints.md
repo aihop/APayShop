@@ -44,7 +44,7 @@ API 与前端统一 camelCase；手写 db struct 不得重复定义 sqlc 模型�
 - 主题后台接口标准地址是 `/api/admin/[theme]/**`，必须进入全局管理员鉴权。
 - 主题后台文案放 `locales/admin/`；直连 ainode 管理接口优先复用 `useExternalApi({ proxy: true })`。
 - 图片上传同时兼容本地 `uploads/` 与 `hubBlob()`。
-- 与官网主题生命周期无关的产品集成使用根 `modules/<name>/` 可选 Nuxt 模块；模块通过 `appConfig.adminExtensions` 注册后台入口，自有 API 不得伪装成主题 API。Provider 专属字段、路径和数据适配留在模块的 provider 目录，不能进入 APay 核心 Schema。模块凭证必须认证加密、响应只返回掩码，外部业务写操作必须逐能力声明幂等、审计与回滚边界。
+- 与官网主题绑定的外部产品集成由对应主题通过 `theme.admin.json`、`admin/pages/` 和 `/api/admin/[theme]/**` 承载；Provider 专属字段、路径与适配器留在主题内部，不能进入 APay 核心 Schema。只有与任何主题生命周期都无关的宿主能力才进入根 `modules/<name>/`，且不得借模块注册主题后台入口。凭证只保存在服务端，外部业务写操作必须逐能力声明幂等、审计与回滚边界。
 
 ## 3. 前端约定
 
