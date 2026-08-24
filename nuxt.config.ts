@@ -318,7 +318,6 @@ export default defineNuxtConfig({
    },
   css: ['~/assets/css/main.css'],
   modules: [
-    './modules/saas-control-plane/module',
     '@nuxthub/core',
     '@nuxt/ui',
     '@vueuse/motion/nuxt',
@@ -375,7 +374,6 @@ export default defineNuxtConfig({
       'admin/payments': false,
       'admin/profile': false,
       'admin/extensions/[...slug]': false,
-      'admin-saas-control-plane': false,
       'admin/cards': false,
       'admin/subscriptions': false,
       'admin/posts': false,
