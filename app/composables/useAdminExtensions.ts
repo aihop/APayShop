@@ -87,6 +87,8 @@ export const useAdminExtensions = () => {
           componentPath: string
           icon: string
           order: number
+          extensionKey: string
+          sectionTitle: string
         }
       >
   })

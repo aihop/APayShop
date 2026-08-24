@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-theme-extension-type-fix",
+  "title": "修复主题后台扩展收口后的返回类型",
+  "problem": "移除根模块后台扩展后，useAdminExtensions 的运行值仍包含 extensionKey 与 sectionTitle，但显式数组类型没有声明这两个字段，导致导航、搜索与权限页面出现 TypeScript 错误。",
+  "expectedOutcome": "主题扩展页的返回类型与实际对象一致，导航、搜索和权限消费者不再报告 extensionKey/sectionTitle 缺失。",
+  "constraints": ["只修改 useAdminExtensions.ts 的类型声明", "不改变运行行为", "不提交、不推送、不发布"],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": ["app/composables/useAdminExtensions.ts"],
+      "claims": ["app/composables/useAdminExtensions.ts"]
+    }
+  ],
+  "acceptanceCriteria": ["extensionPages 元素类型包含 extensionKey 与 sectionTitle", "extensionSections 的 pages 推导不再成为 never"],
+  "verification": [
+    {
+      "name": "扩展类型字段检查",
+      "repository": "apay",
+      "always": true,
+      "command": "node -e \"const s=require('node:fs').readFileSync('app/composables/useAdminExtensions.ts','utf8');for(const v of ['extensionKey: string','sectionTitle: string'])if(!s.includes(v))throw new Error('missing '+v)\""
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useAdminExtensions.ts"
+    }
+  ]
+}
