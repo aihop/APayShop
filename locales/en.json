@@ -21,6 +21,7 @@
       "store": "STORE",
       "admins": "Admins",
       "themes": "Themes",
+      "extensions": "Extensions",
       "orders": "Orders",
       "topups": "Top-ups",
       "products": "Products",
@@ -45,6 +46,24 @@
       "notifications": "Notifications",
       "viewStore": "View Store",
       "logout": "Log out"
+    },
+    "extensions": {
+      "title": "Extensions",
+      "subtitle": "Enable or disable trusted extensions included in this build.",
+      "save": "Save extensions",
+      "saved": "Extensions updated",
+      "saveFailed": "Failed to update extensions",
+      "migrate": "Run migrations",
+      "migrated": "Extension migrations completed",
+      "migrateFailed": "Extension migration failed",
+      "migrationSummary": "{applied}/{total} migrations applied for {dialect}",
+      "status": {
+        "pending": "Migration required",
+        "ready": "Ready",
+        "failed": "Migration failed",
+        "checksum_mismatch": "Checksum mismatch"
+      },
+      "notFound": "This extension page is unavailable or disabled."
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1312,6 +1331,9 @@
     "searchRoutes": "Search Routes",
     "placeholder": "Search pages and settings...",
     "groupLabel": "Routes"
+  },
+  "extensions": {
+    "notFound": "This extension page is unavailable or disabled."
   },
   "button": {
     "add": "Add",

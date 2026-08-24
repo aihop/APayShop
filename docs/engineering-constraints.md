@@ -45,6 +45,9 @@ API 与前端统一 camelCase；手写 db struct 不得重复定义 sqlc 模型�
 - 主题后台文案放 `locales/admin/`；直连 ainode 管理接口优先复用 `useExternalApi({ proxy: true })`。
 - 图片上传同时兼容本地 `uploads/` 与 `hubBlob()`。
 - 与官网主题绑定的外部产品集成由对应主题通过 `theme.admin.json`、`admin/pages/` 和 `/api/admin/[theme]/**` 承载；Provider 专属字段、路径与适配器留在主题内部，不能进入 APay 核心 Schema。只有与任何主题生命周期都无关的宿主能力才进入根 `modules/<name>/`，且不得借模块注册主题后台入口。凭证只保存在服务端，外部业务写操作必须逐能力声明幂等、审计与回滚边界。
+- 可同时启用且不依赖 `active_theme` 的可信业务扩展放在 `app/extensions/[id]/`，由 `extension.json` 声明页面、API 与 capability。页面固定使用 `/admin/plugins/[id]/**`、`/user/plugins/[id]/**`，API 固定使用 `/api/admin/plugins/[id]/**`、`/api/plugins/[id]/**`；页面与后台 API 必须共用 `plugin:[id]:[capability]` 权限，禁用后宿主同时关闭页面与 API。
+- 扩展代码只允许随源码构建部署，不能从后台上传或在运行时加载任意代码。新增或修改扩展后必须运行 `node scripts/generate-extension-build.mjs` 并提交生成的服务端 registry；扩展不得覆盖核心/主题根路由，也不得直接修改 APay 核心 Schema。
+- 扩展私有迁移归 `app/extensions/[id]/database/{sqlite,postgresql,mysql}/` 所有，三方言必须同步并在构建期固化 checksum；私有表使用 `ext_[id]_` 前缀。迁移由 `settings:edit` 管理员显式执行，成功前禁止启用；禁用不删数据，已执行迁移不可改写或自动 down。
 
 ## 3. 前端约定
 

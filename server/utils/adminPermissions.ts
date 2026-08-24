@@ -1,3 +1,5 @@
+import { extensionAdminApiRoutes } from './extensionRegistry.generated'
+
 export interface AdminPermissionDef {
   code: string
   apiPrefixes: string[]
@@ -45,6 +47,10 @@ export const ADMIN_TIERED_PERMISSION_CODE_SET = new Set(
 const THEME_EXTENSION_PERMISSION_PATTERN = /^ext:[a-z0-9_-]+:[a-z0-9_-]+$/i
 export const isThemeExtensionPermissionCode = (code: string): boolean =>
   THEME_EXTENSION_PERMISSION_PATTERN.test(code)
+
+const PLUGIN_PERMISSION_PATTERN = /^plugin:[a-z0-9-]+:[a-z0-9-]+(?::(?:view|edit))?$/
+export const isPluginPermissionCode = (code: string): boolean =>
+  PLUGIN_PERMISSION_PATTERN.test(code)
 
 const PREFIX_TO_PERMISSION: Record<string, string> = {}
 for (const p of ADMIN_PERMISSIONS) {
@@ -95,8 +101,18 @@ export const ADMIN_PUBLIC_PATHS = new Set([
   '/api/admin/session',
 ])
 
-export const matchPermissionForApiPath = (apiPath: string): string | null => {
+export const matchPermissionForApiPath = (apiPath: string, method = 'GET'): string | null => {
   if (!apiPath.startsWith('/api/admin/')) return null
+  const pluginMatch = apiPath.match(/^\/api\/admin\/plugins\/([^/]+)\/(.+)$/)
+  if (pluginMatch) {
+    const [, extension, routePath] = pluginMatch
+    const route = extensionAdminApiRoutes.find(item =>
+      item.extension === extension
+      && item.path === routePath
+      && item.method === method.toUpperCase(),
+    )
+    return route?.capability ? `plugin:${extension}:${route.capability}` : null
+  }
   const rest = apiPath.slice('/api/admin/'.length)
   const parts = rest.split('/')
   const first = parts[0]
@@ -122,7 +138,8 @@ export const normalizePermissions = (
     if (
       ADMIN_PERMISSION_CODE_SET.has(trimmed) ||
       ADMIN_TIERED_PERMISSION_CODE_SET.has(trimmed) ||
-      isThemeExtensionPermissionCode(trimmed)
+      isThemeExtensionPermissionCode(trimmed) ||
+      isPluginPermissionCode(trimmed)
     ) {
       if (!result.includes(trimmed)) result.push(trimmed)
     }

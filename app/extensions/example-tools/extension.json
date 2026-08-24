@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "example-tools",
+  "name": "Example Tools",
+  "description": "A safe reference extension demonstrating APay pages, APIs, permissions, and enablement.",
+  "version": "1.0.0",
+  "defaultEnabled": false,
+  "database": {
+    "migrations": [
+      {
+        "id": "0001-create-records",
+        "sqlite": "sqlite/0001-create-records.sql",
+        "postgresql": "postgresql/0001-create-records.sql",
+        "mysql": "mysql/0001-create-records.sql"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "key": "overview",
+      "label": "Example Tools",
+      "labelZh": "示例工具",
+      "editable": false
+    }
+  ],
+  "adminPages": [
+    {
+      "key": "overview",
+      "title": "Example Tools",
+      "titleZh": "示例工具",
+      "description": "Inspect the extension host and admin API.",
+      "descriptionZh": "检查扩展宿主与后台 API。",
+      "component": "overview.vue",
+      "capability": "overview",
+      "icon": "ph:puzzle-piece",
+      "order": 10
+    }
+  ],
+  "userPages": [
+    {
+      "key": "overview",
+      "title": "Example Tools",
+      "titleZh": "示例工具",
+      "component": "overview.vue"
+    }
+  ],
+  "adminApis": [
+    {
+      "method": "get",
+      "path": "overview/status",
+      "handler": "status.get.ts",
+      "capability": "overview"
+    }
+  ],
+  "userApis": [
+    {
+      "method": "get",
+      "path": "profile",
+      "handler": "profile.get.ts"
+    }
+  ]
+}

@@ -23,6 +23,7 @@ export const SETTINGS_NAV_TABS: SettingsNavTab[] = [
   { id: 'users', labelKey: 'admin.nav.manages', icon: 'ph:users-four', route: '/admin/settings/manages' },
   { id: 'authorization', labelKey: 'admin.settings.page.nav_authorization', icon: 'ph:key-fill', route: '/admin/settings/authorization' },
   { id: 'themes', labelKey: 'admin.nav.themes', icon: 'ph:sparkle-duotone', route: '/admin/settings/themes' },
+  { id: 'extensions', labelKey: 'admin.nav.extensions', icon: 'ph:puzzle-piece-fill', route: '/admin/settings/extensions' },
   { id: 'product-presets', labelKey: 'admin.settings.presets.nav', icon: 'ph:list-plus-fill', route: '/admin/settings/product-presets' },
 ]
 

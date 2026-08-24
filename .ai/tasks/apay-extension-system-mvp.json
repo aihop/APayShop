@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-extension-system-mvp",
+  "title": "建立 APay 内置可信扩展系统 MVP",
+  "problem": "APay 当前只有单选主题及主题私有页面/API 扫描，缺少可同时启用多个、拥有独立页面与 API、并由宿主统一控制启停、权限和路由冲突的业务扩展机制。",
+  "expectedOutcome": "APay 支持在 app/extensions 下声明构建期可信扩展；多个扩展可并存，后台可启停，后台页、用户页、后台 API 与用户 API 使用固定命名空间，并由同一 manifest 驱动注册、权限和构建校验。",
+  "constraints": [
+    "仅支持随源码构建和部署的可信扩展，不实现 ZIP 上传、在线安装、运行时加载任意代码或公开插件市场",
+    "扩展目录固定为 app/extensions/<extension-id>，不得复用 Nuxt app/plugins 或 server/plugins 目录",
+    "后台页面固定使用 /admin/plugins/<extension-id>/**，用户页面固定使用 /user/plugins/<extension-id>/**",
+    "后台 API 固定使用 /api/admin/plugins/<extension-id>/**，用户 API 固定使用 /api/plugins/<extension-id>/**",
+    "扩展不得覆盖核心或主题根路由；构建期必须拒绝非法 ID、重复 ID、路由冲突、缺失组件及未声明的后台 API 权限能力",
+    "页面可见性与后台 API 使用同一 plugin:<id>:<capability>:view|edit 权限口径；未映射的后台 API 默认拒绝",
+    "已构建但未启用的扩展页面和 API 均不可访问；禁用只改变 enabled_extensions 设置，不删除代码或数据",
+    "用户扩展页必须要求登录；用户 API 由 handler 显式调用 requireUserSession，宿主额外执行扩展启用闸门",
+    "本期不修改 APay 核心 Schema，不增加数据库迁移或第三方依赖，不触及支付、订单、价格、库存、履约和跨仓 vendor",
+    "扩展启停失败时不得留下部分启用状态；回滚方式是恢复 enabled_extensions 的旧值，部署失败则回退上一构建产物",
+    "不得修改当前由并行任务占用且已有未提交改动的 nuxt.config.ts、package.json 和既有主题构建脚本；服务端扩展 registry 由独立生成器产出并由专项守卫检查同步",
+    "保留并行任务的既有工作区改动，不提交、不推送、不发布、不执行生产迁移"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/composables/useAdminExtensions.ts",
+        "app/composables/useAdminPermissions.ts",
+        "app/composables/useExtensions.ts",
+        "app/extensions/**",
+        "app/middleware/extension-user-auth.global.ts",
+        "app/pages/admin/plugins/[...slug].vue",
+        "app/pages/admin/settings/extensions.vue",
+        "app/pages/user/plugins/[...slug].vue",
+        "app/components/admin/settings/nav-tabs.ts",
+        "content/docs/23.extensions.md",
+        "content/zh/docs/23.extensions.md",
+        "docs/engineering-constraints.md",
+        "docs/extensions.md",
+        "locales/en.json",
+        "locales/zh.json",
+        "scripts/check-extension-system.mjs",
+        "scripts/extension-shared.mjs",
+        "scripts/generate-extension-build.mjs",
+        "server/api/admin/plugins/[extension]/[...slug].ts",
+        "server/api/admin/settings/extensions.ts",
+        "server/api/plugins/[extension]/[...slug].ts",
+        "server/middleware/auth.ts",
+        "server/utils/adminPermissions.ts",
+        "server/utils/extensionRegistry.generated.ts",
+        "server/utils/extensions.ts"
+      ],
+      "claims": [
+        "app/composables/useAdminExtensions.ts",
+        "app/composables/useAdminPermissions.ts",
+        "app/composables/useExtensions.ts",
+        "app/extensions/**",
+        "app/middleware/extension-user-auth.global.ts",
+        "app/pages/admin/plugins/[...slug].vue",
+        "app/pages/admin/settings/extensions.vue",
+        "app/pages/user/plugins/[...slug].vue",
+        "app/components/admin/settings/nav-tabs.ts",
+        "content/docs/23.extensions.md",
+        "content/zh/docs/23.extensions.md",
+        "docs/engineering-constraints.md",
+        "docs/extensions.md",
+        "locales/en.json",
+        "locales/zh.json",
+        "scripts/check-extension-system.mjs",
+        "scripts/extension-shared.mjs",
+        "scripts/generate-extension-build.mjs",
+        "server/api/admin/plugins/[extension]/[...slug].ts",
+        "server/api/admin/settings/extensions.ts",
+        "server/api/plugins/[extension]/[...slug].ts",
+        "server/middleware/auth.ts",
+        "server/utils/adminPermissions.ts",
+        "server/utils/extensionRegistry.generated.ts",
+        "server/utils/extensions.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "app/extensions 下的扩展由版本化 manifest 声明，生成式注册表可同时包含多个扩展且不依赖 active_theme",
+    "示例扩展同时提供一个后台页、一个登录用户页、一个受权限保护的后台 API 和一个要求用户会话的用户 API",
+    "后台设置页列出已构建扩展并可在 settings:edit 权限下原子保存启用列表",
+    "禁用示例扩展后，其后台页、用户页、后台 API 和用户 API 均被宿主拒绝；重新启用后恢复可访问",
+    "受限管理员的插件页面与后台 API 使用相同 capability 权限，GET/HEAD 要求 view，写方法要求 edit",
+    "构建校验能拒绝非法 manifest、路由冲突、缺失页面组件、API 越界以及后台 API 缺少 capability 映射",
+    "扩展不修改核心 Schema，不覆盖主题页面，不因为切换 active_theme 而消失",
+    "英文、中文开发文档和工程约束同步描述目录、命名空间、权限、启停、安全与回滚边界",
+    "专项守卫、类型检查、core-only 生产构建和差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "扩展系统专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-extension-system.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Core-only 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=core-only NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useAdminExtensions.ts app/composables/useAdminPermissions.ts app/composables/useExtensions.ts app/extensions app/middleware/extension-user-auth.global.ts 'app/pages/admin/plugins/[...slug].vue' app/pages/admin/settings/extensions.vue 'app/pages/user/plugins/[...slug].vue' app/components/admin/settings/nav-tabs.ts docs/engineering-constraints.md docs/extensions.md locales/en.json locales/zh.json scripts/check-extension-system.mjs scripts/extension-shared.mjs scripts/generate-extension-build.mjs 'server/api/admin/plugins/[extension]/[...slug].ts' server/api/admin/settings/extensions.ts 'server/api/plugins/[extension]/[...slug].ts' server/middleware/auth.ts server/utils/adminPermissions.ts server/utils/extensionRegistry.generated.ts server/utils/extensions.ts"
+    }
+  ]
+}

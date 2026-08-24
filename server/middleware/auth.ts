@@ -277,7 +277,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: "Unauthorized: Admin access required"
       })
     }
-    const required = matchPermissionForApiPath(pathname)
+    const required = matchPermissionForApiPath(pathname, event.method)
     if (required) {
       // GET/HEAD only need the "view" tier; any mutating method needs "edit".
       // adminHasPermission() also honors a legacy bare grant (e.g. "orders",

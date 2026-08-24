@@ -21,6 +21,7 @@
       "store": "商店",
       "admins": "管理员",
       "themes": "主题",
+      "extensions": "扩展",
       "orders": "订单列表",
       "topups": "充值记录",
       "products": "产品管理",
@@ -45,6 +46,24 @@
       "notifications": "通知",
       "viewStore": "查看商店",
       "logout": "退出登录"
+    },
+    "extensions": {
+      "title": "扩展",
+      "subtitle": "启用或停用当前构建中包含的可信扩展。",
+      "save": "保存扩展",
+      "saved": "扩展设置已更新",
+      "saveFailed": "扩展设置更新失败",
+      "migrate": "执行迁移",
+      "migrated": "扩展迁移已完成",
+      "migrateFailed": "扩展迁移失败",
+      "migrationSummary": "{dialect} 已执行 {applied}/{total} 个迁移",
+      "status": {
+        "pending": "等待迁移",
+        "ready": "可以启用",
+        "failed": "迁移失败",
+        "checksum_mismatch": "校验和冲突"
+      },
+      "notFound": "扩展页面不存在或已停用。"
     },
     "dashboard": {
       "title": "仪表盘",
@@ -1311,6 +1330,9 @@
     "searchRoutes": "搜索路由",
     "placeholder": "搜索页面和设置...",
     "groupLabel": "路由"
+  },
+  "extensions": {
+    "notFound": "扩展页面不存在或已停用。"
   },
   "button": {
     "add": "添加",

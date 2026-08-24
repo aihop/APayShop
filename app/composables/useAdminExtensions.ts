@@ -42,6 +42,7 @@ const formatThemeName = (theme: string) =>
 
 export const useAdminExtensions = () => {
   const { getSetting } = useSettings()
+  const pluginExtensions = useExtensions()
 
   const activeTheme = computed(() => {
     const theme = getSetting('active_theme') || ''
@@ -57,7 +58,7 @@ export const useAdminExtensions = () => {
     return manifest.value.name || `${formatThemeName(activeTheme.value)} Admin`
   })
 
-  const extensionPages = computed(() => {
+  const themeExtensionPages = computed(() => {
     const pages = manifest.value.pages || []
 
     return pages
@@ -93,6 +94,11 @@ export const useAdminExtensions = () => {
       >
   })
 
+  const extensionPages = computed(() => [
+    ...themeExtensionPages.value,
+    ...pluginExtensions.adminPages.value,
+  ].sort((left, right) => left.order - right.order))
+
   const extensionSections = computed(() => {
     const sections = new Map<string, { key: string; title: string; pages: typeof extensionPages.value }>()
     extensionPages.value.forEach((page) => {
@@ -113,21 +119,27 @@ export const useAdminExtensions = () => {
       return null
     }
 
-    return themeBuild.themeAdminPageModules[page.componentPath] || null
+    return 'component' in page && typeof page.component !== 'string'
+      ? page.component
+      : themeBuild.themeAdminPageModules[page.componentPath] || null
   }
 
   // One permission per extension page, namespaced to the active theme so a
   // stored code stays inert (matches nothing) if the theme is later switched.
-  const extensionPermissionDefs = computed(() =>
-    extensionPages.value.map(page => ({
+  const themePermissionDefs = computed(() =>
+    themeExtensionPages.value.map(page => ({
       code: page.permissionCode || themeExtensionPermissionCode(page.extensionKey, page.key),
       label: page.title,
       labelZh: page.title,
       apiPrefixes: [],
       routes: [page.route],
       editable: undefined,
-    }))
-  )
+    })))
+
+  const extensionPermissionDefs = computed(() => [
+    ...themePermissionDefs.value,
+    ...pluginExtensions.permissionDefs.value,
+  ])
 
   return {
     activeTheme,
