@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "minimal-saas-migration-finish",
+  "title": "完成 SaaS 管理迁往 Minimal 的数据与配置收口",
+  "problem": "Minimal 已承载租户管理，但仍从 Shoply 重复读取 APay 拥有的营收、订阅和续费商业事实，同时缺少主题内的 Shoply 连接配置与测试能力。",
+  "expectedOutcome": "Minimal 只从 Shoply 读取店铺与租户运行事实，商业管理继续使用 APay 核心页面；主题内部提供加密的 Shoply 连接配置、连接测试和审计。",
+  "constraints": [
+    "不修改 APay 核心 Schema、支付、订阅和统计实现",
+    "不修改 Shoply 仓库或外部数据",
+    "删除重复商业页面，不复制 APay 的 subscriptions/stats 查询",
+    "Shoply 上游只允许 store/list 与 seller/list 两个只读路径",
+    "凭证只在服务端加密保存，环境变量作为未配置数据库时的回退",
+    "连接修改与测试必须记录操作审计",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "minimal-theme",
+      "path": "app/themes/minimal",
+      "allowedPaths": [
+        "AGENTS.md",
+        "admin/pages/saas-dashboard.vue",
+        "admin/pages/saas-expiring.vue",
+        "admin/pages/saas-settings.vue",
+        "api/admin/saas/chart.get.ts",
+        "api/admin/saas/expiring.get.ts",
+        "api/admin/saas/settings.get.ts",
+        "api/admin/saas/settings.post.ts",
+        "api/admin/saas/settings/test.post.ts",
+        "api/admin/saas/summary.get.ts",
+        "composables/useMinimalSaasDashboard.ts",
+        "composables/useMinimalSaasExpiring.ts",
+        "composables/useMinimalSaasSettings.ts",
+        "server/saas/client.ts",
+        "server/saas/config.ts",
+        "server/saas/crypto.ts",
+        "scripts/check-saas-tenant-admin.mjs",
+        "theme.admin.json"
+      ],
+      "claims": [
+        "AGENTS.md",
+        "admin/pages/saas-dashboard.vue",
+        "admin/pages/saas-expiring.vue",
+        "admin/pages/saas-settings.vue",
+        "api/admin/saas/chart.get.ts",
+        "api/admin/saas/expiring.get.ts",
+        "api/admin/saas/settings.get.ts",
+        "api/admin/saas/settings.post.ts",
+        "api/admin/saas/settings/test.post.ts",
+        "api/admin/saas/summary.get.ts",
+        "composables/useMinimalSaasDashboard.ts",
+        "composables/useMinimalSaasExpiring.ts",
+        "composables/useMinimalSaasSettings.ts",
+        "server/saas/client.ts",
+        "server/saas/config.ts",
+        "server/saas/crypto.ts",
+        "scripts/check-saas-tenant-admin.mjs",
+        "theme.admin.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Minimal 不再包含租户营收概览和待续费订阅重复页面",
+    "Shoply 白名单仅保留 store/list 与 seller/list",
+    "管理员可在 Minimal 扩展页查看连接状态、保存地址与凭证并测试连接",
+    "数据库中的凭证使用 AES-GCM 加密，GET 响应只返回掩码",
+    "未保存数据库配置时仍可回退 SHOPLY_SAAS_API_URL 与 SHOPLY_SAAS_ADMIN_TOKEN",
+    "连接写入和测试进入 APay 操作审计",
+    "专项守卫覆盖数据归属、凭证隔离、页面注册和配置安全"
+  ],
+  "verification": [
+    {
+      "name": "租户管理专项守卫",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "node scripts/check-saas-tenant-admin.mjs"
+    },
+    {
+      "name": "迁移边界检查",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "node -e \"const fs=require('node:fs');for(const file of ['admin/pages/saas-dashboard.vue','admin/pages/saas-expiring.vue','api/admin/saas/chart.get.ts','api/admin/saas/expiring.get.ts','api/admin/saas/summary.get.ts','composables/useMinimalSaasDashboard.ts','composables/useMinimalSaasExpiring.ts'])if(fs.existsSync(file))throw new Error('duplicate commercial page remains: '+file);const client=fs.readFileSync('server/saas/client.ts','utf8');for(const value of ['dashboard/summary','dashboard/chart','dashboard/expiring'])if(client.includes(value))throw new Error('commercial upstream remains: '+value);for(const file of ['admin/pages/saas-settings.vue','api/admin/saas/settings.get.ts','api/admin/saas/settings.post.ts','api/admin/saas/settings/test.post.ts','server/saas/config.ts','server/saas/crypto.ts'])if(!fs.existsSync(file))throw new Error('missing settings file: '+file)\""
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}
