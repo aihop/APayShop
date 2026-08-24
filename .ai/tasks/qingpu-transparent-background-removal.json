@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-transparent-background-removal",
+  "title": "补全 Qingpu 透明背景移除能力",
+  "problem": "image-bg-remove 当前只是通用生成式背景替换：页面文案明确不输出透明 Alpha，但 Studio 产品规格把 background_remove 定义为去除背景或输出透明背景。执行链没有冻结透明背景与 PNG 输出参数，因此功能名、Studio 入口和真实能力不一致。",
+  "expectedOutcome": "在 qingpu-ai 定义并测试跨端共享的背景移除执行规格，经 engine vendor 提供给网页主题；主题入队时消费该规格，AInode 图片编辑请求固定使用透明背景与 PNG 输出，结果保持 Alpha 通道并可按 PNG 下载。",
+  "constraints": [
+    "能力合同、默认保真提示词和模型参数只定义在 qingpu-ai，主题不得复制",
+    "主题仍负责鉴权、受控上传、任务幂等、AInode 调用、资产落库和 UI 展示",
+    "复用现有 /v1/images/edits/tasks 协议，不修改 AInode；background 与 output_format 由网关透传",
+    "不修改数据库、额度、支付、任务状态或公共图片生成语义",
+    "不覆盖 qingpu-ai 与 qingpu-theme 当前其他未提交改动，不提交、不推送、不部署；engine vendor 发布若受源仓脏工作区门禁阻塞则如实报告"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-edit-capabilities/**",
+        "src/engine/index.ts",
+        "tests/image-background-removal-capability.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-edit-capabilities/**",
+        "src/engine/index.ts",
+        "tests/image-background-removal-capability.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**",
+        "api/tools/image-edit/generate.ts",
+        "server/assets/image-generate.ts",
+        "server/tasks/executors.ts",
+        "components/ImageEditStudio.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "scripts/check-image-background-removal.mjs"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**",
+        "api/tools/image-edit/generate.ts",
+        "server/assets/image-generate.ts",
+        "server/tasks/executors.ts",
+        "components/ImageEditStudio.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "scripts/check-image-background-removal.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu-ai 通过 Registry + Factory 产出 background_remove 的不可变执行规格，包含 schema/plan 版本、透明背景、PNG 输出和明确保真提示词",
+    "engine 出口提供类型化工厂，主题 image-bg-remove 入队时消费它而非自行拼接透明背景参数",
+    "AInode multipart 图片编辑请求包含 background=transparent、output_format=png 与 response_format=b64_json，主题将返回 PNG 托管为资产且不经过 JPEG 转码",
+    "image-to-image 与 image-enhancer 保持原参数和行为，重试继续复用首次冻结的任务 payload",
+    "页面文案、预览透明棋盘格和下载文件名与真实透明 PNG 能力一致",
+    "专项测试、engine bundle 守卫、主题专项门禁、Nuxt 类型检查和 diff 检查通过"
+  ],
+  "verification": [
+    {
+      "name": "共享能力单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/image-background-removal-capability.test.ts"
+    },
+    {
+      "name": "共享能力类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "engine 构建守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    },
+    {
+      "name": "主题背景移除专项门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-image-background-removal.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "跨仓格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "extension-registry-tdz-fix",
+  "title": "修复扩展注册表循环初始化报错",
+  "problem": "扩展注册表静态导入 Apps/Theme API handler，handler 再经 catalog 服务导入公共扩展工具，形成循环依赖；公共扩展工具在模块顶层读取 extensionManifests，导致 ESM 初始化阶段抛出 Cannot access 'extensionManifests' before initialization。",
+  "expectedOutcome": "公共扩展工具不再在模块加载阶段读取扩展清单，扩展 API handler 可以通过生成注册表正常加载，同时保留已安装扩展校验行为。",
+  "constraints": [
+    "只消除公共扩展运行时的模块顶层清单读取，不改扩展 manifest、生成注册表、数据库结构或 API 协议",
+    "保留未知扩展返回 404、启停过滤与迁移就绪校验的现有语义",
+    "不执行数据库迁移、不修改生产状态、不提交、不推送、不发布",
+    "不覆盖 Apps/Theme 扩展及工作区中的其他未提交改动；回滚边界仅为本契约声明的两个代码文件"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/extensions.ts",
+        "scripts/check-extension-system.mjs"
+      ],
+      "claims": [
+        "server/utils/extensions.ts",
+        "scripts/check-extension-system.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/utils/extensions.ts 在模块初始化阶段不再访问 extensionManifests",
+    "扩展注册表与 Apps/Theme handler 的循环加载不再触发 extensionManifests TDZ 报错",
+    "已安装扩展判断、默认启用过滤和 API 分发行为保持不变",
+    "扩展系统专项守卫与项目构建通过"
+  ],
+  "verification": [
+    {
+      "name": "扩展系统专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-extension-system.mjs"
+    },
+    {
+      "name": "项目构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    },
+    {
+      "name": "契约差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/utils/extensions.ts scripts/check-extension-system.mjs"
+    }
+  ]
+}

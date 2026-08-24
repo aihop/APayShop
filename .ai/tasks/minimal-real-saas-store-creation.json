@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "minimal-real-saas-store-creation",
+  "title": "接通 Minimal 真实 SaaS 开店链路",
+  "problem": "Minimal 一句话生成页使用模拟登录、模拟进度和错误的 aiGenerate 路径，真实请求失败后仍可能展示成功，生成结果也没有消费 Shoply 返回的真实店铺和管理员身份。",
+  "expectedOutcome": "未登录用户经现有 Minimal 认证桥接回到生成页；已登录用户调用 Shoply /app/saas/store/add 创建真实免费店铺；成功后可打开真实店铺域名并使用接口返回的管理员 token 进入后台，任何失败都不会进入成功页。",
+  "constraints": [
+    "复用 Shoply 现有 /app/saas/store/add，不新增 Shoply 或 iqingpu 代码",
+    "不保留模拟验证码、模拟 AI 流式日志、假二维码或定时强制成功",
+    "当前能力按创建店铺草稿表达，不宣称已自动生成商品、主题或发布微信小程序",
+    "登录和注册必须保留 redirect，且只通过现有 /api/minimal/auth/* 桥接建立会话",
+    "只在 store/add 返回 code=0、有效 storeId 和 domain 后展示成功",
+    "管理员入口仅消费本次 store/add 返回的 xAuth，不调用缺少归属校验的 store/token",
+    "不修改支付、套餐升级、钱包、数据库、依赖或部署配置",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "minimal-theme",
+      "path": "app/themes/minimal",
+      "allowedPaths": [
+        "pages/generate.vue",
+        "pages/auth/login.vue",
+        "pages/auth/register.vue",
+        "scripts/check-saas-store-creation-flow.mjs"
+      ],
+      "claims": [
+        "pages/generate.vue",
+        "pages/auth/login.vue",
+        "pages/auth/register.vue",
+        "scripts/check-saas-store-creation-flow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "未登录点击创建时保存需求并跳转登录，登录或注册成功后回到生成页继续",
+    "生成页只调用 /app/saas/store/add，并提交 name、category、currency、timezone、lang 和 theme",
+    "成功响应必须校验 code、storeId 和 domain，失败时回到输入态并展示可重试错误",
+    "结果页可打开真实店铺域名；xAuth 存在时可进入该店铺后台，缺失时管理按钮不可用",
+    "页面不再包含 /saas/store/aiGenerate、模拟认证延时、模拟生成日志、假二维码或上传素材假分支",
+    "页面文案与 SEO 不再宣称自动生成商品、主题或已发布微信小程序",
+    "专项守卫、Nuxt typecheck、Nuxt build 和 git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "真实 SaaS 开店专项守卫",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "node scripts/check-saas-store-creation-flow.mjs"
+    },
+    {
+      "name": "Minimal 主题类型检查",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Minimal 主题构建",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt build"
+    },
+    {
+      "name": "Minimal 差异格式检查",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

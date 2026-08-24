@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "shoply-website-theme-pages",
+  "title": "迁移 Shoply 官网全部 Page 页面",
+  "problem": "APay 的 Shoply 主题目前只有品牌壳与首页，线上 www.shoply.run 仍有 13 个 /page/ 页面由旧站承载，站内导航、营销落地页与法律页面尚未迁移到 Nuxt 主题。",
+  "expectedOutcome": "以 www.shoply.run 线上当前页面为业务与文案事实源，在 app/themes/shoply/pages/page 下提供 13 个同名 Nuxt Vue 页面并保持 /page/<name> 路由；中文与英文共享页面结构，保持 Shoply 主题视觉、SEO、导航和移动端体验完整。",
+  "constraints": [
+    "线上 https://www.shoply.run/page/<name> 是当前页面结构、内容和链接的第一事实源；bluex 旧模板只用于补充原始素材，不覆盖线上现状",
+    "完整迁移 about、amazon-store、b2b-website、b2c-store、case、cookies、custom、install、migration、pricing、privacy、terms、weidian 共 13 个页面",
+    "Nuxt 文件使用线上路由同名命名，放在 app/themes/shoply/pages/page；目录名 page 直接对应线上 /page/<name> 路由，不得扁平化或改名",
+    "不得保留 Jet、Alpine、FT::、/res/bluex 等旧运行时依赖",
+    "中文与英文复用 Vue 页面结构，文字进入 shoply 主题 locales；法律页面不得擅自改写条款含义",
+    "只迁移页面实际使用且版权来源明确的 Shoply 旧站资产，不复制 bluex 全量资源，不引入新依赖或原生绑定",
+    "保持现有可配置登录、注册、咨询与开放平台入口；不改 APay 核心路由、API、数据库、支付、鉴权或 active_theme",
+    "pricing.vue 必须消费 APay 公开商品目录中的可售订阅套餐：仅展示 type='subscription' 且 metaData.is_pricing_plan=true 的启用商品，不硬编码价格、币种、周期、套餐权益或折扣",
+    "套餐名称、描述、权益和徽标使用 APay 商品多语言数据；金额使用 APay 本地化币种格式；购买入口进入本地化 /products/<slug> 标准下单链，不直接创建或修改 subscriptions 实例",
+    "所有页面必须 SSR 可渲染，桌面 1440px 与移动 390px 无横向溢出，并提供随语言变化的标题和描述",
+    "不提交、不推送、不发布、不修改生产状态；失败回滚仅涉及本契约新增或修改的 app/themes/shoply 文件"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/shoply-website-theme-pages.json",
+        "app/themes/shoply/**"
+      ],
+      "claims": [
+        "app/themes/shoply/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "13 个线上 /page/ 路由均有对应的 app/themes/shoply/pages/page/<name>.vue，路由名称与线上保持一致",
+    "每个页面覆盖线上当前主要标题、核心内容、CTA、站内链接与必要法律文本，不以空壳或通用占位页代替",
+    "所有页面沿用 Shoply 主题布局、双语切换、移动导航和页脚，中文与英文不复制两套 Vue 页面",
+    "页面使用的图片与图形位于主题 assets，构建和运行不访问旧 /res/bluex 路径",
+    "每个页面有双语 SEO 标题和描述，SSR HTML 不出现未翻译的 shoply.* key",
+    "价格页随后台订阅商品自动更新，正确显示实际配置的周期与权益；没有可售套餐时显示可理解的空状态，不回退到线上旧站硬编码价格",
+    "桌面与移动端重点页面 migration、pricing、custom、about、privacy 通过浏览器走读，其余页面通过 SSR 与静态清单验证",
+    "Shoply 专项静态守卫、Nuxt 类型检查、包含 shoply 的隔离正式构建与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Shoply 主题静态合同",
+      "repository": "apay",
+      "always": true,
+      "command": "node app/themes/shoply/scripts/check-theme.mjs"
+    },
+    {
+      "name": "Shoply 页面迁移合同",
+      "repository": "apay",
+      "always": true,
+      "command": "node app/themes/shoply/scripts/check-pages.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=shoply ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Shoply 隔离正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NUXT_BUILD_DIR=/tmp/apay-shoply-pages-nuxt APAY_BUILD_THEMES=shoply NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "Shoply 主题差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/themes/shoply"
+    }
+  ]
+}

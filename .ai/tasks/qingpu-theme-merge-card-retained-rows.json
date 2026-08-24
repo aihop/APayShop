@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-theme-merge-card-retained-rows",
+  "title": "网页端合卡发码补传 retainedRows，闭合排除行台账丢失的跨仓缺口",
+  "problem": "qingpu-ai 的 cd30077 修复了「排除 SKU 再恢复会把已合并的商品卡片静默拆成两张」：排除行的旧型号码此前从台账整表替换中丢失，恢复后被 createIsManaged 判为人工值抢占旧号，原组被迫铸造新号。修复方式是把排除中的行作为 retainedRows 传给引擎工厂 planOzonMergeModelNames。但该修复只接入了插件端 Lite/Dash 共用的 ozon-merge-card-workflow；网页端有自己独立的编排代码 server/listing/sku.codes.ts，调用同一个引擎工厂时未计算也未传入 retainedRows，vendor 包虽已是含新签名的 0.7.134，网页端仍会复现同一拆卡问题。",
+  "expectedOutcome": "网页端合卡发码与插件端同口径：把当前有效行之外的全部变体（即被排除的行）连同其行级型号码作为 retainedRows 传给 planOzonMergeModelNames，使排除行台账得以保留、旧号仅占位不被他人铸造，「排除→恢复」后原组继续沿用旧号不拆卡。",
+  "constraints": [
+    "只补传 retainedRows，不改动引擎工厂 planOzonMergeModelNames 本身，也不改网页端已有的发码策略（allocateOfferCodes 铸造数据库稳定码保持不变）",
+    "currentValue 取值沿用主题侧既有的 manualOverrides.skuAspects 直读模式，不新增引擎导出",
+    "不改动 vendor 包内容（vendor 只能由 qingpu-ai 的 engine:release 生成）",
+    "不触碰主题工作区中其他会话未提交的改动（image-edit / locales / pages 等 24 个文件）",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.codes.ts"
+      ],
+      "claims": [
+        "server/listing/sku.codes.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "planOzonMergeModelNames 调用处传入 retainedRows，内容为「全部变体减去当前有效行」及其行级型号码",
+    "retainedRows 的 currentValue 取自 manualOverrides.skuAspects 下该变体的型号名称属性值",
+    "网页端发码策略与既有行为在无排除行时保持完全一致（retainedRows 为空数组）",
+    "主题侧类型检查通过；git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vue-tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

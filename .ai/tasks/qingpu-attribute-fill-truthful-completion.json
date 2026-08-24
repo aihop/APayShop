@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-attribute-fill-truthful-completion",
+  "title": "修复 AI 参数补齐完成状态误报",
+  "problem": "商品 ai-1688-645831351595 的参数任务返回 filled=0、complete=false、remainingGap=true，页面可编辑参数 38 项仅品牌 1 项有值、另 37 项均为空；后续文案步骤写入内容准备版本后，共享缺口判定忽略全部选填空项，账本和页面因此误显示 AI 参数补齐已完成，任务中心又把 succeeded 统一翻译成已完成。",
+  "expectedOutcome": "参数空项始终按真实数据保留缺口；必填项已满足时不阻断发布和后续生图；页面明确区分任务已执行、必填参数已满足和仍有可选参数缺口。",
+  "constraints": [
+    "继续复用现有 BEST_EFFORT_NODES 和服务端成功节点放行机制，不让选填参数永久阻断工作流",
+    "不强迫 AI 猜填 PDF、视频链接、卖家代码等缺少证据的选填项",
+    "不修改数据库、不重跑该商品任务、不执行付费模型调用",
+    "保护 Qingpu 主题与 APay 工作区内其他未提交改动，不手改 vendor",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/ai-sku-aspect-fill-workflow.ts",
+        "tests/ai-attribute-fill.test.ts",
+        "tests/listing-attribute-readiness.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/ai-sku-aspect-fill-workflow.ts",
+        "tests/ai-attribute-fill.test.ts",
+        "tests/listing-attribute-readiness.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/layout.vue",
+        "scripts/check-listing-attribute-state.mjs"
+      ],
+      "claims": [
+        "pages/user/listing/components/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/layout.vue",
+        "scripts/check-listing-attribute-state.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "内容准备或文案完成后，未填选填参数仍使参数账本保持真实缺口",
+    "参数任务 succeeded 但 complete=false 时页面显示已执行且仍有可选缺口，不显示全部已完成",
+    "已成功执行过一次的参数节点继续允许后续翻译、文案和生图，不阻断发布必填校验",
+    "该商品审计口径保持必填空项 0、可编辑参数已填 1/38、选填空项 37"
+  ],
+  "verification": [
+    {
+      "name": "参数缺口与工作流测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ai-attribute-fill.test.ts tests/listing-attribute-readiness.test.ts tests/listing-workflow-contract.test.ts"
+    },
+    {
+      "name": "共享引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "主题参数状态专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-attribute-state.mjs"
+    },
+    {
+      "name": "共享引擎格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

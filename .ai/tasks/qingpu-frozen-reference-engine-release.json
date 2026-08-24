@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-frozen-reference-engine-release",
+  "title": "发布冻结参考图修复到 Qingpu 网页引擎",
+  "problem": "qingpu-ai 已提交并推送冻结参考图链路修复，但 Qingpu 网页仍消费旧 engine vendor 0.7.132，主图执行仍会丢失冻结辅助参考图。",
+  "expectedOutcome": "从 qingpu-ai 提交 5e89f0f 生成严格递增的 engine vendor，主题合同验证通过并可提交发布。",
+  "constraints": [
+    "vendor 只能通过 qingpu-ai 的 engine:release 脚本生成，禁止手改",
+    "version.json.sourceCommit 必须等于 5e89f0f",
+    "不修改或提交主题中其他任务的未提交文件",
+    "不执行生产部署或付费图片生成"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "engine vendor 版本高于 0.7.132",
+    "version.json.sourceCommit 为 5e89f0f",
+    "vendor 包含主图冻结多参考图修复",
+    "主题 engine 合同与 Listing 图片任务专项守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "主题 Listing 图片任务守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-image-task-specs.mjs"
+    },
+    {
+      "name": "主题 Listing 发布边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-boundaries.mjs"
+    },
+    {
+      "name": "vendor 版本锚点检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const v=require('./server/vendor/qingpu-engine/version.json'); if(v.sourceCommit!=='5e89f0f'||v.version==='0.7.132') process.exit(1); console.log(v)\""
+    },
+    {
+      "name": "主题差异格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

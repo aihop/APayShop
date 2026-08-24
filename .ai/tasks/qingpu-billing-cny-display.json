@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-billing-cny-display",
+  "title": "优化 Qingpu 中文账单人民币展示",
+  "problem": "Qingpu /zh/user/billing 将 AINode 的 USD 钱包、消费与统计金额全部硬编码为美元，中文用户缺少人民币参考；充值弹窗也可能因全局币种绑定缺失而默认 USD，且人民币快捷档位未使用人民币格式。",
+  "expectedOutcome": "中文账单在配置了 CNY 本地币种汇率时以人民币作为主要参考展示并保留 USD 账本原值；中文充值在服务端开放 CNY 时默认人民币支付并显示人民币格式，同时到账额度继续明确使用真实记账币种。",
+  "constraints": [
+    "AINode 钱包、消费日志和统计继续按 USD 记账，人民币仅为基于 locale_currency_bindings 的当前参考换算，不写回任何账本或历史记录",
+    "待支付订单继续按订单 row.currency 展示真实实付币种，不做二次换算",
+    "充值下单仍只提交服务端已返回的 currency/amount，区间、汇率、到账额度、订单快照与支付校验均由现有服务端链路决定",
+    "中文充值只在 /api/topup/options 明确开放 CNY 时优先选择 CNY，不伪造或新增支付币种",
+    "页面内所有货币金额统一保留两位小数，包括人民币参考值、USD 原值、充值到账预览、充值流水、消费明细与统计；极小额消费允许显示为 0.00",
+    "不修改正在被其他任务改动的 Qingpu locale 文件、vendor、数据库、支付 API 或 APay 核心代码",
+    "不执行生产支付、生产迁移、提交、推送或发布；回滚仅撤销两个 UI 文件和专项守卫，不需要处理订单或余额数据"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/billing.vue",
+        "components/TopupModal.vue",
+        "scripts/check-billing-currency-display.mjs"
+      ],
+      "claims": [
+        "pages/user/billing.vue",
+        "components/TopupModal.vue",
+        "scripts/check-billing-currency-display.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "中文且本地币种为 CNY 时，钱包、充值流水、消费明细和消费统计主要显示人民币参考值，并在关键金额旁保留 USD 原值",
+    "非 CNY 语境保持 USD 账本显示，不把中文文案或人民币符号硬套到其他语言",
+    "待支付订单始终使用订单真实 currency 格式化",
+    "中文充值在 CNY 可用时默认选择 CNY，快捷金额显示人民币符号，支付工作区收到 CNY 订单金额",
+    "充值到账预览继续显示服务端 accountingCurrency，格式固定为 +0.00 CURRENCY，UI 不参与真实汇率和到账金额计算",
+    "账单页所有货币金额均显示两位小数，不保留现有小额 USD 的最多八位展示"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 账单币种专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-billing-currency-display.mjs"
+    },
+    {
+      "name": "Qingpu 账单定向类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck 2>&1 | tee /tmp/qingpu-billing-cny-typecheck.log; test ! -s /tmp/qingpu-billing-cny-typecheck.log || ! rg -n 'app/themes/qingpu/(pages/user/billing|components/TopupModal)\\.vue' /tmp/qingpu-billing-cny-typecheck.log"
+    },
+    {
+      "name": "Qingpu 账单差异格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/billing.vue components/TopupModal.vue scripts/check-billing-currency-display.mjs"
+    }
+  ]
+}

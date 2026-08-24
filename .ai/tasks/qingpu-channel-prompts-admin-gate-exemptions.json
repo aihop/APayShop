@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-prompts-admin-gate-exemptions",
+  "title": "登记 Qingpu 渠道提示词管理员端点鉴权豁免",
+  "problem": "员工访问闸门守卫扫描到 6 个 Qingpu 渠道提示词后台端点未调用 resolveApiAuth/resolveApiUserId，导致 ainode 主题构建被拦截；这些端点实际统一使用 requireAdmin，而不是员工会话鉴权。",
+  "expectedOutcome": "员工访问闸门守卫逐条登记 6 个渠道提示词后台端点及其 requireAdmin 替代鉴权，专项检查通过，且不改变端点业务或鉴权实现。",
+  "constraints": [
+    "只修改 APay 根仓的员工访问闸门守卫脚本和本任务契约，不触碰 app/themes/ainode 的既有改动",
+    "仅登记已经调用 requireAdmin 的端点；不得把管理员后台端点改为员工 resolveApiAuth 鉴权",
+    "不修改 API、数据库、业务逻辑、权限 scope 或依赖",
+    "不新增或删除任何豁免，只登记本次守卫报告中的 6 个精确端点",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu/scripts/check-employee-access-gate.mjs"
+      ],
+      "claims": [
+        "app/themes/qingpu/scripts/check-employee-access-gate.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "6 个 channel-prompts 端点均在 GATE_EXEMPT_ENDPOINTS 中逐条登记，并标注 requireAdmin",
+    "员工访问闸门专项检查通过，不再报告 ungated endpoint",
+    "6 个端点现有 requireAdmin 鉴权实现保持不变",
+    "git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "员工访问闸门专项检查",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:qingpu-employee-access-gate"
+    },
+    {
+      "name": "构建前专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run prebuild"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "AINode 主题打包复验",
+      "repository": "apay",
+      "always": true,
+      "command": "./build.sh ainode-site ainode pg 1.1.10"
+    }
+  ]
+}

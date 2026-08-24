@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "shoply-marketplace-packages",
+  "title": "对接 Shoply Apps 与 Themes Package",
+  "problem": "Shoply 市场目前只有展示数据，Apps 安装按钮输出伪协议，Themes 购买按钮也不知道当前 APay 构建是否包含对应运行产物。",
+  "expectedOutcome": "Shoply 市场条目声明 extension 或 theme Package 及其 artifactId，并根据当前 APay 构建和运行设置展示真实状态；已构建条目跳转到对应后台扩展或主题管理页，未构建条目不伪装成可安装。",
+  "constraints": [
+    "Apps 运行产物继续位于 app/extensions，Themes 继续位于 app/themes，二者只统一市场 Package 元数据，不合并运行时",
+    "本期只对接随源码构建的可信产物，不实现 ZIP 下载、任意代码加载、在线安装或生产发布",
+    "支付、认证、短信等 provider 型 App 只声明 runtimeKind，不伪装成已接入通用扩展",
+    "只修改 Shoply 市场文件，不修改扩展底座、主题构建器、数据库、支付、鉴权或 active_theme",
+    "Theme 仅根据 publishedOptionalThemes 判断当前构建是否可用，激活仍由 /admin/settings/themes 完成且保持单选",
+    "Extension 启停与私有迁移仍由 /admin/settings/extensions 完成，市场页面不直接执行迁移或启停",
+    "不覆盖工作区其他并行改动，不提交、不推送、不发布、不执行数据库迁移"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/shoply/components/MarketplaceDetail.vue",
+        "app/themes/shoply/composables/useShoplyMarketplace.ts",
+        "app/themes/shoply/data/marketplace.ts",
+        "app/themes/shoply/locales/marketplace.ts",
+        "app/themes/shoply/scripts/check-marketplace.mjs",
+        "app/themes/shoply/types/marketplace.ts"
+      ],
+      "claims": [
+        "app/themes/shoply/components/MarketplaceDetail.vue",
+        "app/themes/shoply/composables/useShoplyMarketplace.ts",
+        "app/themes/shoply/data/marketplace.ts",
+        "app/themes/shoply/locales/marketplace.ts",
+        "app/themes/shoply/scripts/check-marketplace.mjs",
+        "app/themes/shoply/types/marketplace.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "市场条目明确声明 packageKind、可选 artifactId 与 App runtimeKind",
+    "至少一个现有扩展和 Shoply 主题映射到真实构建产物，不存在的产物显示未构建",
+    "已构建 App 跳后台扩展管理，已构建 Theme 跳后台主题管理，市场页不再输出 shoply:// 伪安装协议",
+    "已启用扩展与当前激活主题显示真实运行状态，未登录用户先进入管理员登录流程",
+    "Shoply 市场专项守卫、主题静态守卫、定向类型检查与差异格式检查提供真实结果"
+  ],
+  "verification": [
+    {
+      "name": "Shoply 市场 Package 合同",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types app/themes/shoply/scripts/check-marketplace.mjs"
+    },
+    {
+      "name": "Shoply 主题静态合同",
+      "repository": "apay",
+      "always": true,
+      "command": "node app/themes/shoply/scripts/check-theme.mjs"
+    },
+    {
+      "name": "Shoply 定向类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=shoply ./node_modules/.bin/nuxt typecheck 2>&1 | tee /tmp/shoply-package-typecheck.log; test ! -s /tmp/shoply-package-typecheck.log || ! rg -n 'app/themes/shoply/(components/MarketplaceDetail|composables/useShoplyMarketplace|data/marketplace|locales/marketplace|types/marketplace)' /tmp/shoply-package-typecheck.log"
+    },
+    {
+      "name": "Shoply Package 差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/themes/shoply/components/MarketplaceDetail.vue app/themes/shoply/composables/useShoplyMarketplace.ts app/themes/shoply/data/marketplace.ts app/themes/shoply/locales/marketplace.ts app/themes/shoply/scripts/check-marketplace.mjs app/themes/shoply/types/marketplace.ts"
+    }
+  ]
+}

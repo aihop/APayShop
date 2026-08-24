@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-domain-locale-foundation",
+  "title": "建立 APay 多域名语言底层能力",
+  "problem": "APay 当前只有全局构建期默认语言，前端路由工具又把英文写死为默认语言；GeoIP、浏览器 Cookie、支付接口和通用 API 各自解析语言，支付回调与注册邮件还直接使用请求 Host 生成绝对 URL。因此同一部署无法可靠地让不同域名拥有不同默认语言，也缺少已验证域名的绝对 URL 安全边界。",
+  "expectedOutcome": "APay 支持通过构建配置把多个已知域名绑定到各自默认语言，同一域名仍可用语言前缀切换到其他已构建语言；SSR、客户端导航、GeoIP、下单、支付方式过滤、支付回调、邮件链接和 SEO 使用统一域名语言事实源，未知 Host 不得用于已启用域名映射站点的安全敏感绝对 URL。",
+  "constraints": [
+    "首期域名语言映射是构建与部署配置，不写入 settings 或核心 Schema，不引入数据库迁移或新依赖",
+    "只支持精确 Host 映射，不支持通配域名；绑定语言必须属于 APAY_LOCALES 实际构建的语言集合，非法或冲突配置必须在构建时失败",
+    "域名绑定定义默认语言而非强制锁定语言；用户仍可在同一域名通过语言前缀和现有偏好切换其他已构建语言",
+    "前端路由与语言切换复用 Nuxt i18n 原生能力，不继续假定英文永远是无前缀默认语言",
+    "服务端语言优先级为显式请求语言、已绑定 Host 默认语言、语言 Cookie、来源页面语言、Accept-Language、站点默认语言；通用中英文错误文案在域名为中文时选择中文",
+    "启用域名映射后，支付回调、返回地址、注册验证和订单邮件的站点绝对 URL 只能来自映射内 Host；未知 Host 明确拒绝，不能静默回退到攻击者提供的 Host",
+    "代理场景只在映射 allowlist 校验后接受 X-Forwarded-Host；生产部署应固定由可信反向代理覆盖转发头，并使用 APAY_PUBLIC_PROTOCOL=https 锁定外部协议",
+    "未配置 APAY_DOMAIN_LOCALES 时保持现有单域名行为；失败边界为非法配置阻止构建、映射站点未知 Host 的注册/下单邮件/支付发起明确失败",
+    "回滚方式为撤销本任务代码并移除 APAY_DOMAIN_LOCALES/APAY_PUBLIC_PROTOCOL 后重新构建；不修改订单快照、支付状态或生产数据",
+    "不触碰当前已有改动的 ainode、minimal、qingpu 独立主题仓，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/composables/useLocaleRouter.ts",
+        "app/plugins/i18n-seo.ts",
+        "app/plugins/locale-persist.client.ts",
+        "app/themes/official/layouts/default.vue",
+        "content/docs/22.domain-locales.md",
+        "content/zh/docs/22.domain-locales.md",
+        "nuxt.config.ts",
+        "scripts/check-domain-locales.mjs",
+        "server/api/auth/register.post.ts",
+        "server/api/orders/checkout.post.ts",
+        "server/api/payments/initiate.post.ts",
+        "server/middleware/geoip.ts",
+        "server/utils/domainLocale.ts",
+        "server/utils/paymentMethodLocales.ts",
+        "server/utils/requestLocale.ts",
+        "shared/domainLocales.ts"
+      ],
+      "claims": [
+        "app/composables/useLocaleRouter.ts",
+        "app/plugins/i18n-seo.ts",
+        "app/plugins/locale-persist.client.ts",
+        "app/themes/official/layouts/default.vue",
+        "content/docs/22.domain-locales.md",
+        "content/zh/docs/22.domain-locales.md",
+        "nuxt.config.ts",
+        "scripts/check-domain-locales.mjs",
+        "server/api/auth/register.post.ts",
+        "server/api/orders/checkout.post.ts",
+        "server/api/payments/initiate.post.ts",
+        "server/middleware/geoip.ts",
+        "server/utils/domainLocale.ts",
+        "server/utils/paymentMethodLocales.ts",
+        "server/utils/requestLocale.ts",
+        "shared/domainLocales.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "APAY_DOMAIN_LOCALES 可声明多个精确 host=locale 绑定，Nuxt i18n 为每个域名生成正确的无前缀默认语言路由，并保留其他语言前缀",
+    "空配置保持现有 APAY_LOCALES/APAY_DEFAULT_LOCALE 单域名行为；非法 Host、重复冲突 Host 或未构建语言使配置检查和构建明确失败",
+    "通用 localePath、官方主题切换器和持久化插件不再把 en/zh/ru 或英文默认路由规则写死，并支持 Nuxt i18n 生成跨域或带前缀目标",
+    "首次访问已绑定域名且没有显式语言 Cookie 时域名默认语言优先于 GeoIP 和浏览器语言；已有用户语言偏好仍可覆盖默认值",
+    "下单币种快照、支付方式语言过滤和通用 API 中英文错误文案使用同一 Host 语言解析规则",
+    "启用映射后，支付回调/默认返回地址、注册验证链接和订单待支付邮件只使用 allowlist 内的请求域名；未知 Host 返回明确客户端错误且不生成外链",
+    "页面输出与当前域名和语言匹配的 html lang、canonical 和 hreflang 链接",
+    "中英文文档记录配置格式、DNS/反向代理要求、语言优先级、未知 Host 失败边界、上线与回滚步骤",
+    "专项守卫、Nuxt typecheck、Nuxt build 和 git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "域名语言专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-domain-locales.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "多域名 Nuxt 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_DOMAIN_LOCALES=apay.example=en,cn.apay.example=zh,ru.apay.example=ru APAY_PUBLIC_PROTOCOL=https NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- .ai/tasks/apay-domain-locale-foundation.json app/composables/useLocaleRouter.ts app/plugins/i18n-seo.ts app/plugins/locale-persist.client.ts app/themes/official/layouts/default.vue content/docs/22.domain-locales.md content/zh/docs/22.domain-locales.md nuxt.config.ts scripts/check-domain-locales.mjs server/api/auth/register.post.ts server/api/orders/checkout.post.ts server/api/payments/initiate.post.ts server/middleware/geoip.ts server/utils/domainLocale.ts server/utils/paymentMethodLocales.ts server/utils/requestLocale.ts shared/domainLocales.ts"
+    }
+  ]
+}

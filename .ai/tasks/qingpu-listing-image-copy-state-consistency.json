@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-image-copy-state-consistency",
+  "title": "修复 Listing 图片与文案完成状态漂移",
+  "problem": "商品 ai-1688-914168403181 只有一个 SKU 图片卡位成功、其他卡位仍失败或未生成，但共享就绪账本和页面都以任意一张生成图存在判定商品图片完成；同时上架文案的标题、简介和标签已完整落库，结构化详情按发布校验仅为 warning，却被任务执行器升级为整个文案节点失败。",
+  "expectedOutcome": "商品图片只有在当前蓝图与 SKU 必需卡位全部有可用结果时显示完成；结构化详情单独失败的误报根因和修复边界形成可验证结论。",
+  "constraints": [
+    "图片完成口径复用 qingpu-ai 现有蓝图计划与页面实际卡位，不新增平行规则",
+    "结构化详情仍保留失败原因和重试信息，但不再覆盖核心文案已完成的事实",
+    "不修改数据库结构、不修复或重跑该商品历史任务、不执行付费生成",
+    "保留当前 Qingpu 主题与 engine vendor 的其他未提交改动，不手改 vendor",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/presenters/listing-status-presenter.ts",
+        "tests/listing-status-presenter.test.ts"
+      ],
+      "claims": [
+        "src/app/presenters/listing-status-presenter.ts",
+        "tests/listing-status-presenter.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "scripts/check-listing-state-consistency.mjs"
+      ],
+      "claims": [
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "scripts/check-listing-state-consistency.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "单张成功图片不再让整套商品图片节点显示完成",
+    "全部必需主图、SKU 图和轮播图卡位完成后图片节点才完成",
+    "文案误报确认区分核心 copy readiness 与可选结构化详情 warning",
+    "该商品只读审计结论与新判据一致"
+  ],
+  "verification": [
+    {
+      "name": "共享就绪度测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-status-presenter.test.ts tests/image-blueprint.test.ts"
+    },
+    {
+      "name": "共享引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "主题状态专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-state-consistency.mjs"
+    },
+    {
+      "name": "跨仓格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

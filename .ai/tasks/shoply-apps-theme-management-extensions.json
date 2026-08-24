@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "shoply-apps-theme-management-extensions",
+  "title": "迁移 Shoply Apps 与 Theme 管理插件",
+  "problem": "旧 Shoply 的 plugins/app/Apps 与 plugins/app/Theme 分别管理应用包和主题包，但 APay 目前只有公开市场展示数据，没有对应的管理扩展、受保护 API 和私有数据表。",
+  "expectedOutcome": "APay 在 app/extensions/apps 与 app/extensions/theme 提供两个可独立启停的管理扩展，迁移旧插件的字段、草稿/上架状态、搜索分页、新增编辑删除与包元数据管理能力，并把数据表迁移放在各自扩展目录。",
+  "constraints": [
+    "事实源固定为 /Users/hugh/code/kuaiqin/shoply/plugins/app/Apps 与 /Users/hugh/code/kuaiqin/shoply/plugins/app/Theme 的业务代码和模型，不复制其 PHP、Alpine、FT 模板或嵌套 Git 数据",
+    "管理扩展目录固定为 app/extensions/apps 与 app/extensions/theme；它们管理市场条目，不代表系统中的每一个运行时 App 或 storefront theme",
+    "私有表分别使用 ext_apps_catalog 与 ext_theme_catalog，并提供 SQLite、PostgreSQL、MySQL 三方言向前迁移，不加入 APay 核心 Schema",
+    "旧状态语义保持 10=草稿、20=上架；公开消费者只应读取上架数据，本期不修改 Shoply 公开市场 API 或页面数据源",
+    "删除仅允许草稿记录，已上架条目必须先下架；唯一 slug 和 uniqueName 冲突返回 409，不静默覆盖",
+    "包下载、安装和下载数自增不在本期执行，避免公开请求触发非幂等计数或运行任意包代码",
+    "后台页面和 API 使用 plugin:apps:catalog 与 plugin:theme:catalog 权限；写请求必须由扩展宿主按 edit 权限保护",
+    "迁移失败保持插件停用并可重试；禁用插件不删除私有数据；不执行生产迁移、不提交、不推送、不发布",
+    "不修改支付、订单、价格、库存、active_theme、主题构建器或工作区其他并行改动"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/extensions/apps/**",
+        "app/extensions/theme/**",
+        "app/extensions/extensionDatabase.generated.ts",
+        "scripts/check-shoply-management-extensions.mjs",
+        "server/utils/extensionRegistry.generated.ts"
+      ],
+      "claims": [
+        "app/extensions/apps/**",
+        "app/extensions/theme/**",
+        "app/extensions/extensionDatabase.generated.ts",
+        "scripts/check-shoply-management-extensions.mjs",
+        "server/utils/extensionRegistry.generated.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "apps 与 theme 均有有效 extension.json、独立后台页面、受 capability 保护的列表与 CRUD API，以及三方言私有迁移",
+    "Apps 字段覆盖旧插件的名称、类型、slug、图片、价格、内容、下载数、状态、包名、包地址、版本、安装说明和 SEO",
+    "Theme 字段覆盖旧插件的名称、分类、slug、图片、价格、内容、下载数、状态、包名、包地址、演示地址和 SEO",
+    "后台页面支持搜索、分页、新增、编辑、草稿/上架切换和安全删除，所有表单输入在服务端校验",
+    "生成注册表包含两个管理扩展、API 和迁移 checksum，专项守卫可验证源插件映射、权限、表前缀与 CRUD 安全边界",
+    "专项守卫、扩展系统守卫、定向类型检查、临时 SQLite CRUD 验证和差异格式检查提供真实结果"
+  ],
+  "verification": [
+    {
+      "name": "Shoply 管理扩展专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-shoply-management-extensions.mjs"
+    },
+    {
+      "name": "扩展系统专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-extension-system.mjs"
+    },
+    {
+      "name": "管理扩展定向类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck 2>&1 | tee /tmp/shoply-management-extensions-typecheck.log; test ! -s /tmp/shoply-management-extensions-typecheck.log || ! rg -n 'app/extensions/(apps|theme)/' /tmp/shoply-management-extensions-typecheck.log"
+    },
+    {
+      "name": "管理扩展差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/extensions/apps app/extensions/theme app/extensions/extensionDatabase.generated.ts scripts/check-shoply-management-extensions.mjs server/utils/extensionRegistry.generated.ts"
+    }
+  ]
+}

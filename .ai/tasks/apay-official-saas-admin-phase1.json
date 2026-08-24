@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-official-saas-admin-phase1",
+  "title": "建立 APay 官方 SaaS 管理能力首期",
+  "problem": "SaaS 平台管理当前由独立 saas-admin 前端承载，APay 官方后台没有稳定入口、独立权限或服务端 BFF；浏览器若直接调用 Shoply 会暴露平台凭证并让管理界面依赖外部接口细节。",
+  "expectedOutcome": "APay 核心后台提供受独立 saas 权限保护的 /admin/saas 总览和店铺页；浏览器只调用 /api/admin/saas/**，APay 通过固定白名单和专用服务端凭证读取 Shoply 的 SaaS 总览与店铺数据；未配置或上游失败时明确失败，不展示伪造数据。",
+  "constraints": [
+    "SaaS 管理是 APay 核心能力，不放入 Minimal 主题扩展，也不依赖 active_theme",
+    "首期只读接入总览和店铺列表，不迁移数据库、不切换套餐或支付真相源、不关闭 Shoply 旧后台",
+    "APay 不直连 Shoply 数据库；Shoply 店铺和授权数据只通过 Shoply 管理 API 获取",
+    "Shoply 管理凭证仅从服务端 SHOPLY_SAAS_ADMIN_TOKEN 读取，不转发浏览器 Cookie、不复用用户 x-auth、不输出到响应或日志",
+    "上游路径固定白名单，基础地址只读取 SAAS_API_URL，缺少配置返回 503，上游响应异常返回 502",
+    "金额与跨系统 ID 不做浮点改写；首期不引入新依赖",
+    "不修改当前活动的 Minimal 建店任务文件，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/RouteSearch.vue",
+        "app/composables/useAdminNavConfig.ts",
+        "app/composables/useAdminPermissions.ts",
+        "app/pages/admin/saas/index.vue",
+        "app/pages/admin/saas/stores.vue",
+        "content/docs/21.saas-control-plane.md",
+        "content/zh/docs/21.saas-control-plane.md",
+        "locales/en.json",
+        "locales/zh.json",
+        "scripts/check-saas-control-plane.mjs",
+        "server/api/admin/saas/overview.get.ts",
+        "server/api/admin/saas/stores.get.ts",
+        "server/utils/adminPermissions.ts",
+        "server/utils/shoplySaasAdmin.ts"
+      ],
+      "claims": [
+        "app/components/RouteSearch.vue",
+        "app/composables/useAdminNavConfig.ts",
+        "app/composables/useAdminPermissions.ts",
+        "app/pages/admin/saas/index.vue",
+        "app/pages/admin/saas/stores.vue",
+        "content/docs/21.saas-control-plane.md",
+        "content/zh/docs/21.saas-control-plane.md",
+        "locales/en.json",
+        "locales/zh.json",
+        "scripts/check-saas-control-plane.mjs",
+        "server/api/admin/saas/overview.get.ts",
+        "server/api/admin/saas/stores.get.ts",
+        "server/utils/adminPermissions.ts",
+        "server/utils/shoplySaasAdmin.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "APay 后台导航和路由搜索提供不依赖主题的 SaaS 管理入口",
+    "saas:view 可访问 /admin/saas/** 与 GET /api/admin/saas/**，无 SaaS 权限的管理员被现有中间件拒绝",
+    "总览页展示 Shoply 返回的租户、活跃订阅、即将到期和收入指标，并明确标注 Shoply 运行数据来源",
+    "店铺页支持分页、关键词类型、状态和授权状态筛选，数据只通过 APay BFF 获取",
+    "专用 Shoply 客户端固定允许 dashboard/summary 与 store/list 两个只读上游路径，30 秒内超时并校验 JSON 业务成功码",
+    "缺少 SAAS_API_URL 或 SHOPLY_SAAS_ADMIN_TOKEN 时返回明确 503；上游网络、HTTP 或响应协议错误返回不泄露凭证的 502",
+    "中英文文档记录 APay 商业控制面、Shoply 运行面和首期配置/失败边界",
+    "专项守卫、Nuxt typecheck、Nuxt build 和 git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "SaaS 控制面专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-saas-control-plane.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Nuxt 生产构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- .ai/tasks/apay-official-saas-admin-phase1.json app/components/RouteSearch.vue app/composables/useAdminNavConfig.ts app/composables/useAdminPermissions.ts app/pages/admin/saas/index.vue app/pages/admin/saas/stores.vue content/docs/21.saas-control-plane.md content/zh/docs/21.saas-control-plane.md locales/en.json locales/zh.json scripts/check-saas-control-plane.mjs server/api/admin/saas/overview.get.ts server/api/admin/saas/stores.get.ts server/utils/adminPermissions.ts server/utils/shoplySaasAdmin.ts"
+    }
+  ]
+}

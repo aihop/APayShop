@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-frozen-reference-chain-fix",
+  "title": "修复主图生成丢失冻结辅助参考图",
+  "problem": "图片任务工厂已按用户选图顺序冻结最多五张 canonical 原图，但 image prompt plan 的 main_image 分支无条件只保留 canonical 主图，导致冻结辅助参考图在 provider 调用前丢失；复杂线缆和多部件商品因此缺少结构细节锚点。",
+  "expectedOutcome": "商品主图生成与重生保留 canonical 主图作为第一身份锚，并按不可变任务快照顺序发送其余冻结参考图；SKU 普通生成、SKU 精修和 gallery 现有隔离语义不变。",
+  "constraints": [
+    "不修改 ImageGenerationTaskSpec 协议、数据库、任务状态或外部 API",
+    "主图第一参考仍必须是 canonical 商品主图，冻结快照不得用发布队列或当前生成图改写",
+    "SKU 普通生成仍只使用对应规格原图，只有 SKU refine 可使用当前生成图",
+    "不触碰 Qingpu 主题中其他任务的未提交改动，不手改 engine vendor",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "tests/generation-reference-selection.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "tests/generation-reference-selection.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主图 plan.references 第一张固定为 canonical 主图",
+    "冻结快照中的其余去重参考图按快照顺序保留，最多遵守统一参考图上限",
+    "发布队列和任务执行时 workspace 的后续变化不改写冻结参考图",
+    "SKU 与 gallery 参考图既有行为不回归",
+    "provider 继续把 plan.references 全部发送至 image 请求"
+  ],
+  "verification": [
+    {
+      "name": "冻结选图与任务工厂回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/generation-reference-selection.test.ts tests/image-generation-task-factory.test.ts tests/pipeline-reference-snapshot.test.ts tests/set-anchor-reference.test.ts"
+    },
+    {
+      "name": "共享引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "分层依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

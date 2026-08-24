@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "shoply-website-theme-five-locales",
+  "title": "扩展 Shoply 官网至五种语言",
+  "problem": "Shoply 线上旧站原有英文、简体中文、香港繁体和印尼语，新 APay 主题目前仅完成英文与简体中文；用户还要求新增俄语。",
+  "expectedOutcome": "Shoply 主题以 en、zh、zh-HK、id、ru 提供首页和全部 13 个 /page/<slug> 页面，同一组 Vue 页面按语言渲染完整正文、SEO、导航、法律文案和 APay 订阅价格数据。",
+  "constraints": [
+    "五种语言固定为线上已有 en、zh、zh-HK、id 加用户指定 ru",
+    "保持 app/themes/shoply/pages/page/<slug>.vue 与 /page/<slug> 路由，不复制五套 Vue 页面",
+    "繁体、印尼语和俄语覆盖首页、营销页、价格页与法律页面，不以英文整页回退冒充翻译",
+    "价格页继续仅展示 APay 公开目录中 type=subscription 且 metaData.is_pricing_plan=true 的商品，并读取当前语言 translations",
+    "只扩展构建期语言注册与 Shoply 主题，不修改数据库、支付、鉴权、订单、商品 API 或 active_theme",
+    "用户明确授权在并行租约无法正常完成时人工恢复租约；恢复必须备份租约并保留全部并行代码改动",
+    "不引入新依赖，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/shoply-website-theme-five-locales.json",
+        "nuxt.config.ts",
+        "locales/id.json",
+        "locales/zh-HK.json",
+        "app/themes/shoply/**"
+      ],
+      "claims": [
+        "nuxt.config.ts",
+        "locales/id.json",
+        "locales/zh-HK.json",
+        "app/themes/shoply/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Nuxt 注册 en、zh、zh-HK、id、ru，保持 APAY_LOCALES、APAY_DEFAULT_LOCALE 和多域名语言映射兼容",
+    "Shoply 语言切换器显示五种语言并在当前 /page/<slug> 切换时保留页面路径",
+    "首页与 13 个 /page 路由在五种语言下都有主题正文与 SEO，SSR 不出现 shoply.* 未翻译键",
+    "价格页按五种语言读取 APay 商品 translations；无套餐时显示对应语言空状态",
+    "五语言专项守卫、Shoply 守卫、定向类型检查、隔离生产构建与差异格式检查提供真实结果"
+  ],
+  "verification": [
+    { "name": "Shoply 主题静态合同", "repository": "apay", "always": true, "command": "node app/themes/shoply/scripts/check-theme.mjs" },
+    { "name": "Shoply 页面迁移合同", "repository": "apay", "always": true, "command": "node app/themes/shoply/scripts/check-pages.mjs" },
+    { "name": "Shoply 五语言合同", "repository": "apay", "always": true, "command": "node app/themes/shoply/scripts/check-locales.mjs" },
+    { "name": "Nuxt 类型检查", "repository": "apay", "always": true, "command": "APAY_BUILD_THEMES=shoply APAY_LOCALES=en,zh,zh-HK,id,ru ./node_modules/.bin/nuxt typecheck" },
+    { "name": "Shoply 五语言正式构建", "repository": "apay", "always": true, "command": "NUXT_BUILD_DIR=/tmp/apay-shoply-five-locales-nuxt APAY_BUILD_THEMES=shoply APAY_LOCALES=en,zh,zh-HK,id,ru NODE_OPTIONS=--max-old-space-size=12288 npm run build" },
+    { "name": "Shoply 五语言差异格式", "repository": "apay", "always": true, "command": "git diff --check -- nuxt.config.ts locales/id.json locales/zh-HK.json app/themes/shoply" }
+  ]
+}

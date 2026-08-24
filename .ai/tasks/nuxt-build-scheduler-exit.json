@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "nuxt-build-scheduler-exit",
+  "title": "避免 Nuxt 构建期调度器阻止进程退出",
+  "problem": "AINode PostgreSQL 打包在 Nitro 输出 Build complete 后不退出。构建期临时 Nitro 实例启动 scheduler，首次 tick 打开 PostgreSQL 连接后使 Node 事件循环保持活跃，build.sh 无法继续复制产物到外层输出目录。",
+  "expectedOutcome": "Nuxt 构建子进程带有明确的构建期标记，scheduler 在该进程中不启动；真实部署运行时保持原有 scheduler 行为，完整 build.sh 能自然执行到复制产物和 Done。",
+  "constraints": [
+    "只修改 Nuxt 构建包装器与 scheduler 插件，不修改数据库、业务任务、调度规则、构建产物内容或依赖",
+    "使用仅传给 Nuxt 构建子进程的显式环境标记，不依赖不确定的 NODE_ENV 或强制 process.exit",
+    "运行时未设置构建标记时 scheduler 的启动、首次 tick 和关闭清理行为保持不变",
+    "不触碰 app/themes/ainode 的既有改动和前一任务的鉴权守卫改动",
+    "失败边界为构建仍无法自然退出；回滚仅涉及 scripts/run-nuxt-build.mjs 与 server/plugins/scheduler.ts",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "scripts/run-nuxt-build.mjs",
+        "server/plugins/scheduler.ts"
+      ],
+      "claims": [
+        "scripts/run-nuxt-build.mjs",
+        "server/plugins/scheduler.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "run-nuxt-build 只向 Nuxt 构建子进程注入明确的 APAY_NUXT_BUILD 标记",
+    "scheduler 在 APAY_NUXT_BUILD=1 时不创建 timeout 或 interval，也不访问数据库",
+    "未设置 APAY_NUXT_BUILD 的运行时 scheduler 行为保持不变",
+    "完整 AINode PostgreSQL 打包自然退出并把产物复制到 ../apay-build/ainode-site",
+    "git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "构建前专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run prebuild"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "AINode PostgreSQL 完整打包",
+      "repository": "apay",
+      "always": true,
+      "command": "./build.sh ainode-site ainode pg 1.1.10"
+    }
+  ]
+}

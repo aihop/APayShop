@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-listing-copy-rejection-details",
+  "title": "展示上架文案分段校验失败详情",
+  "problem": "上架文案生成结果被分段校验拒绝时，任务只展示 detail 等内部 section id，用户不知道失败的是哪段内容、违反了哪条规则，也无法判断是否应重试或修正商品资料。",
+  "expectedOutcome": "结构化商品详情等文案分段失败时，任务保存并展示中文模块名、具体校验原因和重试建议；历史仅含 detail 的错误也显示可理解的兼容提示。",
+  "constraints": [
+    "保留并兼容当前透明背景移除任务在 qingpu-theme 中的未提交改动，不覆盖或回退其代码和 vendor 能力",
+    "不记录或展示模型完整原始响应、提示词、密钥、堆栈或内部路径",
+    "失败原因由 qingpu-ai 领域校验器生成，主题执行器只负责安全拼装，页面负责本地化历史错误",
+    "不修改数据库结构、任务状态机、计费、发布或生成内容规则",
+    "不提交、不推送、不部署"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/listing-copy/sections/detail.ts",
+        "tests/listing-copy.test.ts"
+      ],
+      "claims": [
+        "src/domain/listing-copy/sections/detail.ts",
+        "tests/listing-copy.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/executors.ts",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/tasks/executors.ts",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "detail 解析失败时 failureReasons.detail 至少包含一条具体、可行动且不泄露原始模型正文的原因",
+    "执行器错误不再显示裸 detail，而显示结构化商品详情及具体原因",
+    "历史错误生成失败：detail 在中文、英文、俄文页面均显示可理解的兼容提示",
+    "标题、简介、标签的已有失败原因保持兼容，合格内容仍然单独保存",
+    "相关单测、类型检查、engine 构建和主题类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "文案详情诊断单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-copy.test.ts tests/listing-copy-evidence-cjk.test.ts"
+    },
+    {
+      "name": "共享引擎类型与构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run engine:build"
+    },
+    {
+      "name": "主题类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "跨仓格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-confirmed-bug-batch-fixes-2",
+  "title": "收口体检修复第二批：渠道快照冲突词过滤接线与手工 SKU 入队点",
+  "problem": "上一契约 qingpu-confirmed-bug-batch-fixes 已在 appendChannelPromptSnapshot 增加 conflictFilter 可选参数，但两个负面词汇聚调用点（image-prompt-plans/builder、asset-prompts/builder）不在其 claims 内未接线——带渠道快照的任务仍会把已按槽位角色摘除的冲突负面词回流（尺寸图正负自相矛盾）。同时手工 SKU 无图槽位的另两个生成入队点（lite 一键 SKU 图、补齐工作流）仍会注册必败占位。",
+  "expectedOutcome": "两个 Prompt 汇聚点向 appendChannelPromptSnapshot 传入与调用方 strip 同参的 conflictFilter，快照路径不再回流冲突负面词并有合同测试锁定；lite SKU 生成与补齐工作流对无 override 图的手工槽位入队前排除；全量测试、类型检查、engine 守卫保持全绿。",
+  "constraints": [
+    "只接线已存在的 conflictFilter 参数与已确立的手工槽位排除口径，不改变 Prompt 模板正文、负面词表内容或渠道策略语义",
+    "listSkuImageSlots / listMissingImageSlots 的槽位可见性合同保持不变（上一契约已确认不得在该层过滤）",
+    "不修改消息协议、存储结构、外部 API 合同；不新增依赖",
+    "不提交、不推送、不发布 engine vendor"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/asset-prompts/builder.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "entrypoints/lite/composables/useLiteImageTasks.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/channel-prompts.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/asset-prompts/builder.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "entrypoints/lite/composables/useLiteImageTasks.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/channel-prompts.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "带 channelPromptSnapshot 的主图/资产 Prompt：尺寸类槽位的最终 negativePrompt 不含 measurement lines 等已摘除冲突词，gallery 槽位不重新禁止 extra objects，且有测试锁定",
+    "lite 一键 SKU 图与补齐工作流不再为无 override 图的手工槽位入队",
+    "npx vitest run 全绿；npm run typecheck 通过；engine bundle 守卫通过",
+    "git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "全量测试（含分层守卫 pretest）",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "engine 切片构建与 bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

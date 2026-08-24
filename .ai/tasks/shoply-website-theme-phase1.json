@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "shoply-website-theme-phase1",
+  "title": "重写 Shoply 官网主题第一阶段",
+  "problem": "APay 的 app/themes/shoply 目前为空，现有 Shoply 官网仍由旧 bluex Jet/Alpine 模板承载，桌面端信息密度高且移动端导航与首屏响应式不足，无法直接复用到 Nuxt 4 主题运行时。",
+  "expectedOutcome": "在 APay 中提供一个可激活、SSR 友好、桌面与移动端自适应的 Shoply 双语主题，第一阶段完成品牌主题壳与完整营销首页，并保留 bluex 的品牌识别、核心业务事实和转化入口。",
+  "constraints": [
+    "只新增 app/themes/shoply 下的主题文件，不修改 APay 核心、数据库、API、支付、鉴权、部署配置或其他主题",
+    "bluex 仅作为页面结构、文案和品牌资产事实源，渲染层必须按 Nuxt 4、Vue 3、Nuxt UI 与 Tailwind 约定重写",
+    "中文与英文共享同一页面结构，主题语言包只维护 zh 和 en；不得复制两套页面",
+    "首期只实现主题壳与首页，价格、博客、案例、关于、定制和法律页面留到后续契约",
+    "登录、注册和控制台入口保持为可配置外链，不改 APay 现有网页登录或 SaaS 控制面协议",
+    "仅迁移首页实际使用的 bluex 图片资产，不复制 27MB 全量旧资源，不引入新依赖或原生绑定",
+    "首页不得声称代码或现有系统无法证实的新能力；沿用线上官网与 bluex 已公开的产品表述",
+    "不提交、不推送、不发布、不切换 active_theme，不执行数据库或生产状态变更",
+    "失败时回滚边界仅为删除本任务新增的 app/themes/shoply 文件；现有 APay 与旧 Shoply 官网保持不变"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/shoply-website-theme-phase1.json",
+        "app/themes/shoply/**"
+      ],
+      "claims": [
+        "app/themes/shoply/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题包含有效 theme.json，可被 APay 主题构建扫描并作为 shoply 激活",
+    "默认布局提供 Shoply 品牌导航、语言切换、登录注册入口、移动菜单、页脚和可访问的键盘交互",
+    "首页完成品牌首屏、四项核心价值、目标客户场景、AI 能力、平台能力、生态集成、部署方式与最终 CTA",
+    "中文与英文页面由同一 Vue 结构和独立语言包渲染，SEO 标题与描述随语言变化",
+    "桌面 1440px 与移动 390px 下无横向溢出，移动端导航收拢且首屏 CTA 与主视觉保持清晰",
+    "首页所用品牌图片从 bluex 精选迁移到主题 assets，页面不依赖旧 Shoply 模板运行时或旧 /res/bluex 路径",
+    "专项静态守卫、Nuxt 类型检查、包含 shoply 的正式构建与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "Shoply 主题静态合同",
+      "repository": "apay",
+      "always": true,
+      "command": "node app/themes/shoply/scripts/check-theme.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=shoply ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "Shoply 主题正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=shoply NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "Shoply 主题差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/themes/shoply"
+    }
+  ]
+}

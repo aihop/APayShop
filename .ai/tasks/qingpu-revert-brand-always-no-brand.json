@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-revert-brand-always-no-brand",
+  "title": "回退品牌策略为一律无品牌提交",
+  "problem": "914d8bd 把 mapOzonAttributes 对普通品牌属性(id 由 matchOzonBaseAttributes 的 'brand' key 解析)的特判从「一律强制 Нет бренда」改为「按字典严格匹配：命中保留真实品牌，未命中不发裸文本并阻断必填」。用户已明确要求回退到原策略（1b27d2c 确立），并已确认这是本次要做的改动。",
+  "expectedOutcome": "普通品牌属性（服装和鞋类品牌 31 不受影响，其解析路径不变）无论来源是否命中字典、无论是否为真实品牌名，一律以官方无品牌值 Нет бренда 提交；命中字典时带 dictionary_value_id，未命中时仍提交裸文本值，不产生品牌噪声警告，不因品牌阻断必填。测试合同回到与该策略一致。",
+  "constraints": [
+    "只改普通品牌属性(85 或按 matchOzonBaseAttributes 解析出的 brand key)的特判逻辑，不改服装和鞋类品牌(31)的既有解析路径",
+    "不改字典匹配、CJK 残留巡检、必填缺失巡检里已有的品牌排除逻辑（如未被 914d8bd 触及则保持不动）",
+    "不改动 attribute-aliases.ts 的 NO_BRAND_SOURCE_PATTERN 或 OZON_NO_BRAND_VALUE 定义",
+    "测试改动只针对因本次策略回退而失效的用例，不改与本次无关的既有用例",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "tests/ozon-attribute-mapping.test.ts",
+        "tests/ozon-variant-aspect-guard.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "tests/ozon-attribute-mapping.test.ts",
+        "tests/ozon-variant-aspect-guard.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "普通品牌属性命中字典的真实品牌值被强制改写为 Нет бренда 提交（不再保留真实品牌）",
+    "普通品牌属性未命中字典时仍提交裸文本 Нет бренда（不因未命中字典而丢弃属性或阻断必填）",
+    "服装和鞋类品牌(31)的解析行为不变",
+    "npx vitest run 全绿；npm run typecheck 通过",
+    "git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "全量测试（含分层守卫 pretest）",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-confirmed-bug-batch-fixes",
+  "title": "修复 2026-08-24 体检确认级 bug 并恢复 main 测试全绿",
+  "problem": "全项目体检确认了一批正确性 bug：914d8bd 在途提交删除了 Ozon 品牌强制无品牌逻辑并遗留 5 条测试失败；云端内容准备 Promise.all 单品失败毒化整批且已计费成果不回拉；图片翻译续领无所有权校验与重入防护、超时即清付费凭据；发布守卫跳过的商品被回写 publishing 和错误 taskId；1688 搜索页分页导入用错翻页参数、列表导入收集垃圾 URL、主图数组 unshift 反转；渠道 Prompt 快照在 pipeline 拆包时丢失且拼装点让被摘除的冲突负面词回流；手工 SKU 槽位规划端入队但冻结端必抛错；roundPrice 整十整百取整方向反了；图集计数 refId 形态不一致多算 1。",
+  "expectedOutcome": "上述确认级 bug 在最小范围内修复，行为与既有合同测试和设计注释一致；npx vitest run 全绿（含此前 5 条失败）；类型检查、分层守卫、engine bundle 守卫通过；每项逻辑修复有对应测试覆盖。",
+  "constraints": [
+    "只修复置信度为确认的正确性 bug，不做结构性还债、不动挂账区域的层级归属",
+    "品牌规则恢复 1b27d2c 确立并被合同测试锁定的「一律 Нет бренда」行为，不引入新品牌匹配策略",
+    "云端内容准备改为部分失败语义：成功商品结果照常回拉并继续链条，失败商品记账本明细；全部失败仍整体抛错",
+    "图片翻译续领与超时处理对齐生图路径既有防护口径（所有权校验、重入防护、状态未知保留 remoteTaskId），不新增消息通道或 storage 根键",
+    "图文详情翻译无账本、按 URL 批量采集无账本、网页端口径缺口等设计级问题不在本任务范围",
+    "不修改消息协议定义、存储结构、外部 API 合同；不新增依赖",
+    "不提交、不推送、不发布 engine vendor"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/app/workflows/image-processing-workflow.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/domain/image-modes/modes/text-translate.ts",
+        "src/shared/pipeline/image-translate-api.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/collector/platforms/1688.ts",
+        "src/collector/platforms/1688-dom.ts",
+        "src/collector/platforms/1688-parser.ts",
+        "src/shared/pipeline/profit-calculator.ts",
+        "src/domain/channel-prompts/merge.ts",
+        "src/app/handlers/pipeline.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-blueprint/blueprint.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "tests/ozon-variant-aspect-guard.test.ts",
+        "tests/listing-status-presenter.test.ts",
+        "tests/main-image-generation-ownership.test.ts",
+        "tests/watermark-entry-contract.test.ts",
+        "tests/ozon-driver-submission.test.ts",
+        "tests/collector-1688.test.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/channel-prompt-image-execution.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "tests/image-blueprint.test.ts",
+        "tests/profit-rounding.test.ts",
+        "tests/cloud-content-preparation.test.ts",
+        "tests/task-recovery-translation.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/app/workflows/image-processing-workflow.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/domain/image-modes/modes/text-translate.ts",
+        "src/shared/pipeline/image-translate-api.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/collector/platforms/1688.ts",
+        "src/collector/platforms/1688-dom.ts",
+        "src/collector/platforms/1688-parser.ts",
+        "src/shared/pipeline/profit-calculator.ts",
+        "src/domain/channel-prompts/merge.ts",
+        "src/app/handlers/pipeline.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-blueprint/blueprint.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "tests/ozon-variant-aspect-guard.test.ts",
+        "tests/listing-status-presenter.test.ts",
+        "tests/main-image-generation-ownership.test.ts",
+        "tests/watermark-entry-contract.test.ts",
+        "tests/ozon-driver-submission.test.ts",
+        "tests/collector-1688.test.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/channel-prompt-image-execution.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "tests/image-blueprint.test.ts",
+        "tests/profit-rounding.test.ts",
+        "tests/cloud-content-preparation.test.ts",
+        "tests/task-recovery-translation.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "npx vitest run 全绿，包括此前失败的 ozon-variant-aspect-guard(2)、listing-status-presenter、main-image-generation-ownership、watermark-entry-contract",
+    "品牌属性在有 brandAttributeId 时一律以 Нет бренда 出现在草稿 attributes 中，不产生品牌噪声警告",
+    "云端内容准备单品失败时：成功商品结果回拉并继续后续站点，失败商品进账本 failures，仅全部失败才抛错中止",
+    "图片翻译续领具备重入防护与写入所有权校验；轮询超时不清除 remoteTaskId",
+    "发布守卫跳过的商品不出现在 submittedProducts，不被回写 publishing 或他人 taskId",
+    "1688 搜索页分页使用 beginPage 翻页且首参数场景 URL 合法；列表导入只收集 offer 详情形态的商品 URL；多张主图保持原始顺序",
+    "带 channelPromptSnapshot 的任务经 PLAN_MAIN_IMAGE_GENERATION 执行时快照到达 mode handler；快照拼装不再回流已被角色摘除的冲突负面词",
+    "手工 SKU 槽位：有用户已设图时可冻结 spec 并以该图为锚，无图时入队前即被排除而非注册必败占位",
+    "roundPrice 对整十/整百输入向上取到 9/99 结尾；蓝图图集计数对翻译过主图的商品不再多算 1",
+    "git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "全量测试（含分层守卫 pretest）",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "engine 切片构建与 bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

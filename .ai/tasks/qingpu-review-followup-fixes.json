@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-review-followup-fixes",
+  "title": "修复体检复核发现的部分失败收尾回归并补齐两处回归测试",
+  "problem": "对 2026-08-24 修复批次做对抗性复核后确认三个待办：(1) qingpu-confirmed-bug-batch-fixes 把云端内容准备改为部分失败语义后，automation-pipeline 里 finalizeGenerateModeProducts 仍传全量 batch.productIds，本轮失败的商品若此前已有图集且 translationsDone 为真会被误标 imagesDone/ready，与同轮账本记录的失败自相矛盾（旧代码整链抛错，走不到该行，故为本次改动引入的回归）；(2) f459903 图集计数修复零测试，现有用例从未构造「非空发布队列 + 主图已有新版本资产」这一触发条件；(3) 940c57e 中最核心的搜索页翻页修复没有测试，buildPageUrl 是 collectPaginatedList 内的闭包无法被测试触达。",
+  "expectedOutcome": "失败商品不再被生图收尾误标为就绪；翻页 URL 构造提取为可测试的纯函数并覆盖搜索页/普通列表页两种形态；图集计数在「主图已版本跟随」场景下有回归用例锁定。全部验证矩阵通过。",
+  "constraints": [
+    "只做上述三项，不扩大到复核报告里其他仅为建议的条目",
+    "不改动 finalizeGenerateModeProducts 自身实现，只收窄调用入参",
+    "翻页函数提取只做落点搬移与导出，不改变已确立的 beginPage/page 判定口径",
+    "不触碰工作区中其他会话未提交的 ai-attribute-fill-workflow / ai-sku-aspect-fill-workflow 及其测试",
+    "不修改消息协议、存储结构、外部 API 合同；不新增依赖",
+    "不提交、不推送、不发布 engine vendor"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/automation-pipeline.ts",
+        "src/collector/platforms/1688-dom.ts",
+        "src/collector/platforms/1688.ts",
+        "tests/automation-partial-failure.test.ts",
+        "tests/collector-1688.test.ts",
+        "tests/image-blueprint.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/automation-pipeline.ts",
+        "src/collector/platforms/1688-dom.ts",
+        "src/collector/platforms/1688.ts",
+        "tests/automation-partial-failure.test.ts",
+        "tests/collector-1688.test.ts",
+        "tests/image-blueprint.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "云端内容准备部分失败时，finalizeGenerateModeProducts 只收到成功商品 id，失败商品不被标记 imagesDone/ready，且有测试锁定",
+    "翻页 URL 构造为已导出纯函数：搜索页用 beginPage、普通列表页用 page、首参数场景 URL 合法、非法 URL 回退原值，均有测试覆盖",
+    "图集计数对「发布队列存原始形态 ref + 主图已跟随到新版本资产」的商品不多算 1，有回归用例；该用例在修复前的实现下会失败",
+    "npm run typecheck 通过；npm test 全绿；engine bundle 守卫通过；git diff --check 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "全量测试（含分层守卫 pretest）",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "engine 切片构建与 bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run engine:build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-image-generation-integrity-fixes",
+  "title": "修复生图事实污染、任务漂移与网页策略漏传",
+  "problem": "主图 Prompt 把全部 SKU 目录值作为画面事实，已诱发参考图没有的白色款被补画；ImageGenerationTaskSpec 只冻结参考图和渠道策略，没有冻结最终执行 Prompt 与商品事实，排队后商品编辑会改变执行结果；网页适配层虽接收 channelPromptSnapshot 却未传入 runImageMode，渠道策略静默失效；两条 Listing 图片边界守卫还会误报合法 blueprint payload。",
+  "expectedOutcome": "主图只从冻结参考像素和非变体商品事实确定画面身份；新任务冻结最终 Prompt、负面 Prompt 与商品事实并在执行/重试时复用，旧 v1 任务继续兼容；网页执行完整透传渠道策略并为生成资产保存计划、模型、参考快照和最终执行 Prompt；图片边界守卫对当前合法 payload 精确通过。",
+  "constraints": [
+    "不修改生产数据、不触发付费生图、不新增依赖",
+    "普通生成与重生只使用 canonical 原图，只有 refine 可使用当前生成图",
+    "ImageGenerationTaskSpec 保持 version 1 向后兼容，存量无 promptSnapshot 任务继续走旧构建路径",
+    "不修改当前被其他任务占用的 qingpu-ai 属性工作流文件和 Qingpu 主题 server/tasks/executors.ts 等脏文件",
+    "QA 商品保真硬阻断因云端 executor 文件存在并行修改，不在本租约内抢占；本任务不虚假修改 QA verdict 词汇",
+    "不提交、不推送、不发布 engine vendor"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/asset-prompts/builder.ts",
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-generation-tasks/types.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/handlers/pipeline.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "tests/channel-prompt-image-execution.test.ts",
+        "tests/image-generation-task-prompt-freeze.test.ts"
+      ],
+      "claims": [
+        "src/domain/asset-prompts/builder.ts",
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-generation-tasks/types.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/handlers/pipeline.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "tests/channel-prompt-image-execution.test.ts",
+        "tests/image-generation-task-prompt-freeze.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/image.generate.ts",
+        "server/listing/image.shared.ts",
+        "scripts/check-listing-image-task-specs.mjs",
+        "scripts/check-listing-publish-boundaries.mjs"
+      ],
+      "claims": [
+        "server/listing/image.generate.ts",
+        "server/listing/image.shared.ts",
+        "scripts/check-listing-image-task-specs.mjs",
+        "scripts/check-listing-publish-boundaries.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "main_image 最终 Prompt 不包含完整 SKU 颜色/型号目录，SKU 图仍保留目标规格隔离语义",
+    "新建 ImageGenerationTaskSpec 带不可变 promptSnapshot，包含最终正负 Prompt、商品事实和 provider；修改商品后同一 spec 执行内容不变",
+    "扩展端与网页端都把 promptSnapshot 和 channelPromptSnapshot 传入 main_image_generate",
+    "网页生成资产 meta 保存 planId、modelName、referenceSnapshot、executionPrompt 与 negativePrompt",
+    "旧版没有 promptSnapshot 的 v1 spec 可继续通过断言并执行",
+    "两条 Listing 图片任务静态守卫对当前 blueprint 实现通过"
+  ],
+  "verification": [
+    {
+      "name": "生图事实与冻结快照专项测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/asset-prompt-contracts.test.ts tests/image-generation-task-factory.test.ts tests/image-generation-task-prompt-freeze.test.ts tests/channel-prompt-image-execution.test.ts tests/generation-reference-selection.test.ts tests/main-image-generation-fallback.test.ts"
+    },
+    {
+      "name": "共享引擎类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "共享引擎依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "网页图片任务规格守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-image-task-specs.mjs"
+    },
+    {
+      "name": "网页 Listing 边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-boundaries.mjs"
+    },
+    {
+      "name": "共享源差异格式检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    },
+    {
+      "name": "网页主题差异格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/listing/image.generate.ts server/listing/image.shared.ts scripts/check-listing-image-task-specs.mjs scripts/check-listing-publish-boundaries.mjs"
+    }
+  ]
+}

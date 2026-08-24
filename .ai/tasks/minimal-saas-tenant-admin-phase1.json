@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "minimal-saas-tenant-admin-phase1",
+  "title": "在 Minimal 主题内建立租户管理首期（店铺列表）",
+  "problem": "租户管理目前散落在 Shoply 的 saas 应用与一个独立的 saas-admin 前端里，APay 没有入口。目标架构是把租户管理收归 APay、让 Shoply 只负责独立站运行时，但一次性迁移风险过高。首期需要先在 Minimal 主题内建立一条可用的租户管理链路，数据仍读 Shoply，并把上游访问隔离在一层客户端里，为后续把商业真相源迁到 APay 留出替换点。",
+  "expectedOutcome": "Minimal 主题的后台扩展中出现租户店铺页，浏览器只调用 /api/admin/minimal/saas/**，由 APay 服务端持凭证访问 Shoply 的只读上游；未配置返回 503、上游异常返回 502，均不展示占位数据；页面文案完整支持中英文。",
+  "constraints": [
+    "只改 Minimal 主题，不改 APay 核心的权限表、导航、路由搜索与 locales；租户管理不得再次写进 APay 核心",
+    "浏览器不得接触 Shoply 地址或凭证；凭证只从服务端环境变量读取，不写入响应与日志",
+    "上游路径固定白名单，首期只允许 store/list；新增能力必须显式扩展白名单，不做通用代理",
+    "上游访问集中在单一客户端模块，供后续把数据源从 Shoply 换成 APay 时只改这一处",
+    "首期只读：不创建、不修改、不删除任何 Shoply 租户数据",
+    "不改动既有的 saas-control-plane 模块，也不改 review/task 等 Shoply 核心运营功能",
+    "所有用户可见文案走 i18n，不留中文或英文硬编码字面量",
+    "不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "minimal-theme",
+      "path": "app/themes/minimal",
+      "allowedPaths": [
+        "api/admin/saas/stores.get.ts",
+        "server/saas/client.ts",
+        "admin/pages/saas-stores.vue",
+        "composables/useMinimalSaasStores.ts",
+        "theme.admin.json",
+        "locales/en.json",
+        "locales/zh.json",
+        "scripts/check-saas-tenant-admin.mjs"
+      ],
+      "claims": [
+        "api/admin/saas/stores.get.ts",
+        "server/saas/client.ts",
+        "admin/pages/saas-stores.vue",
+        "composables/useMinimalSaasStores.ts",
+        "theme.admin.json",
+        "locales/en.json",
+        "locales/zh.json",
+        "scripts/check-saas-tenant-admin.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题扩展管理中出现租户店铺入口，通过 theme.admin.json 注册，不依赖 APay 核心导航",
+    "店铺页支持分页、关键词类型、店铺状态与授权状态筛选，数据只经 /api/admin/minimal/saas/stores 获取",
+    "上游客户端固定只允许 store/list，30 秒超时，同时校验 HTTP 状态与 Shoply 业务成功码",
+    "缺少 SHOPLY_SAAS_API_URL 或 SHOPLY_SAAS_ADMIN_TOKEN 时返回 503，上游网络或协议错误返回 502，两者文案可区分且不泄露凭证",
+    "页面与入口文案全部走 i18n，中英文均完整",
+    "专项守卫脚本、Nuxt 生产构建与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "租户管理专项守卫",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "node app/themes/minimal/scripts/check-saas-tenant-admin.mjs"
+    },
+    {
+      "name": "Nuxt 生产构建",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "差异格式检查",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "git -C app/themes/minimal diff --check"
+    }
+  ]
+}

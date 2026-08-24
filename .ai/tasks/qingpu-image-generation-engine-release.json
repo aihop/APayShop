@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-image-generation-engine-release",
+  "title": "发布三端统一生图冻结引擎",
+  "problem": "共享生图冻结与事实隔离已提交为 938ba37，但网页主题仍消费旧 vendor 0.7.133，尚未获得 promptSnapshot 与统一执行语义。",
+  "expectedOutcome": "从 qingpu-ai 提交 938ba37 发布递增的 engine vendor，提交网页适配并推进 APay gitlink。",
+  "constraints": [
+    "vendor 只能通过 qingpu-ai engine:release 生成，禁止手改",
+    "version.json.sourceCommit 必须等于 938ba37",
+    "只提交本任务文件，不混入三仓其他未提交改动",
+    "不执行生产部署或付费生图"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/image.generate.ts",
+        "scripts/check-listing-image-task-specs.mjs",
+        "scripts/check-listing-publish-boundaries.mjs",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/image.generate.ts",
+        "scripts/check-listing-image-task-specs.mjs",
+        "scripts/check-listing-publish-boundaries.mjs",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "engine vendor 版本高于 0.7.133",
+    "version.json.sourceCommit 为 938ba37",
+    "网页透传 promptSnapshot 与 channelPromptSnapshot",
+    "主题任务规格和发布边界守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "主题图片任务守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-image-task-specs.mjs"
+    },
+    {
+      "name": "主题发布边界守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-boundaries.mjs"
+    },
+    {
+      "name": "vendor 版本锚点检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node -e \"const v=require('./server/vendor/qingpu-engine/version.json'); if(v.sourceCommit!=='938ba37'||v.version==='0.7.133') process.exit(1); console.log(v)\""
+    },
+    {
+      "name": "主题发布差异格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- server/listing/image.generate.ts scripts/check-listing-image-task-specs.mjs scripts/check-listing-publish-boundaries.mjs server/vendor/qingpu-engine"
+    }
+  ]
+}
