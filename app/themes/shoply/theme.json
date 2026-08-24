@@ -1,0 +1,36 @@
+{
+  "name": "Shoply Website",
+  "description": "Shoply 五语言品牌官网主题，面向跨境电商独立站 SaaS、AI 营销与私有化部署场景。",
+  "version": "1.0.0",
+  "author": "Shoply",
+  "settings": [
+    {
+      "key": "shoply_signup_url",
+      "type": "string",
+      "label": "注册链接",
+      "default": "https://account.shoply.cn/signup",
+      "description": "官网免费注册按钮跳转地址。"
+    },
+    {
+      "key": "shoply_signin_url",
+      "type": "string",
+      "label": "登录链接",
+      "default": "https://account.shoply.cn/signin",
+      "description": "官网登录按钮跳转地址。"
+    },
+    {
+      "key": "shoply_consult_url",
+      "type": "string",
+      "label": "咨询链接",
+      "default": "mailto:support@shoply.cn",
+      "description": "定制咨询与预约演示按钮跳转地址。"
+    },
+    {
+      "key": "shoply_open_platform_url",
+      "type": "string",
+      "label": "开放平台链接",
+      "default": "https://open.shoply.cn/",
+      "description": "页脚开放平台跳转地址。"
+    }
+  ]
+}
