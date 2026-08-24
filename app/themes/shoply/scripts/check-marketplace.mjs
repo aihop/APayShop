@@ -10,9 +10,14 @@ const { shoplyAppSeeds, shoplyThemeSeeds } = await import(pathToFileURL(path.joi
 const { shoplyMarketplaceLocales } = await import(pathToFileURL(path.join(themeRoot, 'locales/marketplace.ts')))
 
 assert.equal(shoplyAppSeeds.length, 15, 'legacy public app catalog must include 15 entries')
-assert.equal(shoplyThemeSeeds.length, 15, 'legacy public theme catalog must include 15 entries')
+assert.equal(shoplyThemeSeeds.length, 16, 'public theme catalog must include the legacy entries and the Shoply runtime theme')
 assert.ok(shoplyAppSeeds.some(entry => entry.slug === 'paddle'), 'Paddle application must exist')
 assert.ok(shoplyThemeSeeds.some(entry => entry.slug === 'outdoor-equipment-mall'), 'legacy theme slug must exist')
+assert.ok(shoplyAppSeeds.every(entry => entry.packageKind === 'extension'), 'every app must declare the extension package kind')
+assert.ok(shoplyAppSeeds.every(entry => entry.runtimeKind), 'every app must declare its runtime kind')
+assert.ok(shoplyThemeSeeds.every(entry => entry.packageKind === 'theme'), 'every theme must declare the theme package kind')
+assert.equal(shoplyAppSeeds.find(entry => entry.slug === 'test')?.artifactId, 'example-tools', 'the reference app must map to a real extension artifact')
+assert.equal(shoplyThemeSeeds.find(entry => entry.slug === 'shoply-website')?.artifactId, 'shoply', 'the Shoply theme listing must map to the real theme artifact')
 assert.equal(new Set(shoplyAppSeeds.map(entry => entry.slug)).size, shoplyAppSeeds.length, 'app slugs must be unique')
 assert.equal(new Set(shoplyThemeSeeds.map(entry => entry.slug)).size, shoplyThemeSeeds.length, 'theme slugs must be unique')
 
@@ -20,6 +25,7 @@ for (const code of ['en', 'zh', 'zh-HK', 'id', 'ru']) {
   const messages = shoplyMarketplaceLocales[code]
   assert.ok(messages.apps.title, `${code} app marketplace title is required`)
   assert.ok(messages.themes.title, `${code} theme marketplace title is required`)
+  assert.ok(messages.package.status.not_built, `${code} package status copy is required`)
   assert.equal(messages.detail.paddle.length, 3, `${code} Paddle detail must have three sections`)
 }
 
@@ -36,7 +42,13 @@ assert.ok(marketplaceComposable.includes("marketplace_slug"), 'APay product meta
 assert.ok(marketplaceComposable.includes("translations"), 'localized APay product metadata is required')
 assert.ok(marketplaceComposable.includes('server: false'), 'seed catalog SSR must not depend on the product API')
 assert.ok(marketplaceComposable.includes('lazy: true'), 'APay product overrides must load as a non-blocking enhancement')
-assert.ok(detail.includes('shoply://app/'), 'public install instructions must preserve the Shoply protocol command')
+assert.ok(marketplaceComposable.includes('publishedOptionalThemeSet'), 'theme package availability must use the generated build manifest')
+assert.ok(marketplaceComposable.includes('installedExtensions'), 'extension package availability must use the extension registry')
+assert.ok(marketplaceComposable.includes("getSetting('active_theme')"), 'theme package status must reflect the active theme')
+assert.ok(marketplaceComposable.includes('enabledExtensions'), 'extension package status must reflect enabled extensions')
+assert.ok(!detail.includes('shoply://app/'), 'public detail must not expose a fake install protocol')
+assert.ok(detail.includes('entry.managementPath'), 'built packages must link to APay admin management')
+assert.ok(detail.includes('copy.package.status'), 'package runtime status must be visible')
 assert.ok(detail.includes("entry.kind === 'app' ? 'apps' : 'theme'"), 'detail back link must use the public plural apps route')
 assert.ok(list.includes("kind === 'app' ? 'apps' : 'theme'"), 'catalog cards must use the public plural apps route')
 assert.ok(!detail.includes('/api/package'), 'public detail must not expose the legacy package endpoint')
@@ -48,4 +60,4 @@ for (const [name, source] of [['apps index', appIndex], ['apps detail', appDetai
   assert.ok(!source.includes('await useShoplyMarketplace()'), `${name} must render without waiting for product overrides`)
 }
 
-console.log('✓ Shoply Apps and Theme marketplace contract passed (15 apps, 15 themes, 5 locales)')
+console.log('✓ Shoply Apps and Theme package contract passed (15 apps, 16 themes, 5 locales)')

@@ -31,34 +31,27 @@
             <div v-if="entry.version" class="rounded-2xl bg-slate-50 p-4"><dt class="text-slate-400">{{ copy.common.version }}</dt><dd class="mt-1 font-black">{{ entry.version }}</dd></div>
             <div v-if="entry.publishedAt" class="rounded-2xl bg-slate-50 p-4"><dt class="text-slate-400">{{ copy.common.updated }}</dt><dd class="mt-1 font-black">{{ entry.publishedAt }}</dd></div>
           </dl>
+          <div class="mt-6 rounded-2xl border px-4 py-3" :class="statusClass">
+            <p class="text-xs font-black uppercase tracking-[0.16em]">{{ copy.package.label }}</p>
+            <p class="mt-1 text-sm font-bold">{{ statusLabel }}</p>
+            <code v-if="entry.artifactId" class="mt-2 block text-xs opacity-70">{{ entry.packageKind }}/{{ entry.artifactId }}</code>
+          </div>
           <div class="mt-6 text-3xl font-black text-slate-950">{{ entry.price ? formatAmount(entry.price) : copy.common.free }}</div>
 
-          <template v-if="entry.kind === 'app'">
-            <button type="button" class="mt-6 w-full rounded-full bg-blue-600 px-6 py-3.5 font-black text-white hover:bg-blue-700" @click="installOpen = true">{{ copy.apps.install }}</button>
+          <template v-if="entry.managementPath">
+            <NuxtLink :to="entry.managementPath" class="mt-6 flex w-full justify-center rounded-full bg-blue-600 px-6 py-3.5 font-black text-white hover:bg-blue-700">{{ copy.package.manage }}</NuxtLink>
+          </template>
+          <template v-else-if="entry.productSlug">
+            <NuxtLink :to="localePath(`/products/${entry.productSlug}`)" class="mt-6 flex w-full justify-center rounded-full bg-blue-600 px-6 py-3.5 font-black text-white hover:bg-blue-700">{{ entry.kind === 'theme' ? copy.themes.buy : copy.apps.buy }}</NuxtLink>
           </template>
           <template v-else>
-            <NuxtLink v-if="entry.productSlug" :to="localePath(`/products/${entry.productSlug}`)" class="mt-6 flex w-full justify-center rounded-full bg-blue-600 px-6 py-3.5 font-black text-white hover:bg-blue-700">{{ copy.themes.buy }}</NuxtLink>
-            <a v-else :href="consultUrl" class="mt-6 flex w-full justify-center rounded-full bg-blue-600 px-6 py-3.5 font-black text-white hover:bg-blue-700">{{ copy.themes.consult }}</a>
+            <button type="button" disabled class="mt-6 w-full cursor-not-allowed rounded-full bg-slate-200 px-6 py-3.5 font-black text-slate-500">{{ copy.package.unavailable }}</button>
+          </template>
+          <template v-if="entry.kind === 'theme'">
             <a v-if="entry.demoUrl" :href="entry.demoUrl" target="_blank" rel="noopener noreferrer" class="mt-3 flex w-full justify-center rounded-full border border-slate-200 px-6 py-3.5 font-black text-slate-700 hover:border-blue-300 hover:text-blue-600">{{ copy.themes.preview }}</a>
           </template>
         </aside>
       </section>
-    </div>
-
-    <div v-if="installOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-5" role="dialog" aria-modal="true" :aria-label="copy.apps.installTitle" @click.self="installOpen = false">
-      <div class="w-full max-w-xl rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8">
-        <div class="flex items-start justify-between gap-6">
-          <div><p class="text-xs font-black uppercase tracking-[0.18em] text-blue-600">SHOPLY ADMIN</p><h2 class="mt-2 text-2xl font-black">{{ copy.apps.installTitle }}</h2></div>
-          <button type="button" class="rounded-full bg-slate-100 px-3 py-2 text-sm font-black" @click="installOpen = false">{{ copy.common.close }}</button>
-        </div>
-        <p class="mt-5 leading-7 text-slate-600">{{ copy.apps.installDescription }}</p>
-        <p class="mt-6 text-sm font-bold text-slate-500">{{ copy.apps.commandHint }}</p>
-        <div class="mt-3 flex items-center gap-3 rounded-2xl bg-slate-950 p-4 text-white">
-          <code class="min-w-0 flex-1 overflow-x-auto text-sm">{{ installCommand }}</code>
-          <button type="button" class="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-xs font-black" @click="copyCommand">{{ copied ? copy.common.copied : copy.common.copy }}</button>
-        </div>
-        <a :href="signInUrl" class="mt-6 flex w-full justify-center rounded-full bg-blue-600 px-6 py-3.5 font-black text-white hover:bg-blue-700">{{ copy.apps.signIn }}</a>
-      </div>
     </div>
   </main>
   <main v-else class="flex min-h-[70vh] flex-col items-center justify-center px-5 pt-24 text-center">
@@ -69,24 +62,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import type { ShoplyMarketplaceCopy } from '../locales/marketplace'
 import type { ShoplyMarketplaceEntry, ShoplyMarketplaceKind } from '../types/marketplace'
 
 const props = defineProps<{ kind: ShoplyMarketplaceKind, entry: ShoplyMarketplaceEntry | null, copy: ShoplyMarketplaceCopy, category: string }>()
 const { localePath } = useLocaleRouter()
 const { formatAmount } = useLocaleCurrency()
-const { getSetting } = useSettings()
-const installOpen = ref(false)
-const copied = ref(false)
-const installCommand = `shoply://app/${props.entry?.slug || ''}`
-const signInUrl = getSetting('shoply_signin_url', 'https://account.shoply.cn/signin')
-const consultUrl = getSetting('shoply_consult_url', 'mailto:support@shoply.cn')
-
-const copyCommand = async () => {
-  if (!navigator.clipboard) return
-  await navigator.clipboard.writeText(installCommand)
-  copied.value = true
-  window.setTimeout(() => { copied.value = false }, 1800)
-}
+const statusLabel = computed(() => props.entry ? props.copy.package.status[props.entry.packageStatus] : '')
+const statusClass = computed(() => {
+  if (props.entry?.packageStatus === 'active' || props.entry?.packageStatus === 'enabled') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (props.entry?.packageStatus === 'ready') return 'border-blue-200 bg-blue-50 text-blue-700'
+  return 'border-slate-200 bg-slate-50 text-slate-500'
+})
 </script>
