@@ -61,8 +61,11 @@ chmod +x deploy.sh
 # 安装依赖
 npm install
 
-# 启动开发服务器
+# 启动开发服务器（构建全部主题）
 npm run dev
+
+# 提速：只构建正在开发的主题（单主题时同时强制它为前台主题）
+APAY_DEV_THEME=qingpu npm run dev
 ```
 
 ### 生产构建与运行

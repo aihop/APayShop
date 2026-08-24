@@ -61,8 +61,12 @@ Follow the interactive prompts. Once finished, your store will be live at your d
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server (bundles all themes)
 npm run dev
+
+# Faster: only bundle the theme you are working on
+# (also forces it as the active theme when a single theme is given)
+APAY_DEV_THEME=qingpu npm run dev
 ```
 
 ### Build for Production
