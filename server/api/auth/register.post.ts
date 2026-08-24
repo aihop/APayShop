@@ -9,8 +9,10 @@ import { issueWebSession } from '../../utils/userSessions'
 import { bindInviteRelation, capturePromoTracking, ensurePromoMember, mergePromoTracking, readPromoTracking, requestPromoAgentJoin } from "../../promo/service"
 import { getRequestLocale } from "../../utils/requestLocale"
 import { getLocalizedSettingValue } from '../../utils/localizedSettings'
+import { requireTrustedRequestOrigin } from '../../utils/domainLocale'
 
 export default defineEventHandler(async (event) => {
+  const siteUrl = requireTrustedRequestOrigin(event)
   const locale = getRequestLocale(event)
   const messages = locale === 'zh'
     ? {
@@ -113,7 +115,6 @@ export default defineEventHandler(async (event) => {
     expiresAt: new Date(verifyExpiresAt * 1000),
   })
 
-  const siteUrl = getRequestURL(event).origin
   const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
   const siteName = await getLocalizedSettingValue('site_name', locale, 'APay')
 

@@ -17,6 +17,7 @@ import {
 import { getRequestLocale } from '../../utils/requestLocale'
 import { reconcileOrder } from '../../utils/orderReconcile'
 import { resolvePaymentPluginConfig } from '../../utils/paymentPluginConfig'
+import { requireTrustedRequestOrigin } from '../../utils/domainLocale'
 
 const bodySchema = z.object({
   orderId: z.string().min(1),
@@ -29,6 +30,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   try {
+    const origin = requireTrustedRequestOrigin(event)
     const locale = getRequestLocale(event)
     const messages = locale === 'zh'
       ? {
@@ -105,8 +107,6 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const requestURL = getRequestURL(event)
-    const origin = `${requestURL.protocol}//${requestURL.host}`
     const callbackUrl = `${origin}/api/webhooks/${order.id}`
     const returnUrl = body.returnUrl || body.successUrl || `${origin}/callback/${order.id}`
     const cancelUrl = body.cancelUrl || `${origin}/callback/cancel?orderId=${order.id}`

@@ -23,6 +23,7 @@ import {
 import { fulfillMinimalCheckoutRelay } from '../../../app/themes/minimal/server/checkout/fulfillment'
 import { deliverMinimalCheckoutPaid } from '../../../app/themes/minimal/server/checkout/notify'
 import { ensureTopupRecordForOrder, settlePaidTopup } from '../../utils/topupLedger'
+import { requireTrustedRequestOrigin } from '../../utils/domainLocale'
 
 // metaData 是服务表单答案等自由字段,不强 schema(形态不固定),但收窄为
 // 「普通对象 + 大小上限」:挡住数组/标量当 metaData、超大 payload 撑爆存储。
@@ -80,7 +81,8 @@ const matchesCurrencySnapshot = (value: unknown, snapshot: Record<string, any>) 
     && current.source === snapshot.source
 }
 
-const sendPendingOrderEmail = async (event: any, input: {
+const sendPendingOrderEmail = async (input: {
+  siteUrl: string
   email?: string | null
   nickname?: string | null
   orderId: string
@@ -91,7 +93,6 @@ const sendPendingOrderEmail = async (event: any, input: {
 }) => {
   if (!isDeliverableEmail(input.email)) return
 
-  const siteUrl = getRequestURL(event).origin
   const recipient = String(input.email || '').trim()
   const nickname = String(input.nickname || recipient.split('@')[0] || 'Customer').trim()
   const siteName = await getLocalizedSettingValue('site_name', input.locale, 'APay')
@@ -107,8 +108,8 @@ const sendPendingOrderEmail = async (event: any, input: {
       amount: `${Number(input.amount || 0).toFixed(2)} ${input.currency}`,
       currency: input.currency,
       site_name: siteName,
-      site_url: siteUrl,
-      payment_link: `${siteUrl}/payment/${input.orderId}`,
+      site_url: input.siteUrl,
+      payment_link: `${input.siteUrl}/payment/${input.orderId}`,
     },
   }).catch((error) => {
     console.error('[Checkout] Failed to send pending payment email:', error)
@@ -145,6 +146,7 @@ const createPendingOrderNotification = async (event: any, input: {
 
 export default defineEventHandler(async (event) => {
   try {
+    const siteUrl = requireTrustedRequestOrigin(event)
     const locale = getPreferredLocale(event)
     const messages = locale === 'zh'
       ? {
@@ -521,7 +523,8 @@ export default defineEventHandler(async (event) => {
           }
           isFreeOrder = true
         } else {
-          await sendPendingOrderEmail(event, {
+          await sendPendingOrderEmail({
+            siteUrl,
             email: parsedBody.email || userEmail || pendingOrder.contactEmail,
             nickname: userNickname,
             orderId: pendingOrder.id,
@@ -628,7 +631,8 @@ export default defineEventHandler(async (event) => {
         currency: currencyQuote.currency,
       })
 
-      await sendPendingOrderEmail(event, {
+      await sendPendingOrderEmail({
+        siteUrl,
         email: parsedBody.email || userEmail || contactEmail,
         nickname: userNickname,
         orderId,

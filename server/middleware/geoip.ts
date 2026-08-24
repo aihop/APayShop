@@ -1,4 +1,5 @@
-import { getCookie, setCookie } from 'h3'
+import { createError, getCookie, setCookie } from 'h3'
+import { hasDomainLocaleMappings, resolveRequestDomainLocale } from '../utils/domainLocale'
 import { resolveRequestGeo } from '../utils/requestGeo'
 
 // Map of ISO country codes to their default currency
@@ -35,15 +36,35 @@ const countryLocaleMap: Record<string, string> = {
 }
 
 export default defineEventHandler(async (event) => {
-  // Only apply to frontend routes, skip API and Admin
   const path = event.path
   const normalizedPath = path.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '')
+  const domainLocale = resolveRequestDomainLocale(event)
+  const isNuxtBuild = process.env.APAY_NUXT_BUILD === '1'
+  const isInternalSettingsRead = normalizedPath === '/api/settings'
+    && '__unenv__' in event.node.req
+  if (!isNuxtBuild && !isInternalSettingsRead && hasDomainLocaleMappings(event) && !domainLocale) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Unrecognized request host',
+      message: 'This request host is not configured for this APay deployment',
+    })
+  }
+
+  // Only apply to frontend routes, skip API and Admin
   if (normalizedPath.startsWith('/api') || normalizedPath.startsWith('/admin')) {
     return
   }
 
   let currency = getCookie(event, 'currency')
   let userLocale = getCookie(event, 'i18n_redirected')
+  if (!userLocale && domainLocale) {
+    userLocale = domainLocale
+    setCookie(event, 'i18n_redirected', userLocale, { maxAge: 60 * 60 * 24 * 30 })
+    const requestCookie = String(event.node.req.headers.cookie || '').trim()
+    event.node.req.headers.cookie = requestCookie
+      ? `${requestCookie}; i18n_redirected=${encodeURIComponent(userLocale)}`
+      : `i18n_redirected=${encodeURIComponent(userLocale)}`
+  }
 
   // If both are already set, we don't need to do IP lookup
   if (currency && userLocale) {

@@ -3,6 +3,7 @@ import type { H3Event } from 'h3'
 import { getCookie, getHeader } from 'h3'
 import { db } from '../db/runtime'
 import { settings } from '../db/schema'
+import { resolveRequestDomainLocale } from './domainLocale'
 
 type SiteLocaleConfig = {
   supportedLocales: string[]
@@ -12,7 +13,7 @@ type SiteLocaleConfig = {
 const FALLBACK_SUPPORTED_LOCALES = ['en', 'zh']
 const FALLBACK_DEFAULT_LOCALE = 'en'
 
-function canonicalizeLocale(value: string) {
+export function canonicalizeLocale(value: string) {
   const normalized = String(value || '')
     .trim()
     .replace(/_/g, '-')
@@ -61,6 +62,16 @@ function resolveSupportedLocale(requested: unknown, supportedLocales: string[], 
   return defaultLocale
 }
 
+function isSupportedLocaleCandidate(requested: unknown, supportedLocales: string[]) {
+  const normalizedRequested = canonicalizeLocale(String(requested || ''))
+  if (!normalizedRequested) return false
+  const requestedLanguage = normalizedRequested.split('-')[0] || ''
+  return supportedLocales.some((locale) => {
+    const supported = canonicalizeLocale(locale)
+    return supported === normalizedRequested || supported.split('-')[0] === requestedLanguage
+  })
+}
+
 function localeFromReferer(event: H3Event) {
   const referer = String(getHeader(event, 'referer') || '').trim()
   if (!referer) return ''
@@ -68,7 +79,9 @@ function localeFromReferer(event: H3Event) {
   try {
     const pathname = new URL(referer).pathname
     const firstSegment = pathname.split('/').filter(Boolean)[0] || ''
-    return canonicalizeLocale(firstSegment)
+    return /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(firstSegment)
+      ? canonicalizeLocale(firstSegment)
+      : ''
   } catch {
     return ''
   }
@@ -112,11 +125,17 @@ export async function getSiteLocaleConfig(): Promise<SiteLocaleConfig> {
 
 export function resolveRequestLocale(event: H3Event, inputLocale: unknown, config: SiteLocaleConfig) {
   const cookieLocale = canonicalizeLocale(getCookie(event, 'i18n_redirected') || '')
-  const refererLocale = localeFromReferer(event)
+  const refererCandidate = localeFromReferer(event)
+  const refererLocale = isSupportedLocaleCandidate(refererCandidate, config.supportedLocales)
+    ? refererCandidate
+    : ''
+  const domainLocale = canonicalizeLocale(resolveRequestDomainLocale(event))
   const acceptLanguageLocale = localeFromAcceptLanguage(event)
+  const requestedLocale = [inputLocale, cookieLocale, refererLocale, domainLocale, acceptLanguageLocale]
+    .find(candidate => isSupportedLocaleCandidate(candidate, config.supportedLocales))
 
   return resolveSupportedLocale(
-    inputLocale || cookieLocale || refererLocale || acceptLanguageLocale,
+    requestedLocale,
     config.supportedLocales,
     config.defaultLocale
   )
