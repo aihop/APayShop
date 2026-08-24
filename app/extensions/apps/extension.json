@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "apps",
+  "name": "App Catalog",
+  "description": "Manage downloadable app and plugin packages published in the Shoply marketplace.",
+  "version": "1.0.0",
+  "defaultEnabled": false,
+  "database": {
+    "migrations": [
+      {
+        "id": "0001-create-catalog",
+        "sqlite": "sqlite/0001-create-catalog.sql",
+        "postgresql": "postgresql/0001-create-catalog.sql",
+        "mysql": "mysql/0001-create-catalog.sql"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "key": "catalog",
+      "label": "App Catalog",
+      "labelZh": "应用管理",
+      "editable": true
+    }
+  ],
+  "adminPages": [
+    {
+      "key": "catalog",
+      "title": "Apps",
+      "titleZh": "应用管理",
+      "description": "Manage app packages, releases, and marketplace metadata.",
+      "descriptionZh": "管理应用包、版本和市场元数据。",
+      "component": "catalog.vue",
+      "capability": "catalog",
+      "icon": "ph:app-window",
+      "order": 40
+    }
+  ],
+  "adminApis": [
+    { "method": "get", "path": "catalog/list", "handler": "catalog/list.get.ts", "capability": "catalog" },
+    { "method": "get", "path": "catalog/detail", "handler": "catalog/detail.get.ts", "capability": "catalog" },
+    { "method": "post", "path": "catalog/create", "handler": "catalog/create.post.ts", "capability": "catalog" },
+    { "method": "patch", "path": "catalog/update", "handler": "catalog/update.patch.ts", "capability": "catalog" },
+    { "method": "delete", "path": "catalog/delete", "handler": "catalog/delete.delete.ts", "capability": "catalog" }
+  ]
+}

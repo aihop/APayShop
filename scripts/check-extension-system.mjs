@@ -35,6 +35,8 @@ assert.ok(permissions.includes('extensionAdminApiRoutes.find'), 'admin permissio
 assert.ok(permissions.includes('isPluginPermissionCode'), 'plugin permission codes must survive normalization')
 assert.ok(runtime.includes('requireEnabledExtension(extension)'), 'API dispatch must enforce extension enablement')
 assert.ok(runtime.includes('requireExtensionDatabaseReady(extension)'), 'API dispatch must enforce extension database readiness')
+assert.ok(runtime.includes('const isInstalledExtension = (extension: string) => extensionManifests.some'), 'installed extension checks must read manifests lazily')
+assert.ok(!runtime.includes('new Set(extensionManifests.map'), 'extension manifests must not be read during module initialization')
 assert.ok(runtime.includes('checksum_mismatch'), 'applied migration checksum changes must be rejected')
 assert.ok(runtime.includes('extension_migration_lock:'), 'extension migrations must use a database lock')
 assert.ok(adminHost.includes("dispatchExtensionApi(event, 'admin')"), 'admin catch-all host is missing')

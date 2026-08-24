@@ -17,7 +17,7 @@ const migrationFailureKey = (extension: string) => `extension_migration_failure:
 const migrationLockKey = (extension: string) => `extension_migration_lock:${extension}`
 const migrationReadyKey = (extension: string) => `extension_migrations:${extension}`
 
-export const installedExtensionIds: Set<string> = new Set(extensionManifests.map(manifest => manifest.id))
+const isInstalledExtension = (extension: string) => extensionManifests.some(manifest => manifest.id === extension)
 
 export const resolveExtensionDatabaseDialect = (): ExtensionDatabaseDialect => {
   const explicit = String(process.env.DB_DIALECT || '').replace(/"/g, '').trim().toLowerCase()
@@ -50,7 +50,7 @@ const writeSetting = async (key: string, value: string, description: string) => 
 }
 
 export const readExtensionMigrationStatus = async (extension: string) => {
-  if (!installedExtensionIds.has(extension)) {
+  if (!isInstalledExtension(extension)) {
     throw createError({ statusCode: 404, message: 'Extension not found' })
   }
   const dialect = resolveExtensionDatabaseDialect()
@@ -180,7 +180,7 @@ export const migrateExtensionDatabase = async (extension: string) => {
 export const normalizeEnabledExtensionIds = (input: unknown) => {
   if (!Array.isArray(input)) return []
   return [...new Set(input.filter(
-    (value): value is string => typeof value === 'string' && installedExtensionIds.has(value),
+    (value): value is string => typeof value === 'string' && isInstalledExtension(value),
   ))].sort()
 }
 
@@ -203,7 +203,7 @@ export const readEnabledExtensionIds = async () => {
 }
 
 export const requireEnabledExtension = async (extension: string) => {
-  if (!installedExtensionIds.has(extension)) {
+  if (!isInstalledExtension(extension)) {
     throw createError({ statusCode: 404, message: 'Extension not found' })
   }
   const enabled = await readEnabledExtensionIds()

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "theme",
+  "name": "Theme Catalog",
+  "description": "Manage downloadable storefront theme packages published in the Shoply marketplace.",
+  "version": "1.0.0",
+  "defaultEnabled": false,
+  "database": {
+    "migrations": [
+      {
+        "id": "0001-create-catalog",
+        "sqlite": "sqlite/0001-create-catalog.sql",
+        "postgresql": "postgresql/0001-create-catalog.sql",
+        "mysql": "mysql/0001-create-catalog.sql"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "key": "catalog",
+      "label": "Theme Catalog",
+      "labelZh": "主题管理",
+      "editable": true
+    }
+  ],
+  "adminPages": [
+    {
+      "key": "catalog",
+      "title": "Themes",
+      "titleZh": "主题管理",
+      "description": "Manage storefront theme packages, demos, and marketplace metadata.",
+      "descriptionZh": "管理店铺主题包、演示地址和市场元数据。",
+      "component": "catalog.vue",
+      "capability": "catalog",
+      "icon": "ph:paint-brush-broad",
+      "order": 41
+    }
+  ],
+  "adminApis": [
+    { "method": "get", "path": "catalog/list", "handler": "catalog/list.get.ts", "capability": "catalog" },
+    { "method": "get", "path": "catalog/detail", "handler": "catalog/detail.get.ts", "capability": "catalog" },
+    { "method": "post", "path": "catalog/create", "handler": "catalog/create.post.ts", "capability": "catalog" },
+    { "method": "patch", "path": "catalog/update", "handler": "catalog/update.patch.ts", "capability": "catalog" },
+    { "method": "delete", "path": "catalog/delete", "handler": "catalog/delete.delete.ts", "capability": "catalog" }
+  ]
+}
