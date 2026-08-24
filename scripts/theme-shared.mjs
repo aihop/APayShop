@@ -65,6 +65,18 @@ export const readManifestThemes = (manifestFile) => {
   return null
 }
 
+// APAY_DEV_THEME:开发提速开关。设置后 dev 只构建这（些）主题,而不是全部 8 个
+// 主题一起进打包图;单主题时 nuxt.config 还会把它作为 devTheme 强制前台主题。
+// 只在 `npm run dev` 的生命周期(dev/predev)里生效——shell 里残留的该变量
+// 不应影响 build.sh / npm run build 的主题选择(那两条路径以 manifest 为准)。
+export const resolveDevThemeEnv = () => {
+  const lifecycle = process.env.npm_lifecycle_event || ''
+  if (lifecycle !== 'dev' && lifecycle !== 'predev') {
+    return ''
+  }
+  return String(process.env.APAY_DEV_THEME || '').trim()
+}
+
 // Single source of truth for "which themes are included in this build/run".
 // Precedence: explicit selection > manifest (even if empty, e.g. core-only
 // build) > env override > all themes (dev-friendly default when no manifest

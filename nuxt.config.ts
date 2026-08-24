@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
-import { resolveAvailableThemes, resolveManifestFile, resolveSelectedThemes } from './scripts/theme-shared.mjs'
+import { resolveAvailableThemes, resolveDevThemeEnv, resolveManifestFile, resolveSelectedThemes } from './scripts/theme-shared.mjs'
+import { normalizePublicProtocol, parseDomainLocales } from './shared/domainLocales'
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')
@@ -32,15 +33,26 @@ const resolveBuildThemes = () => {
     themesDir,
     manifestFile,
     explicitThemes: '',
-    envThemes: process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
+    envThemes: resolveDevThemeEnv() || process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
   })
 }
+
+// APAY_DEV_THEME=<theme> npm run dev:一个变量同时收窄 dev 的构建主题(见上面
+// envThemes 档)并强制前台主题(下方 devTheme,免去再设 NUXT_PUBLIC_DEV_THEME)。
+// 逗号列表只收窄构建、不强制前台主题。resolveDevThemeEnv 已限定只在 npm run dev
+// 生命周期返回非空,正式构建不受影响。
+const DEV_THEME = resolveDevThemeEnv()
 
 // 主题页面/组件可以按 manifest 过滤构建，但服务端 API 一旦对外暴露成固定
 // 路径(`/api/<theme>/*`)，就不应随着可选主题裁剪而消失，否则现网站点在 core-only
 // 构建下会直接出现 404。这里让 Nitro 始终注册全部主题 API handlers。
+// 例外:APAY_DEV_THEME 收窄的 dev 实例只服务选中主题的页面,其余主题的 handlers
+// (光 qingpu 就 148 个)只会拖慢 nitro 扫描/重建,这种场景下按选中主题注册即可。
 const resolveNitroApiThemes = () => {
   const themesDir = path.resolve(__dirname, 'app/themes')
+  if (resolveDevThemeEnv()) {
+    return resolveBuildThemes()
+  }
   return resolveAvailableThemes(themesDir)
 }
 
@@ -49,10 +61,12 @@ const resolveNitroApiThemes = () => {
 // SEO),不影响前台 URL 前缀——要让单语言站不带 /zh 这类后缀,得在这里收窄语言表:
 //   APAY_LOCALES=zh ./build.sh <repo> <theme>        → 只有 zh,且无前缀
 //   APAY_LOCALES=zh,en APAY_DEFAULT_LOCALE=zh    → zh 无前缀,en 走 /en
-// 不设则保持原有三语言、默认 en 的行为。
+// 不设则启用 Shoply 线上既有四语言与俄语，默认 en。
 const I18N_ALL_LOCALES = [
   { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
   { code: 'zh', iso: 'zh-CN', file: 'zh.json', name: '简体中文' },
+  { code: 'zh-HK', iso: 'zh-HK', file: 'zh-HK.json', name: '香港繁體' },
+  { code: 'id', iso: 'id-ID', file: 'id.json', name: 'Bahasa Indonesia' },
   { code: 'ru', iso: 'ru-RU', file: 'ru.json', name: 'Русский' },
 ]
 
@@ -77,7 +91,21 @@ const resolveI18n = () => {
   return { locales: usable, defaultLocale }
 }
 
-const { locales: I18N_LOCALES, defaultLocale: I18N_DEFAULT_LOCALE } = resolveI18n()
+const { locales: I18N_BASE_LOCALES, defaultLocale: I18N_DEFAULT_LOCALE } = resolveI18n()
+const DOMAIN_LOCALES = parseDomainLocales(
+  process.env.APAY_DOMAIN_LOCALES,
+  I18N_BASE_LOCALES.map(locale => locale.code),
+)
+const DOMAIN_HOSTS = Object.keys(DOMAIN_LOCALES)
+const PUBLIC_PROTOCOL = normalizePublicProtocol(process.env.APAY_PUBLIC_PROTOCOL)
+const I18N_LOCALES = DOMAIN_HOSTS.length
+  ? I18N_BASE_LOCALES.map(locale => ({
+      ...locale,
+      language: locale.iso,
+      domains: DOMAIN_HOSTS,
+      defaultForDomains: DOMAIN_HOSTS.filter(host => DOMAIN_LOCALES[host] === locale.code),
+    }))
+  : I18N_BASE_LOCALES.map(locale => ({ ...locale, language: locale.iso }))
 const LIBSQL_NATIVE_PACKAGE_PATTERN = /^(darwin|linux|win32)-/
 const resolveInstalledLibsqlNativePackages = () => {
   const libsqlPackagesDir = path.resolve(__dirname, 'node_modules/@libsql')
@@ -347,10 +375,11 @@ export default defineNuxtConfig({
   },
   i18n: {
     locales: I18N_LOCALES,
-    defaultLocale: I18N_DEFAULT_LOCALE as 'en' | 'zh' | 'ru',
-    // prefix_except_default:默认语言无前缀,其余带前缀。单语言站(只保留一个
-    // locale 且它就是 default)因此天然没有 /zh 这类后缀,不必改 strategy
-    strategy: 'prefix_except_default',
+    defaultLocale: I18N_DEFAULT_LOCALE as 'en' | 'zh' | 'zh-HK' | 'id' | 'ru',
+    multiDomainLocales: DOMAIN_HOSTS.length > 0,
+    // 多域名先为全部语言生成带前缀路由，再由 i18n 按 Host 移除该域名默认语言
+    // 前缀；单域名继续保持全局默认语言无前缀。
+    strategy: DOMAIN_HOSTS.length ? 'prefix_and_default' : 'prefix_except_default',
     lazy: true,
     langDir: '../locales',
     customRoutes: 'config',
@@ -462,7 +491,11 @@ export default defineNuxtConfig({
     databaseUrl: '',
     public: {
       // 开发环境强制指定主题，方便同时运行多主题开发实例（NUXT_PUBLIC_DEV_THEME=ainode）
-      devTheme: process.env.NUXT_PUBLIC_DEV_THEME || '',
+      // APAY_DEV_THEME 单主题时自动兜底,免设第二个变量;显式 NUXT_PUBLIC_DEV_THEME 优先
+      devTheme: process.env.NUXT_PUBLIC_DEV_THEME
+        || (DEV_THEME && !DEV_THEME.includes(',') ? DEV_THEME : ''),
+      apayDomainLocales: DOMAIN_LOCALES,
+      apayPublicProtocol: PUBLIC_PROTOCOL,
     },
   },
   sourcemap: { server: false, client: false },

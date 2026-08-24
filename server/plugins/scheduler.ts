@@ -56,7 +56,11 @@ async function tick(): Promise<void> {
 }
 
 export default defineNitroPlugin((nitroApp) => {
-  if (process.env.CF_PAGES || (process.env.NITRO_PRESET || '').includes('cloudflare')) {
+  if (
+    process.env.APAY_NUXT_BUILD === '1'
+    || process.env.CF_PAGES
+    || (process.env.NITRO_PRESET || '').includes('cloudflare')
+  ) {
     return
   }
 
@@ -66,10 +70,9 @@ export default defineNitroPlugin((nitroApp) => {
     intervalHandle = setInterval(() => void tick(), TICK_MS)
   }, FIRST_TICK_DELAY_MS)
 
-  // `nuxt build` boots a throw-away Nitro instance internally (to resolve route
-  // rules / prerendering) and fires this same "close" hook on it right after -
-  // without clearing our timers here, that build-time instance's Node process
-  // never drains its event loop and `npm run build` hangs forever post "Build complete".
+  // 运行时关闭时必须清理定时器，避免优雅停机被活跃句柄阻塞。构建期临时 Nitro
+  // 实例已由上面的 APAY_NUXT_BUILD 分支完全跳过，不能等首次 tick 打开数据库连接后
+  // 再只清 timer，否则连接池仍会让 `npm run build` 卡在 "Build complete" 之后。
   nitroApp.hooks.hook('close', () => {
     clearTimeout(firstTickHandle)
     if (intervalHandle) clearInterval(intervalHandle)

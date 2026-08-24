@@ -11,6 +11,7 @@ const releaseBuildLock = alreadyHeld ? async () => {} : await acquireBuildLock()
 
 try {
   const childEnvironment = { ...process.env, APAY_BUILD_LOCK_HELD: '1' }
+  const nuxtBuildEnvironment = { ...childEnvironment, APAY_NUXT_BUILD: '1' }
   const prepareExitCode = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [themeBuildScript], {
       cwd: projectRoot,
@@ -25,7 +26,7 @@ try {
   const exitCode = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [nuxtBin, 'build', ...process.argv.slice(2)], {
       cwd: projectRoot,
-      env: childEnvironment,
+      env: nuxtBuildEnvironment,
       stdio: 'inherit',
     })
     child.once('error', reject)

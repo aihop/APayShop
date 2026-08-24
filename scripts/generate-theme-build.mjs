@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { resolveAvailableThemes, resolveManifestFile, resolveSelectedThemes } from './theme-shared.mjs'
+import { resolveAvailableThemes, resolveDevThemeEnv, resolveManifestFile, resolveSelectedThemes } from './theme-shared.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
@@ -39,7 +39,7 @@ const selectedThemes = forceAllThemes
       themesDir,
       manifestFile,
       explicitThemes: getArgValue('themes'),
-      envThemes: process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
+      envThemes: resolveDevThemeEnv() || process.env.APAY_BUILD_THEMES || process.env.BUILD_THEMES || '',
     })
 
 const buildGlobObject = (patterns, options) => {
