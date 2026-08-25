@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-onboarding-gate",
+  "title": "P4 渠道接入总闸：三方完备性一次校验 + 接入 SOP 文档",
+  "problem": "P1–P3 建起了三道分散的完备性保障：engine 的 check-channel-capability（能力矩阵与静态注册）、六张穷尽 Record（编译期）、主题的 check-channel-registration（网页五个注册点）、以及 CHANNEL_MANIFESTS（平台数据）。但它们各自为战——加渠道的人要记住去两个仓库跑不同命令，且没有任何一处告诉他「接入一个渠道到底要做哪些事」。接入知识仍活在人的记忆里，这正是本轮反复踩坑的根因。",
+  "expectedOutcome": "qingpu-ai 增加 check-channel-onboarding.mjs 总闸：一次校验 Manifest 三项齐全、engine 六个注册中心穷尽表覆盖、以及（跨仓可达时）主题五个注册点的表态，漏项即失败并指出补在哪。docs/channel-onboarding.md 落成接入 SOP，docs/README.md 同步索引。运行时行为零变化。",
+  "decisions": [
+    "总闸落 qingpu-ai 而非主题：渠道全集与 Manifest 的权威在 engine，主题是消费方。总闸对主题部分做「可达即查、不可达即跳过并说明」——两仓可能不在同一 checkout（本轮实测存在 code/aihop 与 Documents/qingpu 两份），硬依赖会让守卫在单仓环境下假红。",
+    "不重复实现主题那五个注册点的判据：总闸在主题可达时直接调用主题的 check-channel-registration.mjs（子进程），复用它的判据与 gap 清单。重复实现等于第二事实源，两边判据漂移只是时间问题。",
+    "穷尽 Record 的完备性已由编译期保证，总闸不重复校验其内容，只校验「这六张表确实是穷尽 Record 形态」——防止有人退回 Map + register 把编译期保障拆掉。",
+    "SOP 文档以本轮实战为准而非从 Ozon 单例推演：前置外部事实清单、engine 必填四件（mapper/payload/driver/tracker）、可声明缺口项、网页两件、收尾验证与跨仓发布顺序，全部来自 WB 接入的真实记录。",
+    "注册进 package.json 的 check:channels 组合命令，与既有 check:deps / check:channels 并列，不改既有脚本语义。"
+  ],
+  "constraints": [
+    "只加守卫与文档，不改任何运行时代码路径",
+    "总闸对主题不可达时必须明确跳过并说明原因，不得假红也不得静默略过",
+    "反向确认：测试证明总闸能抓到 Manifest 缺项与注册表形态退化",
+    "SOP 文档同步 docs/README.md 索引（AGENTS §4.8）",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "scripts/check-channel-onboarding.mjs",
+        "package.json",
+        "tests/channel-onboarding-gate.test.ts",
+        "docs/channel-onboarding.md",
+        "docs/README.md"
+      ],
+      "claims": [
+        "scripts/check-channel-onboarding.mjs",
+        "package.json",
+        "tests/channel-onboarding-gate.test.ts",
+        "docs/channel-onboarding.md",
+        "docs/README.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 总闸校验 Manifest：KNOWN_CHANNELS 每个渠道在 CHANNEL_MANIFESTS 里三项齐全（label / defaultCurrency / titleMaxLength），缺项报错并指出补在 types.ts 哪张表。",
+    "B 总闸校验六张穷尽表形态：channel-prompts / image-generation-tasks / channel-mappers / publish-payloads / publish-drivers / publish-tracking 均为 Record<Channel,…> 且无 Map<Channel 与 register* 导出；退化即报错。",
+    "C 总闸跨仓：主题可达时调用其 check-channel-registration.mjs 并汇总结果；不可达时输出明确的跳过说明与原因。",
+    "D 输出形态与既有守卫一致：逐项表态清单 + 通过/失败结论 + 失败时指出补在哪个文件。",
+    "E 反向确认：测试临时破坏 Manifest 一项与一张表的形态，断言总闸报错且退出码非零，随后还原。",
+    "F docs/channel-onboarding.md 落成，含前置外部事实、engine 必填四件、可声明缺口、网页两件、收尾验证、跨仓发布顺序；docs/README.md 索引同步。",
+    "G 注册进 package.json；全量 typecheck / check:deps / npm test / build + bundle 守卫 / check-channel-capability / 新总闸全绿。"
+  ],
+  "verification": [
+    { "name": "总闸自身", "repository": "qingpu-ai", "always": true, "command": "node scripts/check-channel-onboarding.mjs" },
+    { "name": "本任务测试", "repository": "qingpu-ai", "always": true, "command": "npx --no-install vitest run tests/channel-onboarding-gate.test.ts" },
+    { "name": "全量", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs && node scripts/check-channel-capability.mjs" }
+  ],
+  "outOfScope": [
+    "统一网页五个注册点的形态（预览卡键类型收紧、provider switch 改 Record）",
+    "给 WB 补任何缺口实现",
+    "扩展端三个 UI 注册中心（channel-ui / attribute-forms / settings-panels）纳入总闸"
+  ]
+}
