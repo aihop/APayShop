@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-copy-override-ui",
+  "title": "把渠道文案覆盖打通到工作台 UI，并让覆盖生效面与声明一致",
+  "problem": "26b6da3 在 engine 加了 manualOverrides.channelCopy 覆盖层，但三处没闭环：(1) resolveChannelCopyField / hasChannelCopyOverride / resolveChannelCopy 都没进 src/engine/index.ts，网页端根本拿不到；(2) 类型声明了 3 字段 x 2 渠道 = 6 个覆盖位，实际只有 ozon.title / wb.title / wb.description 三个生效——Ozon 的 hashtags 仍直读 translation.hashtags，WB 压根没有 hashtags 字段，照类型做 UI 会产生填了就静默不生效的哑字段；(3) 覆盖层没有写入口，网页端只有写共享层的 setListingCopyFieldValue。另外 listing-workbench-presenter 的 translationTexts 与 server/listing/workspace-quality 都直读共享 translation，WB 用覆盖标题时工作台显示与质量分仍按共享标题算。",
+  "expectedOutcome": "渠道文案覆盖有唯一的读原语、写原语和「哪些字段可覆盖」的事实来源，全部经 engine 出口供网页端消费；工作台文案字段在渠道工作台里编辑时写覆盖层、留空回落共享，并标出该字段是共享还是本渠道覆盖；不可覆盖的组合不出 UI 入口，也不接受写入。Ozon 的发布结果、工作台显示与质量分逐字节不变。",
+  "decisions": [
+    "Ozon 的 description 不进覆盖层：manualOverrides.detailContent 已经是上线的 Ozon 描述覆盖入口（网页有三语「商品详情正文」面板），且门控 ozon-rich-content.ts:126、listing-copy/sections/detail.ts:125 与 :156 三处行为。再加一层等于两个 manual 层写同一字段。detailContent 名不副实这笔债本轮只记账不偿还。",
+    "可覆盖字段：ozon -> title + hashtags，wb -> title + description。由 listChannelCopyOverridableFields(channel) 单点定义，UI 据此渲染。",
+    "presenter 的 translationTexts 用只取覆盖值的 getChannelCopyOverride(...) ?? 原回落链，不换成 resolveChannelCopyField：后者的共享回落链多一段 originalTitle，直接换会让无译文商品在工作台从显示空变成显示中文原标题，属 Ozon 可见行为变化。",
+    "网页端就绪度/质量分不另写判定：workspace-quality 与 sku.shared 都经 buildListingWorkbenchRowModel 的 publishChannel 参数取值，口径仍只在 engine 定义一次。",
+    "SKU 表的读（GET 拉 payload）与写（postSkuOp）都住在 useWorkspaceDetailSkuTable.ts，渠道必须穿过它：GET 带 ?channel 让服务端按渠道解析生效文案与覆盖态，updateTranslation 的 payload 透传可选 channel。该文件在工作台重构时从 Shell 拆出，建契约时未枚举到，本次按 README 正序（结束租约→扩契约→重取）补入。"
+  ],
+  "constraints": [
+    "不影响 Ozon：共享文件只做纯新增或参数默认值扩展，Ozon 的发布 payload、工作台显示、质量分必须实际对比验证，不接受「应该没影响」",
+    "三端口径只定义一次：新增的读/写/可覆盖字段原语只在 src/domain/workspace/channel-copy.ts 定义，经 src/engine/index.ts 出口消费；同步把新符号加进 scripts/check-deps.mjs 的 caliber-redefine pattern",
+    "渠道分发走 Registry/Factory 与既有接缝，禁止在入口或页面扩散 if (channel === 'wb')；WorkspaceShell.vue 必须继续通过 check-workspace-shell-neutrality",
+    "不可覆盖的 (渠道, 字段) 组合：UI 不出入口，写入口显式拒绝并说明原因，禁止静默丢弃",
+    "不动 manualOverrides.detailContent 的存量数据、读写位置与三处门控行为",
+    "不新增 storage 根键、不新增表、不改扩展/桌面端同步协议与 schema_version",
+    "不放开 WB 发布入口，不碰 settings.wbPublishDryRun，不做阶段 4 的库存/费率/履约",
+    "不用 any、大面积断言、静默吞错或省略版实现",
+    "不顺手修与本任务无关的存量报错与既有坏守卫（qingpu-ai check-deps 存量基线、主题 check-all.mjs 的 7 项 KNOWN_FAILING 都不动）",
+    "不覆盖两个工作区其他会话的未提交改动；不提交、不推送、不发布（engine:release 除外，且需用户单独确认）"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/workspace/channel-copy.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-copy-override.test.ts",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "src/domain/workspace/channel-copy.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-copy-override.test.ts",
+        "docs/tech-debt-map.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceSkuCopyFields.vue",
+        "pages/user/listing/components/workspace/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/workspace/WorkspaceSkuPanel.vue",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/workspace-sku-panel.types.ts",
+        "server/listing/sku.shared.ts",
+        "server/listing/sku.operations.ts",
+        "server/listing/workspace-quality.ts",
+        "api/listing/skus.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/channel-copy-override-ui.test.ts",
+        "server/vendor/qingpu-engine/",
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceSkuCopyFields.vue",
+        "pages/user/listing/components/workspace/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/workspace/WorkspaceSkuPanel.vue",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/workspace-sku-panel.types.ts",
+        "server/listing/sku.shared.ts",
+        "server/listing/sku.operations.ts",
+        "server/listing/workspace-quality.ts",
+        "api/listing/skus.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/channel-copy-override-ui.test.ts",
+        "server/vendor/qingpu-engine/",
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 读写原语单点：channel-copy.ts 提供 getChannelCopyOverride（只取覆盖值，无覆盖返回 undefined）、setChannelCopyFieldValue（写覆盖；空值删 key 而不是存空串；不可覆盖组合抛错）、listChannelCopyOverridableFields（ozon -> title,hashtags；wb -> title,description）。resolveChannelCopyField 对不可覆盖组合直接回落共享值，不读那一格。",
+    "A 之二：以上符号连同 resolveChannelCopy / hasChannelCopyOverride 与 ListingChannelCopyOverride / ListingCopyField 类型全部经 src/engine/index.ts 导出；新符号加进 check-deps.mjs 的 caliber-redefine pattern，channel-copy.ts 进 except。",
+    "B Ozon hashtags 生效：buildOzonListingDraft 的 hashtags 改走 resolveChannelCopyField；无覆盖时结果与改动前逐字节一致（含 sanitizeHashtagsValue 的清洗行为）。Ozon 的 description 保持走 resolveOzonListingDescription，本任务不碰。",
+    "C 工作台取值按渠道：listing-workbench-presenter 的 translationTexts 用 getChannelCopyOverride(publishChannel) ?? 原回落链；publishChannel 缺省仍是 OZON_CHANNEL，无覆盖时三个字段取值与改动前逐字节一致（特别是无译文商品 title 仍为空，不回落 originalTitle）。",
+    "D 网页取值按渠道：sku.shared.toTablePayload 与 workspace-quality 把当前渠道传进 buildListingWorkbenchRowModel；渠道解析遵循既有优先级（显式 > URL ?channel > 顶部店铺 > Ozon）。只有 Ozon 数据时质量分与 SKU 表 payload 与改动前一致。",
+    "E 写入口按渠道：sku 操作 op:'translation' 接受可选 channel；带 channel 时走 setChannelCopyFieldValue 写覆盖层，不带时仍走 setListingCopyFieldValue 写共享层。API 对不可覆盖的 (渠道, 字段) 组合返回明确 400 并说明原因，不静默落库。",
+    "F UI：WorkspaceSkuCopyFields 按 listChannelCopyOverridableFields 决定哪些字段有覆盖入口，用 hasChannelCopyOverride 标出「本渠道已改」与「跟随共享」，覆盖清空后回落共享值且标记消失；文案 zh/en/ru 三语齐全。组件不出现渠道字面量判断，渠道由 props 传入。",
+    "G Ozon 行为不变的实证：同一个 Ozon 商品在改动前后 buildOzonListingDraft 的输出、工作台 translationTexts、质量分三项逐项对比一致；WorkspaceShell.vue 通过 check-workspace-shell-neutrality。",
+    "H 红绿验证：每个修复的测试先在修复前代码上跑出红色输出并留证，再改实现跑绿。qingpu-ai 与主题的既有测试全绿。",
+    "I 债务账本：docs/tech-debt-map.md 登记「detailContent 是 Ozon 专属的 description 覆盖层却用了渠道无关字段名，与 channelCopy 覆盖层语义重叠」，注明偿还条件与守卫缺口。"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 本任务测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/channel-copy-override.test.ts"
+    },
+    {
+      "name": "qingpu-ai mapper 与 presenter 回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/draft-readiness-channel.test.ts tests/channel-copy-override.test.ts"
+    },
+    {
+      "name": "qingpu-ai 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "qingpu-ai 分层与口径守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "qingpu-ai 全量测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "qingpu-ai 构建与 engine bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build && node scripts/check-engine-bundle.mjs"
+    },
+    {
+      "name": "主题本任务测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/channel-copy-override-ui.test.ts"
+    },
+    {
+      "name": "主题全量测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/"
+    },
+    {
+      "name": "主题全部 60+ 守卫（基线只减不增）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run check:qingpu-all"
+    },
+    {
+      "name": "服务端类型检查（本任务文件零新增报错）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ! npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json 2>&1 | grep -E '^app/themes/qingpu/(server/listing/(sku\\.shared|sku\\.operations|workspace-quality)|api/listing/skus|pages/user/listing/components/workspace/(WorkspaceSkuCopyFields|WorkspaceSkuPanel|WorkspaceSkuPanelTable|WorkspaceShell|useWorkspaceDetailSkuTable|workspace-channel|workspace-sku-panel)|locales/listing/)'",
+      "note": "2026-08-25 修正：原 pattern 含 pages/.../workspace/ 整目录，会扫进 31 条既有的「客户端 composable 在 server tsconfig 下缺 DOM lib」报错（A/B 证实与本任务无关）。收窄到实际 claims 文件。"
+    },
+    {
+      "name": "Nuxt 构建（import 解析，覆盖整个主题）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx nuxt build"
+    },
+    {
+      "name": "格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ],
+  "outOfScope": [
+    "阶段 4 WB 发布闭环：库存推送、挂牌价币种、佣金/物流费率、履约模式——三个外部事实未确认，不开工",
+    "listWbCards 游标分页：WB 官方文档未取得，游标语义无法确认",
+    "WB 图片规则 / 筛图 profile / 生图蓝图 / 渠道提示词四个注册点：能力矩阵里是 declaredGaps，不用 Ozon 的顶替",
+    "detailContent 迁进 channelCopy.ozon.description 的收敛：涉及存量数据迁移与发布链门控，单独开一轮",
+    "check-merge-card-codes 等 7 项 KNOWN_FAILING 守卫的契约重定"
+  ]
+}

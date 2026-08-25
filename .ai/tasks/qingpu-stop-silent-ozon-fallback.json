@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-stop-silent-ozon-fallback",
+  "title": "止血：把三处静默套用 Ozon 改成显式拒绝",
+  "problem": "三处渠道解析在非 Ozon 渠道上静默回落 Ozon，编译期与测试期都发现不了：(1) 渠道解析写成二元三元表达式（domain/channels/helpers.ts:23 的 resolveChannelForStorePlatform、shared/settings-normalize.ts:170,180、主题 server/stores/helpers.ts:44 与 WorkspaceDetailPage.vue 的 activeChannel/channelLabel），第三个渠道加进来会被静默当成 Ozon；(2) 生图蓝图没有按渠道注册的机制，OZON_IMAGE_BLUEPRINT 被当默认参数散布在 image-blueprint-generation-workflow.ts:48,124、automation-stations.ts:116,175,191、creative-capabilities/image-strategy.ts:44,111，网页 api/listing/blueprint.ts 与 server/listing/workspace-quality.ts:176 也无条件用它，所以 WB 商品的生图槽位、构图预设与质量分图片项全部是 Ozon 规格；(3) image-screening/registry.ts 的 getScreeningProfile 对未知 profileId 静默回落 defaultScreeningProfile，而 workspace.media.imageScreening.profileId 会把调用方请求的那个 id 原样持久化，记录会声称用了某套规则、实际用的是另一套。",
+  "expectedOutcome": "渠道解析查 KNOWN_CHANNELS 全集，只对未知值兜底；生图蓝图经 Registry 按渠道解析，未注册渠道显式 unsupported 并在能力矩阵里登记为 declaredGap；筛图 profile 未知 id 抛错而非回落。Ozon 全链路行为逐字节不变。",
+  "decisions": [
+    "本轮不给 WB 增加任何能力，只把「静默套 Ozon」换成「明确说不支持」。三项都不引入新渠道实现。",
+    "A2 带一个 WB 可见行为变化：WB 商品的生图入口从「静默返回 Ozon 蓝图」变成「明确提示该渠道暂不支持生图」。这是本任务的目的，不是副作用——继续静默会持续产出看起来成功、实际不合规的图片资产。",
+    "A2 的蓝图注册中心用穷尽 Record<Channel, ChannelImageBlueprint | DeclaredGap> 而不是 Map<Channel,X> + register()：全仓注册都是模块加载时急切完成的（registry.ts 底部直接调 register），没有惰性加载需求；listing-status-presenter.ts:50 的 CHANNEL_READINESS_PROBES 已有同款先例；blueprint.ts 只需要 Channel 的 type-only 引用，不形成 import 环。穷尽 Record 把「漏注册」从构建期守卫降级成编译错误——第三个渠道进 KNOWN_CHANNELS 当场不编译，比守卫脚本更早也更可靠。既有的 Map 型注册中心本轮一律不动（部分存在已实测的 import 环，见 check-channel-capability.mjs 注释）。",
+    "A2 必须同时给能力矩阵加 imageBlueprint 能力键并把 WB 登记进 DECLARED_CAPABILITY_GAPS，否则 check-channel-capability 会把它报成漏注册。",
+    "A3 不把 profileId 改成 Channel：'default' 是合法的通用 profile，且 profileId 已持久化在 workspace.media.imageScreening。只去掉静默回落，命名空间与持久化语义不动。",
+    "A3 的实际风险等级低于 A1/A2：runLocalImageScreeningWorkflow 唯一调用点 entrypoints/dash/composables/useLocalImageScreening.ts:67 不传 options，profileId 恒为 undefined → 恒解析成 'ozon'，网页端不调用。属于埋雷不是漏水，但修复成本极低，随本轮一并闭环。",
+    "渠道名表下沉为 channel-mappers/types.ts 的纯常量 CHANNEL_LABELS，descriptor 注册消费它：主题 WorkspaceDetailPage 的 channelLabel 需要浏览器切片提供渠道名，而 getChannelLabel 经 channels/registry → publish-drivers → wb-api 拉进 fetch 网关，违反 browser.ts 头部「任何 fetch 网关不进本切片」的硬规则。纯常量表两个切片都能出口，且仍是单一事实源。",
+    "工作台渠道经 provide/inject 下发（新文件 workspace-channel.ts 持 InjectionKey）：blueprint GET/POST 的消费者是 useWorkspaceDetailBootstrap 与 useWorkspaceGalleryImageTasks，不传渠道则闸门永远打不中；让它们各自重解析会复制分发器的优先级逻辑，让 Shell 传参会撞 copy 契约的租约。分发器 WorkspaceDetailPage 仍是唯一解析点，provide 出来，组件 inject 缺省 Ozon——工作台外的既有调用（settings 预览等）不受影响。"
+  ],
+  "constraints": [
+    "不影响 Ozon：Ozon 的蓝图槽位、构图预设、生图任务规格、质量分与筛图结果必须逐字节不变，需实际对比验证，不接受「应该没影响」",
+    "共享文件只做纯新增：加 Registry 不改既有解析结果，加能力键不改既有能力位取值，加参数不改既有签名语义",
+    "渠道分发走 Registry/Factory，不在入口或页面扩散 if (channel === 'wb')",
+    "未注册的渠道一律显式 unsupported，禁止返回空对象、空数组或 Ozon 实例冒充支持",
+    "新增的口径符号同步进 scripts/check-deps.mjs 的 caliber-redefine pattern",
+    "不新增 storage 根键、不改 workspace.media.imageScreening 的持久化结构与 profileId 语义",
+    "不动 settings.wbPublishDryRun，不放开 WB 发布，不做库存/币种/费率",
+    "不用 any、大面积断言、静默吞错或省略版实现",
+    "不顺手修与本任务无关的存量报错与既有坏守卫（qingpu-ai check-deps 存量基线、主题 check-all.mjs 的 7 项 KNOWN_FAILING 都不动）",
+    "不覆盖两个工作区其他会话的未提交改动；不提交、不推送、不发布（engine:release 需用户单独确认）"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channels/helpers.ts",
+        "src/shared/settings-normalize.ts",
+        "src/domain/image-blueprint/blueprint.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/domain/creative-capabilities/image-strategy.ts",
+        "src/domain/channels/registry.ts",
+        "src/domain/image-screening/registry.ts",
+        "src/app/workflows/local-image-screening-workflow.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-resolution-total.test.ts",
+        "tests/image-blueprint-channel.test.ts",
+        "tests/image-screening-profile-resolution.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/engine-channel-catalog-export.test.ts",
+        "src/domain/channel-mappers/types.ts",
+        "src/engine/browser.ts"
+      ],
+      "claims": [
+        "src/domain/channels/helpers.ts",
+        "src/shared/settings-normalize.ts",
+        "src/domain/image-blueprint/blueprint.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/domain/creative-capabilities/image-strategy.ts",
+        "src/domain/channels/registry.ts",
+        "src/domain/image-screening/registry.ts",
+        "src/app/workflows/local-image-screening-workflow.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-resolution-total.test.ts",
+        "tests/image-blueprint-channel.test.ts",
+        "tests/image-screening-profile-resolution.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/engine-channel-catalog-export.test.ts",
+        "src/domain/channel-mappers/types.ts",
+        "src/engine/browser.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/stores/helpers.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "api/listing/blueprint.ts",
+        "server/listing/workspace-quality.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/channel-resolution-total.test.ts",
+        "tests/image-blueprint-channel-guard.test.ts",
+        "server/vendor/qingpu-engine/",
+        "pages/user/listing/components/workspace/workspace-channel.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts"
+      ],
+      "claims": [
+        "server/stores/helpers.ts",
+        "pages/user/listing/components/WorkspaceDetailPage.vue",
+        "api/listing/blueprint.ts",
+        "server/listing/workspace-quality.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/channel-resolution-total.test.ts",
+        "tests/image-blueprint-channel-guard.test.ts",
+        "server/vendor/qingpu-engine/",
+        "pages/user/listing/components/workspace/workspace-channel.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailBootstrap.ts",
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A1 渠道解析全序化：resolveChannelForStorePlatform、settings-normalize 两处、主题 normalizePlatform 与 activeChannel 一律查 KNOWN_CHANNELS 全集，只有不在全集里的值才兜底 Ozon。给定 'ozon' 返回 ozon、给定 'wb' 返回 wb、给定未知串返回 ozon，三条各有断言。",
+    "A1 之二：主题 WorkspaceDetailPage.vue 的 channelLabel 改用 engine 的 getChannelLabel，不在主题维护第二份渠道名表。",
+    "A2 蓝图 Registry：blueprint.ts 用穷尽 Record<Channel, ChannelImageBlueprint | DeclaredGap> 登记每个渠道，Ozon 给 OZON_IMAGE_BLUEPRINT、WB 给显式 gap 标记；resolveChannelImageBlueprint 对 gap 渠道抛显式 unsupported（对标 UnsupportedChannelPromptError 的写法）。新渠道进 KNOWN_CHANNELS 而未在此表登记时必须编译报错——该断言用一个类型层测试固定住，不能只靠人眼。",
+    "A2 之二：image-blueprint-generation-workflow.ts:48,124、automation-stations.ts:116,175,191、creative-capabilities/image-strategy.ts:44,111 不再把 OZON_IMAGE_BLUEPRINT 当默认参数或顶层常量直取；渠道已知处经 Registry 解析。",
+    "A2 之三：能力矩阵加 imageBlueprint 键与探针，WB 登记进 DECLARED_CAPABILITY_GAPS；check-channel-capability 通过，WB 的 undeclaredGaps 仍为空。",
+    "A2 之四：resolveChannelImageBlueprint 等新符号经 src/engine/index.ts 导出，并加进 check-deps.mjs 的 caliber-redefine pattern。",
+    "A2 之五：网页 api/listing/blueprint.ts 与 server/listing/workspace-quality.ts 解析当前渠道（沿用既有优先级：显式 > URL ?channel > 顶部店铺 > Ozon）；WB 走 unsupported 分支，返回明确可读的提示而不是 500 或空槽位，zh/en/ru 三语齐全。",
+    "A3 筛图不再静默回落：getScreeningProfile 对未注册 id 抛错，'default' 与 'ozon' 两个既有 profile 保持合法；local-image-screening-workflow 显式传 'ozon' 并更正注释，dash 调用路径结果不变。",
+    "B Ozon 行为不变的实证：同一个 Ozon 商品在改动前后逐项对比一致——蓝图槽位清单（GET /listing/blueprint）、buildImageBlueprintPlan 的任务集、质量分的 images 维度、runLocalImageScreeningWorkflow 的 profileId 与筛选结果。",
+    "C 红绿验证：三项各有测试先在修复前代码上跑出红色输出并留证，再改实现跑绿。特别是「WB 请求蓝图应 unsupported」这条，当前会拿到 Ozon 蓝图而失败。",
+    "D 债务账本：docs/tech-debt-map.md 登记「筛图 profile 命名空间混用通用 default 与渠道名 ozon，未与 Channel 对齐」，注明偿还条件。"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 本任务三个测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/channel-resolution-total.test.ts tests/image-blueprint-channel.test.ts tests/image-screening-profile-resolution.test.ts"
+    },
+    {
+      "name": "qingpu-ai 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "qingpu-ai 分层与口径守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && node scripts/check-channel-capability.mjs"
+    },
+    {
+      "name": "qingpu-ai 全量测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "qingpu-ai 构建与 engine bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build && node scripts/check-engine-bundle.mjs"
+    },
+    {
+      "name": "主题本任务测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/channel-resolution-total.test.ts app/themes/qingpu/tests/image-blueprint-channel-guard.test.ts"
+    },
+    {
+      "name": "主题全量测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/"
+    },
+    {
+      "name": "主题全部守卫（基线只减不增）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run check:qingpu-all"
+    },
+    {
+      "name": "服务端类型检查（本任务文件零新增报错）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ! npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json 2>&1 | grep -E '^app/themes/qingpu/(server/(stores/helpers|listing/workspace-quality)|api/listing/blueprint|pages/user/listing/components/WorkspaceDetailPage|locales/listing/)'"
+    },
+    {
+      "name": "Nuxt 构建（import 解析，覆盖整个主题）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx nuxt build"
+    },
+    {
+      "name": "格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ],
+  "outOfScope": [
+    "给 WB 注册蓝图或筛图 profile：需要 WB 官方图片规格文档，本轮只登记 declaredGap",
+    "内容生产链的渠道参数化（listing-copy sections、product-text-translation 的 'ozon' 字面量）：属阶段 C，等 WB 打通后再做",
+    "网页侧渠道注册守卫与接入清单脚手架：属阶段 B/D，n=1 不泛化",
+    "WB 库存推送、挂牌价币种、佣金费率、履约模式：卡外部事实",
+    "detailContent 收敛进 channelCopy：涉及存量迁移",
+    "渠道文案覆盖 UI：见独立契约 qingpu-channel-copy-override-ui"
+  ]
+}
