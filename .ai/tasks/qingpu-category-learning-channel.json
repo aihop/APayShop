@@ -11,7 +11,8 @@
     "registry 形状沿用本轮已做过四次的样板（publish/channel-adapters、preview/channel-projections、发布链三点分叉、engine 六张穷尽表）：共享骨架 + 少数几点分叉，不复制整条链。",
     "engine 侧同步改名（ozonTypeId → targetTypeId）并发版：三端口径只定义一次，主题改了 engine 不改会立刻漂移。",
     "预期管理写进代码注释：即使全做完 WB 的推荐短期仍弱——表里一条 WB 数据都没有，只能靠 AI 冷启动。这轮的价值是打通管道让数据开始流，收益随时间累积。",
-    "既有测试 collective-learning-votes 用旧字段名 ozonTypeId 等，是同一份契约的另一半，随改名同步更新（断言语义一行不变，只换字段名）。"
+    "既有测试 collective-learning-votes 用旧字段名 ozonTypeId 等，是同一份契约的另一半，随改名同步更新（断言语义一行不变，只换字段名）。",
+    "开工后据实收缩：原计划分叉 attributeCoverage，实测 scoring.ts 三处都是 null（未实现），加钩子无意义。改为只分叉候选来源这一个真差异。"
   ],
   "constraints": [
     "Ozon 推荐结果逐字节不变：同一商品改动前后的候选集、排序、分数完全一致",
@@ -85,7 +86,7 @@
     "B 约束放开：四条 channel check 允许已知渠道；target_type_id 允许 0（WB 只有一级定位）。",
     "C engine 同步改名：CategoryMappingVoteRow 的 ozonTypeId → targetTypeId，聚合逻辑与注释同步；经 engine 出口发版供主题消费。",
     "D 候选来源 registry：Ozon 从类目树取候选、WB 从本地目录表取；穷尽 Record，无 adapter 的渠道显式拒绝。",
-    "E 属性覆盖度按渠道：Ozon 按类目属性算、WB 按品类特征算；不同构处经 registry 分叉，不硬凑。",
+    "E 属性覆盖度**本轮不分叉**：scoring.ts 里 attributeCoverage 三处都写死 null，这一维还没实现——为没实现的东西加渠道钩子只是空壳。契约据实收缩，等它真的开始算再决定。",
     "F 渠道贯通：推荐端点接受渠道参数，前端 useCategoryPicker 传入当前渠道；缺省 Ozon 保持历史行为。",
     "G Ozon 逐字节：同一商品改动前后的候选集、排序、分数完全一致（快照对比）。",
     "H 网页注册守卫新增 categoryRecommendation 注册点；红绿验证；两仓全量测试与守卫全绿。"
