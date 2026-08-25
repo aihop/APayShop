@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-selection-channel",
+  "title": "类目选择保存链路补上渠道：API 与工作台绑定",
+  "problem": "qingpu-category-learning-channel-purity 把 store.ts 的 recordCategorySelection 与 resolvePersistedCategorySelectionMeta 改成必填 channel，但它们唯一的调用方在主题的 api/ 目录（不是 server/），上一份契约的 claims 没覆盖到，现在 api/listing/products/update.ts:315 与 :346 编译不过。更根本的是这个 handler 压根没有 channel：用户在 WB 工作台选了类目，选择历史仍以 Ozon 的名义落库。",
+  "expectedOutcome": "客户端保存类目时带上当前工作台渠道，API 透传给选择历史与元信息解析。Ozon 行为不变（不传时的兼容缺省只保留在 API 边界一处，并显式注释原因）。",
+  "decisions": [
+    "channel 从客户端传:服务端没有第二个可靠来源——商品行上的 category_id 是渠道无关的单槽,推不出这次选择属于哪个渠道。工作台自己知道当前渠道,显式传比服务端猜准确。",
+    "API 边界保留 `?? 'ozon'` 兼容缺省并注释:老客户端与其他调用方(products.vue、workspaces.vue 等)不带 channel 时行为必须与改动前逐字节一致,否则会把存量选择记录改判到别的桶。这是显式渠道入口,与 category-learning.ts 的入口同一处理。",
+    "useWorkspaceCategoryBinding 通过 options 收 channel,与它已有的 pickedProduct/productRevision 等一致,不新引 provide/inject。"
+  ],
+  "constraints": [
+    "Ozon 行为逐字节不变：不传 channel 时仍落 'ozon' 桶",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行会话改动（pages/user/{agent,billing,dashboard,promo,stats}.vue），一律不碰"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/products/update.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryBinding.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/category-selection-channel.test.ts"
+      ],
+      "claims": [
+        "api/listing/products/update.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryBinding.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/category-selection-channel.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A api/listing/products/update.ts 解析 body.channel 并传给两个 store 函数；缺省 'ozon' 只在这一处且带注释。",
+    "B useWorkspaceCategoryBinding 收 channel 并放进请求体；WorkspaceShell 传入当前渠道。",
+    "C 服务端类型检查中本任务文件零错误。",
+    "D 红绿验证；主题全量测试与 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/category-selection-channel.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "products.vue / workspaces.vue 等其他 update 调用方补 channel（它们不保存类目，走的是 patch 的其他字段）",
+    "商品行单类目槽的数据模型缺口"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-learning-channel-purity",
+  "title": "类目学习链路渠道纯净化：AI 排序、持久化与打分不再写死 Ozon",
+  "problem": "WB 的 AI 类目推荐仍然出不来。上一轮只修了候选池（recallCandidates），池子下游还有三类坎：(A) store.ts 有 10 处 SQL 把 channel 写死成 'ozon'，读写投票、缓存与选择记录全落在 Ozon 桶里；(B) 6 处用 `!typeId` 判定有效性，而 WB 的 typeId 恒为 0——ai.ts:114 把 AI 返回的每一条排序都丢掉，只剩服务端补足分支，AI 的判断完全没参与；(C) 5 处用 findCategoryLeaf() 从 Ozon 叶子树解析类目，WB 的 subjectID 永远解析不到，scoring.ts:171 的融合又把候选丢一轮，最终仍是空。store.ts 与 scoring.ts 根本没有 channel 参数。",
+  "expectedOutcome": "channel 一路穿到 store.ts 与 scoring.ts；类目解析经 CategoryChannelSource 的新钩子 resolveLeaf 分叉；typeId 判定改为允许 0 的口径。WB 能拿到 AI 排序并融合出候选，Ozon 行为逐字节不变。",
+  "decisions": [
+    "给 CategoryChannelSource 加第二个钩子 resolveLeaf(categoryId, typeId)：「把 (id, typeId) 解析成有名字的类目」和「候选从哪来」一样是渠道形状的，上一轮的契约漏了它。Ozon 用 findCategoryLeaf（版本化规则包叶子树），WB 用本地目录按 subjectID 查。",
+    "A 类与 B 类必须同一次改完，不能分两次：store.ts:297 现在靠 `!typeId` 把 WB 跳过，正好挡住了下一行写死的 'ozon'。只修 B 不修 A，WB 的 subjectID 会以 Ozon 的名义写进投票表，而 on conflict do update 会覆盖该用户同一源类目下真实的 Ozon 选择——把「不工作」变成「污染存量数据」。",
+    "typeId 判定统一为允许 0 的 categoryTypeDimension，与 engine 侧 category-mapping-votes.ts 的 toTypeDimension 同一口径（那边本轮已为同一个 bug 改过）。categoryId 仍要求为正——它是真实平台标识。",
+    "attributeCoverage 的 Ozon 资源查询只在 Ozon 下执行：拿 WB 的 subjectID 去调 loadOzonCategoryResourcesForUser 是无意义的外部调用。WB 返回 null，与现状一致（三处本来就是 null），作为已声明缺口。",
+    "channel 参数必填,不给缺省 'ozon':缺省会让下一个调用点在忘记传时静默落进 Ozon 桶,而这正是本次要修的 bug 的形状。唯一的兼容缺省留在 category-learning.ts 的公开入口（options.channel ?? 'ozon'），那是显式的渠道入口。",
+    "存量数据不迁移：投票/缓存表里现有的 channel='ozon' 行确实都是 Ozon 的——WB 从来没写进去过（被 B 类判定挡住了）。所以只改代码，不动数据。"
+  ],
+  "constraints": [
+    "Ozon 行为逐字节不变：channel 传 'ozon' 时 SQL 与解析结果与改动前完全一致",
+    "不迁移存量数据（现有 channel='ozon' 行本来就是 Ozon 的）",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/category-learning.ts",
+        "server/listing/category-learning/store.ts",
+        "server/listing/category-learning/scoring.ts",
+        "server/listing/category-learning/ai.ts",
+        "server/listing/category-learning/shared.ts",
+        "server/listing/category-learning/types.ts",
+        "server/listing/category-learning/channel-sources/types.ts",
+        "server/listing/category-learning/channel-sources/ozon.ts",
+        "server/listing/category-learning/channel-sources/wb.ts",
+        "server/listing/publish.confirm.ts",
+        "tests/category-learning-channel-purity.test.ts"
+      ],
+      "claims": [
+        "server/listing/category-learning.ts",
+        "server/listing/category-learning/store.ts",
+        "server/listing/category-learning/scoring.ts",
+        "server/listing/category-learning/ai.ts",
+        "server/listing/category-learning/shared.ts",
+        "server/listing/category-learning/types.ts",
+        "server/listing/category-learning/channel-sources/types.ts",
+        "server/listing/category-learning/channel-sources/ozon.ts",
+        "server/listing/category-learning/channel-sources/wb.ts",
+        "server/listing/publish.confirm.ts",
+        "tests/category-learning-channel-purity.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A store.ts 与 scoring.ts 的每个导出都接收必填 channel；10 处 'ozon' 字面量全部改为参数。",
+    "B typeId 判定统一为允许 0 的口径，6 处 `!typeId` 全部消除；categoryId 仍要求为正。",
+    "C CategoryChannelSource 新增 resolveLeaf，5 处 findCategoryLeaf 改为经 registry 解析。",
+    "D publish.confirm.ts 把发布渠道传给 recordSuccessfulCategoryMappings。",
+    "E attributeCoverage 的 Ozon 资源查询只在 Ozon 下发生。",
+    "F 红绿验证；Ozon 逐字节不变；主题全量测试与 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/category-learning-channel-purity.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "商品行只有一个类目槽（qingpu_listing_products.category_id/category_type_id）与 categoryHints 的 selectedOzonCategoryId 命名——同一商品无法同时持有 Ozon 与 WB 两个类目，这是数据模型层面的缺口，需要单独判定层级后再改",
+    "attributeCoverage 对 WB 的真实实现（WB 特征覆盖度）",
+    "evidenceFingerprint 里的 getCategoryTreeVersion 是 Ozon 规则包版本，对 WB 只是多余的缓存失效因子，不影响正确性"
+  ]
+}
