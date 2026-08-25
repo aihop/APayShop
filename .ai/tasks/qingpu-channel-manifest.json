@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-manifest",
+  "title": "P1 Channel Manifest：渠道平台数据归一张穷尽表",
+  "problem": "渠道的平台数据散在三处各自演进：显示名在 channel-mappers/types.ts 的 CHANNEL_LABELS、标题上限在 listing-compliance/text-rules.ts 的 LISTING_TITLE_MAX_LENGTH、结算币种缺省在 channels/publish-currency.ts 两个 resolver 里。加渠道要记住去三个文件各补一处，漏掉哪处都不报错。另外 channels/registry.ts:153 的 resolveSelectedStorePublishCurrency 仍是二元回退（selectedStore?.platform === WB_CHANNEL ? WB : OZON），第三个渠道会被静默当成 Ozon 结算。",
+  "expectedOutcome": "types.ts 增加穷尽 CHANNEL_MANIFESTS（label / defaultCurrency / titleMaxLength 三项），三处消费方改为查表并保留原导出名兼容；registry.ts 的二元回退改为查 KNOWN_CHANNELS 全集。Ozon 与 WB 的取值逐字节不变。",
+  "decisions": [
+    "Manifest 落 channel-mappers/types.ts：该文件当前零 import，是两个 engine 切片都能出口的纯常量模块。放 channels/registry.ts 会拖进 fetch 网关链，浏览器切片进不去（本轮实测过的坑）。",
+    "只收三项：label、defaultCurrency、titleMaxLength。图片 limits 留在蓝图注册中心（已是穷尽 Record，再放一份是第二事实源）；描述上限当前无渠道差异（validateListingDescription 的 channel 参数带下划线未使用），凭空入表是新增没人消费的事实。",
+    "declaredGaps 不进 Manifest：ChannelCapabilityKey 定义在 channels/registry.ts 而 registry.ts 已 import types.ts，迁入会形成 types → registry → types 环。且 declaredGaps 是「能力实现层」事实，与 CHANNEL_CAPABILITY_PROBES 同住天经地义。",
+    "settings-normalize.ts 不接 Manifest：shared→domain 是 check-deps 禁止方向，该文件在基线里的正当性是「全部 import type 纯类型取型」，引运行时常量会把类型耦合变成运行时耦合。它已是正确的字面量 CNY，只加注释指向 Manifest。",
+    "registry.ts:153 不能复用 channels/helpers.ts 的 resolveChannelForStorePlatform——helpers 已 import registry，反向引用成环。在 registry.ts 内本地查 KNOWN_CHANNELS。",
+    "保留 CHANNEL_LABELS 与 LISTING_TITLE_MAX_LENGTH 的原导出名（改为从 Manifest 派生），避免波及既有消费方与 caliber-redefine 守卫基线。"
+  ],
+  "constraints": [
+    "types.ts 必须保持零 import（Manifest 只用本文件已有的 Channel/OZON_CHANNEL/WB_CHANNEL）",
+    "Ozon 与 WB 的 label/币种/标题上限取值逐字节不变；快照对比 validateListingTitle 判定与 resolveChannelPublishCurrency 结果",
+    "不动 settings-normalize.ts 的实现（只加注释）",
+    "新增口径符号进 caliber-redefine 守卫",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push/发版，除非用户授权",
+    "两个工作区均有并行会话改动（apay 的 SEO 工作、主题的 WorkspaceShell.vue），本任务只在 qingpu-ai，不得触碰"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/types.ts",
+        "src/domain/channels/registry.ts",
+        "src/domain/channels/publish-currency.ts",
+        "src/domain/listing-compliance/text-rules.ts",
+        "src/shared/settings-normalize.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-manifest.test.ts",
+        "tests/channel-resolution-total.test.ts",
+        "tests/publish-currency.test.ts",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/types.ts",
+        "src/domain/channels/registry.ts",
+        "src/domain/channels/publish-currency.ts",
+        "src/domain/listing-compliance/text-rules.ts",
+        "src/shared/settings-normalize.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-manifest.test.ts",
+        "tests/channel-resolution-total.test.ts",
+        "tests/publish-currency.test.ts",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A CHANNEL_MANIFESTS 是穷尽 Record<Channel, ChannelManifest>，含 label / defaultCurrency / titleMaxLength 三项；types.ts 仍零 import。",
+    "B 三处消费方查表：registry.ts 的 descriptor label、publish-currency 两个 resolver 的缺省、text-rules 的 LISTING_TITLE_MAX_LENGTH（后者改为从 Manifest 派生并保留原导出名）。",
+    "C registry.ts:153 的 resolveSelectedStorePublishCurrency 改查 KNOWN_CHANNELS 全集，只有全集外的平台值才兜底 Ozon；本地实现，不引 helpers（会成环）。",
+    "D 取值逐字节不变：Ozon label 'Ozon'、WB 'Wildberries'；Ozon 标题上限 200、WB 60；两渠道币种缺省均 CNY。",
+    "E 两个 engine 切片出口 CHANNEL_MANIFESTS；caliber-redefine 登记新符号。",
+    "F 全量：typecheck / check:deps / npm test / build + bundle 守卫 / check-channel-capability 全绿，基线只减不增。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-ai", "always": true, "command": "npx --no-install vitest run tests/channel-manifest.test.ts tests/channel-resolution-total.test.ts tests/publish-currency.test.ts" },
+    { "name": "全量", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs && node scripts/check-channel-capability.mjs" }
+  ],
+  "outOfScope": [
+    "P3 网页侧注册守卫、P4 onboarding 总闸",
+    "图片 limits 与描述上限入表（理由见 decisions）",
+    "settings-normalize.ts 迁层（shared→domain 分层债，独立偿还）"
+  ]
+}
