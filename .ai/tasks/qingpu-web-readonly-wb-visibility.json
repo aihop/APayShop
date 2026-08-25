@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-web-readonly-wb-visibility",
+  "title": "让 Qingpu 网页端只读地看见 WB 数据，仍不放开 WB 发布",
+  "problem": "阶段 1 把发布链的渠道收成了显式参数，但只读面还钉在 Ozon 上：渠道商品同步 service 用 'ozon' 字面量判店铺并写快照，types.ts 的 snapshot channel 类型写死 'ozon'；草稿展示层的 SQL 直接 `and d.channel = 'ozon'`，多渠道行读不出来；顶部选中 WB 店时运营在线商品页只是把同步按钮置灰，没有说明能力边界。",
+  "expectedOutcome": "渠道商品同步按 store.platform 解析渠道并经 Registry 分发，缺能力的渠道如实返回 unsupported 且不占用同步锁；草稿展示按渠道聚合，渠道清单与能力位向 engine 查询；顶部选中 WB 店时各只读页面给出明确能力边界提示。Ozon 全部行为不变，WB 发布入口仍然关闭。",
+  "constraints": [
+    "不放开 WB 发布入口，不做 WB 加工，不碰 settings.wbPublishDryRun",
+    "不得用 getPublishableChannels() 决定网页端能发哪些渠道；渠道清单与能力位只用于只读展示",
+    "渠道分发走 Registry/Factory，不在入口或页面扩散 if (channel === 'wb')",
+    "engine 没有的 WB 能力如实返回 unsupported，禁止用空数据冒充同步成功",
+    "共享文件只做纯新增；Ozon 行为必须实际对比验证，不接受「应该没影响」",
+    "不新增 storage 根键、不新增表、不改扩展/桌面端同步协议与 schema_version",
+    "不用 any、大面积断言、静默吞错或省略版实现",
+    "不顺手修与本任务无关的存量报错与既有坏守卫；不覆盖两个工作区其他会话的未提交改动；不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/channel-products/types.ts",
+        "server/channel-products/service.ts",
+        "server/channel-products/registry.ts",
+        "server/channel-products/ozon.ts",
+        "server/listing/queries.channels.ts",
+        "server/listing/queries.products.ts",
+        "api/channel-products/sync.post.ts",
+        "api/channel-products/index.ts",
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/products.types.ts",
+        "pages/user/ops/products/index.vue",
+        "locales/ops/zh.ts",
+        "locales/ops/en.ts",
+        "locales/ops/ru.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/channel-product-sync-dispatch.test.ts",
+        "tests/listing-channel-draft-visibility.test.ts",
+        "tests/store-channel-capability-hint.test.ts"
+      ],
+      "claims": [
+        "server/channel-products/types.ts",
+        "server/channel-products/service.ts",
+        "server/channel-products/registry.ts",
+        "server/listing/queries.channels.ts",
+        "server/listing/queries.products.ts",
+        "api/channel-products/sync.post.ts",
+        "pages/user/listing/channels.vue",
+        "pages/user/listing/products.types.ts",
+        "pages/user/ops/products/index.vue",
+        "locales/ops/zh.ts",
+        "locales/ops/en.ts",
+        "locales/ops/ru.ts",
+        "tests/channel-product-sync-dispatch.test.ts",
+        "tests/listing-channel-draft-visibility.test.ts",
+        "tests/store-channel-capability-hint.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 渠道商品快照：service 从 store.platform 解析渠道，经 provider Registry 分发；ChannelProductSnapshot.channel 类型由 'ozon' 放宽为 Channel；未注册 provider 的渠道返回明确 unsupported，且不 claim 同步锁、不写 sync 行、不落空快照",
+    "A 之二：Ozon 店铺的同步路径逐字节不变（同一把锁、同样的 channel 值、同样的错误文案与状态码）",
+    "B 草稿展示：queries.channels.ts 与 queries.products.ts 不再硬过滤 d.channel = 'ozon'，按渠道聚合；渠道清单与能力位来自 listResolvedChannelDescriptors / resolveChannelDescriptor，网页端不自维护渠道表",
+    "B 之二：只有 Ozon 草稿时，待上架页与货源商品页的条目数、分页、计数、已提交草稿标识与改动前一致",
+    "C 顶部店铺语义：选中 WB 店时运营在线商品页给出能力边界提示（zh/en/ru 三语齐全），不静默落到别的 Ozon 店，也不抛看不懂的 422",
+    "C 之二：发布弹窗对 WB 仍明确拒绝并说明原因，仍只列 Ozon 店（该行为阶段 1 已具备，本阶段只验证不回归）",
+    "本任务触及文件在服务端类型检查中零新增报错（存量 4 条在 ainode/site.ts、assets/image-task-spec.ts、tasks/attempts.ts，不修）",
+    "三个新增专项测试先在修复前代码上跑红、修复后跑绿；主题既有测试全绿；契约列出的守卫全部通过（既有 8 个坏守卫不在清单内，也不修）"
+  ],
+  "verification": [
+    {
+      "name": "本任务三个专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/channel-product-sync-dispatch.test.ts app/themes/qingpu/tests/listing-channel-draft-visibility.test.ts app/themes/qingpu/tests/store-channel-capability-hint.test.ts"
+    },
+    {
+      "name": "主题全量测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/"
+    },
+    {
+      "name": "服务端类型检查（本任务文件零新增报错）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ! npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json 2>&1 | grep -E '^app/themes/qingpu/(server/(channel-products/|listing/queries\\.(channels|products))|api/channel-products/|pages/user/(ops/products|listing/(channels|products))|locales/ops/)'"
+    },
+    {
+      "name": "APay 根 qingpu 守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run check:qingpu-listing-publish-facts && npm run check:qingpu-listing-layout && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate && npm run check:qingpu-asset-upload-contract && npm run check:qingpu-unified-listing-workflow && npm run check:qingpu-table-ownership"
+    },
+    {
+      "name": "主题渠道与展示守卫（均为开工前实测通过项）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-channel-products.mjs && node scripts/check-admin-channel-product-assistance.mjs && node scripts/check-channel-preview-current-projection.mjs && node scripts/check-listing-products-ux.mjs && node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-publish-guided-flow.mjs && node scripts/check-listing-state-consistency.mjs"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}
