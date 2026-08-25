@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-category-local-catalog",
+  "title": "WB 品类本地目录：让 WB 的类目选择体验与 Ozon 一致",
+  "problem": "WB 类目选择器与 Ozon 的体验差三件事：打开是空白（Ozon 有整树可浏览）、中文搜不出东西（实测 WB 官方接口只认俄语，输中文/英文返回 0 条且不报错）、标题写死「Ozon 类目」。根因是 WB 每次都实时打官方接口，没有本地数据。实测 WB 全量品类 6927 条、7 页、700 KB，完全可以缓存；中文译名已由离线翻译完成 100% 回填（data/wb/subjects.ru.json）。",
+  "expectedOutcome": "WB 品类落本地表，选择器打开即可按父级浏览两层树、支持中文与俄语混搜；supportsTree 由 false 变 true 后选择器 UI 自动一致。Ozon 链路一行不动。",
+  "decisions": [
+    "只给 WB 建表，不建 qingpu_ozon_subjects：Ozon 类目树已存在 qingpu_rule_bundles（我们自己发布的版本化规则包，与扩展同源），再建一张表会变成第二事实源。WB 的数据是从外部平台同步来的快照，语义与「我们发布的规则」不同，塞进 rule_bundles 会混淆两者。",
+    "统一在接口不在存储：ListingCategoryProvider 已经是统一契约（search/loadTree/loadAttributes），调用方不知道数据从哪来。Ozon 走规则包、WB 走本地表，各自最合适。等第三个平台也是「接口同步的平表」形态时再考虑合并成通用表——现在只有 WB 一家，为一个样本建通用表是 n=1 泛化。",
+    "中文译名随迁移种子入库：6927 条译名是一次性离线成果（质量已抽检，Футболки→T恤、Скребницы→刮毛器），不走运行时翻译链路——那是中→俄的商品级链路，方向和粒度都不对。",
+    "两层树由 parentName 聚合而成：WB 是平表带 parentId/parentName，按父级分组即可得到「父级 → 品类」两层结构，足够撑起 Ozon 那样的浏览体验。",
+    "同步入口手动触发 + 表为空时自动种子：品类表变化很慢，定时同步是浪费；首次没有数据时用仓库里的种子文件直接入库，用户零等待。",
+    "搜索走本地 SQL，不再打 WB 接口：既支持中文，也不受账号级限流影响。",
+    "三处既有断言钉着「WB 没有整树」的旧事实（supportsTree=false、loadTree 返回空），正是本任务推翻的；随实现更新。另一处断言 providerName: channel 写窄了——codex 会话已把它改成 providerName: channel.value，那才是对的（工厂收字符串不是 ref），断言放宽为容许 .value。",
+    "check-table-ownership 要求每张新表在 TABLE_OWNERS 声明所有者：qingpu_wb_subjects 归 listing 域（品类目录是 listing 的加工前置），补一条声明。"
+  ],
+  "constraints": [
+    "Ozon 的类目链路（规则包、平铺索引、搜索端点、provider）一行不动",
+    "WB provider 的对外契约不变（ListingCategoryProvider 三个方法），只换数据源",
+    "特征定义仍实时拉官方接口——那是会变的平台事实，不缓存",
+    "种子数据入库幂等：重复执行不产生重复行，按 subject_id upsert",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "WorkspaceShell.vue 被 codex 会话租约占用，本任务不碰它（标题按渠道显示留待租约释放后单独处理）"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/wb-subjects.sql",
+        "server/listing/wb-subjects.ts",
+        "server/listing/wb-catalog.ts",
+        "api/listing/wb-subjects.ts",
+        "api/listing/wb-subjects/sync.post.ts",
+        "pages/user/listing/category/providers/wb.ts",
+        "pages/user/listing/category/types.ts",
+        "data/wb/subjects.ru.json",
+        "tests/wb-local-catalog.test.ts",
+        "tests/wb-category-provider.test.ts",
+        "scripts/check-table-ownership.mjs"
+      ],
+      "claims": [
+        "database/wb-subjects.sql",
+        "server/listing/wb-subjects.ts",
+        "server/listing/wb-catalog.ts",
+        "api/listing/wb-subjects.ts",
+        "api/listing/wb-subjects/sync.post.ts",
+        "pages/user/listing/category/providers/wb.ts",
+        "pages/user/listing/category/types.ts",
+        "data/wb/subjects.ru.json",
+        "tests/wb-local-catalog.test.ts",
+        "tests/wb-category-provider.test.ts",
+        "scripts/check-table-ownership.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 建表 database/wb-subjects.sql：qingpu_wb_subjects(subject_id pk, subject_name, subject_name_zh, parent_id, parent_name, parent_name_zh, search_text, synced_at)，search_text 为俄中合并的归一化检索列并建索引。",
+    "B 种子入库：表为空时从 data/wb/subjects.ru.json 幂等写入 6927 条（按 subject_id upsert，重复执行不产生重复行）。",
+    "C 本地搜索：searchWbSubjects 改查本地表，中文与俄语都能命中（「数据线」「кабель」各有结果），不再实时打 WB 接口。",
+    "D 两层树：新增 loadWbSubjectTree 按 parentId 聚合成「父级 → 品类」两层结构；provider 的 supportsTree 改为 true 并实现 loadTree。",
+    "E 同步端点：POST /api/qingpu/listing/wb-subjects/sync 拉官方 7 页并 upsert，保留既有译名（不覆盖 subject_name_zh）。",
+    "F 特征定义仍实时拉，未被本地化。",
+    "G Ozon 逐字节不变；红绿验证；主题全量测试与 check:qingpu-all 全绿，服务端 tsc 本任务文件零新增报错。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/wb-local-catalog.test.ts"
+    },
+    {
+      "name": "主题全量与全闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    }
+  ],
+  "outOfScope": [
+    "选择器标题按渠道显示（WorkspaceShell.vue 被 codex 租约占用）",
+    "WB 品类 AI 推荐（推荐链路是 Ozon 专属，单独一轮）",
+    "特征定义本地化（会变的平台事实，应实时拉）"
+  ]
+}

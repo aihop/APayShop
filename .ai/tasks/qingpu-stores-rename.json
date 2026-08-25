@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-stores-rename",
+  "title": "settings.ozonStores 改名为 channelStores：字段存的是所有渠道的店铺",
+  "problem": "settings.ozonStores 存的是全部渠道的店铺——wb-api.ts:37 就从这个字段里取 WB 店铺，publish-currency 也按 platform 在里面筛 WB。名字撒的谎让每个读它的人都要先反应一下「这里的 ozon 不是 Ozon」，而这个理解成本要乘以未来所有接触这段代码的人。类型名 OzonStore 同理。刚做完的 ozon_type_id → target_type_id 是同一性质的问题。",
+  "expectedOutcome": "字段改名为 channelStores、类型改名为 ChannelStore，归一化入口带兼容读（旧持久化数据里的 ozonStores 自动迁移到新名）。行为逐字节不变，扩展端与网页端都不受影响。",
+  "decisions": [
+    "只改名不副实的，不动名副其实的：ozonAttributes / ozonMergeCardState / ozonClientId / ozonApiKey / ozonVat / ozonCandidates 确实是 Ozon 专属，与 wbCharacteristics / wbCandidates 并列——改成中性名反而丢失「这是哪个渠道的」这个信息。",
+    "必须带兼容读：ozonStores 是持久化字段（chrome.storage 与云端 settings），不是 SQL 列，改名不能靠 rename。归一化入口 normalizeSettings 是单点，兼容读只需一处：raw.channelStores ?? raw.ozonStores。",
+    "旧字段保留一个版本周期再删：写入只写新名，读取两个都认。存量用户升级后第一次写设置就完成迁移，不需要迁移窗口。",
+    "OzonStore 类型同步改名为 ChannelStore，engine 出口保留旧名的 type 别名一个版本周期，避免主题与扩展同时改。",
+    "settings.ozonClientId / ozonApiKey / ozonCurrencyCode 不动：那是「未配置店铺时的全局 Ozon 凭证兜底」，确实只对 Ozon 有意义。",
+    "三个既有测试用旧字段名构造 settings：兼容读让它们仍能工作，但测试该反映新命名，随改名同步（断言语义一行不变）。"
+  ],
+  "constraints": [
+    "行为逐字节不变：读旧数据与读新数据的结果完全一致",
+    "兼容读只在归一化单点，不在各消费点各写一份",
+    "engine 出口保留 OzonStore 类型别名（标注废弃与移除条件）",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push/发版，除非用户授权（本任务需一次 engine:release）",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/settings/types.ts",
+        "src/shared/settings-normalize.ts",
+        "src/shared/stores-client.ts",
+        "src/shared/api-client.ts",
+        "src/shared/publish-records-client.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "src/shared/pipeline/ozon-builder.ts",
+        "src/domain/channels/registry.ts",
+        "src/domain/channels/publish-currency.ts",
+        "src/app/composables/useAccountSession.ts",
+        "src/components/CategoryModal.vue",
+        "src/engine/index.ts",
+        "entrypoints/dash/DashHeader.vue",
+        "entrypoints/dash/DashSettingsDrawer.vue",
+        "entrypoints/dash/AddStoreModal.vue",
+        "entrypoints/dash/composables/useDashBootstrap.ts",
+        "entrypoints/dash/composables/useDashCollection.ts",
+        "entrypoints/dash/composables/useDashStores.ts",
+        "entrypoints/lite/LiteStoreModal.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "entrypoints/lite/composables/useLiteStores.ts",
+        "tests/settings-store-rename.test.ts",
+        "tests/store-currency-default.test.ts",
+        "tests/publish-currency.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/wb-publish-tracking.test.ts"
+      ],
+      "claims": [
+        "src/domain/settings/types.ts",
+        "src/shared/settings-normalize.ts",
+        "src/shared/stores-client.ts",
+        "src/shared/api-client.ts",
+        "src/shared/publish-records-client.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "src/shared/pipeline/ozon-builder.ts",
+        "src/domain/channels/registry.ts",
+        "src/domain/channels/publish-currency.ts",
+        "src/app/composables/useAccountSession.ts",
+        "src/components/CategoryModal.vue",
+        "src/engine/index.ts",
+        "entrypoints/dash/DashHeader.vue",
+        "entrypoints/dash/DashSettingsDrawer.vue",
+        "entrypoints/dash/AddStoreModal.vue",
+        "entrypoints/dash/composables/useDashBootstrap.ts",
+        "entrypoints/dash/composables/useDashCollection.ts",
+        "entrypoints/dash/composables/useDashStores.ts",
+        "entrypoints/lite/LiteStoreModal.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "entrypoints/lite/composables/useLiteStores.ts",
+        "tests/settings-store-rename.test.ts",
+        "tests/store-currency-default.test.ts",
+        "tests/publish-currency.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/wb-publish-tracking.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.settings.ts",
+        "server/vendor/qingpu-engine/",
+        "tests/publish-settings-platform.test.ts"
+      ],
+      "claims": [
+        "server/listing/publish.settings.ts",
+        "server/vendor/qingpu-engine/",
+        "tests/publish-settings-platform.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 字段与类型改名：settings.channelStores / ChannelStore；21 个 engine 文件与 1 个主题文件全部跟上，零残留。",
+    "B 兼容读在归一化单点：normalizeSettings 读 raw.channelStores ?? raw.ozonStores，旧持久化数据自动迁移；各消费点不各写一份兼容。",
+    "C engine 出口保留 OzonStore 类型别名，注释标注废弃与移除条件。",
+    "D 行为逐字节不变：读旧数据（只有 ozonStores）与读新数据（只有 channelStores）得到完全一致的结果，红绿验证覆盖这一点。",
+    "E 名副其实的 ozon* 一个不动（ozonAttributes / ozonMergeCardState / ozonClientId / ozonApiKey / ozonVat / ozonCandidates）。",
+    "F 两仓全量测试、守卫、构建全绿；engine 发版后主题跟上。"
+  ],
+  "verification": [
+    {
+      "name": "engine 专项与全量",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/settings-store-rename.test.ts && npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs"
+    },
+    {
+      "name": "主题",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    }
+  ],
+  "outOfScope": [
+    "detailContent 收敛进 channelCopy（涉及存量数据迁移，独立一轮）",
+    "类目推荐的候选来源 registry 与渠道贯通（本轮之前的任务，未完成部分单独接续）"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-learning-channel",
+  "title": "类目推荐链路渠道化：存储去 Ozon 化 + 候选来源经 registry 分叉",
+  "problem": "WB 工作台的 AI 类目推荐匹配出来的是 Ozon 类目——点了会把 Ozon categoryId 落进 WB 草稿，建卡时才发现是错的。根因不是「没传渠道」：四张学习表的 channel 列早就存在、查询也在按它过滤，真正挡路的是三处把平台名焊死的地方——列名 ozon_description_category_id / ozon_type_id / ozon_category_name、四条 check (channel = 'ozon')、以及 check (ozon_type_id > 0)（WB 的 typeId 恒为 0，必然违反）。engine 侧的 aggregateCategoryMappingVotes 同样用 ozonTypeId 命名。",
+  "expectedOutcome": "存储与打分层完全渠道无关（列名 target_category_id / target_type_id / target_category_name，check 放开）；候选来源与属性覆盖度经 registry 按渠道分叉；推荐端点贯通渠道参数。WB 从此走 AI 冷启动一路并开始积累自己的历史数据。Ozon 的推荐结果逐字节不变。",
+  "decisions": [
+    "列名必须改，不能把 WB 的 subjectID 塞进 ozon_description_category_id：这个仓库已经为「名字撒谎」付过学费——detailContent 是 Ozon 专属却用渠道无关名，channelCopy 来时撞车，现在挂在债务账本上且偿还要带数据迁移。名字撒的谎会一直撒下去，而理解成本要乘以未来所有接触这段代码的人。",
+    "现在改最便宜：系统未上线、表里只有 Ozon 数据，迁移就是 alter table rename column，语义零变化数据不动。等 WB 数据进来后迁移要带条件判断，等第三个渠道时三种语义混在 ozon_* 列里，考古成本指数上升。",
+    "统一存储与打分，分叉候选来源与属性覆盖度：投票聚合、历史打分、融合排序的语义完全通用（多少人把这个源类目映射到那个目标类目），与平台无关；而候选来源（Ozon 类目树 vs WB 6927 条平表）与属性覆盖度（Ozon 属性 vs WB 特征）是真差异，形状不同构。",
+    "registry 形状沿用本轮已做过四次的样板（publish/channel-adapters、preview/channel-projections、发布链三点分叉、engine 六张穷尽表）：共享骨架 + 少数几点分叉，不复制整条链。",
+    "engine 侧同步改名（ozonTypeId → targetTypeId）并发版：三端口径只定义一次，主题改了 engine 不改会立刻漂移。",
+    "预期管理写进代码注释：即使全做完 WB 的推荐短期仍弱——表里一条 WB 数据都没有，只能靠 AI 冷启动。这轮的价值是打通管道让数据开始流，收益随时间累积。",
+    "既有测试 collective-learning-votes 用旧字段名 ozonTypeId 等，是同一份契约的另一半，随改名同步更新（断言语义一行不变，只换字段名）。"
+  ],
+  "constraints": [
+    "Ozon 推荐结果逐字节不变：同一商品改动前后的候选集、排序、分数完全一致",
+    "列名迁移用 rename column（保留数据），不得 drop/recreate",
+    "四条 check (channel = 'ozon') 放开为 channel in (已知渠道)，ozon_type_id > 0 的约束改为允许 0",
+    "渠道分发走 registry，不在推荐链里写 if (channel === 'wb')",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push/发版，除非用户授权（本任务需一次 engine:release）",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/collective-learning/category-mapping-votes.ts",
+        "src/engine/index.ts",
+        "tests/category-mapping-votes.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/collective-learning-votes.test.ts"
+      ],
+      "claims": [
+        "src/domain/collective-learning/category-mapping-votes.ts",
+        "src/engine/index.ts",
+        "tests/category-mapping-votes.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/collective-learning-votes.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/category_mapping_votes.sql",
+        "server/listing/category-learning/store.ts",
+        "server/listing/category-learning/types.ts",
+        "server/listing/category-learning/scoring.ts",
+        "server/listing/category-learning/ai.ts",
+        "server/listing/category-learning.ts",
+        "server/listing/category-learning/channel-sources/registry.ts",
+        "server/listing/category-learning/channel-sources/ozon.ts",
+        "server/listing/category-learning/channel-sources/wb.ts",
+        "server/listing/category-learning/channel-sources/types.ts",
+        "api/listing/categories/recommendations.ts",
+        "pages/user/listing/category/useCategoryPicker.ts",
+        "tests/category-learning-channel.test.ts",
+        "scripts/check-channel-registration.mjs",
+        "server/vendor/qingpu-engine/"
+      ],
+      "claims": [
+        "database/category_mapping_votes.sql",
+        "server/listing/category-learning/store.ts",
+        "server/listing/category-learning/types.ts",
+        "server/listing/category-learning/scoring.ts",
+        "server/listing/category-learning/ai.ts",
+        "server/listing/category-learning.ts",
+        "server/listing/category-learning/channel-sources/registry.ts",
+        "server/listing/category-learning/channel-sources/ozon.ts",
+        "server/listing/category-learning/channel-sources/wb.ts",
+        "server/listing/category-learning/channel-sources/types.ts",
+        "api/listing/categories/recommendations.ts",
+        "pages/user/listing/category/useCategoryPicker.ts",
+        "tests/category-learning-channel.test.ts",
+        "scripts/check-channel-registration.mjs",
+        "server/vendor/qingpu-engine/"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 列名迁移：三列 rename 为 target_category_id / target_type_id / target_category_name，用 alter table rename column 保留数据；SQL 文件同步更新且可重复执行。",
+    "B 约束放开：四条 channel check 允许已知渠道；target_type_id 允许 0（WB 只有一级定位）。",
+    "C engine 同步改名：CategoryMappingVoteRow 的 ozonTypeId → targetTypeId，聚合逻辑与注释同步；经 engine 出口发版供主题消费。",
+    "D 候选来源 registry：Ozon 从类目树取候选、WB 从本地目录表取；穷尽 Record，无 adapter 的渠道显式拒绝。",
+    "E 属性覆盖度按渠道：Ozon 按类目属性算、WB 按品类特征算；不同构处经 registry 分叉，不硬凑。",
+    "F 渠道贯通：推荐端点接受渠道参数，前端 useCategoryPicker 传入当前渠道；缺省 Ozon 保持历史行为。",
+    "G Ozon 逐字节：同一商品改动前后的候选集、排序、分数完全一致（快照对比）。",
+    "H 网页注册守卫新增 categoryRecommendation 注册点；红绿验证；两仓全量测试与守卫全绿。"
+  ],
+  "verification": [
+    {
+      "name": "engine 专项与全量",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/category-mapping-votes.test.ts && npm run typecheck && npm run check:deps && npm test"
+    },
+    {
+      "name": "主题专项",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/category-learning-channel.test.ts"
+    },
+    {
+      "name": "主题全量与全闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    }
+  ],
+  "outOfScope": [
+    "调优 WB 推荐的融合权重（要等真实数据积累，下一轮）",
+    "把 Ozon 的历史投票迁移成 WB 的（两个平台的类目体系不可映射）",
+    "选择器标题「Ozon 类目」（独立小改动，可并行）"
+  ]
+}
