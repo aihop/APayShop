@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-web-wb-publish",
+  "title": "网页端 WB 发布入口：把发布链的 Ozon 专属三点收进 registry",
+  "problem": "网页端发布对 WB 显式 throw 于四处：api/listing/publish.ts:19 与 publish-records.ts:21 写死 channel='ozon'，publish.run.ts:237 与 publish.confirm.ts:55 对非 ozon 抛错。这四处的注释说得对——不是「写死渠道」而是「下游整条链是 Ozon 形状」。实测 publish.run.ts 515 行里 33 处 Ozon 耦合，但集中在三个点（:289 草稿提交态判定、:314 校验归一、payload 组装），其余骨架（店铺解析、汇率同源、确认令牌、发布记录原子 claim、并发去重、publishProductsToChannel 提交）本就渠道无关。",
+  "expectedOutcome": "发布链的三个 Ozon 专属点经 registry 按渠道分叉，其余骨架保持共用；网页发布入口按当前店铺渠道分发，WB 店可走到发布确认与 dry-run。真提交仍由 engine 的 wbPublishDryRun 挡着（未经首单 E2E 不放开）。Ozon 全链路逐字节不变。",
+  "decisions": [
+    "分叉三个点而不是复制整条链：515 行里只有草稿判定、校验归一、payload 组装是 Ozon 形状。复制一条 WB 版会同时复制确认令牌、原子 claim、并发去重这些踩过坑才做对的逻辑，两条链此后各自漂移——这正是 channel-draft 当初用「专属前半段 + 共享 finalize」解决的同类问题。",
+    "新建 server/listing/publish/channel-adapters registry：每个渠道提供 isSubmittedDraft / normalizeValidation / buildPayloadItems 三个钩子，publish.run 只编排。形状对齐既有的 channel-draft/registry.ts。",
+    "publish.confirm 本轮不分叉：它吃的是 Ozon 导入任务明细、可售就绪度快照、按 offer_id 推库存——WB 的对账形态完全不同（error/list + cards/list 轮询），且 WB 走 FBW 无库存推送。保留显式 throw，注释更新为「WB 对账走扩展端 tracker，网页端待接」。",
+    "publish-records.ts 的渠道来自查询参数而非写死：它只是读发布记录列表，按渠道过滤即可，无 Ozon 耦合。",
+    "真提交闸门不动：engine 的 WbPublishDriver 有 wbPublishDryRun 默认开启，网页端放开入口不等于放开提交。首单 E2E 前保持这个状态。",
+    "网页端 WB 发布的价值在 dry-run 请求体核对——这正是首单 E2E 的前置（W4 要逐位对照价格数字）。",
+    "publish.validation.ts 的 PublishValidation 类型此前只在模块内使用；adapter 契约需要它作为 normalizeValidation 的入参出参类型，故补一个 export type（纯类型导出，无运行时改动）。",
+    "publish-channel-parameterization 测试反向钉住「Ozon 专属函数仍在原处」，其注释自述「那是阶段 3 加 WB 分支时才做的事」——本任务正是阶段 3，期望随语义演进更新：断言从「Ozon 符号在原处」改为「经 adapter 分叉且无渠道字面量」。web-channel-registration 的注册点计数从 5 变 6（新增 publishAdapter）。",
+    "check-ozon-variant-required-validation 守卫要求每个发布校验调用点都走 normalizeOzonPublishValidation 归一出口（保护「变体已满足的必填不报错」这条 Ozon 契约）。publish.run 的调用搬进 Ozon adapter 后，守卫的调用点清单跟着指向新位置——契约本身不变，位置变了。"
+  ],
+  "constraints": [
+    "Ozon 逐字节不变：草稿判定、校验归一、payload 组装、确认令牌摘要、发布记录写入全部与改动前一致",
+    "不放开 WB 真提交：不碰 wbPublishDryRun，不改 engine 的发布驱动",
+    "publish.confirm 保留显式 throw（本轮不分叉），注释说明原因",
+    "渠道分发走 registry，不在 publish.run 里写 if (channel === 'wb')",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish/channel-adapters/registry.ts",
+        "server/listing/publish/channel-adapters/ozon.ts",
+        "server/listing/publish/channel-adapters/wb.ts",
+        "server/listing/publish/channel-adapters/types.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/publish.confirm.ts",
+        "api/listing/publish.ts",
+        "api/listing/publish-records.ts",
+        "pages/user/listing/products.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/web-wb-publish.test.ts",
+        "scripts/check-channel-registration.mjs",
+        "server/listing/publish.validation.ts",
+        "tests/publish-channel-parameterization.test.ts",
+        "tests/web-channel-registration.test.ts",
+        "scripts/check-ozon-variant-required-validation.mjs"
+      ],
+      "claims": [
+        "server/listing/publish/channel-adapters/registry.ts",
+        "server/listing/publish/channel-adapters/ozon.ts",
+        "server/listing/publish/channel-adapters/wb.ts",
+        "server/listing/publish/channel-adapters/types.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/publish.confirm.ts",
+        "api/listing/publish.ts",
+        "api/listing/publish-records.ts",
+        "pages/user/listing/products.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/web-wb-publish.test.ts",
+        "scripts/check-channel-registration.mjs",
+        "server/listing/publish.validation.ts",
+        "tests/publish-channel-parameterization.test.ts",
+        "tests/web-channel-registration.test.ts",
+        "scripts/check-ozon-variant-required-validation.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 三点入 registry：新建 publish/channel-adapters，Ozon 与 WB 各提供 isSubmittedDraft / normalizeValidation / buildPayloadItems；publish.run 只经 registry 取钩子，无渠道字面量。",
+    "B publish.run 的渠道门禁从「非 ozon 即 throw」改为「无 adapter 即 throw」，WB 有 adapter 故放行至 dry-run。",
+    "C 发布入口按店铺渠道分发：api/listing/publish.ts 从店铺解析渠道而非写死；publish-records.ts 渠道来自查询参数（缺省 ozon）。",
+    "D publish.confirm 保留显式 throw，注释说明 WB 对账形态不同、走扩展端 tracker。",
+    "E 网页发布弹窗对 WB 店不再拒绝，可走到 dry-run 并展示请求体摘要；真提交仍被 engine 的 dry-run 挡着，提示文案三语齐全。",
+    "F Ozon 逐字节：同一批商品在改动前后的 dry-run 结果（items / ready / warnings / 确认令牌摘要）完全一致。",
+    "G 网页注册守卫新增 publishAdapter 注册点；红绿验证；主题全量测试与 check:qingpu-all 全绿，服务端 tsc 本任务文件零新增报错。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/web-wb-publish.test.ts"
+    },
+    {
+      "name": "主题全量与全闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    },
+    {
+      "name": "服务端类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ! npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json 2>&1 | grep -E '^app/themes/qingpu/(server/listing/publish|api/listing/publish)'"
+    }
+  ],
+  "outOfScope": [
+    "放开 WB 真提交（需首单 E2E，且 engine 的 dry-run 默认值不在本任务）",
+    "publish.confirm 的 WB 对账分叉（形态不同，需 WB 轮询链先接到网页端）",
+    "WB 库存推送（FBW 无实时库存接口）",
+    "买家预览卡 WB 版"
+  ]
+}
