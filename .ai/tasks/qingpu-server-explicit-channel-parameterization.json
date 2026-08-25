@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-server-explicit-channel-parameterization",
+  "title": "把 Qingpu 主题服务端的 Ozon 硬编码收口成显式渠道参数",
+  "problem": "engine v0.7.135 之前网页端问不到「有哪些渠道」，于是店铺可用性判据、发布 Settings 装配、发布档案与看板聚合、加工 step 各自硬编码 platform/channel === 'ozon'。engine 现在导出了渠道目录（resolveChannelDescriptor / getPublishableChannels），宿主可以查询渠道能力，但服务端仍散着约 40 处 channel: 'ozon' 字面量和一个只认 Ozon 双字段凭证的 isUsableOzonStore，无法在不改写入口的前提下接入第二个渠道。",
+  "expectedOutcome": "店铺可用性、发布 Settings 的 platform、发布档案/看板的渠道聚合都由显式渠道参数从调用链上游传下来；四个 Ozon 专属加工 step 带显式 channel 参数并在函数体第一行断言。只有 Ozon 店时全链路行为逐字节不变，网页端发布入口仍只列 Ozon 店。",
+  "constraints": [
+    "本阶段不新增任何 WB 功能，不放开 WB 发布入口；getPublishableChannels() 返回 ['ozon','wb'] 是 engine 层能力，不得据此改宿主就绪度",
+    "Ozon 行为必须逐字节不变：所有调用点显式传 'ozon'，不改判据语义、不改错误文案、不改失败分支",
+    "渠道判定词汇来自 engine 出口（type Channel），主题不另立同义类型；不在入口或页面扩散 if (channel === 'wb')",
+    "不修改 qingpu_listing_channel_drafts / qingpu_publish_records 存储结构与 SQL；存储层本来就按渠道多行存",
+    "不抽象 Ozon/WB 的 attribute step 统一接口（形状不同构）；本阶段只加断言、不改分发",
+    "不用 any、大面积断言、静默吞错或省略版实现",
+    "不覆盖 APay 主仓与主题仓当前其他未提交改动；不提交、不推送、不部署",
+    "外部平台规则（WB 费率、接口字段、尺寸限制）本阶段不涉及；需要判断时停下来问，不猜"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/stores/helpers.ts",
+        "server/stores/credentials.ts",
+        "server/channel-products/service.ts",
+        "server/listing/ozon-catalog.ts",
+        "server/listing/publish.settings.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/publish.confirm.ts",
+        "server/listing/dashboard.ts",
+        "server/support/tools.ts",
+        "server/tasks/executors.ts",
+        "api/listing/publish.ts",
+        "api/listing/publish-records.ts",
+        "api/listing/dashboard.get.ts",
+        "api/listing/channels.ts",
+        "api/listing/products/index.ts",
+        "api/listing/cron/confirm-publish.get.ts",
+        "api/upgrade.ts",
+        "tests/store-channel-usability.test.ts",
+        "tests/publish-settings-platform.test.ts",
+        "tests/publish-channel-parameterization.test.ts",
+        "tests/task-executor-channel-assertion.test.ts"
+      ],
+      "claims": [
+        "server/stores/helpers.ts",
+        "server/stores/credentials.ts",
+        "server/channel-products/service.ts",
+        "server/listing/ozon-catalog.ts",
+        "server/listing/publish.settings.ts",
+        "server/listing/publish.run.ts",
+        "server/listing/publish.confirm.ts",
+        "server/listing/dashboard.ts",
+        "server/support/tools.ts",
+        "server/tasks/executors.ts",
+        "api/listing/publish.ts",
+        "api/listing/publish-records.ts",
+        "api/listing/dashboard.get.ts",
+        "api/listing/channels.ts",
+        "api/listing/products/index.ts",
+        "api/listing/cron/confirm-publish.get.ts",
+        "api/upgrade.ts",
+        "tests/store-channel-usability.test.ts",
+        "tests/publish-settings-platform.test.ts",
+        "tests/publish-channel-parameterization.test.ts",
+        "tests/task-executor-channel-assertion.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "子任务 1：isUsableOzonStore 改名为 isUsableStoreForChannel(store, channel)；5 个调用点全部显式传 'ozon'；WB 分支的凭证判据是 api_key 单字段（不要求 client_id），Ozon 分支仍是 client_id && api_key 双字段且平台字符串精确匹配（未知平台不再回落 ozon）",
+    "子任务 2：buildPublishSettings 的 platform 由调用方显式传入 store.platform，不再写死 'ozon'；Ozon 店产出的 Settings 与改动前逐字段相同",
+    "子任务 3：publish.run.ts / publish.confirm.ts / api/listing/publish-records.ts / dashboard.ts 的 channel: 'ozon' 字面量全部收成一个从调用链上游传下来的显式参数，写入点不再各自默认",
+    "子任务 4：attributes / translate / translate_facts / copy 四个 executor 各带一个显式 channel 参数，函数体第一行断言 channel !== 'ozon' 即抛不支持；分发表在调用点显式传 'ozon'，其余代码不动",
+    "只有 Ozon 店时采集 → 加工 → 草稿 → 发布全链路行为不变；网页端发布入口仍只列 Ozon 店",
+    "本任务触及文件在服务端类型检查中零新增报错（基线 40 条既有错误，其中 4 条在主题、均不在本任务文件）",
+    "四个新增专项测试先在修复前代码上跑红、修复后跑绿；主题既有测试全绿；相关 check:qingpu-* 与主题专项守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "本任务四个专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/store-channel-usability.test.ts app/themes/qingpu/tests/publish-settings-platform.test.ts app/themes/qingpu/tests/publish-channel-parameterization.test.ts app/themes/qingpu/tests/task-executor-channel-assertion.test.ts"
+    },
+    {
+      "name": "主题全量测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/"
+    },
+    {
+      "name": "服务端类型检查（本任务文件零新增报错）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ! npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json 2>&1 | grep -E '^app/themes/qingpu/(server/(stores/|channel-products/|support/|tasks/executors|listing/(publish|dashboard|ozon-catalog))|api/(upgrade|listing/))'"
+    },
+    {
+      "name": "APay 根 qingpu 守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npm run check:qingpu-listing-publish-facts && npm run check:qingpu-listing-layout && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate && npm run check:qingpu-asset-upload-contract && npm run check:qingpu-unified-listing-workflow && npm run check:qingpu-table-ownership"
+    },
+    {
+      "name": "主题发布与任务专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-boundaries.mjs && node scripts/check-listing-state-consistency.mjs && node scripts/check-task-controls.mjs && node scripts/check-listing-image-task-specs.mjs && node scripts/check-image-background-removal.mjs && node scripts/check-listing-engine-ainode-base-url.mjs"
+    },
+    {
+      "name": "主题格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}
