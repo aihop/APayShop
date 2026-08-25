@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-pipeline-purity",
+  "title": "P2 管道纯净：渠道必传，兼容默认只留在显式 Ozon 入口",
+  "problem": "渠道中立的加工管道仍隐式认识 Ozon：product-text-translation.ts:215,226 的 translateTitleWithCompliance 内部写死 validateListingTitle(title,'ozon')，main-image-generation-workflow.ts:40 写死 channel:'ozon'。这两处让「管道渠道无关」只是名义上的——第三个渠道走进来会被静默按 Ozon 规则校验/生成，且没有任何守卫能发现新长出来的同类字面量。",
+  "expectedOutcome": "管道函数必传 channel（不设缺省），兼容默认值上移到显式的 Ozon 入口（ozon-content-steps、dash 图片面板等）；check-deps 新增 channel-purity 规则，按路径限定扫描渠道中立目录的可执行代码，新增同类字面量即构建失败。Ozon 全链路行为逐字节不变。",
+  "decisions": [
+    "必传而非缺省 Ozon：缺省值放在管道内等于管道仍然认识 Ozon，纯净只是名义上的。兼容默认只允许出现在明确的渠道入口（ozon-content-steps.ts / wb-content-steps.ts / dash 面板调用点）。",
+    "守卫按形状扫描而非按词扫描：沿用 check-workspace-shell-neutrality 已验证的两条正则（渠道字面量比较、渠道字面量赋值/传参），并剥离注释——按词扫 'ozon' 会把注释、错误文案、类型声明全部误报。",
+    "守卫按路径豁免：渠道自有适配器（channel-mappers/ozon|wb）、注册中心、以及 ozon-*/wb-* 前缀的渠道专属 workflow 不在扫描范围；automation-stations.ts 是已声明的 Ozon 专属自动化链，列入豁免并在守卫注释里写明理由。",
+    "本轮扫描范围限定 src/app/workflows/ 与 src/domain/listing-copy/ 两个目录——实测这两处是加工管道的主体，且当前危险形状仅剩 2 个文件（即本任务的两个目标）。扩大范围留给后续阶段，不在本轮制造大批豁免项。",
+    "usePublishImagePanel.ts 显式传 OZON_CHANNEL：dash 主图生成当前就是 Ozon 能力（WB 的 imageGeneration 是已登记缺口），显式写出来比隐式缺省诚实；将来接 WB 时该处传别的渠道会由 profile registry 显式抛 unsupported。",
+    "「必传 channel」的连锁面比预估大：typecheck 揪出 8 处生图调用点（dash/lite composables 各自的图片任务 composable、蓝图生成 workflow）。这正是必传相对缺省的价值——缺省会让它们静默保持 Ozon，必传逼编译器把每个入口列出来。全部显式传 OZON_CHANNEL（当前确实都是 Ozon 能力面），接 WB 时由 image-generation profile registry 显式拒绝。",
+    "守卫在 listing-copy/sections/detail.ts 抓到两处 validateListingDescription(...,'ozon')。detail 是 Ozon 富文本专属 section（WB 无此概念，runWbCopyStep 已排除它），但字面量仍应显式化为 OZON_CHANNEL 常量——保留字面量等于让守卫为一个真违规开豁免，而豁免会随时间累积成噪音。改用常量后守卫零违规、语义不变。"
+  ],
+  "constraints": [
+    "不影响 Ozon：所有调用点传 OZON_CHANNEL 后行为与改动前逐字节等值，快照对比 translateAllProductTexts 结果与 buildImageGenerationTaskSpec 产出",
+    "管道函数不得设渠道缺省值；缺省只允许在渠道入口层",
+    "守卫必须剥离注释、按形状匹配、按路径豁免；豁免项逐条写明理由",
+    "不动 listing-copy 已渠道化的部分（v0.7.142 已完成），只在守卫范围里纳入它防回潮",
+    "禁止 any、静默吞错、省略版实现；红绿验证，先在旧代码跑红留输出",
+    "不 commit/push/发版，除非用户授权",
+    "主题仓有并行未提交改动（WorkspaceShell.vue、seo.routes.json），本任务不涉及主题，不得触碰"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/product-text-translation.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/ozon-content-steps.ts",
+        "src/app/workflows/ai-listing-fill-workflow.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-pipeline-purity.test.ts",
+        "tests/product-text-translation.test.ts",
+        "docs/tech-debt-map.md",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "entrypoints/dash/composables/useDashImageTasks.ts",
+        "entrypoints/lite/composables/useLiteImageTasks.ts",
+        "entrypoints/dash/composables/useBlueprintGeneration.ts",
+        "src/domain/listing-copy/sections/detail.ts"
+      ],
+      "claims": [
+        "src/app/workflows/product-text-translation.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/ozon-content-steps.ts",
+        "src/app/workflows/ai-listing-fill-workflow.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-pipeline-purity.test.ts",
+        "tests/product-text-translation.test.ts",
+        "docs/tech-debt-map.md",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "entrypoints/dash/composables/useDashImageTasks.ts",
+        "entrypoints/lite/composables/useLiteImageTasks.ts",
+        "entrypoints/dash/composables/useBlueprintGeneration.ts",
+        "src/domain/listing-copy/sections/detail.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 翻译管道：translateTitleWithCompliance 与 translateAllProductTexts 接收必传 channel（无缺省）；两处 validateListingTitle 按传入渠道校验；调用点 ozon-content-steps 与 ai-listing-fill-workflow 显式传 OZON_CHANNEL。",
+    "B 图片管道：requestMainImageGenerationWorkflow 的 options 增加必填 channel，buildImageGenerationTaskSpec 消费它；dash 调用点显式传 OZON_CHANNEL。",
+    "C 守卫：check-deps 新增 channel-purity 规则，扫描 src/app/workflows/ 与 src/domain/listing-copy/，剥离注释、按形状匹配、按路径豁免；豁免清单逐条注明理由；当前扫描结果为零违规（不留新基线）。",
+    "D 反向确认：守卫必须能抓到新长出来的字面量——测试里用一段含渠道字面量的样本源码验证规则命中，防止规则写成永真。",
+    "E Ozon 逐字节：改动前后 translateAllProductTexts 对同一商品的结果一致；buildImageGenerationTaskSpec 产出的 spec 一致。",
+    "F 全量：typecheck / check:deps / npm test / build + bundle 守卫 / check-channel-capability 全绿，基线只减不增。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/channel-pipeline-purity.test.ts"
+    },
+    {
+      "name": "全量",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs && node scripts/check-channel-capability.mjs"
+    }
+  ],
+  "outOfScope": [
+    "P2.5 注册中心迁穷尽 Record（下一契约）",
+    "P3 网页侧注册守卫、P1 Manifest、P4 onboarding 总闸",
+    "registry.ts:153 的二元回退（属 P1 范围，与 Manifest 一并修）",
+    "扩大 channel-purity 扫描范围到 domain/ 其余目录"
+  ]
+}
