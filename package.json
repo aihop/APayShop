@@ -37,7 +37,8 @@
     "check:qingpu-quota-gate": "node app/themes/qingpu/scripts/check-quota-gate.mjs",
     "check:qingpu-table-ownership": "node app/themes/qingpu/scripts/check-table-ownership.mjs",
     "check:qingpu-asset-upload-contract": "node app/themes/qingpu/scripts/check-asset-upload-contract.mjs",
-    "check:qingpu-unified-listing-workflow": "node app/themes/qingpu/scripts/check-unified-listing-workflow.mjs"
+    "check:qingpu-unified-listing-workflow": "node app/themes/qingpu/scripts/check-unified-listing-workflow.mjs",
+    "check:qingpu-all": "node app/themes/qingpu/scripts/check-all.mjs"
   },
   "keywords": [],
   "author": "",
