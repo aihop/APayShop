@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-web-channel-registration-guard",
+  "title": "P3 网页侧渠道注册完备性：静态守卫汇总跨端五个注册点",
+  "problem": "网页侧五个渠道注册点没有任何完备性检查：类目 provider 用 switch（pages/user/listing/category/provider.ts）、买家预览卡用 Record<string, Component>（键类型是 string 不是 Channel，拼错不报错）、渠道商品快照用 registry.register() 副作用、渠道草稿提交器与工作台分发表用 Partial<Record<Channel,…>>。加渠道时漏掉哪个都不报错，症状要等用户点到那个功能。engine 侧有 check-channel-capability 兜底，网页侧完全真空。",
+  "expectedOutcome": "新增静态守卫 check-channel-registration.mjs，按源码扫描汇总五个注册点对每个 KNOWN_CHANNEL 的表态：已实现，或在主题自己的 gap 清单里显式登记。漏登记即构建失败。守卫注册进 check:qingpu-all。运行时行为零变化。",
+  "decisions": [
+    "必须是静态守卫，不能是单个运行时 web-descriptor 模块：预览卡与工作台分发表是 Vue 客户端组件（defineAsyncComponent），商品快照与草稿提交器是服务端模块——一个服务端模块 import 全部五个会把 Vue 组件拖进服务端 bundle。静态扫描是唯一能跨这条边界的做法。",
+    "网页 gap key 留在主题仓，不扩进 engine 的 ChannelCapabilityKey：engine 不该知道网页有哪些页面，这是所有权边界（与 registerChannelDescriptor 不出口同一原则）。主题维护自己的 WEB_CHANNEL_CAPABILITY_GAPS。",
+    "本轮只加守卫，不改五个注册点的形态：预览卡的 Record<string, Component> 键类型该收紧成 Channel、provider.ts 的 switch 该改 Record——但那是运行时改动，与「加守卫」混在一起会让回归定位困难。守卫先立，形态统一留待后续（守卫会把它们钉住）。",
+    "KNOWN_CHANNELS 从 vendor engine 读，不在主题硬编码渠道清单——三端口径只定义一次。",
+    "沿用 engine 侧 check-channel-capability.mjs 的形状：declared gap 放行、undeclared 报错、输出逐渠道逐能力的表态清单。"
+  ],
+  "constraints": [
+    "只加守卫与 gap 清单，不改任何运行时代码路径",
+    "守卫必须能真的抓到漏注册——测试里用反向样本验证规则命中，防止写成永真",
+    "gap 清单每条注明为什么缺、补齐条件是什么",
+    "守卫注册进 check:qingpu-all；不得动 7 项 KNOWN_FAILING 基线",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话改动（apay 的 SEO 工作、主题 WorkspaceShell.vue），只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-channel-registration.mjs",
+        "scripts/check-all.mjs",
+        "tests/web-channel-registration.test.ts"
+      ],
+      "claims": [
+        "scripts/check-channel-registration.mjs",
+        "scripts/check-all.mjs",
+        "tests/web-channel-registration.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 守卫扫描五个注册点：类目 provider（switch case）、预览卡（Record 键）、商品快照（register 调用）、草稿提交器（Record 键）、工作台分发表（Record 键 + components/<channel>/ 目录存在）。",
+    "B 渠道清单从 vendor engine 的 KNOWN_CHANNELS 读取，主题不硬编码。",
+    "C 主题自维护 WEB_CHANNEL_CAPABILITY_GAPS：当前 WB 在预览卡与商品快照两项是已登记缺口（各有既存的不做理由），其余三项 WB 已实现。",
+    "D 未登记的缺失报错并指出「哪个渠道缺哪个注册点、去哪个文件补」；已登记的缺口放行并列出。",
+    "E 反向确认：测试用一段缺注册的样本验证守卫规则命中，证明不是永真规则。",
+    "F 守卫注册进 check:qingpu-all，当前全绿（53 通过 + 7 项既有 KNOWN_FAILING 不变，新守卫为第 61 个）。"
+  ],
+  "verification": [
+    { "name": "守卫自身", "repository": "qingpu-theme", "always": true, "command": "node scripts/check-channel-registration.mjs" },
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/web-channel-registration.test.ts" },
+    { "name": "全闸与全量测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npm run check:qingpu-all && npx --no-install vitest run app/themes/qingpu/tests/" }
+  ],
+  "outOfScope": [
+    "P4 onboarding 总闸（engine + 网页 + Manifest 三方汇总）",
+    "统一五个注册点的形态（预览卡键类型收紧、provider switch 改 Record）——守卫先立，形态后统一",
+    "给 WB 补预览卡或商品快照实现"
+  ]
+}
