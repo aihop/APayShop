@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-category-recall",
+  "title": "WB 类目召回补上宽召回兜底，AI 推荐不再恒为空",
+  "problem": "WB 工作台的 AI 类目推荐一条都不出。三路召回全空：(1) evidenceText 是多行证据文本（标题/来源类目/属性/规格/描述摘要，最多千余字），被整串塞进 searchWbSubjectsLocal 的 `search_text like '%<整串>%'`，单条品类的 search_text 只是父类名+品类名，不可能包含它；(2) sourcePath 同理整串匹配，WB 品类名是「连衣裙」而非「女装/连衣裙」；(3) 历史信号那一路 WB 学习表还没有数据。三路全空 → pool.length === 0 → 走 buildV1Fallback('candidate_recall_empty')，不出任何推荐。",
+  "expectedOutcome": "WB 的召回与 Ozon 同构：把本地品类目录全量读进内存缓存，用与 findRelatedCategories 相同的 bigram 相似度打分排序，永远返回至多 limit 条候选而不是空。Ozon 召回逐字节不变。",
+  "decisions": [
+    "镜像 Ozon 的宽召回而不是给 WB 的 SQL 加分词：Ozon 的 findRelatedCategories 对全部叶子在内存里打分后 slice(0, limit)，哪怕全部 0 分也照返 limit 条，结构上不可能空；SQL 精确子串匹配是「要么命中要么空」，加了分词仍会在冷门词上落空。用户要的是两个渠道体验一致，那就用同一套召回形状。",
+    "全量进内存：WB 目录 6927 条约 700KB，与 Ozon 的 ensureCategoryLeaves() 全量缓存同一做法，不新增架构形态。",
+    "打分函数不复制粘贴：从 categories.ts 抽出可复用的 bigram 打分，两个渠道共用一份——两份实现必然漂移，本轮已为同类问题改过多处。",
+    "searchWbSubjectsLocal 保持原样：它服务的是用户在选择器里手输关键词的精确搜索，那个场景整串匹配是对的，不要为召回改坏它。"
+  ],
+  "constraints": [
+    "Ozon 召回结果逐字节不变（findRelatedCategories 的输出不能变）",
+    "searchWbSubjectsLocal 的既有行为不变（选择器手动搜索仍走它）",
+    "WB 的 typeId 恒为 0 的口径不变",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/wb-subjects.ts",
+        "server/listing/categories.ts",
+        "server/listing/category-learning/channel-sources/wb.ts",
+        "tests/wb-category-recall.test.ts"
+      ],
+      "claims": [
+        "server/listing/wb-subjects.ts",
+        "server/listing/categories.ts",
+        "server/listing/category-learning/channel-sources/wb.ts",
+        "tests/wb-category-recall.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A bigram 打分抽为两渠道共用的一份实现，Ozon 侧行为逐字节不变。",
+    "B WB 新增全量目录内存缓存 + 宽召回，输入任意证据文本都返回非空候选（有目录数据时）。",
+    "C WB 召回仍优先历史命中的 subjectID，其余按相似度补齐，typeId 恒为 0。",
+    "D searchWbSubjectsLocal 行为不变。",
+    "E 红绿验证：先证明改动前 WB 召回为空；主题全量测试与 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/wb-category-recall.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "WB 学习表的历史数据积累（要等用户真实选过才有）",
+    "attributeCoverage 打分接入（三处仍返回 null，另案）",
+    "构建 server 阶段的 heap OOM（与本任务无关）"
+  ]
+}

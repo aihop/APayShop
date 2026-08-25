@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-picker-title",
+  "title": "类目选择器标题按渠道显示，不再写死 Ozon",
+  "problem": "WB 工作台打开类目选择器，标题显示「Ozon 类目」——三语文案都把平台名写死在 editor.category 里（zh 'Ozon 类目' / en 'Ozon Category' / ru 'Категория Ozon'）。用户在 WB 下看到另一个平台的名字，第一反应是走错了地方。",
+  "expectedOutcome": "标题按当前工作台渠道显示：Ozon 下仍是「Ozon 类目」逐字节不变，WB 下是「Wildberries 类目」。渠道名取 engine 的 CHANNEL_LABELS，主题不自维护第二份名表。",
+  "decisions": [
+    "文案键改为模板（{channel} 类目），组件用 CHANNEL_LABELS 填入：渠道显示名的单一事实源在 engine 的 Manifest，主题再存一份必然漂移——本轮已为同类问题改过 ozonStores 与数据库列名。",
+    "渠道从 WorkspaceShell 传入弹窗：弹窗当前 props 里没有渠道，而 Shell 在 172 行挂载它时手边就有。传 props 而不是让弹窗自己 inject——弹窗也用在工作台之外的地方，显式传参调用点看得见。",
+    "不动 check-workspace-shell-neutrality 钉住的两条接缝字面写法（providerName: channel、:channel=\"channel\"）：新增的绑定用不同的属性名，避免撞守卫的字面量规则。",
+    "categoryOzonFitScore（「Ozon适配」徽标）一并按渠道处理：它和标题是同一类问题，在 WB 下显示 Ozon 适配分毫无意义。"
+  ],
+  "constraints": [
+    "Ozon 渲染结果逐字节不变：仍是「Ozon 类目」/「Ozon Category」/「Категория Ozon」",
+    "渠道名取 engine 的 CHANNEL_LABELS，不在主题硬编码平台名",
+    "check-workspace-shell-neutrality 必须通过（两条接缝的字面写法不能被破坏）",
+    "三语齐全；禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话的 SEO 改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/category-picker-title.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/category-picker-title.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 文案键改为带 {channel} 占位的模板，三语齐全。",
+    "B 弹窗接收渠道 prop，用 CHANNEL_LABELS 填入模板；Shell 挂载处传入当前渠道。",
+    "C Ozon 逐字节：填充后的结果与改动前完全一致。",
+    "D 「Ozon适配」徽标只在 Ozon 下渲染。",
+    "E check-workspace-shell-neutrality 通过；红绿验证；主题全量测试与 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/category-picker-title.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": ["选择器内其余 Ozon 专属文案（如类目推荐的 Ozon 特有说明），本轮只处理标题与适配分徽标"]
+}
