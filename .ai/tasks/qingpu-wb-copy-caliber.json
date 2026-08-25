@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-copy-caliber",
+  "title": "WB 文案生成：按渠道口径生成、写进覆盖层，不再截断 Ozon 长文",
+  "problem": "文案生成链写死 Ozon 口径：提示词写「符合 Ozon 的标题，10-180 字符」，title/description section 的 parse 用 validateListingTitle(value,'ozon') 校验，产出写共享 translation。WB 消费同一份共享文案时标题被硬截到 60——为 Ozon 布局的关键词全部浪费；网页任务执行器 executeCopyTask 对非 ozon 渠道显式 throw，WB 工作台的「生成文案」按钮实际不可用。",
+  "expectedOutcome": "文案生成可指定目标渠道：WB 目标按 60 字符口径生成标题、按 WB 描述上限生成描述，产出写 channelCopy.wb 覆盖层（共享 translation 一字不动，Ozon 逐字节零影响）；只生成真正需要分叉的字段（共享值已满足 WB 校验或用户已手写覆盖的跳过）；网页 WB 工作台「生成文案」按钮走通该链路。",
+  "decisions": [
+    "WB 目标只生成 title+description：hashtags WB 无字段，detail 是 Ozon 富文本专属。",
+    "生成写覆盖层不写共享：共享文案是两渠道公用事实，按 WB 口径改写会削掉 Ozon 的关键词位——channelCopy 覆盖层正是为此而建（26b6da3/ad3ddb6）。",
+    "宁缺勿覆盖用户手写：覆盖层的既有值全部来自人工编辑（唯一写入口是工作台 UI），AI 不得覆盖；已有覆盖的字段跳过。共享值本身已通过 WB 校验的字段也跳过——resolve 回落已经正确，无需分叉。",
+    "渠道经任务 payload 传递（tasks 表 payload JSONB），不加列不改 schema；执行器表的 ozon 硬编码保持缺省，wb 分支从 payload 读。",
+    "提示词改动同步 docs/prompts-inventory.md（AGENTS 文档地图要求）。",
+    "既有测试 task-executor-channel-assertion 钉着「派发表显式传 ozon」的旧写法——本任务把 copy 节点改为按 payload 渠道分流，该测试的期望随语义演进同步更新（其余节点仍显式 ozon）。"
+  ],
+  "constraints": [
+    "Ozon 零影响：无 targetChannel 时生成行为、提示词文本、写入位置逐字节不变；既有文案测试全绿",
+    "共享 translation 与 listingCopyMeta 在 WB 目标下零写入",
+    "不动任务表 schema、不新增 storage 根键；渠道走 payload",
+    "红绿验证；禁止 any、静默吞错、省略版实现",
+    "不提交、不推送、不发版，除非用户授权（本任务需一次 engine:release 供网页半段消费）"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/listing-copy/types.ts",
+        "src/domain/listing-copy/context.ts",
+        "src/domain/listing-copy/registry.ts",
+        "src/domain/listing-copy/sections/title.ts",
+        "src/domain/listing-copy/sections/description.ts",
+        "src/app/workflows/listing-copy-workflow.ts",
+        "src/app/workflows/wb-content-steps.ts",
+        "src/prompts/listing_copy.ts",
+        "src/prompts/listing_copy_sections.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/wb-copy-caliber.test.ts",
+        "tests/listing-copy.test.ts",
+        "docs/prompts-inventory.md"
+      ],
+      "claims": [
+        "src/domain/listing-copy/types.ts",
+        "src/domain/listing-copy/context.ts",
+        "src/domain/listing-copy/registry.ts",
+        "src/domain/listing-copy/sections/title.ts",
+        "src/domain/listing-copy/sections/description.ts",
+        "src/app/workflows/listing-copy-workflow.ts",
+        "src/app/workflows/wb-content-steps.ts",
+        "src/prompts/listing_copy.ts",
+        "src/prompts/listing_copy_sections.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/wb-copy-caliber.test.ts",
+        "tests/listing-copy.test.ts",
+        "docs/prompts-inventory.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/executors.ts",
+        "server/tasks/queries.ts",
+        "api/listing/tasks/enqueue.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/wb-copy-task.test.ts",
+        "server/vendor/qingpu-engine/",
+        "tests/task-executor-channel-assertion.test.ts"
+      ],
+      "claims": [
+        "server/tasks/executors.ts",
+        "server/tasks/queries.ts",
+        "api/listing/tasks/enqueue.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/wb-copy-task.test.ts",
+        "server/vendor/qingpu-engine/",
+        "tests/task-executor-channel-assertion.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 口径参数化：ListingCopyContext 带 channel（缺省 OZON）；title/description 的 parse 按 context.channel 校验；提示词块按渠道给平台名与长度区间（Ozon 文本逐字节不变，WB 标题 10-60、描述按 WB 上限）。",
+    "B 目标渠道生成：generateListingCopyForProduct 支持 targetChannel:'wb'——只选 title+description 两个 section，产出经 setChannelCopyFieldValue 写 wb 覆盖层；共享 translation 与 listingCopyMeta 零写入。",
+    "C 需要性判定：已有 wb 覆盖的字段跳过；共享值已通过 validateListingTitle/Description(value,'wb') 的字段跳过；两者都满足时如实返回 nothing_to_do 语义。",
+    "D engine 出口：runWbCopyStep（或等价出口）供网页执行器消费；caliber-redefine 登记。",
+    "E 网页链路：enqueue 接受渠道并落 task payload；执行器 copy 分支按 payload 渠道分流（缺省 ozon 逐字节不变，wb 调 runWbCopyStep）；WB 工作台生成按钮带 workspaceChannel；完成后表格 payload 的覆盖态徽标出现。",
+    "F 红绿：engine 与主题各有先红后绿的专项测试；既有 listing-copy 测试全绿；全量 typecheck/check:deps/npm test/build+bundle/主题 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    {
+      "name": "engine 专项",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/wb-copy-caliber.test.ts tests/listing-copy.test.ts tests/channel-copy-override.test.ts"
+    },
+    {
+      "name": "engine 全量",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs"
+    },
+    {
+      "name": "主题专项+全量",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    }
+  ],
+  "outOfScope": [
+    "AI 补 WB 特征参数（下一契约）",
+    "WB 任务链其余节点（translate_facts/attributes/blueprint 的渠道化）",
+    "channelCopy 覆盖层的 origin/meta 追踪（记账：AI 写入与人工写入暂无标记区分，v1 以「有值即人工优先」为则）"
+  ]
+}
