@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-attribute-fill",
+  "title": "AI 补 WB 特征参数：让 WB 商品也有 Ozon 那样的自动填充",
+  "problem": "WB 的必填特征只能手填——ai-attribute-fill-workflow 与 ai-sku-aspect-fill-workflow 是 Ozon 专属（零 WB 代码），提示词写死「Ozon 商品资料专员」。必填特征填不齐 WB 建卡就会被拒，这是 WB 上品链上最后一个纯手工环节，也是 Ozon 有而 WB 没有的能力差。",
+  "expectedOutcome": "WB 有对应的 AI 补特征能力：按 channelContext.wb.subjectCharacteristics 的平台定义挑出待填项，一次 LLM 请求补值，产出经 setWbCharacteristicOverride 落覆盖层并标 origin:'ai'（抽屉里可见可改）。宁缺勿错规则与 Ozon 同源。网页任务链的 attributes 节点按渠道分流（复用 copy 节点已趟通的 payload 渠道通道）。Ozon 链路逐字节不变。",
+  "decisions": [
+    "不抽象统一接口：Ozon 的属性链吃 catalogGateway 与平台字典候选，WB 的特征没有字典表、值是自由文本或平台声明的 multiple 数组——两者形状不同构。共享的是「宁缺勿错」的判定规则与提示词规则体，不是执行骨架。task-executor-channel-assertion 的注释早就写明这一点。",
+    "提示词按渠道参数化而非复制：buildAttributeFillPrompt 的规则体（字段理解、单位换算、数字/多值格式、宁缺勿错）绝大部分渠道无关，只有平台名与「字典候选」概念是 Ozon 特有。渠道无关部分抽为共享块，Ozon 保持逐字节不变。",
+    "只填空值、不碰人工：已有 origin 'manual' 的覆盖 AI 永不覆盖；已有值的特征跳过。与 Ozon 的既定原则一致。",
+    "必填优先：WB 建卡被拒的直接原因是必填特征缺值，所以待填清单按 required 排序，非必填在预算内尽力而为。",
+    "渠道走任务 payload（nodePayloads.attributes.channel），与 copy 节点同一条通道，不加表不改 schema。",
+    "本轮不做 SKU 规格轴（ai-sku-aspect-fill 的 WB 版）：WB 的尺码/规格模型与 Ozon 的 is_aspect 不同构，需要先确认 WB 侧 sizes 的真实语义，属外部事实。"
+  ],
+  "constraints": [
+    "Ozon 逐字节不变：提示词文本、待填判定、写入位置、既有测试全绿",
+    "AI 产出一律落 manualOverrides.wbCharacteristics 并标 origin:'ai'，不写平台定义层 channelContext.wb.subjectCharacteristics",
+    "不覆盖 origin 'manual' 的既有值；无待填项时如实返回 nothingToDo，不发起 LLM 请求",
+    "multiple 特征按平台声明走数组，单值特征不得返回数组",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push/发版，除非用户授权（本任务需一次 engine:release 供网页消费）",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/wb-attribute-fill-workflow.ts",
+        "src/app/workflows/wb-content-steps.ts",
+        "src/prompts/attribute_fill.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/wb-attribute-fill.test.ts",
+        "docs/prompts-inventory.md"
+      ],
+      "claims": [
+        "src/app/workflows/wb-attribute-fill-workflow.ts",
+        "src/app/workflows/wb-content-steps.ts",
+        "src/prompts/attribute_fill.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/wb-attribute-fill.test.ts",
+        "docs/prompts-inventory.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/executors.ts",
+        "api/listing/tasks/enqueue.ts",
+        "tests/wb-attribute-fill-task.test.ts",
+        "server/vendor/qingpu-engine/"
+      ],
+      "claims": [
+        "server/tasks/executors.ts",
+        "api/listing/tasks/enqueue.ts",
+        "tests/wb-attribute-fill-task.test.ts",
+        "server/vendor/qingpu-engine/"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 待填判定：从 channelContext.wb.subjectCharacteristics 取平台定义，排除已有值（含 manual 与 ai）的特征，必填优先排序；无待填项时返回 nothingToDo 且不发 LLM 请求。",
+    "B 提示词渠道参数化：共享规则体抽出，Ozon 的提示词文本逐字节不变；WB 版给平台名 Wildberries、无字典候选概念、multiple 特征说明按数组返回。",
+    "C 校验与落库：单值特征返回数组即判无效丢弃；multiple 特征允许数组；产出经 setWbCharacteristicOverride 落覆盖层标 origin 'ai'；origin 'manual' 的既有值永不被覆盖。",
+    "D engine 出口 runWbAttributeFillStep（或等价），caliber-redefine 登记。",
+    "E 网页链路：enqueue 的 attributes 节点接受渠道并落 payload；执行器 attributes 分支按 payload 渠道分流（缺省 ozon 逐字节不变，wb 走新工作流）。",
+    "F 红绿：engine 与主题各有先红后绿的专项测试；既有 Ozon 补参数测试全绿；全量 typecheck / check:deps / npm test / build + bundle 守卫 / check:onboarding / 主题 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "engine 专项", "repository": "qingpu-ai", "always": true, "command": "npx --no-install vitest run tests/wb-attribute-fill.test.ts" },
+    { "name": "engine 全量", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs && npm run check:onboarding" },
+    { "name": "主题", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "WB SKU 规格轴自动填充（sizes 语义属外部事实）",
+    "WB 图片链（等官方图片规格）",
+    "给 WB 补预览卡或商品快照"
+  ]
+}
