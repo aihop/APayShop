@@ -1,0 +1,13 @@
+{
+  "public": [
+    "/", "/apps", "/theme", "/page/about", "/page/amazon-store", "/page/b2b-website", "/page/b2c-store", "/page/case",
+    "/page/cookies", "/page/custom", "/page/install", "/page/migration", "/page/pricing", "/page/privacy", "/page/terms", "/page/weidian"
+  ],
+  "dynamic": [
+    { "pattern": "/apps/:slug", "source": "shoply-apps" },
+    { "pattern": "/theme/:slug", "source": "shoply-themes" }
+  ],
+  "private": [],
+  "redirect": ["/theme/detail/:slug"],
+  "suppressCore": ["/about", "/pricing"]
+}

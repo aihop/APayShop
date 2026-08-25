@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-seo-discovery-social-lists",
+  "title": "补齐 APay 内容发现、列表语义与社交 SEO",
+  "problem": "APay 已具备多语言 canonical、hreflang、实体 JSON-LD、robots 与基础 sitemap，但 Nuxt Content 文档详情尚未进入 sitemap，公开列表页缺少 CollectionPage/ItemList，Twitter Card 未统一复用页面本地化元数据，且带 page 查询的重复列表 URL 没有明确索引策略。",
+  "expectedOutcome": "真实 Nuxt Content 文档路径进入当前主题的多语言 sitemap；商品、博客与 Shoply marketplace 列表使用 SSR 首屏真实数据输出 CollectionPage + ItemList；可索引页面从最终页面级 Open Graph/SEO 元数据生成 Twitter Card；公开列表的 page>1 查询安全降级为 noindex,follow。",
+  "constraints": [
+    "复用现有国际化、可信 Origin、路由 allowlist 与 JSON-LD 注册机制，不改动上一阶段仍未提交的 SEO 文件",
+    "ItemList 只包含当前 SSR 已取得且页面真实展示的条目，不补齐未加载分页、不伪造评分、库存、作者、图片或其他实体字段",
+    "Twitter title、description 与 image 读取最终页面级 Open Graph/SEO 元数据；没有真实图片时使用 summary 而不是伪造图片 URL",
+    "文档 sitemap 只读取 docs_en/docs_zh 集合中的真实 path，只在当前激活主题声明 /docs/** 为公开动态路由时加入",
+    "当前列表分页只改变页面内状态且没有可抓取路由协议，因此外部 page>1 查询设为 noindex,follow，canonical 继续指向无查询的列表根路径",
+    "语言继续覆盖 en、zh、zh-HK、id、ru；路径由现有 localePath 与 sitemap locale 规则生成",
+    "不引入依赖，不修改 Schema、API、支付、订单或发布链，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/apay-seo-discovery-social-lists.json",
+        "app/composables/useCollectionPageJsonLd.ts",
+        "app/plugins/seo-social.ts",
+        "server/plugins/seo-content-sitemap.ts",
+        "scripts/check-seo-followups.mjs",
+        "app/core/pages/products/index.vue",
+        "app/themes/shoply/pages/apps/index.vue",
+        "app/themes/shoply/pages/theme/index.vue"
+      ],
+      "claims": [
+        "app/composables/useCollectionPageJsonLd.ts",
+        "app/plugins/seo-social.ts",
+        "server/plugins/seo-content-sitemap.ts",
+        "scripts/check-seo-followups.mjs",
+        "app/core/pages/products/index.vue",
+        "app/themes/shoply/pages/apps/index.vue",
+        "app/themes/shoply/pages/theme/index.vue"
+      ]
+    },
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "pages/products/index.vue",
+        "pages/blog/index.vue"
+      ],
+      "claims": [
+        "pages/products/index.vue",
+        "pages/blog/index.vue"
+      ]
+    },
+    {
+      "name": "design-theme",
+      "path": "app/themes/design",
+      "allowedPaths": [
+        "pages/products/index.vue"
+      ],
+      "claims": [
+        "pages/products/index.vue"
+      ]
+    },
+    {
+      "name": "official-theme",
+      "path": "app/themes/official",
+      "allowedPaths": [
+        "pages/products/index.vue",
+        "pages/blog/index.vue"
+      ],
+      "claims": [
+        "pages/products/index.vue",
+        "pages/blog/index.vue"
+      ]
+    },
+    {
+      "name": "panel-theme",
+      "path": "app/themes/panel",
+      "allowedPaths": [
+        "pages/products/index.vue"
+      ],
+      "claims": [
+        "pages/products/index.vue"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/products/index.vue",
+        "pages/blog/index.vue"
+      ],
+      "claims": [
+        "pages/products/index.vue",
+        "pages/blog/index.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "当前主题声明 /docs/** 时，docs_en 与 docs_zh 的真实详情 path 合并进入 sitemap，并沿用五语言 alternate 与 50000 URL 上限",
+    "商品、博客、Shoply apps/theme 列表在 SSR JSON-LD 图中追加单一 CollectionPage 与 ItemList，条目名称、URL、位置和语言来自当前本地化首屏数据",
+    "页面最终存在 Open Graph title/description/image 时，同值生成 twitter:title/description/image，并根据真实图片选择 summary_large_image 或 summary",
+    "公开列表 URL 的 page 查询大于 1 或非法时输出 noindex,follow；正常无查询列表保持既有可索引策略与无查询 canonical",
+    "专项守卫、域名语言守卫、差异格式与五语言全主题正式构建通过；全局类型检查如有既有错误需证明本任务文件未新增错误"
+  ],
+  "verification": [
+    {
+      "name": "SEO 续作专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-seo-followups.mjs"
+    },
+    {
+      "name": "国际化 SEO 既有守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-seo.mjs"
+    },
+    {
+      "name": "域名语言专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-domain-locales.mjs"
+    },
+    {
+      "name": "五语言全主题类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=ainode,design,minimal,nft,official,panel,qingpu,shoply APAY_LOCALES=en,zh,zh-HK,id,ru ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "五语言全主题正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NUXT_BUILD_DIR=/tmp/apay-seo-followups-nuxt APAY_BUILD_THEMES=ainode,design,minimal,nft,official,panel,qingpu,shoply APAY_LOCALES=en,zh,zh-HK,id,ru NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "APay 续作差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useCollectionPageJsonLd.ts app/plugins/seo-social.ts server/plugins/seo-content-sitemap.ts scripts/check-seo-followups.mjs app/core/pages/products/index.vue app/themes/shoply/pages/apps/index.vue app/themes/shoply/pages/theme/index.vue"
+    },
+    {
+      "name": "AINode 列表差异格式",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "git diff --check -- pages/products/index.vue pages/blog/index.vue"
+    },
+    {
+      "name": "Design 列表差异格式",
+      "repository": "design-theme",
+      "always": true,
+      "command": "git diff --check -- pages/products/index.vue"
+    },
+    {
+      "name": "Official 列表差异格式",
+      "repository": "official-theme",
+      "always": true,
+      "command": "git diff --check -- pages/products/index.vue pages/blog/index.vue"
+    },
+    {
+      "name": "Panel 列表差异格式",
+      "repository": "panel-theme",
+      "always": true,
+      "command": "git diff --check -- pages/products/index.vue"
+    },
+    {
+      "name": "Qingpu 列表差异格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/products/index.vue pages/blog/index.vue"
+    }
+  ]
+}

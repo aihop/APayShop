@@ -64,8 +64,6 @@ export const useShoplyMarketplace = () => {
   const copy = computed(() => shoplyMarketplaceLocales[localeCode.value])
   const { data: productsData, status, error } = useFetch<ProductsResponse>('/api/products', {
     key: 'shoply-marketplace-products',
-    server: false,
-    lazy: true,
     query: { pageSize: 200 },
   })
 

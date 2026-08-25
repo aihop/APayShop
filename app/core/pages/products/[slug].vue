@@ -195,4 +195,5 @@ const { data: productData, pending } = await useFetch(
 )
 
 const product = computed(() => getLocalizedProduct(productData.value))
+useProductJsonLd('core-product', product)
 </script>

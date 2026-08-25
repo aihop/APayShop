@@ -1,5 +1,5 @@
 import { products, cards } from "../../db/schema"
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from '../../utils/requestLocale'
 
@@ -12,7 +12,7 @@ export default defineCachedEventHandler(async (event) => {
   }
 
   // Get product by slug instead of ID
-  const productList = await db.select().from(products).where(eq(products.slug, slug)).limit(1)
+  const productList = await db.select().from(products).where(and(eq(products.slug, slug), eq(products.isActive, true))).limit(1)
   const product = productList[0]
   
   if (!product) {

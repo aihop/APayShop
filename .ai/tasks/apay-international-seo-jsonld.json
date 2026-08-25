@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-international-seo-jsonld",
+  "title": "补齐 APay 多语言 SEO 与结构化数据",
+  "problem": "APay 当前没有 JSON-LD、robots.txt 或 sitemap.xml，canonical 与 hreflang 只在多域配置下输出，主题 catch-all 也缺少统一的可索引路由事实源；搜索引擎无法稳定理解站点、商品、文章和应用实体，并可能索引后台、账户、支付或模拟数据页面。",
+  "expectedOutcome": "APay 在 en、zh、zh-HK、id、ru 下为真实公开页面输出一致的 canonical、hreflang、Open Graph URL 和按实体生成的 JSON-LD，为当前域名与当前激活主题生成 robots.txt 和多语言 sitemap，并以服务端响应头阻止私有、失效及未声明页面被索引。",
+  "constraints": [
+    "语言固定覆盖 en、zh、zh-HK、id、ru；结构化实体的名称、描述、面包屑、inLanguage、URL 与展示币种必须跟随当前语言",
+    "商品 Offer 复用 useLocaleCurrency 的换算金额和币种，并与页面展示及结账口径一致；不得改变订单、支付、订阅或基础币种记账逻辑",
+    "只使用现有事实源，不伪造评分、评论、库存、作者、SKU、GTIN、SearchAction、社交链接或外部平台字段",
+    "单域绝对 URL 只接受有效 settings.site_url；缺失或非法时不猜测请求 Host，canonical、JSON-LD 和 sitemap 必须安全降级",
+    "多域绝对 URL 只接受 APAY_DOMAIN_LOCALES 中的可信 Host，并保持未知 Host 返回 400 的现有边界",
+    "sitemap 只包含当前激活主题、当前可信域名、构建启用语言、真实公开静态路由、激活商品和激活博客；不得合并所有已打包主题",
+    "后台、账户、鉴权、支付、回调、应用内部页、API、404、停用实体、重定向别名和未声明页面不得进入 sitemap，并由 X-Robots-Tag 服务端兜底",
+    "NFT 主题含模拟人物、库存和发售信息，本任务仅登记保守 noindex 策略，不为模拟商品输出 Product JSON-LD",
+    "修复会污染结构化数据的既有事实不一致：停用商品详情返回 404、Qingpu 博客使用真实 API 返回结构、Shoply marketplace 详情参与 SSR",
+    "主题 SEO 路由清单是公开 allowlist；新增页面未分类时专项守卫失败，不能依赖 catch-all 或构建文件并集推断可索引页面",
+    "不引入新依赖，不修改 Schema 或迁移，不提交、不推送、不发布、不写生产数据，也不更新父仓主题 gitlink 指针"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        ".ai/tasks/apay-international-seo-jsonld.json",
+        "nuxt.config.ts",
+        "package.json",
+        "scripts/generate-theme-build.mjs",
+        "scripts/check-seo.mjs",
+        "scripts/check-domain-locales.mjs",
+        "shared/siteSeo.ts",
+        "shared/generated/seo-routes.ts",
+        "app/app.vue",
+        "app/plugins/i18n-seo.ts",
+        "app/pages/[...slug].vue",
+        "app/composables/useActiveTheme.ts",
+        "app/composables/useJsonLd.ts",
+        "app/core/seo.routes.json",
+        "app/core/pages/products/[slug].vue",
+        "app/themes/shoply/seo.routes.json",
+        "app/themes/shoply/composables/useShoplyMarketplace.ts",
+        "app/themes/shoply/components/MarketplaceDetail.vue",
+        "server/api/products/[slug].get.ts",
+        "server/middleware/seo-headers.ts",
+        "server/routes/robots.txt.get.ts",
+        "server/routes/sitemap.xml.get.ts",
+        "server/utils/siteSeo.ts",
+        "server/utils/seoSitemap.ts",
+        "content/docs/22.domain-locales.md",
+        "content/zh/docs/22.domain-locales.md",
+        "content/docs/24.seo.md",
+        "content/zh/docs/24.seo.md"
+      ],
+      "claims": [
+        "nuxt.config.ts",
+        "package.json",
+        "scripts/generate-theme-build.mjs",
+        "scripts/check-seo.mjs",
+        "scripts/check-domain-locales.mjs",
+        "shared/siteSeo.ts",
+        "shared/generated/seo-routes.ts",
+        "app/app.vue",
+        "app/plugins/i18n-seo.ts",
+        "app/pages/[...slug].vue",
+        "app/composables/useActiveTheme.ts",
+        "app/composables/useJsonLd.ts",
+        "app/core/seo.routes.json",
+        "app/core/pages/products/[slug].vue",
+        "app/themes/shoply/seo.routes.json",
+        "app/themes/shoply/composables/useShoplyMarketplace.ts",
+        "app/themes/shoply/components/MarketplaceDetail.vue",
+        "server/api/products/[slug].get.ts",
+        "server/middleware/seo-headers.ts",
+        "server/routes/robots.txt.get.ts",
+        "server/routes/sitemap.xml.get.ts",
+        "server/utils/siteSeo.ts",
+        "server/utils/seoSitemap.ts",
+        "content/docs/22.domain-locales.md",
+        "content/zh/docs/22.domain-locales.md",
+        "content/docs/24.seo.md",
+        "content/zh/docs/24.seo.md"
+      ]
+    },
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "seo.routes.json",
+        "pages/products/[slug].vue",
+        "pages/blog/[slug].vue"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "pages/products/[slug].vue",
+        "pages/blog/[slug].vue"
+      ]
+    },
+    {
+      "name": "design-theme",
+      "path": "app/themes/design",
+      "allowedPaths": [
+        "seo.routes.json",
+        "pages/products/[slug].vue"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "pages/products/[slug].vue"
+      ]
+    },
+    {
+      "name": "minimal-theme",
+      "path": "app/themes/minimal",
+      "allowedPaths": [
+        "seo.routes.json",
+        "pages/products/[slug].vue"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "pages/products/[slug].vue"
+      ]
+    },
+    {
+      "name": "nft-theme",
+      "path": "app/themes/nft",
+      "allowedPaths": [
+        "seo.routes.json"
+      ],
+      "claims": [
+        "seo.routes.json"
+      ]
+    },
+    {
+      "name": "official-theme",
+      "path": "app/themes/official",
+      "allowedPaths": [
+        "seo.routes.json",
+        "pages/products/[slug].vue",
+        "pages/blog/[slug].vue"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "pages/products/[slug].vue",
+        "pages/blog/[slug].vue"
+      ]
+    },
+    {
+      "name": "panel-theme",
+      "path": "app/themes/panel",
+      "allowedPaths": [
+        "seo.routes.json",
+        "pages/products/[slug].vue"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "pages/products/[slug].vue"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "seo.routes.json",
+        "pages/products/[slug].vue",
+        "pages/blog/[slug].vue",
+        "pages/downloads.vue"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "pages/products/[slug].vue",
+        "pages/blog/[slug].vue",
+        "pages/downloads.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "站点公开页面在 SSR 中输出唯一且可解析的 Organization + WebSite @graph，实体详情页追加 Product + Offer、BlogPosting、SoftwareApplication 与 BreadcrumbList；不存在重复脚本或客户端切页残留",
+    "en、zh、zh-HK、id、ru 的实体名称、描述、inLanguage、面包屑、canonical、hreflang、x-default、og:url 和商品 Offer 币种与对应语言页面一致",
+    "单域默认语言使用无前缀 URL，其他启用语言使用前缀 URL；多域每个可信 Host 使用其默认语言无前缀 URL，并为实际可达语言生成 alternates",
+    "robots.txt 与 sitemap.xml 只使用可信 origin；sitemap 仅含当前激活主题及 core 未被抑制的公开路径、激活实体和多语言 alternate，不泄露其他已打包主题",
+    "私有路径、404、停用商品或文章、Shoply 重定向别名及 NFT 模拟实体不输出可索引 schema，不进入 sitemap，并获得正确 robots 策略",
+    "商品详情 API 对 isActive=false 返回 404；Qingpu 博客实体读取真实返回结构；Shoply apps/theme 详情的真实 marketplace 数据在 SSR 与 JSON-LD 中一致",
+    "SEO 路由清单覆盖 core 与每个主题实际页面，未知分类、私有路径误公开、非法动态源、缺失页面或超过 50000 个 sitemap URL 时明确失败",
+    "英文与中文运维文档说明站点 URL、多域语言、路由清单、结构化数据事实边界、缓存、失败降级和验证方式"
+  ],
+  "verification": [
+    {
+      "name": "国际化 SEO 专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-seo.mjs"
+    },
+    {
+      "name": "域名语言专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node --experimental-strip-types scripts/check-domain-locales.mjs"
+    },
+    {
+      "name": "五语言全主题类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "APAY_BUILD_THEMES=ainode,design,minimal,nft,official,panel,qingpu,shoply APAY_LOCALES=en,zh,zh-HK,id,ru ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "五语言全主题正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "NUXT_BUILD_DIR=/tmp/apay-international-seo-nuxt APAY_BUILD_THEMES=ainode,design,minimal,nft,official,panel,qingpu,shoply APAY_LOCALES=en,zh,zh-HK,id,ru NODE_OPTIONS=--max-old-space-size=12288 npm run build"
+    },
+    {
+      "name": "APay SEO 差异格式",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- nuxt.config.ts package.json scripts/generate-theme-build.mjs scripts/check-seo.mjs scripts/check-domain-locales.mjs shared/siteSeo.ts shared/generated/seo-routes.ts app/app.vue app/plugins/i18n-seo.ts 'app/pages/[...slug].vue' app/composables/useActiveTheme.ts app/composables/useJsonLd.ts app/core/seo.routes.json 'app/core/pages/products/[slug].vue' app/themes/shoply/seo.routes.json app/themes/shoply/composables/useShoplyMarketplace.ts app/themes/shoply/components/MarketplaceDetail.vue 'server/api/products/[slug].get.ts' server/middleware/seo-headers.ts server/routes/robots.txt.get.ts server/routes/sitemap.xml.get.ts server/utils/siteSeo.ts server/utils/seoSitemap.ts content/docs/22.domain-locales.md content/zh/docs/22.domain-locales.md content/docs/24.seo.md content/zh/docs/24.seo.md"
+    },
+    {
+      "name": "AINode 主题 SEO 差异格式",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json 'pages/products/[slug].vue' 'pages/blog/[slug].vue'"
+    },
+    {
+      "name": "Design 主题 SEO 差异格式",
+      "repository": "design-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json 'pages/products/[slug].vue'"
+    },
+    {
+      "name": "Minimal 主题 SEO 差异格式",
+      "repository": "minimal-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json 'pages/products/[slug].vue'"
+    },
+    {
+      "name": "NFT 主题 SEO 差异格式",
+      "repository": "nft-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json"
+    },
+    {
+      "name": "Official 主题 SEO 差异格式",
+      "repository": "official-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json 'pages/products/[slug].vue' 'pages/blog/[slug].vue'"
+    },
+    {
+      "name": "Panel 主题 SEO 差异格式",
+      "repository": "panel-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json 'pages/products/[slug].vue'"
+    },
+    {
+      "name": "Qingpu 主题 SEO 差异格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- seo.routes.json 'pages/products/[slug].vue' 'pages/blog/[slug].vue' pages/downloads.vue"
+    }
+  ]
+}

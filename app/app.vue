@@ -16,7 +16,7 @@ const { start: startWebSessionMonitor, stop: stopWebSessionMonitor } = useWebSes
 onMounted(startWebSessionMonitor)
 onBeforeUnmount(stopWebSessionMonitor)
 
-useAsyncData('global-settings', () => fetchSettings())
+await useAsyncData('global-settings', () => fetchSettings())
 
 useHead(() => {
   const title = route.meta.title || 'APay'

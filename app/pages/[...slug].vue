@@ -83,7 +83,6 @@ if (cleanPath !== route.path) {
 }
 
 const { getSetting } = useSettings()
-const runtimeConfig = useRuntimeConfig()
 
 // 合并：theme 同名文件会覆盖 core，实现主题页面替换系统默认页面的效果
 const modules = { ...themeBuild.corePageModules, ...themeBuild.themePageModules }
@@ -97,15 +96,7 @@ const routeTemplates = Array.from(
   )
 )
 
-const activeTheme = computed(() => {
-  // 开发环境支持通过 NUXT_PUBLIC_DEV_THEME 环境变量强制指定主题，方便同时运行多主题开发实例
-  const devOverride = (runtimeConfig.public as any).devTheme as string | undefined
-  if (devOverride && themeBuild.publishedOptionalThemeSet.has(devOverride)) {
-    return devOverride
-  }
-  const theme = getSetting('active_theme') || ''
-  return themeBuild.publishedOptionalThemeSet.has(theme) ? theme : ''
-})
+const activeTheme = useActiveTheme()
 
 const pathSegments = computed(() => (route.params.slug as string[]) || [])
 
@@ -177,7 +168,7 @@ const activeComponent = computed(() => {
   return (themeBuild.corePageModules[`../core/pages/${file}`] as any)?.default || null
 })
 
-const activePageKey = computed(() => `${activeTheme.value || '_core_'}:${targetFile.value}`)
+const activePageKey = computed(() => `${activeTheme.value || '_core_'}:${targetFile.value}:${route.path}`)
 
 const activeDirectoryLayout = computed(() => {
   const file = targetFile.value

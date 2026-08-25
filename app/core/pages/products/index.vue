@@ -130,4 +130,11 @@ const products = computed(() => {
     .filter((p: any) => !p.metaData?.is_pricing_plan)
     .map(getLocalizedProduct)
 })
+
+useCollectionPageJsonLd('core-products-list', {
+  path: '/products',
+  name: () => 'Products',
+  description: () => 'Explore our premium selection of products.',
+  items: products,
+})
 </script>

@@ -65,14 +65,62 @@
 import { computed } from 'vue'
 import type { ShoplyMarketplaceCopy } from '../locales/marketplace'
 import type { ShoplyMarketplaceEntry, ShoplyMarketplaceKind } from '../types/marketplace'
+import { SEO_LOCALE_LANGUAGE } from '~~/shared/siteSeo'
 
 const props = defineProps<{ kind: ShoplyMarketplaceKind, entry: ShoplyMarketplaceEntry | null, copy: ShoplyMarketplaceCopy, category: string }>()
 const { localePath } = useLocaleRouter()
 const { formatAmount } = useLocaleCurrency()
+const route = useRoute()
+const { locale } = useI18n()
+const { currency, convertAmount } = useLocaleCurrency()
 const statusLabel = computed(() => props.entry ? props.copy.package.status[props.entry.packageStatus] : '')
 const statusClass = computed(() => {
   if (props.entry?.packageStatus === 'active' || props.entry?.packageStatus === 'enabled') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (props.entry?.packageStatus === 'ready') return 'border-blue-200 bg-blue-50 text-blue-700'
   return 'border-slate-200 bg-slate-50 text-slate-500'
 })
+
+useJsonLd('shoply-marketplace-detail', computed(() => {
+  const entry = props.entry
+  if (!entry) return null
+  const path = route.path
+  const entity = entry.kind === 'app'
+    ? {
+        '@type': 'SoftwareApplication',
+        '@id': `${path}#software`,
+        name: entry.name,
+        description: entry.summary,
+        image: entry.imageUrl || undefined,
+        applicationCategory: entry.category,
+        softwareVersion: entry.version || undefined,
+        inLanguage: SEO_LOCALE_LANGUAGE[locale.value as keyof typeof SEO_LOCALE_LANGUAGE] || locale.value,
+        offers: entry.productSlug ? {
+          '@type': 'Offer',
+          url: path,
+          price: convertAmount(entry.price),
+          priceCurrency: currency.value,
+        } : undefined,
+      }
+    : {
+        '@type': 'Product',
+        '@id': `${path}#theme`,
+        name: entry.name,
+        description: entry.summary,
+        image: entry.imageUrl || undefined,
+        inLanguage: SEO_LOCALE_LANGUAGE[locale.value as keyof typeof SEO_LOCALE_LANGUAGE] || locale.value,
+        offers: entry.productSlug ? {
+          '@type': 'Offer',
+          url: path,
+          price: convertAmount(entry.price),
+          priceCurrency: currency.value,
+        } : undefined,
+      }
+  return [entity, {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Shoply', item: '/' },
+      { '@type': 'ListItem', position: 2, name: entry.name, item: path },
+    ],
+  }]
+}))
 </script>

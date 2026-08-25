@@ -1,0 +1,6 @@
+{
+  "public": ["/", "/about", "/pricing", "/products"],
+  "dynamic": [{ "pattern": "/products/:slug", "source": "products" }],
+  "private": ["/callback/**", "/payment/**", "/user/**"],
+  "redirect": []
+}

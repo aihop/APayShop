@@ -14,6 +14,13 @@ import { useShoplyMarketplace } from '../../composables/useShoplyMarketplace'
 
 const { apps, copy } = useShoplyMarketplace()
 
+useCollectionPageJsonLd('shoply-apps-list', {
+  path: '/apps',
+  name: () => copy.value.apps.title,
+  description: () => copy.value.apps.description,
+  items: apps,
+})
+
 useSeoMeta({
   title: () => copy.value.apps.seoTitle,
   description: () => copy.value.apps.seoDescription,

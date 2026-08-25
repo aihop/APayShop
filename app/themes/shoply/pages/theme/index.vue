@@ -14,6 +14,13 @@ import { useShoplyMarketplace } from '../../composables/useShoplyMarketplace'
 
 const { themes, copy } = useShoplyMarketplace()
 
+useCollectionPageJsonLd('shoply-themes-list', {
+  path: '/theme',
+  name: () => copy.value.themes.title,
+  description: () => copy.value.themes.description,
+  items: themes,
+})
+
 useSeoMeta({
   title: () => copy.value.themes.seoTitle,
   description: () => copy.value.themes.seoDescription,
