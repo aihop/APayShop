@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-preview-card",
+  "title": "WB 买家预览卡：让 WB 商品也能看买家视角",
+  "problem": "WB 在买家预览上是登记缺口：服务端 getChannelPreviewForUser 对非 ozon 直接返回只有标题和主图的降级模型，前端 channel-preview registry 没有 WB 卡片，弹窗显示「暂无该渠道预览」。这个降级是诚实的（拿 Ozon 卡片渲染 WB 数据会得到属性、变体、详情块全空的页面，看起来像商品没填内容），但 WB 的加工链已经完整——品类、特征、文案、定价、图片都有，缺的只是把它们投影成买家视角。",
+  "expectedOutcome": "服务端按渠道构建预览模型：WB 走自己的投影（特征列表 + 图集 + WB 文案覆盖 + 卢布价），前端注册 WbPreviewCard 呈现 WB 买家侧形态。降级模型保留给真正没有实现的渠道。Ozon 预览逐字节不变。",
+  "decisions": [
+    "服务端分发进 registry 而非 if：product-detail.preview 的 channel !== 'ozon' 改为按渠道取投影器，与 publish/channel-adapters 同一形状。没有投影器的渠道仍走既有降级模型——那个降级是对的，不能删。",
+    "ChannelPreviewModel 保持渠道无关：它已经是 title/图/价/属性/变体/内容块的通用形状，WB 投影填同样的字段（特征进 attributes、WB 无变体则 variants 为空），前端卡片只是呈现差异。",
+    "WB 卡片呈现按 WB 买家侧形态：特征列表 + 图集，不照搬 Ozon 的富文本详情块布局（WB 无 Rich Content）。",
+    "文案取渠道口径：WB 预览的标题/描述必须经 resolveChannelCopyField 走覆盖层，否则预览显示共享文案、实际发布是 WB 覆盖值，两者对不上——那正是预览失去意义的地方。",
+    "价格按 WB 草稿的 priceRub：与 buildWbListingDraft 同源，不自己算一遍。",
+    "缺口清单相应更新：主题守卫的 WEB_CHANNEL_CAPABILITY_GAPS 移除 wb/previewCard（守卫会主动检查「已实现却仍登记为缺口」）。",
+    "两处钉着「WB 尚未实现预览」的旧事实：channel-preview-registry 测试断言 wb 返回 null（现在有卡片了），check-workspace-quality-score 守卫断言 buildOzonListingDraft(product) 在 product-detail.preview（现已随 Ozon 投影搬进 channel-projections/ozon.ts）。两处随实现推进更新，契约本身不变。",
+    "check-channel-preview-current-projection 保护的契约是「预览用当前工作区实时投影，不读 channel_drafts 快照表」。投影搬进 channel-projections 后，守卫要同时看分发点（公共前置）与各渠道投影器——契约不变，位置变了，且现在要对每个渠道都成立。"
+  ],
+  "constraints": [
+    "Ozon 预览逐字节不变：同一商品改动前后的 model 完全一致",
+    "降级模型保留：没有投影器的渠道仍返回 supported:false，不删这条路径",
+    "WB 预览的文案必须经渠道覆盖层解析，不得直读共享 translation",
+    "渠道分发走 registry，不在 product-detail.preview 里写 if (channel === 'wb')",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/preview/channel-projections/registry.ts",
+        "server/listing/preview/channel-projections/ozon.ts",
+        "server/listing/preview/channel-projections/wb.ts",
+        "server/listing/preview/channel-projections/types.ts",
+        "server/listing/product-detail.preview.ts",
+        "pages/user/listing/components/wb/WbPreviewCard.vue",
+        "pages/user/listing/components/channel-preview/registry.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/wb-preview-card.test.ts",
+        "scripts/check-channel-registration.mjs",
+        "tests/channel-preview-registry.test.ts",
+        "scripts/check-workspace-quality-score.mjs",
+        "scripts/check-channel-preview-current-projection.mjs"
+      ],
+      "claims": [
+        "server/listing/preview/channel-projections/registry.ts",
+        "server/listing/preview/channel-projections/ozon.ts",
+        "server/listing/preview/channel-projections/wb.ts",
+        "server/listing/preview/channel-projections/types.ts",
+        "server/listing/product-detail.preview.ts",
+        "pages/user/listing/components/wb/WbPreviewCard.vue",
+        "pages/user/listing/components/channel-preview/registry.ts",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/wb-preview-card.test.ts",
+        "scripts/check-channel-registration.mjs",
+        "tests/channel-preview-registry.test.ts",
+        "scripts/check-workspace-quality-score.mjs",
+        "scripts/check-channel-preview-current-projection.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 服务端投影 registry：Ozon 与 WB 各有投影器，product-detail.preview 只按渠道取，无渠道字面量；没有投影器的渠道仍走既有降级模型。",
+    "B WB 投影：标题/描述经渠道文案覆盖解析，价格取 WB 草稿的 priceRub，特征进 attributes，图集来自发布图片引用。",
+    "C 前端注册 WbPreviewCard，channel-preview registry 不再只有 ozon；未注册渠道仍显示「暂无该渠道预览」。",
+    "D Ozon 逐字节：同一商品改动前后的预览 model 完全一致。",
+    "E 缺口清单更新：守卫的 WEB_CHANNEL_CAPABILITY_GAPS 移除 wb/previewCard，守卫通过。",
+    "F 三语文案齐全；红绿验证；主题全量测试与 check:qingpu-all 全绿，服务端 tsc 本任务文件零新增报错。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/wb-preview-card.test.ts"
+    },
+    {
+      "name": "主题全量与全闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    },
+    {
+      "name": "服务端类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ! npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json 2>&1 | grep -E '^app/themes/qingpu/(server/listing/(preview|product-detail)|pages/user/listing/components/(wb|channel-preview))'"
+    }
+  ],
+  "outOfScope": [
+    "WB 商品快照 provider（cards/list 游标待文档）",
+    "放开 WB 真提交"
+  ]
+}
