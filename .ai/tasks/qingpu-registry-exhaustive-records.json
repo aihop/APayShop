@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-registry-exhaustive-records",
+  "title": "P2.5 注册中心迁穷尽 Record：漏注册从运行时提前到编译期",
+  "problem": "5 个渠道能力注册中心用 Map + register() 的副作用注册：新渠道漏注册不会有编译错误，症状要等运行时 resolve* 抛 unsupported，而那时用户已经点下了生图或发布。publish-payloads 更是自注册在 ozon-factory.ts:483 / wb-factory.ts:159、靠 register.ts 两行裸 import 触发——这正是 channel-ui/registry.ts 注释记录过的「旁路注册链断裂导致静默回落 fallback」的同款模式。能力矩阵的 prompts/imageGeneration 探针也因此依赖 barrel import 副作用，取值随 import 顺序漂移（已记入债务地图）。",
+  "expectedOutcome": "5 个注册中心改为穷尽 Record<Channel, X | null>，null = 已登记缺口；新渠道进 KNOWN_CHANNELS 时每张表当场不编译，逼人表态。resolve* 对缺口渠道仍显式抛 unsupported，has* 语义不变。register* 退役（主题与 engine 内均零调用）。能力矩阵探针不再依赖 import 副作用。Ozon 与 WB 的全部运行时行为逐字节不变。",
+  "decisions": [
+    "样板取 domain/image-blueprint/blueprint.ts 的 CHANNEL_IMAGE_BLUEPRINTS：穷尽 Record + null 表缺口 + Unsupported*Error，本轮五处照抄同一形状，不发明新写法。",
+    "register* 全部退役：已验证主题仓零调用、engine 内零调用、测试零调用，注册全部发生在生产代码模块底部且急切执行。engine 出口同步移除 registerChannelPromptProfile / registerImageGenerationChannelProfile（宿主只消费不注册，与 registerChannelDescriptor 不出口的既定原则一致）。",
+    "一个注册中心一个提交，按风险从低到高：channel-prompts → image-generation-tasks → channel-mappers → publish-payloads → publish-tracking。publish-tracking 排最后（它有 import 环历史，见 check-channel-capability.mjs 头部注释）。",
+    "publish-payloads 的自注册模式一并消灭：工厂实例改由 registry.ts 的穷尽表直接持有，register.ts 的两行裸 side-effect import 退役。",
+    "能力矩阵探针改为直接查表（不再依赖 barrel import 副作用）；本任务顺带还清债务地图里「barrel 副作用注册」那一条，并从账本移除。",
+    "系统未上线，运营风险为零；但 Ozon 逐字节验证不放松——它是唯一跑通过的渠道，是正确性基准。"
+  ],
+  "constraints": [
+    "每个注册中心迁移后立即全量验证并独立提交，出问题可精确回滚",
+    "resolve* / has* 的对外语义与错误类型不变；Ozon 与 WB 的解析结果逐字节一致",
+    "穷尽 Record 必须真穷尽：Record<Channel, X | null>，不得用 Partial",
+    "缺口一律 null 且带注释说明为什么缺、补齐条件是什么",
+    "不改任何 profile / mapper / driver / factory 的实现内容，只改注册与查找方式",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push/发版，除非用户授权（本任务用户已授权 commit，push 单独确认）",
+    "主题仓有并行未提交改动（WorkspaceShell.vue、seo.routes.json），本任务不涉及主题"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-prompts/registry.ts",
+        "src/domain/channel-prompts/index.ts",
+        "src/domain/image-generation-tasks/registry.ts",
+        "src/domain/image-generation-tasks/index.ts",
+        "src/domain/channel-mappers/registry.ts",
+        "src/domain/publish-payloads/registry.ts",
+        "src/domain/publish-payloads/register.ts",
+        "src/domain/publish-payloads/ozon-factory.ts",
+        "src/domain/publish-payloads/wb-factory.ts",
+        "src/domain/publish-drivers/registry.ts",
+        "src/shared/publish-tracking/registry.ts",
+        "src/domain/channels/registry.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "scripts/check-channel-capability.mjs",
+        "tests/registry-exhaustiveness.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/engine-channel-catalog-export.test.ts",
+        "tests/image-blueprint-channel.test.ts",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "src/domain/channel-prompts/registry.ts",
+        "src/domain/channel-prompts/index.ts",
+        "src/domain/image-generation-tasks/registry.ts",
+        "src/domain/image-generation-tasks/index.ts",
+        "src/domain/channel-mappers/registry.ts",
+        "src/domain/publish-payloads/registry.ts",
+        "src/domain/publish-payloads/register.ts",
+        "src/domain/publish-payloads/ozon-factory.ts",
+        "src/domain/publish-payloads/wb-factory.ts",
+        "src/domain/publish-drivers/registry.ts",
+        "src/shared/publish-tracking/registry.ts",
+        "src/domain/channels/registry.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "scripts/check-channel-capability.mjs",
+        "tests/registry-exhaustiveness.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/engine-channel-catalog-export.test.ts",
+        "tests/image-blueprint-channel.test.ts",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 五个注册中心均为 Record<Channel, X | null> 穷尽表，null 处有缺口注释；register* 函数与其 engine 出口全部移除。",
+    "B resolve* 对缺口渠道抛既有的 Unsupported 错误类型，has* 返回 false；Ozon/WB 的解析结果与改动前逐字节一致。",
+    "C publish-payloads 的自注册退役：register.ts 的裸 side-effect import 删除，工厂实例由穷尽表持有。",
+    "D 能力矩阵探针直接查表，不依赖 barrel import 副作用；单独 import resolveChannelDescriptor 时 Ozon 的 prompts/imageGeneration 能力位为 true（这是修复前做不到的）。",
+    "E 穷尽性由类型保证：新增一个测试用类型层断言证明 Record 覆盖全部 KNOWN_CHANNELS（缺一个即不编译）。",
+    "F 债务地图移除「barrel 副作用注册」条目并注明偿还提交。",
+    "G 每个注册中心迁移后全量验证全绿：typecheck / check:deps / npm test / build + bundle 守卫 / check-channel-capability。"
+  ],
+  "verification": [
+    { "name": "穷尽性专项", "repository": "qingpu-ai", "always": true, "command": "npx --no-install vitest run tests/registry-exhaustiveness.test.ts tests/engine-channel-catalog-export.test.ts tests/channel-publish-handler.test.ts" },
+    { "name": "全量", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npm run check:deps && npm test && npm run build && node scripts/check-engine-bundle.mjs && node scripts/check-channel-capability.mjs" }
+  ],
+  "outOfScope": [
+    "P1 Manifest、P3 网页守卫、P4 onboarding 总闸",
+    "components/channel-ui、channel-attribute-forms、channel-settings-panels 三个 UI 注册中心（扩展端 UI 面，不在发布链，留待后续）",
+    "任何 profile / mapper / driver / factory 的实现内容变更"
+  ]
+}
