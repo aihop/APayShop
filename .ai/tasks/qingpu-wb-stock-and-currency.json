@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-stock-and-currency",
+  "title": "WB 库存推送与币种修正：让「已发布」重新等于「买家能下单」",
+  "problem": "WB 发布轮询在建卡+传图+设价后直接落 published，没有库存推送——标「已发布」的 WB 商品在平台上没库存、买家买不了。同时币种缺省方向错误：用户确认 WB 挂牌价为人民币（后台 ¥），而 engine 的 resolveWbChannelPublishCurrency 缺省 RUB、扩展端 normalizeStoreCurrencyCode 对 WB 平台缺省 RUB——按 RUB 发会把卢布数字原样提交，挂牌价约为正确价的 13 倍。dry-run 开关的注释理由（占位类目数据）也已过期，误导后来者。",
+  "expectedOutcome": "履约按用户决策走 FBS 语义（与 Ozon 同一套）：发布轮询在建卡确认后推库存，推不上不落 published、写 lastError 下轮重试；WB 店铺币种缺省 CNY，设价链路带渠道币种断言测试；dry-run 注释改为真实理由（首单 E2E 未跑）。真提交仍由 dry-run 挡着，关闸是 W4 的事。",
+  "decisions": [
+    "币种 CNY 来自用户确认（表述为「应该是人民币」，带保留）。本任务据此修缺省方向，但真提交前的最后闸门是 W4：dry-run 请求体的价格数字与 WB 后台逐位核对。settings-normalize 里「猜错代价不对称所以缺省 RUB」的注释按已确认状态重写。",
+    "履约 FBS：用户决策「和 Ozon 走一套」。对标 publish-tracking/ozon.ts 的语义——offerStocks 为空拒绝标发布；仓库解析失败拒绝标发布；库存推送成功才落 published。",
+    "WB 库存接口（仓库清单 + 按仓设库存）的路径与字段必须以 dev.wildberries.ru 官方文档为准；文档拿不到本任务在 wb-api.ts 处停止，不猜字段。",
+    "settings-normalize.ts 在 check-deps 基线里的正当性是 type-only 取型；本次只改字面量缺省值与注释，不新增任何 import，不改债性质。",
+    "resolveWbChannelPublishCurrency 属 engine 面（渠道描述符消费）。本任务不发版：网页端店铺币种由 DB 行解析（缺省已是 CNY），engine 缺省只在店铺查找失败时兜底；改动随下一班发版车带走，契约里记明。",
+    "三个既有测试（publish-currency / wb-publish-tracking / channel-resolution-total）钉着旧的 WB 缺省 RUB 行为，缺省翻转必然让它们变红——期望值随已确认事实同步更新，属本任务语义的一部分。"
+  ],
+  "constraints": [
+    "不影响 Ozon：stock-manager.ts 与 Ozon tracker 一行不动；共享文件只改 WB 分支的字面量与注释",
+    "不关 dry-run、不放开网页发布、不动 settings.wbPublishDryRun 的读取逻辑",
+    "外部接口字段以官方文档为准，拿不到就停在那一步并报告",
+    "库存推送失败语义对齐 Ozon：保持 publishing + lastError，禁止静默标 published，禁止吞错",
+    "不用 any、大面积断言、静默吞错或省略版实现；红绿验证",
+    "不覆盖其他会话改动；不提交、不推送、不发版，除非用户授权"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/pipeline/wb-api.ts",
+        "src/shared/publish-tracking/wb.ts",
+        "src/domain/channels/publish-currency.ts",
+        "src/shared/settings-normalize.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "tests/wb-stock-push.test.ts",
+        "tests/store-currency-default.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/publish-currency.test.ts",
+        "tests/wb-publish-tracking.test.ts",
+        "tests/channel-resolution-total.test.ts"
+      ],
+      "claims": [
+        "src/shared/pipeline/wb-api.ts",
+        "src/shared/publish-tracking/wb.ts",
+        "src/domain/channels/publish-currency.ts",
+        "src/shared/settings-normalize.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "tests/wb-stock-push.test.ts",
+        "tests/store-currency-default.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "docs/tech-debt-map.md",
+        "tests/publish-currency.test.ts",
+        "tests/wb-publish-tracking.test.ts",
+        "tests/channel-resolution-total.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 币种缺省翻转：resolveWbChannelPublishCurrency 兜底 CNY；normalizeStoreCurrencyCode 对 wb 平台缺省 CNY；两处注释按「用户已确认 ¥」重写并保留 W4 核对闸门的说明。tests/store-currency-default.test.ts 先红后绿。",
+    "B 库存能力：wb-api.ts 按官方文档新增仓库清单与按仓设库存两个函数，字段带文档出处注释；账号级限流（429）语义沿用既有 wbFetch 约定。",
+    "C 推送语义：publish-tracking/wb.ts 在设价成功后推库存——无正库存拒绝标 published（提示补库存）；仓库解析失败拒绝标 published；推送失败保持 publishing + lastError 下轮重试；全部成功才落 published。对标 ozon.ts 同名语义，红绿验证。",
+    "D dry-run 注释重写：wb-driver.ts 的开关理由改为「币种数字与库存链路未经真实首单核对」，删掉已过期的占位类目说法。",
+    "E Ozon 快照：channel-publish-handler 与 Ozon tracker 相关既有测试全绿；stock-manager.ts 零改动。",
+    "F 全量：typecheck / check:deps / npm test / build + bundle 守卫全绿，基线只减不增。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx --no-install vitest run tests/wb-stock-push.test.ts tests/store-currency-default.test.ts tests/channel-publish-handler.test.ts"
+    },
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "分层守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "全量测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "构建与 bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build && node scripts/check-engine-bundle.mjs"
+    }
+  ],
+  "outOfScope": [
+    "关 dry-run 与真实首单：W4，需本任务全绿 + 用户在场",
+    "网页端发布放开：W5",
+    "engine:release：随下一班发版车",
+    "佣金/物流费率：等用户提供，只影响利润展示"
+  ]
+}
