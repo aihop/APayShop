@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-patch-attribute-shape",
+  "title": "工作区 patch 的类目参数字段不再声明成 Ozon 形状",
+  "problem": "WorkspacePatchInput['category'].attributes 声明为 OzonCategoryAttribute[]。类目参数定义已按渠道归一（WB 是 WbCharacteristicDefinition，带 multiple/existNamedField/aliasGroup，没有 description/type/dictionary_id），赋值处因此报 TS2322。类型把一个渠道的形状写成了所有渠道的形状。",
+  "expectedOutcome": "该字段声明为 unknown[]，形状由 category-definitions 的按渠道归一化负责。两个消费方（queries.workspace.ts 的 Ozon 与 WB 落槽）本来就当不透明数据透传，行为不变。",
+  "decisions": [
+    "放宽成 unknown[] 而不是写成联合类型：消费方只透传不解释，联合类型会诱导下游按渠道 narrow，而那正是形状归一已经收口的事。",
+    "不在赋值处加断言绕过：断言会把「类型说错了」伪装成「值有问题」，且违反 AGENTS.md 对大面积断言的禁令。"
+  ],
+  "constraints": [
+    "dictionaryValues 保持原类型不动：它确实只有 Ozon 有",
+    "禁止 any 与断言绕过；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行 studio 会话的改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/queries.shared.ts"],
+      "claims": ["server/listing/queries.shared.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A attributes 声明为 unknown[]，并注明形状由按渠道归一化决定。",
+    "B 服务端类型检查回到 43 条基线，无 TS2322。",
+    "C 主题全量测试与 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "服务端类型", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install tsc --noEmit -p .nuxt/tsconfig.server.json; true" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": ["dictionaryValues 的渠道化（WB 无平台字典表，暂无需要）"]
+}

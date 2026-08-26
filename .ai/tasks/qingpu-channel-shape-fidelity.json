@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-channel-shape-fidelity",
+  "title": "入口不再把非 Ozon 渠道当 Ozon：参数定义不被削平，就绪账本按渠道算",
+  "problem": "两处入口把所有渠道当 Ozon 处理。(1) api/listing/products/update.ts 把类目参数定义统一过一遍 Ozon 属性归一化——WB 定义的 multiple 与 existNamedField 被丢掉，还被凭空补上 description/type/dictionary_id；multiple 决定该特征提交时走不走数组，丢了它多值特征会被当标量提交。同一个 channelContext.wb.subjectCharacteristics 槽因此有两种形状：选类目时写残缺版，submitWbChannelDraft 提交时写完整版。(2) server/listing/readiness.ts 无论什么渠道都用 buildOzonListingDraft + normalizeOzonPublishValidation 计算，并写死 updateDraftReadiness(..., 'ozon', ...)；调用方包括每次打开工作台的 workspace-detail 与每次保存的 update，于是 WB 商品持续往 Ozon 账本写 Ozon 口径的就绪结论。",
+  "expectedOutcome": "参数定义按渠道归一，WB 的 multiple/existNamedField 原样保留、不补 Ozon 专属字段；就绪账本按当前渠道计算并写入对应 channel 行。Ozon 两条路径逐字节不变。",
+  "decisions": [
+    "归一化挂到既有的 category-definitions registry：那里已经按渠道收口了「选定之后要填什么」的加载，形状归一是同一件事的另一半，不该留在入口。",
+    "就绪快照同样用穷尽 Record<Channel, …>：Ozon 走 buildOzonListingDraft + normalizeOzonPublishValidation，WB 走 buildWbListingDraft 并把 draft.validation 与 computeDraftReadiness(product,'wb') 合并——后者的合并逻辑此前只存在于 channel-draft/wb.ts，抽出来两处共用，不抄第二份。",
+    "refreshDraftReadiness 加 channel 参数，缺省 Ozon：update 与 workspace-detail 传真实渠道（前者已有，后者由客户端带 query 参数）。blueprint.ts 与 tasks/enqueue.ts 暂留缺省——任务链目前整体是 Ozon 口径，改它们要连带任务链，另案。",
+    "api/listing/products/update.ts 与 server/listing/category-definitions.ts 分别在我已持有的 qingpu-category-identity-validity（已过期释放）与 qingpu-category-definition-loaders 租约内；后者因并行 studio 会话留有脏文件而无法 finish，10:42 过期。文件由我独占，编辑安全；契约归属待租约清理后补记。"
+  ],
+  "constraints": [
+    "Ozon 逐字节不变：同样的归一化输出、同样的就绪快照、同样写 'ozon' 行",
+    "不在入口写渠道 if/switch，走穷尽 Record",
+    "WB 的 multiple/existNamedField 必须原样保留，且不得补 Ozon 专属字段",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行 studio 会话的改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/readiness.ts",
+        "server/listing/channel-draft/wb.ts",
+        "api/listing/products/workspace-detail.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailLoader.ts",
+        "tests/channel-shape-fidelity.test.ts"
+      ],
+      "claims": [
+        "server/listing/readiness.ts",
+        "server/listing/channel-draft/wb.ts",
+        "api/listing/products/workspace-detail.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailLoader.ts",
+        "tests/channel-shape-fidelity.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 参数定义按渠道归一：WB 保留 multiple/existNamedField，不出现 description/type/dictionary_id。",
+    "B Ozon 的归一化输出与改动前逐字节一致。",
+    "C 就绪快照按渠道计算，WB 用 buildWbListingDraft 并合并 draft.validation。",
+    "D 账本写入当前渠道的行；缺省仍是 ozon。",
+    "E channel-draft/wb.ts 与 readiness.ts 共用同一份合并逻辑，不存在第二份实现。",
+    "F 红绿验证；主题全量测试与 check:qingpu-all 全绿；服务端类型错误不超过既有基线。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/channel-shape-fidelity.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "blueprint.ts 与 tasks/enqueue.ts 的账本渠道（任务链整体 Ozon 口径，另案）",
+    "publish.confirm.ts 不支持 WB（响亮失败，发布链另案）",
+    "helpers.ts 的第二份渠道名册",
+    "WB 变体映射（外部规则未确认）"
+  ]
+}
