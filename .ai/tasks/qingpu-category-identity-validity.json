@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-identity-validity",
+  "title": "类目定位合法性按渠道判定，WB 应用类目不再报 patch is empty",
+  "problem": "WB 工作台点「应用类目」返回 400 patch is empty。api/listing/products/update.ts:258 的守卫是 `categoryId > 0 && typeId > 0`，而 WB 只有 subjectID 一维、typeId 恒为 0，整个 category 分支被跳过，patch 留空后被判空报错。该行来自 df7c207（2026-07-19），是存量 bug，只是此前 WB 推荐一直为空、走不到应用这一步才没暴露。",
+  "expectedOutcome": "「(categoryId, typeId) 对该渠道是否是合法类目定位」成为 CategoryChannelSource 的一个钩子：Ozon 仍要求两维都为正，WB 要求 typeId 为 0。update.ts 用该钩子判定，Ozon 行为逐字节不变。",
+  "decisions": [
+    "判定落在新模块 server/listing/category-identity.ts，用穷尽 Record<Channel, …>，而不是在 update.ts 里写 if (channel === 'wb')：入口散渠道 if 是 AGENTS.md §4.0 明令禁止的。",
+    "不复用 category-learning/channel-sources 的 CategoryChannelSource：update.ts 是 api 层入口校验，不做类目学习；让入口去 import 学习模块的候选来源接口是分层味道不对。「类目定位的形状」是渠道事实，独立于「候选从哪来」。",
+    "不把守卫放宽成 typeId >= 0 了事：那会让 Ozon 也接受 typeId=0，而 Ozon 的两维定位缺一不可，放宽等于把一类真实错误放进库。",
+    "不进 engine：这是网页侧入口校验，engine 改动要走跨仓发布链；但「类目定位合法性」确实是三端口径，登记债务待 engine 收口。",
+    "渠道解析（KNOWN_CHANNELS 校验 + 缺省 Ozon）从 update.ts 搬进新模块：入口不该各自持有一份收敛逻辑。上一轮的 category-selection-channel.test.ts 把这段钉在了 update.ts 里，性质仍成立但落点变了，同轮修正断言指向新家——留着红测试或改断言却不说明，都是把「实现搬家」伪装成「测试本来就该这样」。"
+  ],
+  "constraints": [
+    "Ozon 行为逐字节不变：仍要求 categoryId > 0 且 typeId > 0",
+    "不在入口写渠道 if/switch，走既有 registry",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行会话改动（pages/user/{agent,billing,dashboard,promo,stats}.vue），只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/category-identity.ts",
+        "api/listing/products/update.ts",
+        "tests/category-identity-validity.test.ts",
+        "tests/category-selection-channel.test.ts"
+      ],
+      "claims": [
+        "server/listing/category-identity.ts",
+        "api/listing/products/update.ts",
+        "tests/category-identity-validity.test.ts",
+        "tests/category-selection-channel.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 新模块以穷尽 Record<Channel, …> 定义各渠道的类目定位合法性，缺渠道当场不编译。",
+    "B update.ts 用该判定，不出现渠道 if/switch。",
+    "C WB 的 (subjectId>0, typeId=0) 判为合法，应用类目不再落空。",
+    "D Ozon 的 (id>0, typeId>0) 仍合法，(id>0, typeId=0) 仍非法。",
+    "E 红绿验证；主题全量测试与 check:qingpu-all 全绿；服务端类型错误不超过 43 条基线。",
+    "F category-selection-channel.test.ts 的两条断言改指新模块，仍然验证同一性质（渠道值经 engine 全集校验、兼容缺省只有一处且落 Ozon）。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/category-identity-validity.test.ts"
+    },
+    {
+      "name": "主题全量与全闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all"
+    }
+  ],
+  "outOfScope": [
+    "submitChannelDraft 的 Ozon 硬编码（下一堵墙，另案）",
+    "商品行单类目槽的数据模型问题（需要判层级）",
+    "类目定位合法性收口进 engine（跨仓发布，登记债务）",
+    "category-learning 内部的 categoryTypeDimension（渠道无关的 >=0 判定）改用本模块——那几个文件被未完成的 qingpu-category-learning-channel-purity 租约占着，另案"
+  ]
+}

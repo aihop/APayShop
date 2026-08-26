@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-category-selection-persistence",
+  "title": "类目选择按渠道落槽，WB 品类锁定不再永远为空",
+  "problem": "选中 WB 类目并应用后，submitWbChannelDraft 仍报「WB 品类未锁定」。写入侧 queries.workspace.ts 的 patch.category 分支无论当前是哪个渠道，都只写 categoryHints.selectedOzonCategoryId/selectedOzonCategoryName 与 channelContext.ozon。engine 类型里声明了 selectedWbSubjectId/selectedWbSubjectName 与 channelContext.wb、WB 提交器也在读它们，但全仓没有任何一处写入——grep 只有类型声明与读取方。",
+  "expectedOutcome": "类目选择写进当前渠道自己的槽：Ozon 仍写 selectedOzonCategoryId/Name 与 channelContext.ozon（逐字节不变），WB 写 selectedWbSubjectId/Name 与 channelContext.wb。WB 换品类时清掉上一品类的 subjectCharacteristics，避免带着已下线的 charcID 建卡。",
+  "decisions": [
+    "落槽用穷尽 Record<Channel, …> 而不是 if (channel === 'wb')：入口散渠道分支是 AGENTS.md §4.0 明令禁止的，且加第三个渠道时必然漏。",
+    "不动数据模型：categoryHints 与 channelContext 在 engine 类型里本来就是按渠道分开的槽，缺的只是写入。商品行上 category_id/category_type_id 的单槽问题是另一件事，本轮不碰。",
+    "佣金匹配把写死的 getCommissionMatcher('ozon') 改成按当前渠道取：该函数本来就是注册表，WB 暂无费率数据会返回 null，走既有的未匹配分支，不需要为此编造费率。",
+    "ozonSelectionMeta 保持原样不为 WB 镜像：全仓 grep 只有这一处写、无人读，是死键；本轮不给它加第二份。",
+    "api/listing/products/update.ts 的改动在我已持有的 qingpu-category-identity-validity 租约 claims 内完成——该租约因契约在租期内被改过而无法 finish，01:30 过期。文件由我独占，编辑安全；契约归属待租约清理后补记。"
+  ],
+  "constraints": [
+    "Ozon 写入逐字节不变：同样的键、同样的值、同样的佣金匹配结果",
+    "不在写入点写渠道 if/switch，走穷尽 Record",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行会话改动（pages/user/{agent,billing,dashboard,promo,stats}.vue），只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/queries.workspace.ts",
+        "tests/wb-category-selection-persistence.test.ts"
+      ],
+      "claims": [
+        "server/listing/queries.workspace.ts",
+        "tests/wb-category-selection-persistence.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 落槽表是穷尽 Record<Channel, …>，缺渠道当场不编译。",
+    "B WB 应用类目后 categoryHints.selectedWbSubjectId/Name 与 channelContext.wb 有值。",
+    "C WB 换品类时上一品类的 subjectCharacteristics 被清掉。",
+    "D Ozon 的键、值与佣金匹配逐字节不变。",
+    "E 红绿验证；主题全量测试与 check:qingpu-all 全绿；服务端类型错误不超过 43 条基线。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/wb-category-selection-persistence.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "商品行 category_id/category_type_id 单槽（需要判层级，另案）",
+    "WB 佣金与物流费率（外部事实未确认，不猜）",
+    "ozonSelectionMeta 死键清理"
+  ]
+}

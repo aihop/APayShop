@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-definition-loaders",
+  "title": "服务端类目参数定义加载器按渠道注册，入口不写渠道分支",
+  "problem": "选类目时要拉「该类目要填哪些参数」的平台定义并落库：Ozon 走 loadOzonCategoryResourcesForUser（带规格轴字典），WB 走 loadWbSubjectCharacteristics（无平台字典）。两者签名与返回形状不同，直接在 api/listing/products/update.ts 里按渠道 if 分支是 AGENTS.md §4.0 明令禁止的入口渠道分发，且加第三个渠道时必然漏。客户端已有 ListingCategoryProvider.loadAttributes 这一层按渠道分叉，服务端缺对应的一层。",
+  "expectedOutcome": "新增服务端类目定义加载器注册表，穷尽 Record<Channel, …>，把「拉定义」这件事收口成一个调用。入口只问注册表要，不认识渠道。Ozon 的拉取参数（withAspectDictionaries）与返回内容逐字节不变。",
+  "decisions": [
+    "单独成模块 server/listing/category-definitions.ts，不塞进 category-identity.ts：后者是零依赖的纯判定模块，塞进来会让它 import ozon-catalog 与 wb-catalog 两个重依赖。",
+    "不复用 category-learning/channel-sources：那一层服务的是推荐候选召回，不是「已选定类目要填哪些参数」。",
+    "返回统一形状 { attributes, dictionaryValues }：WB 没有平台字典表，dictionaryValues 恒为空对象——这是事实，不是缺省占位。",
+    "fail-soft 由调用方保持：拉不到只落类目标识，不因外部接口抖动挡住选类目。加载器本身如实抛，不吞错。"
+  ],
+  "constraints": [
+    "Ozon 行为逐字节不变：同样调 loadOzonCategoryResourcesForUser 且 withAspectDictionaries: true",
+    "穷尽 Record<Channel, …>，缺渠道当场不编译",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有两个并行会话的改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/category-definitions.ts",
+        "tests/category-definition-loaders.test.ts"
+      ],
+      "claims": [
+        "server/listing/category-definitions.ts",
+        "tests/category-definition-loaders.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 加载器表是穷尽 Record<Channel, …>。",
+    "B Ozon 加载器仍带 withAspectDictionaries: true。",
+    "C WB 加载器返回官方特征定义，dictionaryValues 为空对象。",
+    "D update.ts 不再出现渠道 if 分支。",
+    "E 红绿验证；主题全量测试与 check:qingpu-all 全绿。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/category-definition-loaders.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": ["WB 多规格变体映射", "类目参数的人工编辑 UI"]
+}
