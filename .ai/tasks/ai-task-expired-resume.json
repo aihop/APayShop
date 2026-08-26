@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "ai-task-expired-resume",
+  "title": "为 AI 任务契约增加显式过期现场恢复",
+  "problem": "任务租约过期后，原脚本会拒绝 claims 内已有现场改动；没有受限恢复命令，无法在用户明确确认后继续同一任务。",
+  "expectedOutcome": "新增显式 resume 流程，只接纳同一契约 claims 内已有改动，保留范围校验、租约冲突校验和验证报告约束；普通 prepare 行为不变。",
+  "constraints": [
+    "不手改 .tmp/ai-tasks 运行态，不删除或覆盖业务改动",
+    "resume 必须要求显式确认串，只能恢复同一契约，不能扩大 claims 或 allowedPaths",
+    "claims 外既有并行改动保留为恢复前现场，恢复后新增的越界改动仍必须阻断",
+    "不提交、不推送、不发布、不执行生产迁移"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "scripts/ai-task.mjs",
+        "scripts/ai-task-flow.mjs",
+        "scripts/ai-task.selftest.mjs",
+        ".ai/README.md",
+        "docs/ai/task-contract.md"
+      ],
+      "claims": [
+        "scripts/ai-task.mjs",
+        "scripts/ai-task-flow.mjs",
+        "scripts/ai-task.selftest.mjs",
+        ".ai/README.md",
+        "docs/ai/task-contract.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "普通 prepare 仍拒绝 claims 内已有脏改动",
+    "resume 需要精确确认串并拒绝活动租约冲突",
+    "resume 只接纳 claims 内已有改动，允许 claims 外既有并行改动保留",
+    "恢复后的 verify 能识别已接纳改动并继续执行范围与报告校验",
+    "ai-task 自测覆盖 resume 成功与错误确认边界"
+  ],
+  "verification": [
+    {
+      "name": "AI 任务流程自测",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run ai:selftest"
+    },
+    {
+      "name": "恢复流程格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- scripts/ai-task.mjs scripts/ai-task-flow.mjs scripts/ai-task.selftest.mjs .ai/README.md docs/ai/task-contract.md"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ const invalidContractPath = join(fixtureRoot, 'invalid.json')
 const taskId = `ai-task-selftest-${process.pid}`
 const conflictTaskId = `${taskId}-conflict`
 const expiredTaskId = `${taskId}-expired`
+const resumeTaskId = `${taskId}-resume`
 const runtimeRoot = join(workspaceRoot, '.tmp', 'ai-tasks')
 
 const run = (args, options = {}) => spawnSync(process.execPath, [cliPath, ...args], {
@@ -167,13 +168,26 @@ try {
   if (expired.status !== 2 || !expired.stderr.includes('租约已过期')) {
     throw new Error(`过期租约未被正确阻断：${expired.stderr || expired.stdout}`)
   }
-  console.log('✓ ai-task 端到端自测通过：契约锁定、租约冲突、范围验证、报告失效、过期清理与释放均正常')
+
+  const resumeContract = { ...contract, id: resumeTaskId }
+  writeFileSync(contractPath, `${JSON.stringify(resumeContract, null, 2)}\n`)
+  writeFileSync(join(repoPath, 'allowed.txt'), 'before\nafter\nresume\n')
+  const badResume = run(['resume', '--contract', contractPath, '--agent', 'selftest-ai', '--confirm', `RESUME:${taskId}`])
+  if (badResume.status !== 2 || !badResume.stderr.includes(`RESUME:${resumeTaskId}`)) {
+    throw new Error(`resume 未拒绝错误确认串：${badResume.stderr || badResume.stdout}`)
+  }
+  expectSuccess(runFlow(['resume', '--contract', contractPath, '--agent', 'selftest-ai', '--confirm', `RESUME:${resumeTaskId}`]), 'resume')
+  expectSuccess(run(['verify', '--contract', contractPath]), 'resume verify')
+  expectSuccess(runFlow(['complete', '--contract', contractPath, '--agent', 'selftest-ai']), 'resume complete')
+  console.log('✓ ai-task 端到端自测通过：契约锁定、租约冲突、范围验证、报告失效、过期清理、显式 resume 与释放均正常')
 } finally {
   rmSync(join(runtimeRoot, 'lease-write.lock'), { recursive: true, force: true })
   rmSync(join(runtimeRoot, 'leases', `${taskId}.json`), { force: true })
   rmSync(join(runtimeRoot, 'leases', `${conflictTaskId}.json`), { force: true })
   rmSync(join(runtimeRoot, 'leases', `${expiredTaskId}.json`), { force: true })
+  rmSync(join(runtimeRoot, 'leases', `${resumeTaskId}.json`), { force: true })
   rmSync(join(runtimeRoot, 'reports', `${taskId}.json`), { force: true })
   rmSync(join(runtimeRoot, 'reports', `${expiredTaskId}.json`), { force: true })
+  rmSync(join(runtimeRoot, 'reports', `${resumeTaskId}.json`), { force: true })
   rmSync(fixtureRoot, { recursive: true, force: true })
 }

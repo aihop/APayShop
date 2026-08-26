@@ -276,6 +276,7 @@ if (!command || command === 'help') {
   console.log(`用法：
   node scripts/ai-task.mjs validate --contract <path>
   node scripts/ai-task.mjs start --contract <path> --agent <name> [--ttl 120] [--dry-run]
+  node scripts/ai-task.mjs resume --contract <path> --agent <name> --confirm RESUME:<task-id> [--ttl 120] [--dry-run]
   node scripts/ai-task.mjs status [--task <id>]
   node scripts/ai-task.mjs verify --contract <path> [--all] [--dry-run]
   node scripts/ai-task.mjs finish --contract <path> --agent <name>`)
@@ -337,6 +338,58 @@ if (command === 'start') {
   process.exit(0)
 }
 
+if (command === 'resume') {
+  const agent = String(args.agent || '').trim()
+  const confirmation = String(args.confirm || '').trim()
+  const expectedConfirmation = `RESUME:${contract.id}`
+  if (!agent) fail('resume 缺少 --agent <name>')
+  if (confirmation !== expectedConfirmation) {
+    fail(`resume 需要精确确认串：--confirm ${expectedConfirmation}`, 2)
+  }
+  withLeaseWriteLock(() => {
+    const activeLeases = readActiveLeases()
+    const sameTaskLease = activeLeases.find(lease => lease.taskId === contract.id)
+    if (sameTaskLease) {
+      fail(`任务 ${contract.id} 已由 ${sameTaskLease.agent} 持有有效租约，不能 resume`, 2)
+    }
+    const conflicts = findLeaseConflicts(contract, activeLeases)
+    if (conflicts.length) fail(`文件租约冲突：\n  - ${conflicts.join('\n  - ')}`, 2)
+    const repositories = buildSnapshot(contract)
+    const claimedChanges = repositories.flatMap(repo => repo.preexistingChanges
+      .filter(path => repo.claims.some(claim => claimContains(claim, path)))
+      .map(path => `${repo.name}:${path}`))
+    const requestedTtl = Number(args.ttl || 120)
+    if (!Number.isFinite(requestedTtl) || requestedTtl <= 0) fail('--ttl 必须是正数分钟')
+    const ttlMinutes = Math.max(5, Math.ceil(requestedTtl))
+    const lease = {
+      schemaVersion: 1,
+      taskId: contract.id,
+      title: contract.title,
+      contractPath: relative(workspaceRoot, contractPath),
+      contractDigest: sha256(readFileSync(contractPath)),
+      agent,
+      createdAt: Date.now(),
+      resumedAt: Date.now(),
+      resumeConfirmation: confirmation,
+      expiresAt: Date.now() + ttlMinutes * 60 * 1000,
+      repositories,
+      resume: {
+        acceptedClaimChanges: claimedChanges,
+        preservedPreexistingChanges: repositories.flatMap(repo => repo.preexistingChanges
+          .filter(path => !repo.claims.some(claim => claimContains(claim, path)))
+          .map(path => `${repo.name}:${path}`)),
+      },
+    }
+    if (args['dry-run']) console.log(JSON.stringify(lease, null, 2))
+    else {
+      rmSync(reportPathFor(contract.id), { force: true })
+      writeJson(leasePathFor(contract.id), lease)
+      console.log(`✓ 已恢复任务租约：${contract.id}（${agent}，${ttlMinutes} 分钟；已接纳 ${claimedChanges.length} 个 claims 现场改动）`)
+    }
+  })
+  process.exit(0)
+}
+
 if (command === 'verify') {
   const leasePath = leasePathFor(contract.id)
   const lease = existsSync(leasePath) ? readJson(leasePath) : null
@@ -355,9 +408,12 @@ if (command === 'verify') {
     const changed = snapshot ? getChangedPaths(resolveRepoPath(repo), snapshot.head) : []
     changedByRepo.set(repo.name, changed)
     if (snapshot) {
+      const resumedClaimChanges = new Set(lease?.resume?.acceptedClaimChanges
+        ?.filter(path => path.startsWith(`${repo.name}:`))
+        .map(path => path.slice(repo.name.length + 1)) || [])
       taskChangedByRepo.set(repo.name, changed.filter(path =>
         repo.claims.some(claim => claimContains(claim, path))
-        && !snapshot.preexistingChanges.includes(path)))
+        && (!snapshot.preexistingChanges.includes(path) || resumedClaimChanges.has(path))))
       const newlyOutOfScope = changed.filter(path =>
         !repo.allowedPaths.some(allowed => claimContains(allowed, path))
         && !snapshot.preexistingChanges.includes(path))

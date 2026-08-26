@@ -54,16 +54,17 @@ npm run ai:complete -- --contract .ai/tasks/<task>.json --agent <name>
 
 ## 6. 中断、过期与恢复
 
-当前脚本支持过期清理，但**不支持 `abort/renew/resume/recover`**：
+当前脚本支持过期清理；在显式恢复能力启用后支持受限 `resume`，但仍不支持 `abort/renew/recover`：
 
 - 租约有效：继续工作并直接执行 `ai:complete`，不要重复 prepare。
 - 即将过期：优先到期前完成；当前没有续租命令，不手改 lease JSON。
 - 已过期且 claims 干净：确认没有新冲突后，可通过一份经批准的新契约重新开工。
 - 已过期且 claims 有改动：保持现场，停止继续修改并报告；新任务也会因 claims 已脏而拒绝开工，不要提交未验证改动、伪造新基线或扩大 claims 绕过。
+- 用户明确确认同一契约后，可执行 `node scripts/ai-task-flow.mjs resume --contract <path> --agent <name> --confirm RESUME:<task-id>`。`resume` 只把当前 claims 内已有路径登记为恢复前现场，保存确认串和摘要；claims 外已有并行改动同样保留为恢复前现场，恢复后新增越界改动仍由 `verify` 阻断。确认串不匹配、活动租约冲突或契约摘要变化时必须拒绝。
 - 验证失败：在范围内修复后重跑；根因要求扩围时重新审批。
 - agent 无法继续：报告已改文件、未完成项和验证状态，未经用户决定不宣称完成。
 
-`abort/renew/resume/recover` 只有在脚本、自测和本文同时更新后才算可用。
+`resume` 只有在脚本、自测和本文同时更新后才算可用；`abort/renew/recover` 仍不可用。
 
 ## 7. 跨仓与完成定义
 

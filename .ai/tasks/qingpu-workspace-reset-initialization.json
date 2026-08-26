@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-workspace-reset-initialization",
+  "title": "修复加工工作区初始化报错",
+  "problem": "进入加工工作区时，WorkspaceShell 在 resetCategoryPicker 初始化前将其传入 useWorkspaceDetailLoader，SSR 触发暂时性死区并返回 500。",
+  "expectedOutcome": "加工工作区可正常完成 SSR 和客户端渲染，不再出现初始化 ReferenceError 或后续模板渲染异常。",
+  "constraints": [
+    "只调整 WorkspaceShell 的初始化顺序接缝",
+    "不改变加工流程、渠道逻辑、数据写入或公共接口",
+    "不覆盖其他任务改动，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WorkspaceShell setup 不在 resetCategoryPicker 初始化前读取该绑定",
+    "加工工作区 SSR 不再返回 Cannot access resetCategoryPicker before initialization",
+    "工作区中立性守卫与 Nuxt 类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "工作区中立性守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-workspace-shell-neutrality.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ],
+  "outOfScope": [
+    "加工业务流程重构",
+    "渠道或任务执行逻辑修改",
+    "生产发布与数据变更"
+  ]
+}

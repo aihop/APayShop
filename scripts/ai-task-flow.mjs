@@ -19,6 +19,7 @@ if (!phase || phase === 'help') {
   console.log(`用法：
   node scripts/ai-task-flow.mjs check --contract <path>
   node scripts/ai-task-flow.mjs prepare --contract <path> --agent <name> [--ttl 120]
+  node scripts/ai-task-flow.mjs resume --contract <path> --agent <name> --confirm RESUME:<task-id> [--ttl 120]
   node scripts/ai-task-flow.mjs complete --contract <path> --agent <name>`)
   process.exit(0)
 }
@@ -35,6 +36,14 @@ if (phase === 'prepare') {
   run('start', ...args, '--dry-run')
   run('start', ...args)
   console.log('✓ 开工准备完成；AI 现在只能修改契约 claims 中的路径')
+  process.exit(0)
+}
+
+if (phase === 'resume') {
+  run('validate', ...args)
+  run('resume', ...args, '--dry-run')
+  run('resume', ...args)
+  console.log('✓ 过期任务现场恢复完成；AI 现在只能修改契约 claims 中的路径')
   process.exit(0)
 }
 

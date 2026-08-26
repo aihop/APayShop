@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-wb-category-picker-ux",
+  "title": "WB 类目选择器：标题去 Ozon 化 + 空态引导 + 俄语搜索提示",
+  "problem": "WB 工作台的类目选择器有两个用户可见问题。一、标题写死「Ozon 类目」（locales 的 editor.category 三语都带平台名），WB 下显示错的平台。二、打开就是空的且没有任何解释：Ozon 的整树由规则包下发、打开即可浏览，WB 有 7000+ 品类只能在线搜，searchWbSubjects 遇空关键词直接 return []。更要命的是实测确认 WB 官方接口**只认俄语**——英文 cable 与中文「数据线」都返回 0 条且不报错，用户输了中文只会看到「没有结果」，无从知道要换语言。搜索框 placeholder 还是 Ozon 的「搜索类目(如:滑板配件)」，对 WB 是误导。",
+  "expectedOutcome": "选择器标题按渠道显示（取 engine 的 CHANNEL_LABELS，不写死平台名）；不支持整树的渠道在未输入时显示引导而非空白，明确说明要输俄语关键词并给可复制的例子；搜索框 placeholder 按渠道给；「Ozon适配」徽标只在 Ozon 下出现。Ozon 的选择器行为与文案逐字节不变。",
+  "decisions": [
+    "俄语限制是实测的外部事实，不是猜测：2026-08-25 用真实 token 打 content/v2/object/all，俄语 кабель 返回 5 条，英文 cable 与中文「数据线」各返回 0 条且 HTTP 200 无报错。所以引导必须明确说「输俄语」，并给一个可直接粘贴的例子。",
+    "标题取 CHANNEL_LABELS 而非新增三语文案：渠道显示名的单一事实源在 engine 的 Manifest，主题再存一份必然漂移。文案键改为渠道无关的模板（如「{channel} 类目」），由组件填入 label。",
+    "空态引导挂在 supportsTree=false 这个既有能力位上，不写 if (channel === 'wb')：这个位本来就表达「该渠道没有可浏览的整树」，未输入时该给什么正是它的直接推论。",
+    "Ozon 逐字节不变：它的标题从「Ozon 类目」变成模板填充后仍是「Ozon 类目」，placeholder 与整树浏览行为一行不动。",
+    "不改后端：searchWbSubjects 对空关键词返回空是对的（避免无意义的全量请求撞账号级限流），问题在于前端没解释这件事。"
+  ],
+  "constraints": [
+    "Ozon 的选择器文案与行为逐字节不变（标题渲染结果仍是「Ozon 类目」）",
+    "渠道差异走既有能力位 supportsTree，不在选择器里写渠道字面量",
+    "渠道显示名取 engine 的 CHANNEL_LABELS，主题不自维护第二份名表",
+    "三语齐全；俄语示例词必须是实测有结果的",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "两个工作区有并行会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/wb-category-picker-ux.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "locales/listing/zh.ts",
+        "locales/listing/en.ts",
+        "locales/listing/ru.ts",
+        "tests/wb-category-picker-ux.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 标题按渠道：文案键改为模板，组件用 CHANNEL_LABELS 填入；Ozon 渲染结果仍是「Ozon 类目」，WB 是「Wildberries 类目」。",
+    "B 空态引导：supportsTree=false 且搜索词为空时，显示「输入俄语关键词搜索品类」并给出实测有效的例子（кабель），不显示空白列表。",
+    "C 搜索框 placeholder 按渠道：Ozon 保持原文案逐字节不变，不支持整树的渠道给俄语提示。",
+    "D 「Ozon适配」徽标只在 Ozon 下渲染。",
+    "E 三语齐全，俄语示例词是实测有结果的。",
+    "F 红绿验证；主题全量测试与 check:qingpu-all 全绿（含 check-workspace-shell-neutrality），服务端 tsc 本任务文件零新增报错。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/wb-category-picker-ux.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": ["把中文/英文关键词翻译成俄语再搜（属新功能，需确认翻译链路与配额）", "WB 品类推荐（AI 推荐目前是 Ozon 专属）"]
+}

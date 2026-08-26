@@ -39,7 +39,7 @@
 
 - 租约有效：继续原任务，禁止重复 `ai:prepare` 重置基线。
 - 需要扩围：当前脚本不支持活动租约原地扩围或 `abort`。只有原范围本身能形成独立、真实、可验收结果时，才先 `ai:complete`，再新建契约并重新确认；否则保留现场、停止并报告，由用户决定如何处置。
-- 租约过期：claims 干净时可在确认无冲突后建立新契约；claims 已修改时必须保留现场并报告。当前脚本没有 `abort/renew/resume/recover`，不得手改运行态或伪造新基线继续。
+- 租约过期：claims 干净时可在确认无冲突后建立新契约；claims 已修改时必须保留现场并报告。用户明确确认恢复同一任务后，可执行 `node scripts/ai-task-flow.mjs resume --contract .ai/tasks/<task-id>.json --agent <name> --confirm RESUME:<task-id>`；该命令只登记 claims 内已有改动为恢复前现场，保留 claims 外并行改动，不得扩大契约范围或手改运行态。
 - 验证失败：只在现有 claims 内修复并重跑；根因超出范围时重新审批。
 - 并行提交或工作区变化使验证失效：保留他人改动，报告冲突并协调，不回退、不覆盖、不伪造通过。
 

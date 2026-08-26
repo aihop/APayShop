@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-studio-image-generation-p0",
+  "title": "打通 Qingpu Studio Ozon 商品图生成闭环",
+  "problem": "Studio 当前只完成项目、CreativeBrief 与策略规划，策略无法确认生成，缺少服务端冻结任务、子项账本、远程续领、失败重试、文字 QA 与项目结果恢复；现有项目聚合还会按 userId + productId 串入 Listing 资产和任务。",
+  "expectedOutcome": "用户在 Studio 项目内选择 Ozon 套图策略后，由服务端冻结 ImageGenerationTaskSpec，确认一次即创建幂等父任务与子项账本；任务可跨进程恢复、部分成功、单项重试并记录文字 QA，项目页可恢复完整执行状态和结果。",
+  "constraints": [
+    "P0 只支持 Ozon 商品图片套图，不在本任务实现单图编辑或商品视频专业链路",
+    "Prompt、模型参数、参考快照与任务规格只由服务端和共享 engine 决定，客户端不得提交或覆盖",
+    "不修改 qingpu-ai 源码或主题 vendor，不复制 engine 的任务规格和生成判定",
+    "Studio 执行器只写 qingpu_assets、qingpu_tasks、qingpu_task_items 与 Studio 项目状态，不写 Listing workspace 或渠道草稿",
+    "每个子项在远程提交前持久化 asyncSubmissionKey，收到 remoteTaskId 后立即持久化；未知状态必须续领，只有明确终态失败才轮换提交键",
+    "确认接口按 projectId + planId + strategyId + productRevision 幂等，客户端重试不得重复创建或扣费",
+    "当前没有权威图片单价或余额预留事实源，报价只返回任务数、配置摘要和 pricingUnavailable，不伪造金额或扣费成功",
+    "文字 QA 沿用 engine 的 ok、warn、failed，不能把审核失败伪装成 block",
+    "所有项目资产、任务和审核聚合按 meta.studioProjectId 或任务 payload.studioProjectId 隔离，不按 productId 猜归属",
+    "保留现有工作树中 Listing、WB、类目与账户页面的所有并行改动，不整理、不覆盖、不混提",
+    "不引入新依赖，不执行真实付费生成、生产迁移、提交、推送或部署"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "content/docs/18.qingpu-studio.md",
+        "content/zh/docs/18.qingpu-studio.md"
+      ],
+      "claims": [
+        "content/docs/18.qingpu-studio.md",
+        "content/zh/docs/18.qingpu-studio.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "database/tasks.sql",
+        "database/studio-projects.sql",
+        "server/assets/generation-attempts.ts",
+        "server/studio/types.ts",
+        "server/studio/queries.ts",
+        "server/studio/compliance.ts",
+        "server/studio/schema.ts",
+        "server/studio/generation.ts",
+        "server/studio/image-generation.ts",
+        "server/studio/index.ts",
+        "server/tasks/shared.ts",
+        "server/tasks/items.ts",
+        "server/tasks/studio.ts",
+        "server/tasks/executors.ts",
+        "server/tasks/index.ts",
+        "api/studio/projects/[id]/generation.ts",
+        "api/studio/projects/[id]/generation/retry.ts",
+        "pages/user/studio/types.ts",
+        "pages/user/studio/projects/[id].vue",
+        "locales/studio/zh.ts",
+        "locales/studio/en.ts",
+        "locales/studio/ru.ts",
+        "pages/user/creations.vue",
+        "scripts/check-studio-image-generation.mjs"
+      ],
+      "claims": [
+        "database/tasks.sql",
+        "database/studio-projects.sql",
+        "server/assets/generation-attempts.ts",
+        "server/studio/types.ts",
+        "server/studio/queries.ts",
+        "server/studio/compliance.ts",
+        "server/studio/schema.ts",
+        "server/studio/generation.ts",
+        "server/studio/image-generation.ts",
+        "server/studio/index.ts",
+        "server/tasks/shared.ts",
+        "server/tasks/items.ts",
+        "server/tasks/studio.ts",
+        "server/tasks/executors.ts",
+        "server/tasks/index.ts",
+        "api/studio/projects/[id]/generation.ts",
+        "api/studio/projects/[id]/generation/retry.ts",
+        "pages/user/studio/types.ts",
+        "pages/user/studio/projects/[id].vue",
+        "locales/studio/zh.ts",
+        "locales/studio/en.ts",
+        "locales/studio/ru.ts",
+        "pages/user/creations.vue",
+        "scripts/check-studio-image-generation.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "项目页可选择策略并展示服务端报价，明确可生成数量、阻断数量、模型配置与价格暂不可用",
+    "确认时服务端重新校验用户归属、Ozon 渠道、planId、strategyId、productRevision、Brief 与槽位证据，不信任客户端费用、Prompt 或模型参数",
+    "同一项目同一 plan 的重复确认复用同一父任务，执行中刷新页面可恢复任务及逐槽位状态",
+    "Studio 父任务逐项执行，成功项保留，失败项不回滚其他产物；全部失败为 failed，部分成功为 partial，全部生成后进入 QA 或 succeeded",
+    "每个槽位持久化稳定 planId、冻结 taskSpec、asyncSubmissionKey、remoteTaskId、产物 assetId/URL 与 reviewStatus，进程中断后不会重复提交付费任务",
+    "失败槽位可单独重试；未知远程状态继续轮询原任务；明确终态失败后才生成新的 asyncSubmissionKey",
+    "生成资产以 generated-plan:<planId> 为稳定身份并带 studioProjectId、strategyPlanId、strategyId、studioTaskId、itemKey 元数据，不写 Listing workspace",
+    "文字 QA 更新子项 reviewStatus 为 ok、warn 或 failed；项目页可查看结果、下载、失败原因与重试状态",
+    "Studio 项目摘要、详情与合规只聚合本项目资产和任务，不串入同商品的 Listing 或其他 Studio 项目数据",
+    "项目成功状态使用 succeeded，并兼容读取历史 completed；项目列表、详情和状态筛选正常",
+    "我的创作空态入口指向真实的 /user/studio，不再链接不存在的 /studio/create",
+    "专项守卫、表所有权检查、Nuxt 类型检查和正式构建通过"
+  ],
+  "verification": [
+    {
+      "name": "Studio 图片生成闭环专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-studio-image-generation.mjs"
+    },
+    {
+      "name": "主题表所有权与格式检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-table-ownership.mjs && git diff --check"
+    },
+    {
+      "name": "APay Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "APay 正式构建",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run build"
+    }
+  ]
+}

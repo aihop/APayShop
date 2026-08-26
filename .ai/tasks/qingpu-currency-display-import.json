@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-currency-display-import",
+  "title": "修复 Qingpu 金额展示 composable 未定义",
+  "problem": "Qingpu 的 billing、stats、promo、agent 和 dashboard 页面调用主题私有 composable useQingpuCurrencyDisplay，但没有显式导入；该目录不在 Nuxt 默认 composable 自动扫描范围内，运行时因此抛出 useQingpuCurrencyDisplay is not defined。",
+  "expectedOutcome": "所有调用 useQingpuCurrencyDisplay 的页面都从主题 composables 目录显式导入它，页面渲染时不再出现未定义错误。",
+  "constraints": [
+    "只补充缺失导入，不修改金额格式、币种换算或页面业务逻辑",
+    "不触碰当前工作区中 Listing 相关的并行改动",
+    "不引入依赖，不执行提交、推送或发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/billing.vue",
+        "pages/user/stats.vue",
+        "pages/user/promo.vue",
+        "pages/user/agent.vue",
+        "pages/user/dashboard.vue"
+      ],
+      "claims": [
+        "pages/user/billing.vue",
+        "pages/user/stats.vue",
+        "pages/user/promo.vue",
+        "pages/user/agent.vue",
+        "pages/user/dashboard.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "仓库内每个 useQingpuCurrencyDisplay 调用点都有可解析的显式导入",
+    "五个受影响页面不再产生 useQingpuCurrencyDisplay 未定义错误",
+    "金额展示逻辑和现有页面行为保持不变"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 金额 composable 导入检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "for file in pages/user/billing.vue pages/user/stats.vue pages/user/promo.vue pages/user/agent.vue pages/user/dashboard.vue; do rg -q \"import \\{ useQingpuCurrencyDisplay \\} from '~/themes/qingpu/composables/useQingpuCurrencyDisplay'\" \"$file\" && rg -q 'useQingpuCurrencyDisplay\\(\\)' \"$file\" || exit 1; done"
+    },
+    {
+      "name": "Qingpu 金额页面定向类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/nuxt typecheck 2>&1 | tee /tmp/qingpu-currency-display-typecheck.log; test ! -s /tmp/qingpu-currency-display-typecheck.log || ! rg -n 'app/themes/qingpu/pages/user/(billing|stats|promo|agent|dashboard)\\.vue' /tmp/qingpu-currency-display-typecheck.log"
+    },
+    {
+      "name": "Qingpu 金额页面差异格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/user/billing.vue pages/user/stats.vue pages/user/promo.vue pages/user/agent.vue pages/user/dashboard.vue"
+    }
+  ]
+}

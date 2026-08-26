@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-publish-stopgap-fixes",
+  "title": "发布链路与云同步止血批",
+  "problem": "发布驱动抛错时底部队列行永远停在发布中 30%；Ozon 驱动残留临时干跑代码且唯一的逐 item 字段校验只在干跑函数里，正式路径不跑；本地删除的商品从不通知云端，增量拉取会把它们从云端复活；lite 的先行内容准备仍调用两个已被掏空的翻译阶段，什么都不做却报成功；GET_STOCK/UPDATE_STOCK/UPDATE_PRICES 三个 handler 与底层函数全仓无调用方，其中 batchUpdatePrices 不带 currency_code 也不走 formatPublishPrice 单点，是带货币事故隐患的死代码。",
+  "expectedOutcome": "发布驱动异常时队列行收敛为发布失败并上报；干跑残留删除、逐 item 基础字段校验提升为正式提交前的按商品拦截；用户在 dash/后台删除商品后云端软删对应行，不再复活；lite 先行内容准备收敛为一次云端统一准备调用（按任务策略逐步骤门控），空壳阶段删除；三个死 handler 与三个死函数删除。",
+  "constraints": [
+    "不改变发布结果对象结构与既有消息协议的成功语义，仅删除零调用方的 GET_STOCK/UPDATE_STOCK/UPDATE_PRICES 三个 action",
+    "删除传播必须 fail-soft：云端不可用不阻断本地删除主流程",
+    "云端 tombstone 驱动的本地删除（cloud-pull-workflow）不得回传删除通知形成回声",
+    "逐 item 校验按商品边界拦截，不因单个商品字段问题拖垮整批",
+    "不修改 popup（债务地图待产品拍板区域）；popup 删除入口的传播留作后续",
+    "不引入新依赖、不新增 storage 根键"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/handlers/publish.ts",
+        "src/app/handlers/ozon.ts",
+        "src/app/handlers/products.ts",
+        "src/app/handlers/context.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/shared/pipeline/stock-manager.ts",
+        "src/app/workflows/image-processing-workflow.ts",
+        "src/app/workflows/cloud-deletion-workflow.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "entrypoints/dash/composables/useDashSelection.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/ozon-driver-submission.test.ts",
+        "tests/cloud-deletion-propagation.test.ts"
+      ],
+      "claims": [
+        "src/app/handlers/publish.ts",
+        "src/app/handlers/ozon.ts",
+        "src/app/handlers/products.ts",
+        "src/app/handlers/context.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/shared/pipeline/stock-manager.ts",
+        "src/app/workflows/image-processing-workflow.ts",
+        "src/app/workflows/cloud-deletion-workflow.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "entrypoints/dash/composables/useDashSelection.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/ozon-driver-submission.test.ts",
+        "tests/cloud-deletion-propagation.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "publishProductsToChannel 抛异常时每个商品的队列行收到发布失败进度且 handler 返回失败响应",
+    "ozon-driver 不再包含 OZON_PUBLISH_DRY_RUN 与 logOzonImportRequestForReview；等价的逐 item 基础字段校验在正式路径的 write-ahead 之前执行，问题商品按商品边界进 failedProducts 并附原因",
+    "dash 批量删除与后台 DELETE_PRODUCT/DELETE_PRODUCTS、采集删旧建新路径删除商品后调用 syncListingDeletions；云端拉取的 tombstone 删除不回传",
+    "lite translateTextFirst 只调用一次云端统一内容准备；runFactTranslationStage/runListingCopyStage 空壳导出删除",
+    "GET_STOCK/UPDATE_STOCK/UPDATE_PRICES 三个 action 与 fetchProductStocks/updateProductStocks/batchUpdatePrices 三个函数删除，updateStocksByOfferId 等在用函数不受影响",
+    "typecheck、相关 vitest、扩展构建、分层守卫全部通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查与相关测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/channel-publish-handler.test.ts tests/ozon-driver-submission.test.ts tests/ozon-publish.test.ts tests/ozon-stock-manager.test.ts tests/cloud-deletion-propagation.test.ts"
+    },
+    {
+      "name": "分层守卫与构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run build"
+    }
+  ]
+}

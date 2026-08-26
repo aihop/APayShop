@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-user-capabilities-serializable-error",
+  "title": "修复用户能力错误导致的 SSR 序列化失败",
+  "problem": "用户能力请求失败时，useUserCapabilities 将 FetchError 实例写入 Nuxt useState，devalue 在 SSR payload 序列化阶段拒绝该非普通对象并返回 500。",
+  "expectedOutcome": "用户能力请求失败仍可显示现有失败态，且 Nuxt SSR payload 只包含可序列化的错误信息。",
+  "constraints": [
+    "只调整用户能力 composable 的错误状态表示",
+    "不改变能力请求、鉴权、重试或失败态行为",
+    "不覆盖其他任务改动，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "composables/useUserCapabilities.ts"
+      ],
+      "claims": [
+        "composables/useUserCapabilities.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu-user-capabilities-error 不再保存 Error/FetchError 实例",
+    "能力请求失败时现有 catch 与重试流程保持不变",
+    "Nuxt SSR payload 不再因用户能力错误返回 Cannot stringify arbitrary non-POJOs"
+  ],
+  "verification": [
+    {
+      "name": "Qingpu 支持专项检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-all.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "cd ../../.. && ./node_modules/.bin/nuxt typecheck"
+    }
+  ],
+  "outOfScope": [
+    "用户能力 API 或数据库逻辑修改",
+    "其他 useState 错误状态迁移",
+    "生产发布与数据变更"
+  ]
+}
