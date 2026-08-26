@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-client-category-identity",
+  "title": "网页客户端六处类目定位判据改用 engine 单点口径",
+  "problem": "WB 工作台的类目参数不显示。useWorkspaceCategoryPicker.ts:61 的 categoryLocked 写作 `!!categoryId && !!categoryTypeId`，WB 的 typeId 恒为 0，`!!0` 为 false，于是 categoryLocked 永远 false，第 84 行 `if (!categoryLocked.value) return` 把参数加载整个拦掉。同一判据在客户端散了 6 处：useWorkspaceCategoryPicker.ts:61/111、WorkspaceShell.vue:185/391、ListingCategoryPickerModal.vue:22/23（后者让 WB 下的徽标永远显示「未选择」）。engine v0.7.146 已提供 isValidCategoryIdentity 单点口径。",
+  "expectedOutcome": "六处全部改用 engine 的 isValidCategoryIdentity；WB 选中品类后 categoryLocked 为真、参数正常加载、徽标显示已锁定。Ozon 判定逐字节不变。主题服务端的 category-identity.ts 改为委托 engine，不再自持一份实现。",
+  "decisions": [
+    "客户端从 @qingpu-vendor/qingpu-engine/browser.js 取：客户端全部 19 处 engine import 都走 browser.js，index.js 是服务端入口。",
+    "主题服务端 category-identity.ts 保留文件但改为委托 engine：它同时承载 resolveChannelOrDefault 这个指定兼容缺省点，删掉会让 api/ 层直接 import engine 出口、失去本地收口；但判定实现必须只剩 engine 一份，否则 caliber-redefine 的意义落空。",
+    "六处全部一次改完，不逐个修：本轮这一族已经修了六次，每次修一处、下一处再冒出来。判据收口后客户端不该再出现第七处。",
+    "ListingCategoryPickerModal 的徽标同批改：它与 categoryLocked 是同一个问题的两种表现，WB 下「已选好却显示未选择」会让用户以为没生效。"
+  ],
+  "constraints": [
+    "Ozon 判定逐字节不变：仍要求 categoryId > 0 且 typeId > 0",
+    "客户端不得自写判据实现，只调 engine 出口",
+    "check-workspace-shell-neutrality 钉住的两条接缝字面写法不能破坏",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行 studio 会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "server/listing/category-identity.ts",
+        "tests/client-category-identity.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "server/listing/category-identity.ts",
+        "tests/client-category-identity.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 客户端六处判据全部改用 engine 的 isValidCategoryIdentity。",
+    "B 客户端不残留任何 `!!categoryTypeId` / `&& selectedCategoryTypeId` 形式的手写判据。",
+    "C 主题服务端 category-identity.ts 的判定改为委托 engine，本地不再有第二份实现。",
+    "D Ozon 判定逐字节不变。",
+    "E check-workspace-shell-neutrality 通过。",
+    "F 红绿验证；主题全量测试与 check:qingpu-all 全绿；服务端类型错误不超过 43 条基线。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/client-category-identity.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": ["其余 22 处渠道缺省（账本已记）", "apay 子模块指针提交"]
+}

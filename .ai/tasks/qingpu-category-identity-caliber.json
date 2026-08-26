@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-category-identity-caliber",
+  "title": "类目定位合法性收进 engine 三端口径，客户端六处判据不再各写一份",
+  "problem": "WB 工作台的类目参数不显示。根因是 pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts:61 的 `!!categoryId && !!categoryTypeId`——WB 只有 subjectID 一维、typeId 恒为 0，`!!0` 为 false，于是 categoryLocked 永远 false，第 84 行的守卫把参数加载整个拦掉。客户端一共 6 处同一判据（useWorkspaceCategoryPicker.ts:61/111、WorkspaceShell.vue:185/391、ListingCategoryPickerModal.vue:22/23）。这是本轮同一族的第六次：前五次分别表现为 AI 推荐恒空、应用类目报 patch is empty、就绪账本写错渠道行等。服务端已有 isValidCategoryIdentity（server/listing/category-identity.ts），但它走 engine 的 index.js 出口，客户端只用 browser.js，用不了。",
+  "expectedOutcome": "「(categoryId, typeId) 对该渠道是否构成合法类目定位」在 engine 定义一次，两个切片出口都导出；qingpu-ai 的 Dash/Lite、主题的服务端与客户端全部消费同一份。判据由 ChannelManifest 的数据字段驱动，新渠道靠穷尽 Record 逼着填。caliber-redefine 守卫登记新符号，杜绝第二份实现。",
+  "decisions": [
+    "落点 src/domain/channel-mappers/types.ts：该文件零 import，两个 engine 切片都从它出口，是 CHANNEL_MANIFESTS 与 CHANNEL_LABELS 的现居地；类目定位维度与 titleMaxLength 同类，都是平台硬规则。",
+    "判据由 manifest 数据字段驱动而不是每渠道写一个函数：新渠道只需在穷尽 Record 里填 categoryTypeDimension，不必再写一份判定逻辑，也就不会写歪。",
+    "字段取值用语义词而非布尔：'required'（Ozon 两维缺一不可）与 'unused'（WB 恒为 0）说明的是平台事实；布尔 usesTypeId 读起来无法回答「那 typeId 该填几」。",
+    "主题服务端的 isValidCategoryIdentity 改为委托 engine，不删函数——它同时承载 resolveChannelOrDefault 这个指定兼容缺省点，且 api/ 层直接 import engine 出口不如经本地模块收口。",
+    "进 caliber-redefine 白名单：这是三端口径，AGENTS §4.9 要求单点定义；不加守卫的话下一个人还会在客户端手写第七份。",
+    "契约首版把 qingpu-ai 的 path 写成 '.'（那是 apay 根），租约因此没锁住任何真实路径，ai:complete 报「没有产生 claims 范围内的实际改动」。已修正为 ../qingpu-ai；该租约无法经工具闭合，120 分钟后过期。验证证据以手工执行为准：新测试 17/17、npm test 207 文件 1589 测试全过、typecheck 干净、check:deps 基线 37 未增。"
+  ],
+  "constraints": [
+    "Ozon 判据逐字节不变：仍要求 categoryId > 0 且 typeId > 0",
+    "engine 源改动先自测通过；engine:release 与任何跨仓发布等用户明确授权后再做",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "qingpu-ai 工作区当前干净；主题工作区有并行 studio 会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/types.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "scripts/check-deps.mjs",
+        "tests/category-identity-caliber.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/types.ts",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "scripts/check-deps.mjs",
+        "tests/category-identity-caliber.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A ChannelManifest 增加 categoryTypeDimension，穷尽 Record 逼新渠道表态。",
+    "B isValidCategoryIdentity 在 channel-mappers/types.ts 定义一次，由 manifest 驱动。",
+    "C 两个 engine 切片出口都导出该符号。",
+    "D caliber-redefine 登记该符号，白名单只含定义文件。",
+    "E Ozon 判据逐字节不变；WB 的 (id>0, typeId=0) 判为合法。",
+    "F 红绿验证；npm test、npm run typecheck、npm run check:deps 全绿。"
+  ],
+  "verification": [
+    {
+      "name": "本任务测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/category-identity-caliber.test.ts"
+    },
+    {
+      "name": "类型与分层守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps"
+    },
+    {
+      "name": "全量测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    }
+  ],
+  "outOfScope": [
+    "engine:release 与跨仓发布（等用户授权）",
+    "主题侧改造（engine 发布后另开契约）",
+    "其余 22 处渠道缺省（账本已记）"
+  ]
+}
