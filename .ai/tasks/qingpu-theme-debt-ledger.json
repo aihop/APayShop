@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-theme-debt-ledger",
+  "title": "主题仓建立技术债账本，登记本轮 WB 链路发现",
+  "problem": "主题仓没有技术债账本。qingpu-ai 有 docs/tech-debt-map.md 与 AGENTS.md §4.7 顺手还协议，主题仓两样都没有——AGENTS.md 第 84 行写着「实现缺口按 §5 走技术债登记」，但 §5 通篇没有登记机制，是悬空引用。后果是本轮 WB 链路排查出的十余处结构缺口只存在于会话记录里：单类目槽、第二份渠道名册、佣金重解析套 Ozon 费率、发布确认不支持 WB、WB 变体映射未实现、任务链账本走缺省 Ozon 等，会话一结束就丢失。另有 7 个守卫长期已知失败，其中 4 个标注「未定位」——没人知道为何失败的守卫比没有守卫更糟，它会训练所有人忽略守卫输出。",
+  "expectedOutcome": "主题仓有 docs/tech-debt-map.md，登记本轮全部发现并区分「可自行偿还」与「需外部事实确认」；AGENTS.md 补上顺手还协议与文档路由，第 84 行的悬空引用指向真实章节；有测试钉住账本存在且被 AGENTS 引用。",
+  "decisions": [
+    "账本建在主题仓而不是并进 qingpu-ai 的：那份账本的条目全是扩展/engine 的分层与神文件，守卫基线也对应 check-deps；主题侧的债是网页服务端与页面结构，两者的偿还路径、守卫、责任人都不同，混在一份里谁都不看。",
+    "条目分「可自行偿还」与「需外部事实确认」两类：WB 变体映射、佣金物流费率、图片规格、cards/list 游标这四项卡在平台文档而非代码，混进待办会让人误以为是排期问题。",
+    "守卫已知失败单列一节并要求分诊结论：现状是 7 个红的长期挂着，其中 4 个连原因都没定位；账本记录它们并写明「修/重定/删」三选一，而不是继续当背景噪音。",
+    "只登记结构级债，普通 bug 不进账本——与 qingpu-ai 那份的口径一致，避免账本退化成待办清单。"
+  ],
+  "constraints": [
+    "只记录已核实的事实：每条注明文件与行号，不写推测",
+    "外部平台规则未确认的条目明确标注，不写猜测的修法",
+    "不改任何代码行为，本轮只建账本与协议",
+    "不 commit/push，除非用户授权",
+    "工作区有并行 studio 会话的改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["docs/tech-debt-map.md", "AGENTS.md", "tests/tech-debt-ledger.test.ts"],
+      "claims": ["docs/tech-debt-map.md", "AGENTS.md", "tests/tech-debt-ledger.test.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A docs/tech-debt-map.md 存在，含本轮全部发现，每条带文件与行号。",
+    "B 条目区分可自行偿还与需外部事实确认两类。",
+    "C 守卫已知失败单列一节，7 条齐全并注明分诊要求。",
+    "D AGENTS.md 补顺手还协议章节，第 84 行的引用指向它；文档路由表加账本条目。",
+    "E 测试钉住账本存在、被 AGENTS 引用、且守卫失败清单与 check-all 的实际清单一致。",
+    "F 主题全量测试与 check:qingpu-all 全绿（守卫基线不变）。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/tech-debt-ledger.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": [
+    "偿还任何一条债（本轮只建账）",
+    "分诊 4 个未定位守卫（需要单独排查，账本先记）",
+    "qingpu-ai 那份账本的条目"
+  ]
+}
