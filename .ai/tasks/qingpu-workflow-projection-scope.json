@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-workflow-projection-scope",
+  "title": "修复工作流投影 composable 的五个自由变量导致的 ReferenceError",
+  "problem": "工作台报 `ReferenceError: workflowStepSubmitting is not defined`。useWorkspaceWorkflowProjection.ts 的 workflowAction() 引用了 workflowStepSubmitting、blueprintRunning、skuCopyGenerating、skuAiFilling、contentTaskRunning 五个变量，但它们既不在该模块作用域、也不在 options 接口里、调用方也没传——五个都是自由变量。它们全部定义在 WorkspaceShell.vue 内，SFC 与 composable 是两个模块，运行时必然 ReferenceError。workflowAction 被 readinessAction computed 调用（WorkspaceShell.vue:739/760），就绪摘要每次渲染都走，是主路径。该文件上次改动是 0b58643「refactor(listing): group workspace files under components/workspace」——搬移时把函数移进 composable，五个依赖没跟着进参数表。另有次生问题：workflowStepSubmitting 定义在 WorkspaceShell.vue:723，而 useWorkspaceWorkflowProjection 的调用在 714，即便补传也会落进 TDZ。",
+  "expectedOutcome": "五个依赖进 options 接口并由调用方传入；workflowStepSubmitting 的声明移到调用点之前；workflowAction 不再引用任何自由变量。行为与搬移前一致。",
+  "decisions": [
+    "补参数而不是把 workflowAction 搬回页面：该函数产出的是工作流投影的展示态，与 composable 其余部分同属一件事；搬回去会让投影逻辑再次分家。原注释已说明「enqueue 那些动作留在页面里」——workflowAction 不是动作，是投影。",
+    "五个依赖按原类型声明：skuAiFilling/skuCopyGenerating/blueprintRunning 是 Ref<boolean>，contentTaskRunning 是 ComputedRef<boolean>，workflowStepSubmitting 是 Ref<联合类型|null>。不放宽成 Ref<unknown> 或 any。",
+    "workflowStepSubmitting 的声明上移到 useWorkspaceWorkflowProjection 调用之前：这是 TDZ 的唯一修法，不能靠传 getter 绕过。",
+    "补一个测试钉住「composable 不得引用自由变量」：这类错误 typecheck 抓不到（Vue SFC 与 composable 分属两个模块，tsc 对 .vue 的检查不覆盖跨模块自由变量），只有运行时才炸。"
+  ],
+  "constraints": [
+    "行为与 0b58643 搬移前一致，不趁机改工作流判定",
+    "禁止 any、静默吞错、省略版实现；红绿验证",
+    "不 commit/push，除非用户授权",
+    "工作区有并行 studio 会话改动，只碰本任务 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceWorkflowProjection.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workflow-projection-scope.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceWorkflowProjection.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workflow-projection-scope.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "A 五个依赖进 options 接口，类型与原声明一致。",
+    "B 调用方传入全部五个。",
+    "C workflowStepSubmitting 声明在调用点之前。",
+    "D composable 内不再有自由变量引用。",
+    "E 测试钉住自由变量检查，且能证明改前为红。",
+    "F 主题全量测试与 check:qingpu-all 全绿；服务端类型错误不超过 43 条基线。"
+  ],
+  "verification": [
+    { "name": "本任务测试", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/workflow-projection-scope.test.ts" },
+    { "name": "主题全量与全闸", "repository": "qingpu-theme", "always": true, "command": "cd ../../.. && npx --no-install vitest run app/themes/qingpu/tests/ && npm run check:qingpu-all" }
+  ],
+  "outOfScope": ["其他 composable 的同类自由变量排查（本轮先修报错这一个，扫描另案）"]
+}
