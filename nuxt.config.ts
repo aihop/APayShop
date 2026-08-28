@@ -163,10 +163,10 @@ export default defineNuxtConfig({
   },
   ignore: DEV_WATCH_IGNORE,
   routeRules: {
-    '/themes/qingpu/listing/ozon-categories/manifest.json': {
+    '/themes/**/manifest.json': {
       headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' },
     },
-    '/themes/qingpu/listing/ozon-categories/assets/**': {
+    '/themes/**/assets/**': {
       headers: { 'cache-control': 'public, max-age=31536000, immutable' },
     },
   },
