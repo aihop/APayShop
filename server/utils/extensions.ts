@@ -129,7 +129,7 @@ const executeMigrationStatements = async (dialect: ExtensionDatabaseDialect, sta
 }
 
 export const migrateExtensionDatabase = async (extension: string) => {
-  if (!installedExtensionIds.has(extension)) {
+  if (!isInstalledExtension(extension)) {
     throw createError({ statusCode: 404, message: 'Extension not found' })
   }
   const release = await acquireExtensionMigrationLock(extension)
