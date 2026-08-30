@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-quality-scoring",
+  "title": "WB 质量分打分维度接入:渠道穷尽 builder + 按草稿归属自动选渠道",
+  "problem": "债务账本 3.5 条目(2026-08-30 登记):打分机器(类目/参数/SKU 事实)全按 Ozon 合同实现,入口显式 ozon 白名单 501;API 不读 channel 恒缺省——WB-only 商品被 Ozon 尺子量(未选 Ozon 类目=零分+误导建议)。",
+  "expectedOutcome": "category/sku 事实构建拆为 Record<Channel,builder> 穷尽表(勿塞渠道 if,遵账本告诫):ozon builder=现逻辑原样(专项守卫全部文本断言保活),wb builder=subjectId 选类目+characteristics required 完整度+逐行 SKU 价格/库存/包装/图(每行一卡,无合卡语义);共享维度(图片蓝图/文案定价/视频/账本判据)已渠道正确。打分渠道=引擎渠道目录序第一个有草稿的渠道(API 可选 channel 显式覆盖,isListingChannel 校验),501 门随穷尽表取消;summary 附带 channel(additive)。专项守卫加 WB 断言,行为守卫 fixtures 补 channel,债务账本条目移入已还留档。",
+  "constraints": ["页面零改动(协议向后兼容);calculator 保持渠道盲,只透传 channel"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/workspace-quality.ts",
+        "server/listing/workspace-quality.calculator.ts",
+        "api/listing/workspaces/quality-scores.post.ts",
+        "scripts/check-workspace-quality-score.mjs",
+        "scripts/check-workspace-quality-score.behavior.mjs",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "server/listing/workspace-quality.ts",
+        "server/listing/workspace-quality.calculator.ts",
+        "api/listing/workspaces/quality-scores.post.ts",
+        "scripts/check-workspace-quality-score.mjs",
+        "scripts/check-workspace-quality-score.behavior.mjs",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WB-only 商品按 WB 事实打分(subjectId/特征完整度),不再吃 Ozon 零分",
+    "Ozon 打分行为与现状一致(专项守卫全部片段断言通过)",
+    "渠道穷尽表:新渠道进 KNOWN_CHANNELS 时该表编译期报缺",
+    "主题守卫总闸通过(已知失败清单不增),债务账本还清记录落账"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/workspace-quality.ts"]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "lite-publish-gate",
+  "title": "Lite 发布前门禁:阻塞清单共享单点,两端同源消费",
+  "problem": "三端统一测试实锤(题 2 灰色项):发布前门禁只 Dash 有——evaluateProductChannelDraft + validateProductChannelListing 全仓唯二调用点都在 Dash 确认弹窗;Lite 确认弹窗纯信息展示,点确认直接进 workflow,未就绪商品被内部 skip 后只回显一条 reason,用户看不到阻塞清单与合规提醒。",
+  "expectedOutcome": "发布前门禁口径上收 publish-workflow.ts 单点(evaluatePublishGate:就绪判定+缺失字段+合规校验);Dash 弹窗两处内联循环改消费单点(UI 不变);Lite 弹窗新增阻塞清单区——未就绪列缺失字段并禁用确认,合规违规提醒不拦(与 Dash 同语义);新增单测钉住门禁口径。",
+  "constraints": ["Dash 本批临时调折扣的 rules 构造是功能差异不是漂移,不动;Lite 文案随 Dash 惯例直写中文"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/publish-workflow.ts",
+        "entrypoints/dash/PublishConfirmModal.vue",
+        "entrypoints/lite/workbench/LiteWorkbenchPublishConfirmModal.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "tests/publish-gate.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/publish-workflow.ts",
+        "entrypoints/dash/PublishConfirmModal.vue",
+        "entrypoints/lite/workbench/LiteWorkbenchPublishConfirmModal.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "tests/publish-gate.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "evaluateProductChannelDraft/validateProductChannelListing 的组合判定仅存在于共享单点,Dash/Lite 均消费之",
+    "Lite 未就绪商品确认钮禁用且展示缺失字段;合规违规提醒不拦截",
+    "typecheck + 构建 + 门禁单测通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/publish-gate.test.ts && npm run build"
+    }
+  ]
+}
