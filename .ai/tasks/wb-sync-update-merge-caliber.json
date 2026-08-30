@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "wb-sync-update-merge-caliber",
   "title": "WB 同步更新改为读-合-写口径并收进 engine 三端单点",
-  "problem": "网页「同步资料」走 WB cards/update（整卡替换语义：未带上的字段/特征会被平台清空），但主题 server/listing/publish.run.ts 的合并是手写的且有四个洞：(1) characteristics 组级 all-or-nothing——本地非空就整组顶掉线上，且只用商品级特征集，raw.variant.characteristics（颜色等变体级特征）从未参与，同步资料后线上卡的变体级特征与后台补录特征被清空；(2) 兜底硬塞 TNVED 8517140000（手机类 HS code），非手机品类会被写错关务编码；(3) rawPayloads 与 onlineCards 按数组下标配对，线上搜索返回顺序与变体顺序无关，卡多时资料会串卡；(4) 价格同步读 cardRaw.sizes[0].price——payload 形状里价格在 priceRub、sizes 不存在，恒为 0 全被过滤，UI 声称同步售价实际从未同步。「同步图片」的变体图置首排序规则也在网页端手写。这些合并/配对/排序规则按 AGENTS §4.9 属三端口径，应只在 qingpu-ai engine 定义一次。",
-  "expectedOutcome": "engine 新增 WB 卡片更新合并单点：按 vendorCode 精确配对（不按下标）、逐特征按 id 合并（本地有值覆盖、本地没有保留线上、变体级特征参与、线上值原样透传不重格式化）、title/description/brand 字段级回退、sizes/chrtID/skus 原样保留、不注入任何硬编码 TNVED、价格产出 {nmID, priceRub} 由调用方按店铺币种换算（rubToStoreAmount 既有口径）、媒体同步 URL 排序（变体图置首去重）单点化。网页 sync_data/sync_images 改为消费 engine 函数，删除手写合并与 TNVED 硬编码，价格同步名副其实。",
+  "problem": "网页「同步资料」走 WB cards/update（整卡替换语义：未带上的字段/特征会被平台清空），但主题 server/listing/publish.run.ts 的合并是手写的且有四个洞：(1) characteristics 组级 all-or-nothing——本地非空就整组顶掉线上，且只用商品级特征集，raw.variant.characteristics（颜色等变体级特征）从未参与，同步资料后线上卡的变体级特征与后台补录特征被清空；(2) 兜底硬塞 TNVED 8517140000（手机类 HS code），非手机品类会被写错关务编码；(3) rawPayloads 与 onlineCards 按数组下标配对，线上搜索返回顺序与变体顺序无关，卡多时资料会串卡；(4) 价格同步读 cardRaw.sizes[0].price——payload 形状里价格在 priceRub、sizes 不存在，恒为 0 全被过滤，UI 声称同步售价实际从未同步。「同步图片」的变体图置首排序规则也在网页端手写。这些合并/配对/排序规则按 AGENTS §4.9 属三端口径，应只在 qingpu-ai engine 定义一次。 追加确认的两个真问题(用户 2026-08-30 确认修复):卡被删自动重建把工厂 payload 形状直接发 cards/upload(缺 subjectID、字段层级全错,重建从未成功过,多变体还会按视图条数重复建卡);同步图片确认弹窗未说明 media/save 的整套覆盖语义,线上手工上传媒体被移除时用户无从知情。",
+  "expectedOutcome": "engine 新增 WB 卡片更新合并单点：按 vendorCode 精确配对（不按下标）、逐特征按 id 合并（本地有值覆盖、本地没有保留线上、变体级特征参与、线上值原样透传不重格式化）、title/description/brand 字段级回退、sizes/chrtID/skus 原样保留、不注入任何硬编码 TNVED、价格产出 {nmID, priceRub} 由调用方按店铺币种换算（rubToStoreAmount 既有口径）、媒体同步 URL 排序（变体图置首去重）单点化。网页 sync_data/sync_images 改为消费 engine 函数，删除手写合并与 TNVED 硬编码，价格同步名副其实。 重建兜底按卡 vendorCode 去重还原工厂卡,经 buildWbCardUploadEntry 组装 WB v2 卡片体,条码缺口向 WB 申领;确认弹窗如实说明覆盖语义与视频核对提醒;engine 出口补 generateWbBarcodes。",
   "constraints": [
     "cards/update 载荷必须以线上卡片为基座整卡组装，绝不发局部卡片",
     "线上 characteristics 值原样透传，不经 formatWbCharacteristicValue 重格式化（线上值来自 WB 本身合法，重格式化可能改值或被过滤掉导致清空）",
@@ -37,11 +37,13 @@
       "path": "app/themes/qingpu",
       "allowedPaths": [
         "server/listing/publish.run.ts",
-        "server/vendor/qingpu-engine/**"
+        "server/vendor/qingpu-engine/**",
+        "pages/user/listing/channels.vue"
       ],
       "claims": [
         "server/listing/publish.run.ts",
-        "server/vendor/qingpu-engine/**"
+        "server/vendor/qingpu-engine/**",
+        "pages/user/listing/channels.vue"
       ]
     }
   ],
@@ -52,7 +54,9 @@
     "价格项按变体 priceRub 产出并可换算为店铺币种，同步资料后 setWbPrices 收到非空列表",
     "sizes 的 chrtID 与 skus 与线上完全一致",
     "同步图片的 URL 序 = 该卡变体图置首 + 图集序去重",
-    "qingpu-ai typecheck、新增测试与既有 WB 测试、分层守卫、构建、engine bundle 守卫全部通过；主题守卫总闸通过"
+    "qingpu-ai typecheck、新增测试与既有 WB 测试、分层守卫、构建、engine bundle 守卫全部通过；主题守卫总闸通过",
+    "卡被删重建提交的是 WB v2 卡片体(subjectID+variants+sizes.skus 条码齐全),多变体不重复建卡",
+    "同步图片确认弹窗写明整套覆盖语义;线上卡带视频时同步结果附核对提醒"
   ],
   "verification": [
     {
@@ -74,7 +78,8 @@
       "command": "npm --prefix ../../.. run check:qingpu-all",
       "covers": [
         "server/listing/publish.run.ts",
-        "server/vendor/qingpu-engine/**"
+        "server/vendor/qingpu-engine/**",
+        "pages/user/listing/channels.vue"
       ]
     }
   ]
