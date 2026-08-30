@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "pricing-preview-caliber",
+  "title": "T2 定价口径统一:模板试算接 engine 计算器,默认值表三处收敛",
+  "problem": "三端统一上线前测试(2026-08-30)实锤:SettingsPricingModal.vue:329-365 手写整段建议价公式(缺 storageRub/adBudgetRub/adRate/物流报价,与 Dash/Lite 的 engine 计算器算出不同数,同目录兄弟组件全部正确走 engine 唯它掉队);定价默认值 14 个共享值在 server/settings/helpers.ts 与 workspace-pricing.calculator.ts 各抄一份(engine DEFAULT_PRICING_CONFIG_BASE 为单点)。",
+  "expectedOutcome": "模板试算改走 engine calculateSuggestedPricing/calculateProfit(browser 切片),手填运费经 createSuggestedFreightConfirmationToken 程序化确认(用户亲手填=确认);运费为 0 时如实显示「待补运费」而非按 0 运费给假价(与 Dash 同判据,行为改进)。两份默认表的共享值改取 createDefaultPricingConfig(),网页特有字段(oldPriceMarkupRate/campaignPriceProtection/priceRoundRule/frontDiscountRate 等)显式保留并注明差异原因。",
+  "constraints": ["不改 engine(现有出口足够);frontDiscountRate 网页默认 0.3/1.3 与 engine 0 的差异是网页前台折扣语义,保留"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/SettingsPricingModal.vue",
+        "server/settings/helpers.ts",
+        "pages/user/listing/components/workspace/workspace-pricing.calculator.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/SettingsPricingModal.vue",
+        "server/settings/helpers.ts",
+        "pages/user/listing/components/workspace/workspace-pricing.calculator.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "模板弹窗零本地定价公式,试算含仓储/广告/尾程等全量成本项",
+    "共享默认值单点化:engine 改值两表自动跟随;网页特有字段显式区隔",
+    "主题守卫总闸通过(含 check-pricing-calculator,已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "pages/user/listing/components/SettingsPricingModal.vue",
+        "server/settings/helpers.ts",
+        "pages/user/listing/components/workspace/workspace-pricing.calculator.ts"
+      ]
+    }
+  ]
+}

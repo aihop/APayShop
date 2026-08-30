@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "offer-code-caliber-unify",
+  "title": "T1 货号口径统一:engine 采纳 12 位铸码并导出,主题删手抄",
+  "problem": "三端统一上线前测试(2026-08-30)实锤:货号规则在主题 server/listing/sku.codes.ts 被整块手抄(buildOfferCode/sanitizeOfferIdPrefix/canAssignOfferCode/OfferCodeCounter),且铸码格式已分叉——engine 6 位日期(QP-260810-001) vs 主题 12 位时间戳(QP-260810163050-001)。真库普查:生产 51 条发布记录 + 36 个工作区码 100% 为 12 位,6 位码零存在。按 AGENTS.md §4.9 云端结构权威 + 生产数据,统一到 12 位;根因是 engine 未导出该模块,主题想同源拿不到。",
+  "expectedOutcome": "engine buildOfferCode 改 12 位时间戳(YYMMDDHHmmss,秒级分段+计数器双保险,注释记录两代格式与裁决依据);offer-code 模块经 engine index 出口导出;caliber-redefine 守卫登记符号;扩展端测试更新断言;engine:release 后主题 sku.codes.ts 改为消费 engine,删除手抄。存量 6 位码(若有)不回改,兼容判定(主题 AUTO_MERGE_CODE_PATTERN)已覆盖两代。",
+  "constraints": ["engine vendor 只允许 npm run engine:release 写入", "reserveOfferCodes/nextOfferCodeSeq 为扩展端领码策略不导出,主题继续用 DB 顾问锁领码"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/domain/workspace/offer-code.ts", "src/engine/index.ts", "scripts/check-deps.mjs", "tests/offer-code.test.ts"],
+      "claims": ["src/domain/workspace/offer-code.ts", "src/engine/index.ts", "scripts/check-deps.mjs", "tests/offer-code.test.ts"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/sku.codes.ts", "server/vendor/qingpu-engine/**"],
+      "claims": ["server/listing/sku.codes.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "engine 与主题铸出同一格式(12 位),主题零本地 buildOfferCode/sanitizeOfferIdPrefix/canAssignOfferCode 实现",
+    "caliber-redefine 守卫含 offer-code 符号,check:deps 通过",
+    "qingpu-ai typecheck + offer-code 及合卡相关测试通过",
+    "主题守卫总闸通过(已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npx vitest run tests/offer-code.test.ts tests/merge-card-groups.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/sku.codes.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}

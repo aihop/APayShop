@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "quality-verdict-single-source",
+  "title": "T3 就绪度单点:质量分 publishReady 绑账本判据,失效渠道门修正",
+  "problem": "三端统一上线前测试(2026-08-30)实锤:workspace-quality.calculator.ts 自建 11 项 blockers 得出 publishReady,与 channel_drafts.ready(engine computeDraftReadiness 经 readiness.ts 写入)判据不同,同一商品可得相反结论;入口的「Ozon 专属」防线以 hasChannelImageBlueprint 判——WB 蓝图注册后该判据已失效(501 拦不住 wb),幸而 API 路由不读 channel 恒缺省 ozon 才未触发,防线本身已烂。",
+  "expectedOutcome": "publishReady 单点化:buildScoreSummary 经 readiness.ts 的 buildReadinessSnapshotForChannel(渠道正确的权威判据)取 verdict,质量 blockers 降级为改进诊断;渠道门改显式 ozon 白名单(打分维度仍为 Ozon 专属,非 ozon 如实 501),蓝图判据失效原因入注释;WB 打分维度接入作为已登记缺口写入主题 docs/tech-debt-map.md。",
+  "constraints": [
+    "不改弹窗与 API 合同(publishReady/blockerCount 字段语义保持);打分维度本身不动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/workspace-quality.ts",
+        "server/listing/workspace-quality.calculator.ts",
+        "docs/tech-debt-map.md",
+        "scripts/check-workspace-quality-score.behavior.mjs",
+        "admin/pages/customers.vue"
+      ],
+      "claims": [
+        "server/listing/workspace-quality.ts",
+        "server/listing/workspace-quality.calculator.ts",
+        "docs/tech-debt-map.md",
+        "scripts/check-workspace-quality-score.behavior.mjs",
+        "admin/pages/customers.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "publishReady 与渠道账本 ready 同源(同一商品两处结论必然一致)",
+    "非 ozon 渠道请求质量分返回 501,不再依赖蓝图注册判据",
+    "blockerCount 在 publishReady=false 时不为 0(诊断与判据分工后的显示自洽)",
+    "主题守卫总闸通过(已知失败清单不增)",
+    "行为守卫随判据合同演进:加入 draft 单源断言,旧「blockers 定 publishReady」断言按新合同改写",
+    "customers.vue:620 typed-router 深度炸弹免疫(路径断 string,响应类型断言原样),总闸在 dev server 时变 .nuxt 输入下可复现通过"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "server/listing/workspace-quality.ts",
+        "server/listing/workspace-quality.calculator.ts"
+      ]
+    }
+  ]
+}

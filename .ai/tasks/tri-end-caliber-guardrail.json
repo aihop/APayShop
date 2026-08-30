@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "tri-end-caliber-guardrail",
+  "title": "A6 守卫补位:SKU 呈现/预处理状态口径出口补齐 + 主题防漂移守卫",
+  "problem": "三端统一上线前测试(2026-08-30)实锤两个结构性根因:① browser 切片导出面过窄——SKU 规格轴列并集算法 4 份(engine useSkuSubTable + Lite LiteSkuTable.vue:640 逐行复制 + 网页 WorkspaceSkuPanelTable/WorkspaceReadinessSummary 各一份),预处理状态联合类型在网页 3 个文件手写(engine 加第五个状态即静默不同步);② caliber-redefine 守卫只扫 qingpu-ai,主题侧无任何防口径再实现守卫,本轮 6 处漂移全部长在盲区。",
+  "expectedOutcome": "规格轴纯口径(collectSkuAspectColumns/aspectOf)落户 presenter 并经 index+browser 出口;LISTING_PREPROCESS_STATUSES 与类型入 browser 出口;Lite 与网页共 3 处复制替换为 engine 消费,网页 3 处手写状态联合替换为类型导入;新增主题守卫 check-caliber-drift.mjs(从 vendor d.ts 提取导出符号,扫主题源码本地再定义,except 显式登记)进 check-all 自动发现;caliber-redefine 登记新符号。",
+  "constraints": ["engine vendor 只允许 npm run engine:release 写入", "browser 切片零 Chrome 依赖承诺不破(bundle 守卫把关)", "useSkuSubTable 对 Lite 的既有导入面保持兼容(re-export)"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/app/composables/useSkuSubTable.ts",
+        "entrypoints/lite/LiteSkuTable.vue",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "scripts/check-deps.mjs"
+      ],
+      "claims": [
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/app/composables/useSkuSubTable.ts",
+        "entrypoints/lite/LiteSkuTable.vue",
+        "src/engine/index.ts",
+        "src/engine/browser.ts",
+        "scripts/check-deps.mjs"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-caliber-drift.mjs",
+        "pages/user/listing/components/workspace/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/workspace/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/products.types.ts",
+        "pages/user/listing/workspaces.types.ts",
+        "pages/user/listing/channels.vue",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "scripts/check-caliber-drift.mjs",
+        "pages/user/listing/components/workspace/WorkspaceSkuPanelTable.vue",
+        "pages/user/listing/components/workspace/WorkspaceReadinessSummary.vue",
+        "pages/user/listing/products.types.ts",
+        "pages/user/listing/workspaces.types.ts",
+        "pages/user/listing/channels.vue",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "规格轴列并集与 aspectOf 全仓仅 presenter 一份实现,Lite/网页全部经出口消费",
+    "网页零手写预处理状态联合(类型自 browser 出口)",
+    "check-caliber-drift 在主题总闸自动发现并通过;人为植入再定义能被拦截(负向验证)",
+    "qingpu-ai typecheck+全量测试+构建通过;主题守卫总闸通过(已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm test && npm run build"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["scripts/check-caliber-drift.mjs", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
