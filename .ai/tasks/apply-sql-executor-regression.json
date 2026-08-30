@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "apply-sql-executor-regression",
+  "title": "SQL 应用器回归:逐文件执行行被误删,init 只打日志不执行",
+  "problem": "主题提交 1b0340a(2026-08-30 14:18,publish-records 状态板升级)在给应用器补 REQUIRED_COLUMNS 与列迁移块时,误删了文件循环里的 `await sql.unsafe(statements)`——此后 db:qingpu:init 对 database/*.sql 逐个打印 Applying 却一行不执行,表自检因存量库全部命中而通过、exit 0。这正是脚本自己注释警告的「显式调用却静默跳过并返回成功」事故的重演,存量库越健全越难暴露。实锤现场:publish_records.sql 的 rating numeric(5,2) 幂等 ALTER 应用后列仍是 numeric(3,2)(publish-rating-column-precision 契约的迁移被它挡住)。",
+  "expectedOutcome": "恢复逐文件执行;硬编码列迁移块的 rating 精度同步为 numeric(5,2) 与建表语句一致;真库重跑 init 后 rating 列实际迁为 numeric(5,2)。",
+  "constraints": ["只恢复既有执行语义,不改文件顺序与验证逻辑"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["scripts/apply-qingpu-sql.mjs"],
+      "claims": ["scripts/apply-qingpu-sql.mjs"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "db:qingpu:init 重跑后 information_schema 显示 rating 为 numeric(5,2)",
+    "以 82 写入 rating 的 SQL 语义在真库(事务回滚)验证通过",
+    "主题守卫总闸通过(已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["scripts/apply-qingpu-sql.mjs"]
+    }
+  ]
+}

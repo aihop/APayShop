@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "publish-rating-column-precision",
+  "title": "发布记录 rating 列精度扩为 numeric(5,2):内容分 0-100 写入溢出",
+  "problem": "真实事故(2026-08-30 用户报障):records 同步写入 Ozon 内容分(0-100,实测 82)时 numeric field overflow,整个 /publish-records/sync 500——qingpu_publish_records.rating 是 numeric(3,2)(上限 9.99),按买家 5 星评分设计;前端语义(>5 显示内容分)与写入端都已是 0-100 口径,列宽从未跟上。该表是主题私有表(手动应用 database/*.sql),属于 pg.ts 自检注释里记载的「SQL 与库漂移」同类事故的第三起,此前自检只查表/列存在与 CHECK 取值集,不查数值精度。",
+  "expectedOutcome": "rating 列迁 numeric(5,2)(建表语句 + 幂等 ALTER,经 db:qingpu:init 应用);启动自检增加数值精度守卫覆盖该列;真库应用后以 82 真值验证写入不再溢出。",
+  "constraints": ["迁移只放宽精度不改语义;自检沿用现有错误消息与修复指引格式"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["database/publish_records.sql", "server/db/pg.ts"],
+      "claims": ["database/publish_records.sql", "server/db/pg.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "db:qingpu:init 在既有库上幂等应用,rating 变为 numeric(5,2)",
+    "以 82 写入 rating 的 SQL 语义在真库(事务回滚)验证通过",
+    "自检在精度不足时报错并给出与缺表一致的修复指引",
+    "主题守卫总闸通过(已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["database/publish_records.sql", "server/db/pg.ts"]
+    }
+  ]
+}
