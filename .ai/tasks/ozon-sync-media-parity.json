@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-sync-media-parity",
+  "title": "Ozon 同步媒体域对齐 WB 韧性:线上实况收窄 + 失败降级部分成功",
+  "problem": "WB 侧已修的两个问题在 Ozon 对称存在:(1) 首次同步(无基线)盲推媒体域——pictures/import 每次推送都触发图片重新送审,图片没动也送审;(2) 媒体域执行失败抛错→整商品失败→快照不回写→文案售价已成功仍被拖成失败并在下次全量重推。",
+  "expectedOutcome": "engine 新增 Ozon 线上媒体态读封装(v3/product/info/list 提取 offer 的图片数);Ozon 执行器与 WB 同款语义:无基线时线上图数一致→视为已对齐跳过推送并写入基线;媒体域任意失败降级为部分成功(content/price 正常落快照,媒体字段回填基线,附提示);通道层消费 Ozon 真实执行结果。",
+  "constraints": [
+    "线上实况读封装为只读接口,带安全重试;比对启发式与 WB 同款(数量一致即对齐)并注释局限",
+    "content/price 域失败仍按失败处理,只有媒体域降级",
+    "engine vendor 只允许 npm run engine:release 写入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/shared/pipeline/ozon-update-api.ts", "src/engine/index.ts"],
+      "claims": ["src/shared/pipeline/ozon-update-api.ts", "src/engine/index.ts"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/publish.run.ts", "server/vendor/qingpu-engine/**"],
+      "claims": ["server/listing/publish.run.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "无基线且本地图数=线上图数:不调用 pictures/import,快照媒体落本地值",
+    "媒体域失败:商品记部分成功并附提示,快照媒体字段回填基线,content/price 正常",
+    "qingpu-ai typecheck 通过;主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/channel-sync-plan.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
