@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-records-online-sync",
+  "title": "发布记录页线上状态同步重写:精确搜索口径、状态不降级、engine 单点",
+  "problem": "publish-records 页的 syncProductOnlineStatusForUser 有实证 bug(2026-08-30 真实库与真实 WB 账号核验):(1) WB cards/list textSearch 对 vendorCode 是精确匹配(实测:按基础货号搜 0 命中,按完整后缀货号/nmID 各 1 命中),扩展发布的无后缀记录永远查不到卡被打回 pending;扩展跟踪器 publish-tracking/wb.ts 也建立在『前缀可召回』的错误假设上,多变体确认在真实 WB 上永远 pending。(2) Ozon 分支 record.status==='published' 短路:平台已返回 rejected 仍强写 in_sale 并清空 error,已发布商品永不降级。(3) WB 一律伪造 rating 5.0;查到卡即 in_sale。(4) listWbCardErrors 按记录逐条全量调用(账号级限流自伤)。(5) 组同步只传第一条 recordId,多变体商品其余记录不同步(实证:4 条变体记录只有 -4 被同步)。(6) Ozon 手写 fetch 绕开 engine,v3 字段名(statuses.state/price_sent/validation_state)与仓内类型对不上,rejected 检测疑似从未触发;sizes[].price 实测不存在,线上价恒空。",
+  "expectedOutcome": "扩展跟踪器与 records 同步都改为逐候选货号精确搜索(附 nmID 兜底),归属判定走 engine matchWbCardsByOfferCode/collectWbCardErrorsForOfferCode 单点;错误清单每店一次;状态只在有明确平台证据时降级(查无卡不降终态,error 不无脑清空);不伪造 rating;Ozon 分支改走 engine fetchOzonSaleReadiness 批量口径(exists/archived/saleReady/price/issues),onlineState 用 UI 既有词表(in_sale/moderating/rejected/out_of_stock/delisted);组同步覆盖该商品全部记录;『未找到记录』返回 success:false。",
+  "constraints": [
+    "货号↔线上卡/错误清单归属只走 engine matchWbCardsByOfferCode/collectWbCardErrorsForOfferCode,不在主题重写归属规则",
+    "状态降级必须有平台证据:error/list 命中(failed)、卡查到但 sizes 空或 offer archived(delisted);查无卡时终态记录只刷 synced_at,error 原样保留",
+    "不伪造任何评分/评论数;线上价只在平台真实返回时写入(WB sizes 无 price,实测,置空)",
+    "Ozon 只用 engine fetchOzonSaleReadiness,不手写平台 fetch;内容评分本轮不同步(engine 未出口,不在主题手写)",
+    "WB 逐货号搜索之间加节流延时,防账号级全局限流",
+    "SyncProductOnlineStatusResult 对外形状不变(前端消费 success/syncedCount/groups)",
+    "扩展侧既有 WB 测试全绿,新增断言钉住逐码搜索的调用参数",
+    "engine vendor 只允许 npm run engine:release 写入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/publish-tracking/wb.ts",
+        "tests/wb-publish-tracking.test.ts"
+      ],
+      "claims": [
+        "src/shared/publish-tracking/wb.ts",
+        "tests/wb-publish-tracking.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.sync.ts",
+        "pages/user/listing/components/ListingPublishProductGroupsPanel.vue"
+      ],
+      "claims": [
+        "server/listing/publish.sync.ts",
+        "pages/user/listing/components/ListingPublishProductGroupsPanel.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "扩展跟踪器按 expectedVendorCodes 逐个精确搜索(测试断言调用参数集合),多变体确认在精确匹配语义下可命中",
+    "records 同步:带后缀记录直接命中;无后缀记录经后缀归属或 nmID 兜底命中;查无卡的 published 记录状态与 last_error 原样保留",
+    "Ozon rejected/archived/缺库存分别落 failed/delisted/out_of_stock 词表,saleReady 才写 in_sale 且 error 清空",
+    "listWbCardErrors 每店铺调用一次",
+    "组同步请求体不再携带 recordId,同商品全部变体记录都被更新",
+    "qingpu-ai typecheck 与 WB 相关测试全绿;主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "扩展跟踪器测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/wb-publish-tracking.test.ts tests/wb-card-update-merge.test.ts tests/wb-publish-chain.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.sync.ts", "pages/user/listing/components/ListingPublishProductGroupsPanel.vue"]
+    }
+  ]
+}
