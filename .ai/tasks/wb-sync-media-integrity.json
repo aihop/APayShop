@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-sync-media-integrity",
+  "title": "同步通道媒体完整性:保视频/如实报限频/实时数据源/Ozon 拒绝整卡重发",
+  "problem": "对照官方文档与代码实证的六个确定问题:(1) WB media/save 的 data 数组同时承载图片与视频链接、不传即删(官方语义),同步图片只传图片会删掉卡上视频;(2) 429 限频 break 后记成功且注释谎称 queued,多变体后续卡未传图用户却看到成功;(3) variantImg(SKU 值图)未过滤非公网协议,data:/本地引用混入 media/save 整商品报错;(4) 同步图片读 DB 草稿快照(row.drafts),而 rebuildProductAggregate 已实时重算草稿——刚精修的图可能不在推送集合;(5) sync_data 部分变体卡线上缺失时静默跳过无警告;(6) 「同步」按钮对 Ozon 显示但服务端通道 wb 专用,Ozon 点同步掉进完整 v3/product/import 整卡重发(重新审核,最不优)。连带确认:WB syncWbListingDraft 不像 Ozon(hasSubmittedOzonSnapshot)保留已提交快照,服务端聚合投影会把 publishSnapshot 从内存草稿抹掉。",
+  "expectedOutcome": "同步图片把线上卡的 video 并入 data 保全视频;buildWbMediaSyncUrls 单点过滤非公网 URL 并接受 onlineVideoUrl;429 部分完成如实报「已同步 N/M 张卡,其余限频待重试」、全部未完成报错;同步图片的图集/变体数据改读实时投影产物(nmID 兜底仍读 DB 快照);sync_data 对 unmatchedIntents 输出缺卡警告;Ozon 的同步动作服务端明确拒绝并提示尚未支持,前端按钮仅对 wb 渠道显示;WB syncWbListingDraft 保留旧草稿中已提交的 publishSnapshot(与 Ozon 同一保护语义);WbCardListItem 补 video 字段。",
+  "constraints": [
+    "media/save 语义按官方文档:图片按数组序,视频位置任意,一并传入即保全",
+    "URL 协议过滤收口在 engine buildWbMediaSyncUrls 单点,不在调用方散写",
+    "限频部分失败不得记成功;不承诺不存在的后台队列",
+    "Ozon 同步本轮只做安全拒绝,细粒度通道(attributes/update/pictures/import/prices)另立契约",
+    "syncWbListingDraft 快照保留只在旧草稿 publishSnapshot.submittedAt 非空时生效,扩展端无快照行为不变",
+    "engine vendor 只允许 npm run engine:release 写入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/wb/card-update-merge.ts",
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/domain/channel-mappers/wb/types.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "tests/wb-card-update-merge.test.ts",
+        "tests/wb-draft-validation.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/wb/card-update-merge.ts",
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/domain/channel-mappers/wb/types.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "tests/wb-card-update-merge.test.ts",
+        "tests/wb-draft-validation.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.run.ts",
+        "pages/user/listing/channels.vue",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/publish.run.ts",
+        "pages/user/listing/channels.vue",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "buildWbMediaSyncUrls 过滤非 http(s) 引用、接受 onlineVideoUrl 且视频置尾参与去重(测试钉住)",
+    "线上卡带 video 时同步图片的 data 包含该视频链接;429 部分完成的商品结果含「N/M」如实提示且不记纯成功",
+    "同步图片的图集与变体图来自实时投影后的 product.channelListingDrafts.wb",
+    "sync_data 对线上缺失的变体卡输出警告(货号列举)",
+    "Ozon 渠道携带 syncAction 的请求被服务端明确拒绝,不进入发布流程;前端同步按钮仅 wb 显示",
+    "syncWbListingDraft 保留已提交 publishSnapshot(测试钉住),无快照时行为逐字节不变",
+    "qingpu-ai typecheck 与相关测试、主题守卫总闸全部通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 侧测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/wb-card-update-merge.test.ts tests/wb-draft-validation.test.ts tests/wb-publish-tracking.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts", "pages/user/listing/channels.vue", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
