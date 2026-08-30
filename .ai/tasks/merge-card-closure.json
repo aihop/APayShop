@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-closure",
+  "title": "合卡发布后维护闭环:WB 追加并卡 / Ozon 合卡与行级参数走同步 / 守卫重定",
+  "problem": "合卡首发链路两端闭环,但发布后维护缺四块(2026-08-30 审计):(A) Ozon 行级型号名(9048 合卡键)与行级规格轴不在 diff 比较域也不经 attributes/update 下发——工作台重排合卡后点同步显示已是最新,线上纹丝不动必须重新上架;(B) 线上合卡结果不可见;(C) check-merge-card-codes 守卫仍断言 cd300779 重构前的实现文本,长期红灯(重构后一致性已由 merge-card-plan 单点结构保证);(D) WB 新增 SKU 无法并入已有合卡——同步只报变体卡缺失,imtID 从未读取使用,唯一路径删卡整重会丢排名与评价。",
+  "expectedOutcome": "sync-plan 的 Ozon content 域纳入行级投影(modelName+aspectAttributes 终值),合卡重排与行级参数修正可被 diff 发现;Ozon 执行器按 offer 推送「商品级 attributes+该变体 aspects+行级 9048」,合卡变更经 attributes/update 生效并附『平台生效需数分钟』提示;WbCardListItem 补 imtID,WB 执行器对 unmatchedIntents 在已有配对卡时按其 imtID 补建缺失变体卡(条码申领,结果提示下轮对齐),全缺仍如实报错;check-merge-card-codes 重定为断言两端 import merge-card-plan 单点,红灯清零。",
+  "constraints": [
+    "行级投影只抓 modelName 与 aspectAttributes 的 finalValue/dictionaryValueId,价格/库存仍归 price 域",
+    "WB 补建只在存在已配对卡(能取到 imtID)时进行;补建当轮不做 content/media,交下轮同步收敛",
+    "守卫重定后 check:qingpu-all 已知失败清单同步移除该项",
+    "engine vendor 只允许 npm run engine:release 写入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "src/engine/index.ts",
+        "tests/channel-sync-plan.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "src/engine/index.ts",
+        "tests/channel-sync-plan.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.run.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "scripts/check-all.mjs",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/publish.run.ts",
+        "scripts/check-merge-card-codes.mjs",
+        "scripts/check-all.mjs",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "只改行级 modelName:diff 的 content 域命中且字段含 variants(测试钉住);执行推送含该 offer 的 9048",
+    "只改行级 aspect 终值:content 域命中;价格/库存行级变化仍不触发 content",
+    "WB 缺失变体在有配对卡时补建并携带其 imtID;全缺报错语义不变",
+    "check-merge-card-codes 通过且从已知失败清单移除,总闸已知失败降为 5",
+    "qingpu-ai typecheck 与 sync-plan 测试、主题守卫总闸全部通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/channel-sync-plan.test.ts tests/merge-card-groups.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts", "scripts/check-merge-card-codes.mjs", "scripts/check-all.mjs", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "merge-card-auto-flag",
+  "title": "恢复 modelNameIsAuto 台账打标并重定合卡守卫",
+  "problem": "cd300779 合卡重构丢失了 modelNameIsAuto 的写入点(全仓无赋值),factory 防「系统自动发放的合卡内部码进买家标题」退化为 isInternalCode 格式兜底——当前默认 QP 前缀恰好被罩住,但 offerIdPrefix 用户可配置,一改就漏。check-merge-card-codes 守卫三周红灯报的正是这个,被当已知失败忽略。",
+  "expectedOutcome": "mapper 按 ozonMergeCardState.autoModelNames 台账给草稿变体打 modelNameIsAuto(值与台账一致才算自动),factory 的语义防线复活;守卫断言重定为当前正确形态并从 check-all 已知失败清单移除,总闸已知失败降为 5。",
+  "constraints": [
+    "打标只认台账不认格式(与工厂托管判据同一立场)",
+    "engine vendor 只允许 npm run engine:release 写入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/domain/channel-mappers/ozon/mapper.ts", "tests/ozon-variant-price-required.test.ts", "tests/merge-card-groups.test.ts"],
+      "claims": ["src/domain/channel-mappers/ozon/mapper.ts", "tests/ozon-variant-price-required.test.ts", "tests/merge-card-groups.test.ts"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["scripts/check-merge-card-codes.mjs", "scripts/check-all.mjs", "server/vendor/qingpu-engine/**"],
+      "claims": ["scripts/check-merge-card-codes.mjs", "scripts/check-all.mjs", "server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "台账命中的变体 modelNameIsAuto=true,手填/不一致为 undefined(测试钉住)",
+    "check-merge-card-codes 通过并从已知失败清单移除,总闸已知失败为 5",
+    "qingpu-ai typecheck 与相关测试、主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/merge-card-groups.test.ts tests/ozon-variant-price-required.test.ts tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["scripts/check-merge-card-codes.mjs", "scripts/check-all.mjs", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
