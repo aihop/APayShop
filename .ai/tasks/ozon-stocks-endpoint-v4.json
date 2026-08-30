@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-stocks-endpoint-v4",
+  "title": "Ozon 库存查询端点迁 v4:v1 已被平台下线(404)",
+  "problem": "实测(2026-08-30 真实店铺):/v1/product/info/stocks 返回 404 page not found(平台下线),/v4 同请求体返回 200——代码请求体本就是 v4 形态(cursor/limit/filter)配错了 v1 路径。fetchOzonSaleReadiness 因此整体抛错:records 页 Ozon 状态同步全军覆没(拿不到状态与内容分),扩展端 Ozon 发布确认的可售回读同断。",
+  "expectedOutcome": "PRODUCT_STOCK_ENDPOINT 迁 /v4/product/info/stocks;真实店铺实测 readiness 链路恢复(exists/sku/内容分可取)。",
+  "constraints": ["engine vendor 只允许 npm run engine:release 写入"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/shared/ozon-sale-readiness.ts"],
+      "claims": ["src/shared/ozon-sale-readiness.ts"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/vendor/qingpu-engine/**"],
+      "claims": ["server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": ["真实店铺 readiness 调用成功返回 offers(含 sku)", "qingpu-ai typecheck 与相关测试、主题守卫总闸通过"],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/vendor/qingpu-engine/**"]
+    }
+  ]
+}

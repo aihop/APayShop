@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-content-rating-restore",
+  "title": "恢复 records 同步的 Ozon 内容评分(engine 口径),清理伪造 5.0",
+  "problem": "records 页评分列全部是伪造遗留的 5.00(旧代码 WB 写死满分/Ozon 默认值);并行提交 6ec1ec3(14:37)刚加的内容评分同步在 15:20 的 publish.sync 重写中被覆盖丢失(重写时误判为待清理的手写 fetch)。用户期望同步回来的是商品完整度评分(内容分 0-100),前端 >5 显示为蓝色内容分徽章的展示层仍在。",
+  "expectedOutcome": "engine 新增按 sku 批量拉内容分的轻量封装(复用既有 parseOzonContentRatingResponse 解析);records 同步 Ozon 分支对 exists 的 offer 用 readiness 自带的 sku 批量拉内容分写入 rating 列(0-100,配合前端 >5 语义);拉不到时不写不伪造;伪造遗留数据(rating=5.00 且 reviews_count=0)清为 null 由下次同步拉真值。",
+  "constraints": [
+    "评分拉取失败不影响状态同步主流程(fail-soft 只警告)",
+    "不伪造任何评分;rating 列 undefined 时 coalesce 保留现值语义不变",
+    "engine vendor 只允许 npm run engine:release 写入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/shared/pipeline/ozon-update-api.ts", "src/engine/index.ts"],
+      "claims": ["src/shared/pipeline/ozon-update-api.ts", "src/engine/index.ts"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/publish.sync.ts", "server/vendor/qingpu-engine/**"],
+      "claims": ["server/listing/publish.sync.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "同步后已在线 Ozon 商品的 rating 为真实内容分(0-100);离线/拉取失败的商品评分保持不动",
+    "伪造 5.00 遗留清理后不再展示满分星级",
+    "qingpu-ai typecheck、主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/channel-sync-plan.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.sync.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
