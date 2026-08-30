@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "sync-media-rate-resilience",
+  "title": "声明式同步媒体域:首次对齐按线上实况收窄 + 429 部分成功韧性",
+  "problem": "真实 429 事故(2026-08-30):media/save 是账号级最严限频接口(冷却约 30 分钟)。首次同步(存量无基线)把媒体域盲判有变更,图片没动也对每张变体卡各打一次 media/save,验收几次点击即打满限频;执行器对媒体 429 直接抛错→整商品标失败→快照不回写→即使文案/售价已成功推送,下次 diff 依然全量→再打 media/save 恶性循环。",
+  "expectedOutcome": "无基线时媒体域按线上实况收窄:本地公网图数与线上 photos 数一致且视频有无一致→视为已对齐,跳过推送并把本地媒体字段写入基线;不一致才真推。媒体域 429 降级为部分成功:content/price 正常落快照,快照媒体字段回填基线值(无基线则剔除媒体字段),商品结果给出冷却分钟数提示;账号级限频命中后本轮剩余商品自动跳过媒体域只做文案与售价。预览文案对首次同步的媒体域如实说明「按线上实况自动判断」。",
+  "constraints": [
+    "数量+视频有无的启发式收窄只用于无基线场景;有基线时 diff 语义不变",
+    "429 识别按 WbApiError.status 与文案关键词双通道,不吞其它错误",
+    "快照回写的媒体字段回填必须保证下次 diff 恰好只剩 media 域,不重推已成功域",
+    "media/save 每卡间隔 1s 节流保留;冷却期内不自动重试",
+    "不改 engine(computeChannelSyncPlan 保持纯函数),收窄在主题执行/预览层完成"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.run.ts",
+        "pages/user/listing/channels.vue"
+      ],
+      "claims": [
+        "server/listing/publish.run.ts",
+        "pages/user/listing/channels.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "无基线且本地图数=线上图数、视频有无一致:不调用 media/save,快照媒体字段落本地值,第二次 dry_run 媒体域静默",
+    "媒体 429:商品结果为部分成功并含冷却提示,content/price 域成功且快照回写后下次 diff 只剩 media 域",
+    "限频命中后本轮剩余商品不再调用 media/save",
+    "主题守卫总闸与类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts", "pages/user/listing/channels.vue"]
+    }
+  ]
+}
