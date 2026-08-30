@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-vendor-code-suffix-caliber",
+  "title": "T4 WB 变体货号口径:后缀规则与基码回落链经 engine 出口统一",
+  "problem": "三端统一上线前测试(2026-08-30)实锤挂账项 T4,用户点名补齐:engine 单点 buildWbVariantVendorCode(wb-factory.ts,doc 注明「两处必须同源」)未导出,主题 publish.run.ts 手抄后缀规则 4 处(:297/:954/:980/:1091)、基码四级回落链(vendorCode→product.id→canonical.id→productId)抄 2 处(:947/:1084),且回落链与 engine buildWbPublishCard 内部同款第三份并存——WB 轮询/同步反查全靠这条规则,任何一处漂移即复现「多变体永远查不到卡」事故。",
+  "expectedOutcome": "wb-factory 新增 listWbVariantVendorCodes(候选码数组)与 resolveWbBaseVendorCode(基码回落链单点,buildWbPublishCard 自身改用);三符号经 engine index 出口导出并登记 caliber-redefine;主题 publish.run.ts 全部 6 处手抄替换为 engine 消费;check-caliber-drift 守卫自动覆盖新符号。",
+  "constraints": ["engine vendor 只允许 npm run engine:release 写入", "后缀与回落语义逐字节不变(纯收口,零行为变化)"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/domain/publish-payloads/wb-factory.ts", "src/engine/index.ts", "scripts/check-deps.mjs"],
+      "claims": ["src/domain/publish-payloads/wb-factory.ts", "src/engine/index.ts", "scripts/check-deps.mjs"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/publish.run.ts", "server/vendor/qingpu-engine/**"],
+      "claims": ["server/listing/publish.run.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题零本地后缀铸码与基码回落实现(grep 佐证)",
+    "qingpu-ai typecheck + WB 相关测试通过",
+    "主题守卫总闸通过(已知失败清单不增;check-caliber-drift 覆盖新符号)"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npx vitest run tests/wb-publish-chain.test.ts tests/wb-publish-tracking.test.ts tests/wb-barcode-allocation.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
