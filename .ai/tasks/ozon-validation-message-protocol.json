@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-validation-message-protocol",
+  "title": "发布校验文案协议单点化:构建器/解析器配对导出,修复尾缀致解析失效",
+  "problem": "三端统一测试灰色项 1.7 实锤升级为活 bug:主题 publish.validation.ts 手写「缺少必填属性: 」前缀拆串与「尚未绑定/匹配 Ozon 佣金」子串匹配;engine mapper.ts:648 的实际文案带「（处理方式：…）」尾缀,主题按 endsWith(' 等') 判截断永远 false、按「、」拆分的末位名被尾缀污染——变体已满足的必填项摘除失效,单缺该项且变体已满足的商品被错误卡住不可发布(保守方向劣化)。字符串协议无守卫,engine 改一字即静默烂。",
+  "expectedOutcome": "engine 导出配对单点:OZON_MISSING_REQUIRED_PREFIX/佣金降级文案常量、buildOzonMissingRequiredMessage(:648 自身改用)、parseOzonMissingRequiredMessage(剥尾缀、解截断、拆名);主题解析/重组/降级全部改消费 engine,修复尾缀 bug;新增解析-构建往返测试;caliber-redefine 登记符号。",
+  "constraints": ["engine vendor 只允许 npm run engine:release 写入", "文案对用户呈现逐字节不变(尾缀保留),只修解析与来源"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/domain/channel-mappers/ozon/mapper.ts", "src/engine/index.ts", "scripts/check-deps.mjs", "tests/ozon-validation-messages.test.ts"],
+      "claims": ["src/domain/channel-mappers/ozon/mapper.ts", "src/engine/index.ts", "scripts/check-deps.mjs", "tests/ozon-validation-messages.test.ts"]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/publish.validation.ts", "server/vendor/qingpu-engine/**"],
+      "claims": ["server/listing/publish.validation.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "带尾缀真实文案的解析-摘除-重组往返测试通过(含全摘除、部分摘除、截断态)",
+    "主题零手写文案字面量(常量与解析器均来自 engine)",
+    "qingpu-ai typecheck + 相关测试通过;主题守卫总闸通过(已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npx vitest run tests/ozon-validation-messages.test.ts tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.validation.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}

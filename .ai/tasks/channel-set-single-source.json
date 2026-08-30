@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "channel-set-single-source",
+  "title": "T5 渠道全集单点:主题第二份 CHANNELS 定义与内联渠道字面量收敛",
+  "problem": "三端统一上线前测试(2026-08-30)实锤挂账项 T5:server/listing/helpers.ts:38 自建 CHANNELS=['ozon','wb'] 与 isListingChannel(engine 有 KNOWN_CHANNELS 单点,同一 server 树里 stores/helpers.ts 就是正确写法);toListingProductListItem 内两处内联 c.channel==='ozon'||c.channel==='wb' 过滤;缺省造 ozon 行与 products.vue:535 的 set.add('ozon') 用裸字面量。新渠道进 KNOWN_CHANNELS 时这些点全部静默漏。",
+  "expectedOutcome": "CHANNELS 本地定义删除,ListingChannel 别名到 engine Channel(3 个消费方导入面不动);isListingChannel 基于 KNOWN_CHANNELS;内联过滤与缺省 ozon 改用单点常量。零行为变化。",
+  "constraints": [
+    "缺省造 ozon 行的兼容语义原样保留(老数据无渠道明细时的展示回退)"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/helpers.ts",
+        "pages/user/listing/products.vue",
+        "pages/user/listing/channels.vue"
+      ],
+      "claims": [
+        "server/listing/helpers.ts",
+        "pages/user/listing/products.vue",
+        "pages/user/listing/channels.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题 grep 零本地渠道全集定义(CHANNELS 数组仅剩 engine)",
+    "主题守卫总闸通过(已知失败清单不增)"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "server/listing/helpers.ts",
+        "pages/user/listing/products.vue"
+      ]
+    }
+  ]
+}
