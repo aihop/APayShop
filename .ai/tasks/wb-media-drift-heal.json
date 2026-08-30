@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-media-drift-heal",
+  "title": "WB media/save 200 陷阱防护:同步时线上实况漂移自愈",
+  "problem": "WB 官方文档实锤(2026-08-30,memory wb-media-save-facts):media/save 请求中任一图片/视频不合规时,即使响应 200 也一张都不会上传。同步执行器在推送 200 后前滚媒体基线,此后 plan.media.changed=false 直接短路返回——本地与线上的媒体偏差永久失守,除非用户改图。执行器本来就逐码搜回了线上卡(photos 在手),却只在 missingBaseline 分支使用。",
+  "expectedOutcome": "逐卡「本地期望 vs 线上实况」判定提到 media 域短路之前:基线说没变但实况失守的卡强制进推送集(缺图优先序不变),零额外平台请求;同数换图逃逸的既有启发式局限原样记录。",
+  "constraints": ["不改快照回填与限频降级语义;判定只用已搜回的卡片数据,不新增平台调用"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/publish.run.ts"],
+      "claims": ["server/listing/publish.run.ts"]
+    }
+  ],
+  "acceptanceCriteria": ["media 未变更且实况对齐时行为与现状逐字节一致(not_planned)", "主题守卫总闸通过(已知失败清单不增)"],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts"]
+    }
+  ]
+}
