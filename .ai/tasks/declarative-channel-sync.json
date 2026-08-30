@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "declarative-channel-sync",
+  "title": "声明式渠道同步终态:diff 驱动的单一同步动作与变更预览",
+  "problem": "现有同步是命令式整块推送:用户必须理解「资料 vs 图片」的平台细节选择按钮;每次推送整块数据,不管有没有变化,白吃限频并放大覆盖面;同步成功后 publishSnapshot 不回写,渠道页 outdated 判定漂移;Ozon 无同步通道(整卡重导已被安全闸拦下)。终态:同步 = diff(实时草稿, 提交快照基线) → 变更预览 → 按差异分发细粒度接口 → 成功回写快照。",
+  "expectedOutcome": "engine 新增渠道同步计划单点 computeChannelSyncPlan(按渠道字段映射比较 content/price/media 三域,产出结构化变更清单);publishSnapshot 增加 listing 副本作 diff 基线(finalize 与同步成功后都回写);服务端新增 syncAction='sync' 通道(wb+ozon):dry_run 返回各商品变更计划,live 按计划分发——WB 复用既有 cards/update 读-合-写、价格、media/save(保视频)链路;Ozon 接 attributes/update、pictures/import、import/prices 细粒度族(engine 封装);无变更商品不发任何平台请求。前端同步按钮合一,确认弹窗展示逐商品变更预览(标题/价格/图片/视频/参数),Ozon 恢复同步能力。旧 sync_data/sync_images 服务端保留兼容。",
+  "constraints": [
+    "diff 基线缺失(存量快照无 listing 副本)时按「全量变更」处理并在预览中说明,不猜",
+    "WB 执行路径全部复用本会话已验证的链路(合并单点/媒体单点/价格口径),不重写",
+    "Ozon 三个更新接口为新外部面:封装按官方文档口径,executor 保持简单;首次真实执行建议用户单品核验(交付说明),dry_run 预览默认",
+    "无变更域不调用对应平台接口(幂等,不白吃限频)",
+    "同步成功后回写 publishSnapshot.listing 与 syncedAt;失败域不回写",
+    "engine vendor 只允许 npm run engine:release 写入;新口径符号登记 caliber-redefine"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/shared/pipeline/ozon-update-api.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-sync-plan.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/shared/pipeline/ozon-update-api.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/channel-sync-plan.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.run.ts",
+        "server/listing/channel-draft/finalize.ts",
+        "server/listing/queries.channels.ts",
+        "api/listing/publish.ts",
+        "pages/user/listing/channels.vue",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/publish.run.ts",
+        "server/listing/channel-draft/finalize.ts",
+        "server/listing/queries.channels.ts",
+        "api/listing/publish.ts",
+        "pages/user/listing/channels.vue",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "computeChannelSyncPlan 对 wb/ozon 正确产出三域变更(含无基线全量态、无变更态),测试钉住",
+    "dry_run 的 sync 返回逐商品变更计划;live 只调用有变更域的接口",
+    "同步成功后快照 listing 副本与 syncedAt 落库,再次 dry_run 显示无变更",
+    "WB 同步经计划分发后行为与既有链路一致(合并/保视频/价格口径不变)",
+    "Ozon price/media/content 三域分别经 import/prices、pictures/import、attributes/update 提交",
+    "前端单一同步按钮,确认弹窗展示变更预览;无变更商品显示已是最新",
+    "qingpu-ai typecheck 与新测试、主题守卫总闸全部通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 侧测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/channel-sync-plan.test.ts tests/wb-card-update-merge.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.run.ts", "server/listing/channel-draft/finalize.ts", "server/listing/queries.channels.ts", "api/listing/publish.ts", "pages/user/listing/channels.vue", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
