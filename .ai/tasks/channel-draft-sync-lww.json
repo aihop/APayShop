@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "channel-draft-sync-lww",
+  "title": "渠道草稿云同步补时序守卫与字段归属,消灭扩展 sync 覆坏网页数据",
+  "problem": "实证(2026-08-30,代码+真实库双证据):(1) 扩展 sync 载荷 ListingSyncDraftInput 只有 draft 字段,服务端把 validation 写成 {}、ready 写成 false 并 upsert 无条件覆盖两列,而渠道页与 dashboard 汇总读的正是这两列,sync 入口也无就绪度重算补救——扩展一同步,网页上就绪状态全部打回未就绪,反复横跳。(2) 渠道草稿 upsert 无 client_updated_at LWW 比较(workspace 层有),任何旧设备旧快照可覆盖网页新写的草稿。(3) 已提交防覆盖豁免要求 schema_version=2,但 WB builder 用类型断言绕过 finalize 的编译期防护,qingpu-ai 的 buildWbListingDraft 不产 schemaVersion,真实库中 WB 已提交行 schema_version=1、submitted=true,豁免不命中,publishSnapshot(含 nmID 兜底)会被 sync 抹掉。(4) draftInput.draft || {} 把缺失当清空,防御性缺陷。",
+  "expectedOutcome": "渠道草稿层获得与 workspace 层同等的同步纪律:upsert 带 client_updated_at LWW(旧快照不覆盖新数据);已提交防覆盖豁免只看 publishSnapshot.submittedAt 不看版本号;draft/validation/ready 三字段「缺失=不动,显式才覆盖」(兼容不带新字段的存量扩展);扩展 sync 载荷补上 validation 与 ready(从草稿 validation 派生);WB mapper 补 schemaVersion: 2 对齐 Ozon 并删除 wb builder 的类型断言让编译期防护复活。",
+  "constraints": [
+    "LWW 语义与 workspace 层 upsert 同款:现值 client_updated_at 为空或 excluded 更新时才覆盖",
+    "已提交保护条件改为 coalesce(draft#>>'{publishSnapshot,submittedAt}','')<>'',对 v1/v2 一视同仁",
+    "存量扩展(不带 validation/ready 字段)的推送不得清空这两列:服务端按「参数为 null 保留现值」处理,ready 用 tri-state 参数而非 Boolean 兜底",
+    "draft 为空对象视为缺失不覆盖本体(mapper 产物不可能是空对象)",
+    "WB schemaVersion 只能加 2 不得改既有判定:isSubmittedOzonListingDraft 有 channel 门控,不受影响",
+    "engine vendor 只允许 npm run engine:release 写入",
+    "升级语义用真实数据库事务回滚方式实证(begin...rollback),不留任何数据变更"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/shared/listing-sync-payload.ts",
+        "tests/wb-draft-validation.test.ts",
+        "tests/listing-sync-payload.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/shared/listing-sync-payload.ts",
+        "tests/wb-draft-validation.test.ts",
+        "tests/listing-sync-payload.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/queries.sync.ts",
+        "server/listing/channel-draft/wb.ts",
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/listing/queries.sync.ts",
+        "server/listing/channel-draft/wb.ts",
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "扩展 sync 推送(带或不带 validation/ready)都不再把就绪状态打回 false、不清空 validation 列(真实 DB 事务实证)",
+    "旧 client_updated_at 的推送不覆盖新草稿;新推送正常覆盖(真实 DB 事务实证)",
+    "已提交草稿(v1 形态含 publishSnapshot.submittedAt)不被任何 sync 覆盖(真实 DB 事务实证)",
+    "buildWbListingDraft 产出 schemaVersion: 2,wb builder 断言删除后类型检查通过",
+    "扩展载荷带 validation/ready,测试钉住",
+    "qingpu-ai typecheck、相关测试、守卫、构建全绿;主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "扩展侧测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/wb-draft-validation.test.ts tests/listing-sync-payload.test.ts tests/wb-card-update-merge.test.ts"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/queries.sync.ts", "server/listing/channel-draft/wb.ts", "server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
