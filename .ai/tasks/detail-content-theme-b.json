@@ -4,7 +4,9 @@
   "title": "detailContent 收敛 B 段:主题写入落新位+读出预览回落,vendor 0.7.252",
   "problem": "A 段(engine)已闭环:channelCopy.ozon.description 成为语义家,读回落/写迁移单点化。主题三处仍指旧位:patch 写入 manualOverrides.detailContent、详情页读出、Ozon 预览投影——不改则新老两端写不同位置,回落虽兜住读但违背收敛终态。",
   "expectedOutcome": "patch.detailContent(API 字段名不变)落 channelCopy.ozon.description 并清 legacy 位;详情读出与预览投影 new-first 回落;vendor 0.7.252 入库(经邻会话确认覆盖在途 0.7.251 安全)。",
-  "constraints": ["API/前端合同零变化;jsonb 手改与 engine setChannelCopyFieldValue 语义逐条对齐(trim/空删/清旧)"],
+  "constraints": [
+    "API/前端合同零变化;jsonb 手改与 engine setChannelCopyFieldValue 语义逐条对齐(trim/空删/清旧)"
+  ],
   "repositories": [
     {
       "name": "qingpu-theme",
@@ -14,25 +16,33 @@
         "server/listing/queries.shared.ts",
         "server/listing/product-detail.workspace.ts",
         "server/listing/preview/channel-projections/ozon.ts",
-        "server/vendor/qingpu-engine/**"
+        "server/vendor/qingpu-engine/**",
+        "tests/channel-copy-override-ui.test.ts"
       ],
       "claims": [
         "server/listing/queries.workspace.ts",
         "server/listing/queries.shared.ts",
         "server/listing/product-detail.workspace.ts",
         "server/listing/preview/channel-projections/ozon.ts",
-        "server/vendor/qingpu-engine/**"
+        "server/vendor/qingpu-engine/**",
+        "tests/channel-copy-override-ui.test.ts"
       ]
     }
   ],
-  "acceptanceCriteria": ["写入新位清旧位(语义与 engine 单点对齐)", "读出/预览 new-first,老数据不丢显", "主题守卫总闸通过"],
+  "acceptanceCriteria": [
+    "写入新位清旧位(语义与 engine 单点对齐)",
+    "读出/预览 new-first,老数据不丢显",
+    "主题守卫总闸通过"
+  ],
   "verification": [
     {
       "name": "主题守卫总闸",
       "repository": "qingpu-theme",
       "always": true,
       "command": "npm --prefix ../../.. run check:qingpu-all",
-      "covers": ["server/vendor/qingpu-engine/**"]
+      "covers": [
+        "server/vendor/qingpu-engine/**"
+      ]
     }
   ]
 }
