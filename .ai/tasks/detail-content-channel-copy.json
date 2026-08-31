@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "detail-content-channel-copy",
+  "title": "detailContent 收敛 A 段:engine 单点兼容读/写迁移(vendor+主题为 B 段)",
+  "problem": "账本「detailContent 名不副实」:Ozon 专属的描述覆盖用渠道无关字段名 manualOverrides.detailContent,与 channelCopy 覆盖层语义重叠;channelCopy 因此把 ozon.description 排除在可覆盖面外,两层不并存全靠注释路标维系,字段名误导后来者。engine 四处读点 + 主题写入/读出/预览三处各自裸读该字段。",
+  "expectedOutcome": "channelCopy.ozon.description 进覆盖面成为唯一语义家:getChannelCopyOverride(ozon,description) 内建 legacy 回落(新位置优先,回落 manualOverrides.detailContent,存量零批量迁移);setChannelCopyFieldValue 写新位置并顺手清 legacy(migrate-on-write);engine 四处读点全部改走该单点(显式共享回落链保守原样);主题写入落点改新位置+清 legacy(API patch 字段名 detailContent 不变),读出与预览 new-first 回落;types 字段留 @deprecated。测试补 legacy 回落/写清/门控用例;账本销账。",
+  "constraints": [
+    "API/扩展消息合同零变化(patch.detailContent 字段名保留,只改落点);存量数据不批量清洗",
+    "B 段(vendor release + 主题落点)等邻会话 vendor 0.7.251 处置后独立契约"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/workspace/channel-copy.ts",
+        "src/domain/workspace/types.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/publish-payloads/ozon-rich-content.ts",
+        "src/domain/listing-copy/sections/detail.ts",
+        "tests/channel-copy-override.test.ts",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "src/domain/workspace/channel-copy.ts",
+        "src/domain/workspace/types.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/publish-payloads/ozon-rich-content.ts",
+        "src/domain/listing-copy/sections/detail.ts",
+        "tests/channel-copy-override.test.ts",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "覆盖面 6 格全生效,detailContent 旧值经回落继续生效,新编辑迁新位清旧",
+    "engine 零裸读 manualOverrides.detailContent(grep 佐证,types 声明除外)",
+    "qingpu-ai typecheck+相关测试通过;主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npx vitest run tests/channel-copy-override.test.ts tests/listing-copy.test.ts tests/ozon-publish.test.ts"
+    }
+  ]
+}
