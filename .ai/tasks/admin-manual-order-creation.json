@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-manual-order-creation",
+  "title": "后台订单管理增加代客下单功能",
+  "problem": "管理员在后台 /admin/orders 无法手动为客户创建订单，线下收款或特殊客户代下单流程受阻，无法支持选择/即时创建用户、选择商品、自定义实付金额及生成前台支付链接或直接开通履约。",
+  "expectedOutcome": "在 /admin/orders 提供「代客下单」按钮与弹出层，支持检索/自动创建用户、选择商品与数量、自定义实付金额，支持「已收款（直接开通/履约）」与「待支付（生成前台付款链接）」两种模式，并生成标准资金快照与审计日志。",
+  "constraints": [
+    "不修改 APay 核心数据库 Schema，复用现有 orders/users/userWallets 表结构",
+    "严格遵循 APay 资金记账口径（orders.amount/currency 为实收，currencySnapshot 锁定基础金额与汇率）",
+    "受 orders:edit 管理员权限保护，记录操作审计日志（setAuditMeta）",
+    "支持中英文双语国际化配置",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/admin/orders/index.ts",
+        "app/pages/admin/orders.vue",
+        "app/components/admin/orders/ManualOrderModal.vue",
+        "locales/en.json",
+        "locales/zh.json"
+      ],
+      "claims": [
+        "server/api/admin/orders/index.ts",
+        "app/pages/admin/orders.vue",
+        "app/components/admin/orders/ManualOrderModal.vue",
+        "locales/en.json",
+        "locales/zh.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "在 /admin/orders 页面右上角显示「代客下单」按钮",
+    "点击弹出代客下单对话框，支持从现有用户中检索或直接输入新邮箱",
+    "输入未注册邮箱提交时自动创建新用户记录及初始化钱包",
+    "支持选择有效商品、修改数量，并允许管理员自定义实付金额",
+    "支持选择「已收款（立即开通/履约）」或「待支付（生成付款链接）」",
+    "待支付订单创建后支持一键复制付款链接",
+    "已收款订单勾选自动履约时正确触发对应商品的履约与结佣流程",
+    "中英文语言切换正常，无硬编码文案"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/admin/orders/index.ts app/pages/admin/orders.vue app/components/admin/orders/ManualOrderModal.vue locales/en.json locales/zh.json"
+    }
+  ]
+}

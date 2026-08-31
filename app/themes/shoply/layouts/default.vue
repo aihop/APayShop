@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen overflow-x-hidden bg-white font-sans text-slate-900 selection:bg-blue-200">
+    <EmailVerificationBanner />
     <header class="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
       <nav class="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 sm:h-20 sm:px-8 lg:px-12">
         <NuxtLink
@@ -210,7 +211,6 @@ const locales = [
   { code: 'en', name: 'EN', fullName: 'English' },
   { code: 'zh', name: '中文', fullName: '简体中文' },
   { code: 'zh-HK', name: '繁中', fullName: '香港繁體' },
-  { code: 'id', name: 'ID', fullName: 'Bahasa Indonesia' },
   { code: 'ru', name: 'RU', fullName: 'Русский' },
 ]
 const navigation = [

@@ -83,7 +83,7 @@
             <UPagination
               v-model="page"
               :total="totalItems"
-              :page-count="pageCount"
+              :items-per-page="pageCount"
               @update:page="(val) => onPageChange(val, () => refresh())"
             />
           </div>

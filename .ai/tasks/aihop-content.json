@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "aihop-content",
+  "title": "接入 posts 实现评测与教程内容页",
+  "problem": "站点目前只有数据页,没有内容页。榜单和省钱指南能拿到的是「AI 模型排行」这类头部词,长尾流量要靠评测、教程、对比文章,而这正是内容站的 SEO 主力。apay 已有 posts 表与公开接口,sitemap 也内置了 posts 数据源,无需建表,但需要按 Matters Blue 的列表规范实现列表页与文章页。文章正文来自数据库且可能是 HTML,渲染方式必须与仓库既有约定一致,不能自作主张引入新的净化依赖,也不能在没有说明的情况下直接 v-html。",
+  "expectedOutcome": "/posts 按 Matters Blue 列表规范渲染文章(首条大图大标题、其余缩小版、无卡片、发丝线 CTA),支持分页;/posts/[slug] 呈现文章正文并带滚动高亮目录;文章可通过 AihopModelInline 内联引用模型;两者进入 sitemap;posts 为空时列表页显示空态而非报错。",
+  "constraints": [
+    "列表严格按 Matters Blue 规范:无卡片、无阴影、无圆角边框,仅靠留白分隔,首条下方一根 1px 线",
+    "目录滚动高亮必须用 IntersectionObserver,不得用 scroll 事件轮询;卸载时断开观察",
+    "目录激活态是 1px 左边框变色加字重,不是背景块",
+    "文章正文渲染沿用仓库既有约定(与其余五个主题一致),不引入新依赖;信任假设写成代码注释而非默默处理",
+    "文章不存在时返回 404,不得渲染空白页",
+    "分页用纯文字「上一页/下一页」链接,不使用组件库分页器",
+    "遵守主题硬约束:不使用 primary-*、不写 dark: 变体、不使用 @nuxt/ui 组件、类名不得运行时拼接",
+    "所有界面文案走 $t('aihop.*')"
+  ],
+  "repositories": [
+    {
+      "name": "apay-aihop",
+      "path": "app/themes/aihop",
+      "allowedPaths": [
+        "pages/**",
+        "components/**",
+        "composables/**",
+        "layouts/**",
+        "locales/**",
+        "seo.routes.json"
+      ],
+      "claims": [
+        "pages/**",
+        "components/**",
+        "composables/**",
+        "layouts/**",
+        "locales/**",
+        "seo.routes.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/posts 渲染文章列表,首条为大图大标题版式,其余为缩小版,带发丝线 CTA",
+    "文章为空时显示空态文案,页面不报错",
+    "分页可用,超出范围时不崩",
+    "/posts/[slug] 渲染正文,不存在的 slug 返回 404",
+    "文章页右侧目录可跟随滚动高亮,组件卸载后观察器已断开",
+    "AihopModelInline 可在正文中引用模型并链接到详情页",
+    "seo.routes.json 声明 /posts 与 /posts/:slug(source 为 posts),check-seo 通过",
+    "导航中「评测」由灰字占位改为可点击链接",
+    "主题脚手架自检与模型数据守卫均通过"
+  ],
+  "verification": [
+    {
+      "name": "主题脚手架与硬约束自检",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "模型数据与场景引用守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    }
+  ]
+}

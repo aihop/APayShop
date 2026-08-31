@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "aihop-billing-rules",
+  "title": "把计费规则从散文结构化为机器可读数据",
+  "problem": "本站的核心价值是回答「便宜好用」,但目前每个模型的计费复杂性都写在 caveats 的自然语言里,只能给人读,无法计算。实际采集到的复杂性包括:按输入长度分档(豆包三档、MiniMax 512K、Gemini 3.1 Pro 200K)、分时段计价(DeepSeek 空闲时段半价)、三种结构完全不同的缓存计费(Anthropic 收写入费且分 5 分钟与 1 小时两档、OpenAI 不收写入费、Google 改收按小时的存储费)、批量折扣、限时促销及到期后价格(Gemini 3.7 Flash 2027 年翻倍)、模态附加价(音频输入更贵)。只要这些还是散文,任何成本计算都只能拿单价糊弄,而单价对真实账单的预测能力接近于零。",
+  "expectedOutcome": "模型数据新增结构化的 billing 字段承载上述规则,已核实的模型逐条填入,未核实的保持缺省;守卫校验规则自洽(分档递增、首档与顶层价格一致、促销语义正确等);后续成本模型可据此计算,并对没有 billing 的模型如实标注未计入。",
+  "constraints": [
+    "只录入此前从厂商官方页面核实过的规则,核实不到的一律缺省,不得推断补齐",
+    "分词器差异只作提示不参与计算:原始出处是 Anthropic 家族内部的对比(4.7 起比 4.6 及更早多约 30%),不是跨厂商系数,拿它做跨厂商换算属于编造",
+    "billing 是可选字段:缺省表示该模型未结构化,成本模型必须如实告知使用者该估算未计入其计费复杂性",
+    "首档价格必须与顶层 price 一致,否则表格与计算器会给出互相矛盾的数字",
+    "促销要区分两种语义:现价即优惠价(到期后涨)与现价是标准价(另有更低限时价),二者不可混用",
+    "不改动既有页面与组件的行为,不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay-aihop",
+      "path": "app/themes/aihop",
+      "allowedPaths": [
+        "types/**",
+        "data/**",
+        "scripts/**",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "types/**",
+        "data/**",
+        "scripts/**",
+        "AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "types 定义 billing:分档、时段、缓存计费结构、批量折扣、促销、模态附加价、分词器提示",
+    "已核实规则的模型全部填入 billing,内容与各自 caveats 描述一致",
+    "守卫校验:分档上限递增且末档无上限、首档与顶层价格一致、倍数为正、促销日期合法、缓存计费模型取值合法",
+    "守卫做过反向验证:注入不一致的首档价格、乱序分档、非法促销语义均被拦截",
+    "分词器字段带明确的比较基准说明,且守卫强制要求该说明存在",
+    "五个既有守卫仍通过"
+  ],
+  "verification": [
+    {
+      "name": "模型数据与计费规则守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    },
+    {
+      "name": "主题脚手架自检",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "覆盖层守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-overrides.mjs"
+    }
+  ]
+}

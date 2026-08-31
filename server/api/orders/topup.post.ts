@@ -15,7 +15,7 @@ import {
   getMinimalCheckoutAdminConfig,
   mergeMinimalCheckoutMeta,
   prepareOrderMetaForInsert,
-} from '../../../app/themes/minimal/server/checkout/bridge'
+} from '../../utils/checkoutBridge'
 
 /**
  * 快捷充值下单。
@@ -146,7 +146,7 @@ export default defineEventHandler(async (event) => {
     cancelUrl: minimalCheckoutConfig.defaultCancelUrl || undefined,
     customerEmail: contactEmail,
     attach: {
-      channel: 'qingpu-wallet',
+      channel: 'wallet',
       businessType: 'topup',
       walletOwner: 'apay',
       sourceProductId: carrier.id,
@@ -165,7 +165,7 @@ export default defineEventHandler(async (event) => {
       amount: quote.amount,
       currency: quote.currency,
       exchangeRate,
-      source: 'qingpu-topup-rules',
+      source: 'topup-rules',
     },
   }, bridgeMeta)
 

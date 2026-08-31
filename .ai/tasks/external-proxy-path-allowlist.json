@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "external-proxy-path-allowlist",
+  "title": "堵住游客代理的相对路径白名单绕过",
+  "problem": "proxyExternalRequest 的 path= 分支只校验目标 host 等于 AI 网关，从不调用 assertTargetAllowed，因此调用方声明的 allowedPaths 在该分支完全失效。免登录端点 /api/minimal/public-external 正是走这个分支（useExternalApi 无 baseURL 时一律发 path=），它声明的 11 条公开路径白名单从未生效过。结果：任何未认证的外部请求都能让服务端携带平台级 integration_token（未配置时降级为 NUXT_SESSION_PASSWORD）访问 AI 网关上任意非 admin 接口，并拿回上游响应体。",
+  "expectedOutcome": "path= 分支与 target= 分支共用同一套 assertTargetAllowed 校验；public-external 声明的路径白名单真实生效，越界请求返回 403；三个真实调用方（验证码发送、验证码获取、验证码校验）继续可用；新增守卫脚本钉住该校验不被再次绕过，并确保白名单覆盖全部真实调用路径。",
+  "constraints": [
+    "不得改变 target= 分支的现有校验语义与默认受信来源回落",
+    "未声明 allowedPaths/allowedOrigins 的调用方（/api/proxy/external）行为保持不变，避免打断已登录用户的既有代理用法",
+    "不得放宽 admin 路径的既有 401 拦截",
+    "白名单内容只按真实调用方增删，不为通过守卫而扩大",
+    "不改动 x-auth 作为会话凭据的既有语义（该弱口令门属独立问题，本次只记录不改）",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/externalProxy.ts",
+        "app/themes/minimal/api/public-external.ts",
+        "scripts/check-external-proxy-allowlist.mjs",
+        "package.json"
+      ],
+      "claims": [
+        "server/utils/externalProxy.ts",
+        "app/themes/minimal/api/public-external.ts",
+        "scripts/check-external-proxy-allowlist.mjs",
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "path= 分支在 host 校验通过后调用 assertTargetAllowed，声明了 allowedPaths 的调用方越界即 403",
+    "/api/minimal/public-external 只能代理 PUBLIC_EXTERNAL_PROXY_PATHS 内的路径",
+    "CaptchaSlider 的 captcha/get 与 captcha/check、登录与注册的 code/send 三条真实路径仍在白名单内并可用",
+    "/api/proxy/external 未声明白名单时行为与改动前一致",
+    "守卫脚本同时断言：path 分支存在 assertTargetAllowed 调用、且全部真实调用方路径已被白名单覆盖",
+    "守卫脚本已注册进 package.json 并通过"
+  ],
+  "verification": [
+    {
+      "name": "游客代理白名单守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-external-proxy-allowlist.mjs"
+    },
+    {
+      "name": "扩展系统守卫回归",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-theme-api-route-normalization.mjs"
+    }
+  ]
+}

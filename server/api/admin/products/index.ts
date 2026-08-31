@@ -89,6 +89,16 @@ export default defineEventHandler(async (event) => {
     insertData.imageUrls = normalizeImageUrls(insertData.imageUrls)
     insertData.metaData = normalizeMetaData(insertData.metaData)
 
+    if (insertData.status) {
+      insertData.isActive = insertData.status !== 'inactive'
+      delete insertData.status
+    } else if (insertData.isActive !== undefined) {
+      delete insertData.status
+    } else {
+      delete insertData.status
+      insertData.isActive = true
+    }
+
     // Clean up created_at to avoid timestamp/string mismatch in pg/sqlite
     if (insertData.createdAt) {
       delete insertData.createdAt

@@ -8,7 +8,7 @@
     v-model="isOpen"
     maxWidth="sm:max-w-2xl"
     :defaultFullscreen="false"
-    :title="editingId ? '编辑更新记录' : '新建更新记录'"
+    :title="editingId ? $t('admin.posts.changelog.editTitle') : $t('admin.posts.changelog.createTitle')"
   >
     <form
       id="changelog-form"
@@ -16,21 +16,21 @@
       class="space-y-5"
     >
       <UFormField
-        label="版本号"
+        :label="$t('admin.posts.changelog.fieldVersion')"
         name="version"
         required
       >
         <UInput
           v-model="form.version"
           class="w-full font-mono text-sm"
-          placeholder="例如：v1.1.10"
+          :placeholder="$t('admin.posts.changelog.versionPlaceholder')"
           :loading="isFetchingLatestVersion"
         />
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">已根据上一个版本自动 +1，可以直接改。</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $t('admin.posts.changelog.versionHint') }}</p>
       </UFormField>
 
       <UFormField
-        label="标题"
+        :label="$t('admin.posts.changelog.fieldTitle')"
         name="title"
         required
       >
@@ -42,7 +42,7 @@
       </UFormField>
 
       <UFormField
-        label="简介（可选）"
+        :label="$t('admin.posts.changelog.fieldDesc')"
         name="description"
       >
         <UTextarea
@@ -53,7 +53,7 @@
       </UFormField>
 
       <UFormField
-        label="更新内容"
+        :label="$t('admin.posts.changelog.fieldContent')"
         name="content"
       >
         <div class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50">
@@ -64,7 +64,7 @@
       <UFormField name="isActive">
         <UCheckbox
           v-model="form.isActive"
-          label="Publish immediately"
+          :label="$t('admin.posts.changelog.publishNow')"
         />
       </UFormField>
     </form>
@@ -74,7 +74,7 @@
         variant="ghost"
         @click="isOpen = false"
       >
-        Cancel
+        {{ $t('admin.common.cancel') }}
       </UButton>
       <UButton
         type="submit"
@@ -84,7 +84,7 @@
         :loading="isSaving"
         :disabled="!hasAdminPerm('posts:edit')"
       >
-        {{ editingId ? 'Save' : 'Create' }}
+        {{ editingId ? $t('admin.common.save') : $t('admin.posts.changelog.createTitle') }}
       </UButton>
     </template>
   </FullScreenModal>
@@ -103,6 +103,7 @@ const emit = defineEmits<{
   saved: []
 }>()
 
+const { t } = useI18n()
 const toast = useToast()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
@@ -203,7 +204,7 @@ watch(
 
 const save = async () => {
   if (!form.value.version || !form.value.title) {
-    toast.add({ title: 'Error', description: '版本号和标题不能为空', color: 'error' })
+    toast.add({ title: t('admin.common.error'), description: t('admin.posts.toast.changelogRequired'), color: 'error' })
     return
   }
   if (!passthrough.value.slug) generateSlug()
@@ -230,8 +231,8 @@ const save = async () => {
     })
 
     toast.add({
-      title: 'Success',
-      description: editingId.value ? '更新记录已保存' : '更新记录已创建',
+      title: t('admin.common.success'),
+      description: editingId.value ? t('admin.posts.toast.changelogSaved') : t('admin.posts.toast.changelogCreated'),
       color: 'success',
     })
 
@@ -239,8 +240,8 @@ const save = async () => {
     emit('saved')
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || '保存失败',
+      title: t('admin.common.error'),
+      description: e.data?.message || t('admin.posts.toast.changelogSaveFailed'),
       color: 'error',
     })
   } finally {

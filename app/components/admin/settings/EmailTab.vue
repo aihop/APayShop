@@ -1,5 +1,93 @@
 <template>
   <div class="space-y-8 max-w-3xl">
+    <!-- Email Verification Policy Section -->
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+          <UIcon name="ph:shield-check-fill" class="w-5 h-5" />
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.policy_title') }}</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $t('admin.settings.email.policy_desc') }}</p>
+        </div>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Disabled Policy -->
+          <label
+            class="flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition-all"
+            :class="(form.email_verify_policy || 'banner') === 'disabled'
+              ? 'border-emerald-500/80 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs'
+              : 'border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#09090b] hover:border-gray-300 dark:hover:border-gray-700'"
+          >
+            <input
+              type="radio"
+              name="email_verify_policy"
+              value="disabled"
+              :checked="(form.email_verify_policy || 'banner') === 'disabled'"
+              class="mt-1 text-emerald-600 focus:ring-emerald-500"
+              @change="form.email_verify_policy = 'disabled'"
+            />
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-sm text-gray-900 dark:text-white">{{ $t('admin.settings.email.policy_disabled') }}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400">极简直通</span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{{ $t('admin.settings.email.policy_disabled_desc') }}</p>
+            </div>
+          </label>
+
+          <!-- Banner Policy (Recommended) -->
+          <label
+            class="flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition-all"
+            :class="(form.email_verify_policy || 'banner') === 'banner'
+              ? 'border-emerald-500/80 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs'
+              : 'border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#09090b] hover:border-gray-300 dark:hover:border-gray-700'"
+          >
+            <input
+              type="radio"
+              name="email_verify_policy"
+              value="banner"
+              :checked="(form.email_verify_policy || 'banner') === 'banner'"
+              class="mt-1 text-emerald-600 focus:ring-emerald-500"
+              @change="form.email_verify_policy = 'banner'"
+            />
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-sm text-gray-900 dark:text-white">{{ $t('admin.settings.email.policy_banner') }}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-medium">推荐默认</span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{{ $t('admin.settings.email.policy_banner_desc') }}</p>
+            </div>
+          </label>
+
+          <!-- Strict Policy -->
+          <label
+            class="flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition-all"
+            :class="(form.email_verify_policy || 'banner') === 'strict'
+              ? 'border-emerald-500/80 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs'
+              : 'border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#09090b] hover:border-gray-300 dark:hover:border-gray-700'"
+          >
+            <input
+              type="radio"
+              name="email_verify_policy"
+              value="strict"
+              :checked="(form.email_verify_policy || 'banner') === 'strict'"
+              class="mt-1 text-emerald-600 focus:ring-emerald-500"
+              @change="form.email_verify_policy = 'strict'"
+            />
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-sm text-gray-900 dark:text-white">{{ $t('admin.settings.email.policy_strict') }}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 font-medium">强防刷</span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{{ $t('admin.settings.email.policy_strict_desc') }}</p>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Provider Section -->
     <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
       <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
@@ -214,6 +302,145 @@
       </div>
     </div>
 
+    <!-- Email Logs Section -->
+    <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <UIcon name="ph:clock-counter-clockwise-fill" class="w-5 h-5" />
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.logs_title') }}</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $t('admin.settings.email.logs_desc') }}</p>
+          </div>
+        </div>
+        <UButton
+          type="button"
+          size="sm"
+          variant="soft"
+          color="neutral"
+          class="rounded-xl"
+          :loading="logsLoading"
+          @click="fetchEmailLogs"
+        >
+          <template #leading>
+            <UIcon name="ph:arrow-clockwise" class="w-4 h-4" />
+          </template>
+          {{ $t('admin.settings.email.refresh_logs') }}
+        </UButton>
+      </div>
+
+      <!-- Logs Search & Filter -->
+      <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3 flex-wrap bg-gray-50/50 dark:bg-black/20">
+        <UInput
+          v-model="logsSearch"
+          placeholder="搜索收件人 / 邮件主题..."
+          size="sm"
+          class="w-full sm:w-64"
+          icon="ph:magnifying-glass"
+          @keydown.enter="fetchEmailLogs"
+        />
+        <USelect
+          v-model="logsStatus"
+          :items="statusFilterOptions"
+          size="sm"
+          class="w-full sm:w-36"
+          @change="fetchEmailLogs"
+        />
+      </div>
+
+      <!-- Logs Table -->
+      <div v-if="logsLoading" class="p-8 text-center text-sm text-gray-500">
+        <UIcon name="ph:spinner" class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
+        正在加载日志...
+      </div>
+      <div v-else-if="emailLogsList.length === 0" class="p-10 text-center text-sm text-gray-500 dark:text-gray-400">
+        {{ $t('admin.settings.email.no_logs') }}
+      </div>
+      <div v-else class="divide-y divide-gray-200 dark:divide-gray-800/60 overflow-x-auto">
+        <div
+          v-for="log in emailLogsList"
+          :key="log.id"
+          class="px-6 py-3.5 flex items-center justify-between gap-4 text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
+        >
+          <div class="min-w-0 flex-1 space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-gray-900 dark:text-white truncate">{{ log.to }}</span>
+              <UBadge
+                :color="log.status === 'success' ? 'success' : 'error'"
+                variant="subtle"
+                size="xs"
+              >
+                {{ log.status === 'success' ? $t('admin.settings.email.log_status_success') : $t('admin.settings.email.log_status_failed') }}
+              </UBadge>
+              <span v-if="log.templateCode" class="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 font-mono">
+                {{ log.templateCode }}
+              </span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-300 truncate text-xs">
+              {{ log.subject }}
+            </div>
+            <div v-if="log.error" class="text-xs text-red-500 truncate">
+              {{ log.error }}
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="text-xs text-gray-400">
+              {{ formatDateTime(log.createdAt) }}
+            </span>
+            <UButton
+              v-if="log.html"
+              size="xs"
+              variant="soft"
+              color="primary"
+              class="rounded-lg"
+              @click="openLogPreview(log)"
+            >
+              {{ $t('admin.settings.email.log_preview') }}
+            </UButton>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Content Preview Modal -->
+    <UModal v-model:open="isPreviewModalOpen">
+      <template #content>
+        <div v-if="selectedLog" class="p-6 space-y-4 max-w-2xl w-full">
+          <div class="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.log_preview_modal_title') }}</h3>
+              <p class="text-xs text-gray-500 mt-1">To: <span class="font-mono text-gray-700 dark:text-gray-300">{{ selectedLog.to }}</span> · {{ formatDateTime(selectedLog.createdAt) }}</p>
+            </div>
+            <UBadge :color="selectedLog.status === 'success' ? 'success' : 'error'" variant="subtle">
+              {{ selectedLog.status === 'success' ? '成功' : '失败' }}
+            </UBadge>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-gray-500">邮件主题：</div>
+            <div class="text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-black/30 p-2.5 rounded-lg border border-gray-200 dark:border-gray-800">
+              {{ selectedLog.subject }}
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-gray-500">HTML 原文快照：</div>
+            <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-zinc-900 max-h-80 overflow-auto text-xs font-mono select-all">
+              <div v-html="selectedLog.html" class="prose dark:prose-invert max-w-none"></div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
+              {{ $t('admin.settings.email.cancel') }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
     <!-- Template Edit Modal -->
     <EmailTemplateModal
       :open="isTemplateModalOpen"
@@ -374,5 +601,73 @@ const {
   form: props.form,
   toast,
   t: translate,
+})
+
+// Email Logs State
+interface EmailLogItem {
+  id: number
+  to: string
+  subject: string
+  templateCode: string | null
+  html: string | null
+  provider: string | null
+  status: 'success' | 'failed'
+  messageId: string | null
+  error: string | null
+  createdAt: string | number | Date
+}
+
+const emailLogsList = ref<EmailLogItem[]>([])
+const logsLoading = ref(false)
+const logsTotal = ref(0)
+const logsPage = ref(1)
+const logsSearch = ref('')
+const logsStatus = ref('all')
+const isPreviewModalOpen = ref(false)
+const selectedLog = ref<EmailLogItem | null>(null)
+
+const statusFilterOptions = computed(() => [
+  { label: '全部状态', value: 'all' },
+  { label: '发送成功', value: 'success' },
+  { label: '发送失败', value: 'failed' },
+])
+
+const formatDateTime = (val: string | number | Date | null | undefined) => {
+  if (!val) return '-'
+  try {
+    const d = new Date(val)
+    return d.toLocaleString()
+  } catch {
+    return String(val)
+  }
+}
+
+const fetchEmailLogs = async () => {
+  logsLoading.value = true
+  try {
+    const res: any = await $fetch('/api/admin/email/logs', {
+      query: {
+        page: logsPage.value,
+        pageSize: 20,
+        search: logsSearch.value || undefined,
+        status: logsStatus.value !== 'all' ? logsStatus.value : undefined,
+      },
+    })
+    emailLogsList.value = res.items || []
+    logsTotal.value = res.total || 0
+  } catch (err) {
+    console.error('[EmailTab] Failed to fetch email logs:', err)
+  } finally {
+    logsLoading.value = false
+  }
+}
+
+const openLogPreview = (log: EmailLogItem) => {
+  selectedLog.value = log
+  isPreviewModalOpen.value = true
+}
+
+onMounted(() => {
+  fetchEmailLogs()
 })
 </script>

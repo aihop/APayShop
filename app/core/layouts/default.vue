@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-white text-gray-900 font-sans dark:bg-[#09090b] dark:text-gray-100">
+    <EmailVerificationBanner />
     <AppHeader @open-mobile-menu="isMobileMenuOpen = true" />
 
     <AppMobileMenu v-model:open="isMobileMenuOpen" />

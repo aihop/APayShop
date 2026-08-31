@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-category-recommendation-cache-and-retrigger",
+  "title": "Listing 类目选择器推荐结果商品级缓存与手动重新 AI 推荐",
+  "problem": "用户在选择类目时，每次打开弹窗都会因为弹窗关闭时执行 reset 而清空推荐结果，导致重复调用接口并闪烁骨架屏；同时在已选类目场景下，缺少常驻的重新 AI 推荐按钮供用户主动刷新推荐。",
+  "expectedOutcome": "1. useCategoryPicker 增加按 productId + channel 的推荐结果内存缓存，关闭弹窗不清空缓存，再次打开秒级呈现；\n2. 已选择类目打开弹窗时优先在右侧定位并预览当前已选类目，推荐区秒级展示已有推荐备选项；\n3. 弹窗推荐区提供常驻的「重新 AI 推荐」操作，用户可随时手动强制刷新推荐并更新缓存；\n4. 补充专项测试。",
+  "constraints": [
+    "不修改 Product 四层模型与持久化协议",
+    "保持 engine 渠道口径与 isValidCategoryIdentity 校验单点",
+    "不覆盖工作区其他并行改动",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/category/useCategoryPicker.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "tests/category-recommendation-cache.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/category/useCategoryPicker.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "pages/user/listing/components/ListingCategoryPickerModal.vue",
+        "tests/category-recommendation-cache.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useCategoryPicker 维持商品和渠道维度的推荐缓存，loadRecommendations 在非 forceAi 时命中缓存直接返回",
+    "WorkspaceCategoryPicker 在已有选类目时保持右侧预览已选类目，不被推荐结果自动覆盖",
+    "ListingCategoryPickerModal 推荐区域提供重新 AI 推荐按钮",
+    "专项测试通过"
+  ],
+  "verification": [
+    {
+      "name": "类目推荐缓存与手动重刷专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/category-recommendation-cache.test.ts"
+    }
+  ]
+}

@@ -18,6 +18,8 @@ import {
   moduleEditCode,
 } from '../utils/adminPermissions'
 
+import { getEmailVerifyPolicy } from '../utils/emailVerification'
+
 /**
  * 委派会话（见下方 3.5）在 scope 之外仍可访问的核心路径。逐条都要能说清为什么。
  *
@@ -35,6 +37,21 @@ const DELEGATED_SESSION_CORE_ALLOWLIST = [
   '/api/users/upload',   // 通用上传：被主题 AI 工具页复用，而工具在子账号放行集内
   '/api/products',       // 公开只读（无 requireUserSession）：下载页/产品页
   '/api/posts',          // 公开只读（无 requireUserSession）：博客页
+]
+
+/**
+ * 严格邮箱验证模式（strict）下未验证用户仍可访问的基础白名单。
+ */
+const EMAIL_VERIFY_STRICT_ALLOWLIST = [
+  '/api/_auth',
+  '/api/auth',
+  '/api/settings',
+  '/api/users/profile',
+  '/api/users/notifications',
+  '/api/products',
+  '/api/posts',
+  '/api/aihop',
+  '/api/minimal',
 ]
 
 const WEB_SESSION_ESTABLISH_PATHS = new Set([
@@ -301,6 +318,24 @@ export default defineEventHandler(async (event) => {
         statusCode: 403,
         statusMessage: 'Forbidden: no permission mapping for this admin route'
       })
+    }
+  }
+
+  // 7. 严格模式下的前台用户邮箱验证闸门
+  if (session.user?.id && !isAdminPath && pathname.startsWith('/api/')) {
+    const isVerified = Boolean(session.user.emailVerifiedAt)
+    if (!isVerified) {
+      const policy = await getEmailVerifyPolicy().catch(() => 'banner')
+      if (policy === 'strict') {
+        const isExempt = EMAIL_VERIFY_STRICT_ALLOWLIST.some(p => pathname === p || pathname.startsWith(`${p}/`))
+        if (!isExempt) {
+          throw createError({
+            statusCode: 403,
+            message: '当前操作需要先验证您的邮箱，请查收验证邮件或重新发送',
+            data: { code: 'EMAIL_NOT_VERIFIED' },
+          })
+        }
+      }
     }
   }
 })

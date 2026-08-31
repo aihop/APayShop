@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "launch-audit-remainder-fixes",
+  "title": "上线体检遗留缺陷修复（A 组阻塞项 + WB 放行前置项 + 发布记账小修）",
+  "problem": "2026-08-29 上线深度体检（基线 860131f，报告 artifact d81717f6）确认了一批缺陷；其中 WB 多变体轮询、WB mapper 渠道价、媒体失败处理已由并行会话在 99f1fe24..2b5519ad 批次修复。对当前 HEAD(2b5519ad) 逐项复核（含运行时探针）后仍然成立的缺陷：A1 坏形态商品崩溃类——cloud-pull 落地与 storage 读取在投影自愈之前深读 canonicalProduct.media/basic 与 listingWorkspace.media（workspace-core.ts:369/:678、workspace-media.ts:254），缺子树的云端行必崩且每次保存重投影必崩，商品写不进去；A2 设置抽屉整对象回写——DashSettingsDrawer.vue:661/:742 以打开时快照 setSettings(form.value)，回滚并发推进的 offerCodeCounter（货号撞号）、类目学习与设备令牌；A3 采集注入——apiDataSource.ts 三个 window message 监听不校验 event.source，页内第三方 iframe 可伪造 qingpu-interceptor 商品事实入库；B3 扩展端定价写路径未带渠道——Dash 表格与 Lite 编辑 setSkuPricingOverride/clearSkuPriceOverrides 不传 channel（探针实证：渠道条目存在时编辑回跳且泄漏到另一渠道），resolveEffectiveProductPackaging 只读 base 层致核价与发布包装口径分叉；B4 智能默认值编造事实——universal-attribute-deriver 规则 11/13/16/17 无条件产出增值税『Без НДС』、兼容系统『Android; iOS』、保修『1 год』、手表类虚构『表带/充电线/说明书』包装清单，经 characteristicOverrides(origin:ai) 持久化进发布载荷，违反不填充未确认外部字段红线；B5 条码申领在防重守卫之前——wb-driver 5 分钟窗口内重复点发布零提交却真实申领整批条码并废弃，且申领不足额时静默用空条码上传；C1 Ozon 分片部分失败的商品经 publish.ts taskId 兜底被回写第一片的 taskId，任务凭据错账。",
+  "expectedOutcome": "缺 media/basic 子树的云端商品行经入口归一化后全链不抛错、可正常保存与投影；设置抽屉保存只写用户实际改过的键，并发推进的设置子字段不再被回滚；采集链拒收非本窗口来源的伪造消息；Dash/Lite 行内定价编辑写入当前发布渠道层，渠道视图编辑即见、不泄漏到另一渠道，包装解析支持渠道口径；deriver 不再产出无事实依据的编造值；WB 正式发布在守卫跳过路径零条码申领、申领不足额的商品明确失败并释放守卫；Ozon 分片失败商品不再沾染其他分片的 taskId。",
+  "constraints": [
+    "不触碰 src/shared/publish-tracking/**（并行会话刚完成多变体对账与 CAS 改造）与 Ozon 驱动",
+    "wbPublishDryRun 默认干跑语义不变；本契约不开启任何真实发布",
+    "resolveEffectiveProductPackaging 仅新增可选 channel 参数，不传参时行为逐字节不变；engine 导出面只加不改",
+    "写路径渠道化只经 workspace-overrides 既有 channel 参数，不新增 storage 键、消息协议或渠道 if/switch 扩散；渠道解析用 resolveChannelForStorePlatform 单点",
+    "deriver 只删除无事实依据的规则（增值税/兼容系统/保修/包装清单），保留从商品事实派生的规则（包装尺寸/型号/易碎度等）；wb-driver 的既有格式归一化(formatWbCharacteristicValue)不动",
+    "设置抽屉只把保存改为 diff 补丁，不重构抽屉其他逻辑；diff 助手为纯函数并有专项测试",
+    "商品归一化沿用既有单点：workspace 深归一复用 workspace-core 的 normalizeListingWorkspace（改为导出），canonical 深归一把 projections/factory 的 normalizeCanonicalProductSnapshot 迁至 domain/products/normalize 单点共用，不写第二份口径",
+    "网页 vendor 不手改；engine:release 与 commit/push 按用户另行授权"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/products/normalize.ts",
+        "src/domain/projections/factory.ts",
+        "src/domain/workspace/workspace-core.ts",
+        "src/domain/workspace/workspace-overrides.ts",
+        "src/domain/settings/diff.ts",
+        "src/domain/channel-mappers/shared/universal-attribute-deriver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/app/workflows/cloud-pull-workflow.ts",
+        "src/app/handlers/publish.ts",
+        "src/app/composables/usePricingSidebar.ts",
+        "src/collector/apiDataSource.ts",
+        "src/engine/index.ts",
+        "entrypoints/dash/DashSettingsDrawer.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue",
+        "entrypoints/lite/composables/useLiteProductEditing.ts",
+        "tests/product-shape-normalize.test.ts",
+        "tests/settings-diff.test.ts",
+        "tests/api-data-source-guard.test.ts",
+        "tests/effective-packaging-channel.test.ts",
+        "tests/universal-attribute-deriver.test.ts",
+        "tests/wb-barcode-allocation.test.ts",
+        "tests/wb-driver-safety.test.ts",
+        "tests/channel-publish-handler.test.ts"
+      ],
+      "claims": [
+        "src/domain/products/normalize.ts",
+        "src/domain/projections/factory.ts",
+        "src/domain/workspace/workspace-core.ts",
+        "src/domain/workspace/workspace-overrides.ts",
+        "src/domain/settings/diff.ts",
+        "src/domain/channel-mappers/shared/universal-attribute-deriver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/app/workflows/cloud-pull-workflow.ts",
+        "src/app/handlers/publish.ts",
+        "src/app/composables/usePricingSidebar.ts",
+        "src/collector/apiDataSource.ts",
+        "src/engine/index.ts",
+        "entrypoints/dash/DashSettingsDrawer.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue",
+        "entrypoints/lite/composables/useLiteProductEditing.ts",
+        "tests/product-shape-normalize.test.ts",
+        "tests/settings-diff.test.ts",
+        "tests/api-data-source-guard.test.ts",
+        "tests/effective-packaging-channel.test.ts",
+        "tests/universal-attribute-deriver.test.ts",
+        "tests/wb-barcode-allocation.test.ts",
+        "tests/wb-driver-safety.test.ts",
+        "tests/channel-publish-handler.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "canonicalProduct 缺 media/basic、listingWorkspace 缺 media 的商品经 normalizeProduct 后，applyListingWorkspaceToProduct、productProjectionFactory.project（含 WB 草稿重投影）与 buildWbListingDraft 均不抛错；cloud-pull 两个落地点先归一再投影",
+    "设置抽屉保存产出的补丁只含相对打开基线变更的顶层键；基线含 offerCodeCounter 而表单未动它时补丁不含该键（diff 助手测试钉住）",
+    "apiDataSource 三个监听对 event.source 非本窗口的消息一律忽略；同窗口消息行为不变（新测试钉住）",
+    "带渠道写入 SKU 定价后，该渠道读值即为新值且另一渠道读值不变；Dash 表格与 Lite 的行内编辑/重置/清除/快速填写全部带当前发布渠道",
+    "resolveEffectiveProductPackaging(product, variantId, channel) 传渠道时读渠道合并包装，不传参行为与现状逐字节一致（新测试钉住）",
+    "deriver 对增值税/兼容系统/保修/包装清单类特征返回空值；包装尺寸/型号等事实派生规则回归不变（新测试钉住）",
+    "WB 正式发布流程中 claimSubmissionGuard 先于条码申领执行；全部命中守卫时零条码申领；申领不足额时受影响商品进 failedProducts 并释放其守卫标记，其余商品照常提交（扩展 wb-barcode-allocation 测试钉住）",
+    "Ozon 分片提交部分失败时，失败商品落库的 taskId 为 null 而非其他分片的 taskId（扩展 channel-publish-handler 测试钉住）",
+    "npm run typecheck、全量 npm test（含分层与渠道守卫）、npm run build、npm run engine:build 全部通过"
+  ],
+  "verification": [
+    {
+      "name": "专项测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/product-shape-normalize.test.ts tests/settings-diff.test.ts tests/api-data-source-guard.test.ts tests/effective-packaging-channel.test.ts tests/universal-attribute-deriver.test.ts tests/wb-barcode-allocation.test.ts tests/wb-driver-safety.test.ts tests/channel-publish-handler.test.ts tests/wb-publish-tracking.test.ts tests/wb-draft-validation.test.ts tests/wb-card-upload.test.ts"
+    },
+    {
+      "name": "全量测试、构建与 engine bundle 守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test && npm run build && npm run engine:build"
+    }
+  ]
+}

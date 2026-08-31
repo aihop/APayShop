@@ -146,6 +146,8 @@ export async function issueWebSession(
       email: user.email,
       nickname: user.nickname,
       avatarUrl: user.avatarUrl,
+      emailVerified: Boolean((user as any).emailVerifiedAt || (user as any).emailVerified),
+      emailVerifiedAt: (user as any).emailVerifiedAt || null,
     },
     sessionId,
     loggedInAt: now.toISOString(),

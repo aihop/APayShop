@@ -157,6 +157,19 @@ export const emailProviders = sqliteTable('email_providers', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
+export const emailLogs = sqliteTable('email_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  to: text('to').notNull(),
+  subject: text('subject').notNull(),
+  templateCode: text('template_code'),
+  html: text('html'),
+  provider: text('provider'),
+  status: text('status').notNull().default('success'), // 'success' | 'failed'
+  messageId: text('message_id'),
+  error: text('error'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})
+
 export const orders = sqliteTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),

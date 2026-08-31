@@ -1,8 +1,7 @@
-import { and, eq, isNotNull } from 'drizzle-orm'
+import { and, eq, ne, isNotNull } from 'drizzle-orm'
 import { products, posts } from '../db/schema'
 import { db } from '../db/runtime'
-import { shoplyMarketplaceSeeds } from '../../app/themes/shoply/data/marketplace'
-import { absoluteSeoUrl, escapeXml, localePathForSeo, type SeoRouteManifest } from '~~/shared/siteSeo'
+import { absoluteSeoUrl, escapeXml, localePathForSeo, normalizeIsoDate, type SeoRouteManifest } from '~~/shared/siteSeo'
 
 interface SitemapEntry {
   path: string
@@ -10,6 +9,34 @@ interface SitemapEntry {
 }
 
 const uniqueEntries = (entries: SitemapEntry[]) => [...new Map(entries.map(entry => [entry.path, entry])).values()]
+
+async function loadThemeDynamicSeoSource(source: string): Promise<SitemapEntry[]> {
+  if (source === 'shoply-apps' || source === 'shoply-themes') {
+    try {
+      const { shoplyMarketplaceSeeds } = await import('../../app/themes/shoply/data/marketplace')
+      if (source === 'shoply-apps') {
+        return shoplyMarketplaceSeeds.filter((item: any) => item.kind === 'app').map((item: any) => ({ path: `/apps/${item.slug}` }))
+      }
+      return shoplyMarketplaceSeeds.filter((item: any) => item.kind === 'theme').map((item: any) => ({ path: `/theme/${item.slug}` }))
+    } catch {
+      return []
+    }
+  }
+
+  if (source === 'aihop-models') {
+    try {
+      const { aihopModels } = await import('../../app/themes/aihop/data/models')
+      return aihopModels.map((model: any) => ({
+        path: `/models/${model.slug}`,
+        lastmod: normalizeIsoDate(model.updatedAt),
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  return []
+}
 
 export async function collectSitemapEntries(core: SeoRouteManifest, theme?: SeoRouteManifest): Promise<SitemapEntry[]> {
   const suppress = new Set(theme?.suppressCore || [])
@@ -26,7 +53,10 @@ export async function collectSitemapEntries(core: SeoRouteManifest, theme?: SeoR
   if (sources.has('products')) {
     const rows = await db.select({ slug: products.slug, createdAt: products.createdAt })
       .from(products)
-      .where(and(eq(products.isActive, true), isNotNull(products.slug)))
+      .where(and(
+        eq(products.isActive, true),
+        isNotNull(products.slug)
+      ))
     dynamicEntries.push(...rows.flatMap((row: { slug: string | null, createdAt: Date }) => row.slug ? [{ path: `/products/${row.slug}`, lastmod: row.createdAt?.toISOString?.() }] : []))
   }
   if (sources.has('posts')) {
@@ -39,10 +69,13 @@ export async function collectSitemapEntries(core: SeoRouteManifest, theme?: SeoR
     })))
   }
   if (sources.has('shoply-apps')) {
-    dynamicEntries.push(...shoplyMarketplaceSeeds.filter(item => item.kind === 'app').map(item => ({ path: `/apps/${item.slug}` })))
+    dynamicEntries.push(...await loadThemeDynamicSeoSource('shoply-apps'))
   }
   if (sources.has('shoply-themes')) {
-    dynamicEntries.push(...shoplyMarketplaceSeeds.filter(item => item.kind === 'theme').map(item => ({ path: `/theme/${item.slug}` })))
+    dynamicEntries.push(...await loadThemeDynamicSeoSource('shoply-themes'))
+  }
+  if (sources.has('aihop-models')) {
+    dynamicEntries.push(...await loadThemeDynamicSeoSource('aihop-models'))
   }
 
   return uniqueEntries([...staticEntries, ...dynamicEntries])

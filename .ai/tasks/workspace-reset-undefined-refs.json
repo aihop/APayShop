@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "workspace-reset-undefined-refs",
+  "title": "修复工作台重置引用未定义变量并把类型门禁覆盖到前端",
+  "problem": "useWorkspaceDetailSkuTable 的 resetSkuState() 里有两处未定义引用：skuFieldDebounceTimer（三处使用）与 pendingVariantPatches.clear()。两个名字在整个文件里只被使用、从未声明，vue-tsc 报 4 条 TS2304。来源是 2b9a11f『in-memory batch editing』把 SKU 编辑改成内存暂存后，实际落地的是 pendingPricingPatches / pendingAspectPatches / pendingCardFieldPatches 三个 ref，而 resetSkuState 里早期设计的清理代码没跟着改。后果有两层：resetSkuState 一执行就 ReferenceError（切换商品、打开无 productId 的工作台列表页都会走到），以及即便不抛错，三个真正承载未保存编辑的 ref 也从未被重置——切换商品会把上一个商品的待保存改动带到下一个商品，是数据正确性问题。\n\n这批错误逃过了刚建立的类型门禁，因为 check-theme-typecheck.mjs 只跑 .nuxt/tsconfig.server.json，前端代码走的是 tsconfig.app.json，完全在覆盖范围之外。前端范围当前有 106 条诊断，其中绝大多数是 Vue 模板类型推断噪音（TS2339 之类），但 TS2304/TS2552/TS1117 这类『必然在运行时炸』的错误码必须零容忍。",
+  "expectedOutcome": "resetSkuState 正确重置三个 pending 编辑缓冲与保存中标志，不再引用任何未定义变量；切换商品不会带过上一个商品的未保存改动；类型门禁同时覆盖服务端与前端，前端按『致命错误码零容忍、其余进基线』分级，这一类未定义引用今后进不了运行时。",
+  "constraints": [
+    "resetSkuState 只补重置逻辑与删除残骸，不改批量编辑的保存语义、不动 saveAllDirtyChanges",
+    "重置必须覆盖 pendingPricingPatches / pendingAspectPatches / pendingCardFieldPatches 与 isSavingDirtyChanges，与 saveAllDirtyChanges 成功后的清空口径一致",
+    "前端门禁分级：TS2304/TS2552/TS1117 等致命错误码零容忍且不得进基线，其余按基线放行",
+    "服务端范围的现有行为不变，基线只减不增",
+    "不改 APay 根 package.json，执行入口仍走 check-all.mjs 的 scripts/check-*.mjs 自动发现",
+    "不触碰其他会话已租用的文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts",
+        "scripts/check-theme-typecheck.mjs",
+        "scripts/theme-typecheck-baseline.json"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts",
+        "scripts/check-theme-typecheck.mjs",
+        "scripts/theme-typecheck-baseline.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useWorkspaceDetailSkuTable 的 4 条 TS2304 全部消失，文件内不再出现 skuFieldDebounceTimer 与 pendingVariantPatches",
+    "resetSkuState 清空三个 pending 编辑缓冲与 isSavingDirtyChanges，口径与保存成功后的清空一致",
+    "类型门禁同时检查服务端与前端两份 tsconfig",
+    "前端范围内新增一个 TS2304 会让门禁失败；当前代码下门禁通过",
+    "前端致命错误码在基线中为零；非致命存量按基线放行",
+    "主题守卫总闸通过，已知失败清单未加长；主题测试全量 0 失败"
+  ],
+  "verification": [
+    {
+      "name": "主题类型门禁与测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-typecheck.mjs && node scripts/check-theme-tests.mjs"
+    }
+  ]
+}

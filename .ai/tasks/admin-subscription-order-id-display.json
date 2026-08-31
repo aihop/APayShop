@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-subscription-order-id-display",
+  "title": "后台订阅列表显示关联订单号",
+  "problem": "后台 /admin/subscriptions 页面与 /api/admin/subscriptions 接口未返回并正确渲染关联订单号（orderId），导致订阅列表第一列订单号为空白。",
+  "expectedOutcome": "服务端接口关联返回订阅对应的订单号 orderId 与联系邮箱，前端 UTable 正确匹配 #orderId-cell 插槽并展示订单号（支持点击复制与网关订阅ID辅助展示），搜索支持按订单号、邮箱与商品名检索。",
+  "constraints": [
+    "不修改 APay 核心数据库 Schema，通过 orders.subscription_id 关联查询",
+    "一个订阅对应多次续费订单时正确取最新关联订单，不产生多行冗余数据",
+    "支持中英文国际化与复制 Toast 提示",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/admin/subscriptions/index.get.ts",
+        "app/pages/admin/subscriptions.vue"
+      ],
+      "claims": [
+        "server/api/admin/subscriptions/index.get.ts",
+        "app/pages/admin/subscriptions.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/api/admin/subscriptions 接口返回每个订阅关联的 orderId 与 contactEmail",
+    "后台 /admin/subscriptions 页面订单号列正确展示订单号，并支持一键点击复制",
+    "搜索框支持按订单号精准搜索订阅",
+    "静态守卫与格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/admin/subscriptions/index.get.ts app/pages/admin/subscriptions.vue"
+    }
+  ]
+}

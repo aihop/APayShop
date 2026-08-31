@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-orders-redesign-and-status-filter",
+  "title": "重构订单管理页面支持多维状态筛选与高级呼吸感视觉设计",
+  "problem": "后台 /admin/orders 页面缺少支付状态与履约状态筛选、关键词检索以及全局状态统计，且页面视觉排版较为紧凑缺乏呼吸感与高级感。",
+  "expectedOutcome": "GET /api/admin/orders 接口支持 payStatus、status、search 联合过滤与 stats 聚合统计；前端页面提供带数量角标的交互式状态胶囊、履约状态下拉、搜索栏与一键重置，表格与卡片排版升级为现代化高质感呼吸感设计。",
+  "constraints": [
+    "不破坏现有订单增删改与代客下单接口契约",
+    "保持 SQLite / PostgreSQL / MySQL 多方言兼容",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/admin/orders/index.ts",
+        "app/pages/admin/orders.vue",
+        "locales/zh.json",
+        "locales/en.json"
+      ],
+      "claims": [
+        "server/api/admin/orders/index.ts",
+        "app/pages/admin/orders.vue",
+        "locales/zh.json",
+        "locales/en.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/api/admin/orders/index.ts 支持 payStatus/status/search 过滤与 stats 统计",
+    "app/pages/admin/orders.vue 包含状态胶囊、搜索框、履约下拉、高级微卡片排版与状态徽章",
+    "筛选与分页协同工作，数据展示无误",
+    "Vue 上下文边界守卫与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/admin/orders/index.ts app/pages/admin/orders.vue locales/zh.json locales/en.json"
+    }
+  ]
+}

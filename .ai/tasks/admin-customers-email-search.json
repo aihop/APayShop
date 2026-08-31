@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-customers-email-search",
+  "title": "为客户管理页面 /admin/customers 增加邮箱与综合搜索功能",
+  "problem": "客户管理 /admin/customers 页面缺少搜索功能，管理员无法按邮箱或访客ID快速检索客户。",
+  "expectedOutcome": "GET /api/admin/customers 与 GET /api/admin/users 支持 search 关键词检索；前端 customers.vue 提供防抖搜索输入框与空状态重置功能，主要支持按客户邮箱搜索，同时兼容访客ID与注册用户名。",
+  "constraints": [
+    "不破坏原有客户与用户详情弹窗功能",
+    "保持 SQLite / PostgreSQL / MySQL 多方言兼容",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/admin/customers/index.get.ts",
+        "server/api/admin/users/index.get.ts",
+        "app/pages/admin/customers.vue",
+        "locales/zh.json",
+        "locales/en.json"
+      ],
+      "claims": [
+        "server/api/admin/customers/index.get.ts",
+        "server/api/admin/users/index.get.ts",
+        "app/pages/admin/customers.vue",
+        "locales/zh.json",
+        "locales/en.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/api/admin/customers/index.get.ts 支持 search 参数按邮箱与访客ID过滤并返回准确 total",
+    "server/api/admin/users/index.get.ts 兼容 search 参数",
+    "app/pages/admin/customers.vue 包含防抖搜索栏、一键清除与空状态交互",
+    "Vue 上下文边界守卫与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/admin/customers/index.get.ts server/api/admin/users/index.get.ts app/pages/admin/customers.vue locales/zh.json locales/en.json"
+    }
+  ]
+}

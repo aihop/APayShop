@@ -111,6 +111,10 @@ const goToSettingsTab = (tabId: string) => {
 }
 
 const DEFAULT_THEME_META: Record<string, { name: string; description: string; image?: string }> = {
+  aihop: {
+    name: 'AIHop 模型榜',
+    description: '中文 AI 模型排行与选型站，极简蓝调风格，按能力评分与价格做横向对比并推荐省钱方案。',
+  },
   ainode: {
     name: 'AIHop AI Gateway',
     description: '面向 AI 开发者的极简风格订阅与计费门户，带流量报表和团队管理入口。',

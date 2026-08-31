@@ -5,10 +5,14 @@ export function usePagination(defaultPageSize = 15) {
   const pageSize = ref(defaultPageSize)
 
  
-  const onPageChange = async (val: number, refreshCallback?: () => Promise<void> | void) => {
-    page.value = val
-    if (refreshCallback) {
-      await refreshCallback()
+  const onPageChange = async (val: number | (() => Promise<void> | void), refreshCallback?: () => Promise<void> | void) => {
+    if (typeof val === 'number') {
+      page.value = val
+      if (refreshCallback) {
+        await refreshCallback()
+      }
+    } else if (typeof val === 'function') {
+      await val()
     }
   }
   return {

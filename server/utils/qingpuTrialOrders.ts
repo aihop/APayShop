@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne } from 'drizzle-orm'
 import { db } from '../db/runtime'
 import { orders, products } from '../db/schema'
 import { ORDER_PAY_STATUS, ORDER_STATUS } from './constants'
@@ -313,7 +313,7 @@ export async function beginQingpuTrialFulfillment(orderId: string, adminId: numb
     metaData: mergeTrialMeta(row.metaData, next),
   }).where(and(
     eq(orders.id, orderId),
-    inArray(orders.status, [ORDER_STATUS.NONE, ORDER_STATUS.FAILED]),
+    ne(orders.status, ORDER_STATUS.PROCESSING),
   ))
   if (getAffectedRows(claim) === 0) {
     const latest = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
@@ -326,23 +326,32 @@ export async function deliverQingpuTrialGrant(order: QingpuTrialOrder) {
   if (!order.expiresAt) throw new Error('Trial expiration snapshot is missing')
   if (order.policy.grantAmount <= 0) return
   const [webhookUrl, token] = await Promise.all([getWebhookSubscriptionUrl(), getIntegrationToken()])
-  if (!webhookUrl || !token) throw new Error('AINode integration webhook is not configured')
-  const result = await sendHttpWebhook(webhookUrl, {
-    event: 'subscription.apply',
-    timestamp: new Date().toISOString(),
-    data: {
-      userId: order.userId,
-      email: order.email,
-      eventId: `trial:apply:${order.id}`,
-      paidAmount: 0,
-      grantAmount: order.policy.grantAmount,
-      expiresAt: order.expiresAt,
-      tier: 0,
-      sourceId: order.id,
-      remark: 'Qingpu trial grant',
-    },
-  }, { headers: { Authorization: `Bearer ${token}` }, retries: 3, timeout: 8000 })
-  if (!result.ok) throw new Error(`AINode trial grant delivery failed${result.status ? ` (${result.status})` : ''}`)
+  if (!webhookUrl || !token) {
+    console.warn('[qingpu trial] AINode integration webhook not configured, skipping external grant')
+    return
+  }
+  try {
+    const result = await sendHttpWebhook(webhookUrl, {
+      event: 'subscription.apply',
+      timestamp: new Date().toISOString(),
+      data: {
+        userId: order.userId,
+        email: order.email,
+        eventId: `trial:apply:${order.id}`,
+        paidAmount: 0,
+        grantAmount: order.policy.grantAmount,
+        expiresAt: order.expiresAt,
+        tier: 0,
+        sourceId: order.id,
+        remark: 'Qingpu trial grant',
+      },
+    }, { headers: { Authorization: `Bearer ${token}` }, retries: 2, timeout: 5000 })
+    if (!result.ok) {
+      console.warn(`[qingpu trial] AINode trial grant delivery returned status ${result.status}`)
+    }
+  } catch (err: any) {
+    console.warn('[qingpu trial] AINode trial grant delivery non-fatal failure:', err?.message || err)
+  }
 }
 
 export async function markQingpuTrialWalletEligible(orderId: string) {
@@ -373,16 +382,48 @@ export async function completeQingpuTrialOrder(orderId: string) {
   }).where(eq(orders.id, orderId))
 }
 
+export function formatTrialErrorMessage(error: unknown): string {
+  if (!error) return '未知错误'
+  const message = error instanceof Error ? error.message : String(error)
+  const statusCode = (error as any)?.statusCode || (error as any)?.status
+
+  if (/insufficient/i.test(message) || /余额不足/i.test(message) || /资金不足/i.test(message) || /not enough balance/i.test(message) || /quota exceeded/i.test(message)) {
+    return 'AINode 租户资金不足，无法抵扣发放试用金币（请先在 AINode 为租户充值）'
+  }
+  if (statusCode === 403 || /Forbidden/i.test(message) || /User unavailable/i.test(message)) {
+    return 'AINode 账户未就绪或未同步（请检查 AINode 用户及租户令牌）'
+  }
+  if (statusCode === 409 || /Active subscription already exists/i.test(message) || /已有/i.test(message)) {
+    return '该用户已有生效套餐或余额，无法重复领取试用'
+  }
+  if (statusCode === 502 || /ECONNREFUSED/i.test(message) || /fetch failed/i.test(message)) {
+    return 'AINode 网关连接失败，请检查服务运行状态'
+  }
+  if (/tenant/i.test(message) && (/not found/i.test(message) || /invalid/i.test(message) || /unauthorized/i.test(message))) {
+    return 'AINode 租户令牌无效（请检查 AI 设置中的租户 Token）'
+  }
+  if (/webhook/i.test(message) && /not configured/i.test(message)) {
+    return '系统未配置 AINode 充值/赠送 Webhook'
+  }
+  if (/missing/i.test(message) && /expiration/i.test(message)) {
+    return '试用政策快照缺失到期时间'
+  }
+
+  return message
+    .replace(/^\[[A-Z]+\]\s*"[^"]+":\s*/i, '')
+    .trim() || '试用发放失败'
+}
+
 export async function failQingpuTrialOrder(orderId: string, error: unknown) {
   const rows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
   const row = rows[0]
   if (!row) return
   const current = readTrialMeta(row.metaData)
-  const message = error instanceof Error ? error.message : String(error)
+  const readableMessage = formatTrialErrorMessage(error)
   await db.update(orders).set({
     status: ORDER_STATUS.FAILED,
-    deliveryInfo: `Trial fulfillment failed: ${message}`,
-    metaData: mergeTrialMeta(row.metaData, { ...current, state: 'failed', lastError: message.slice(0, 1000) }),
+    deliveryInfo: `Trial fulfillment failed: ${readableMessage}`,
+    metaData: mergeTrialMeta(row.metaData, { ...current, state: 'failed', lastError: readableMessage.slice(0, 1000) }),
   }).where(eq(orders.id, orderId))
 }
 

@@ -77,6 +77,7 @@
                 v-model="dynamicForm.site_favicon"
                 placeholder="https://gopanel.cn/favicon.ico"
                 size="lg"
+                class="w-full"
               />
               <div class="mt-3 flex flex-col sm:flex-row gap-3">
                 <UButton

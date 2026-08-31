@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-orders-deleted-isolation-tab",
+  "title": "将已删除订单单独隔离为独立标签页并从全部与常规选项中排除",
+  "problem": "后台 /admin/orders 中已删除状态订单混在常规列表中；需要将已删除订单独立隔离为专属栏目（回收站/已删除），常规各状态及「全部」选项中均不展示已删除订单。",
+  "expectedOutcome": "GET /api/admin/orders 接口在常规状态（全部/已支付/待支付/失败/退款）中默认排除 payStatus='deleted' 或 status='deleted' 订单；提供专属 payStatus='deleted' 过滤与 stats.deleted 统计；前端增加独立「已删除」状态胶囊与计数展示。",
+  "constraints": [
+    "不破坏现有订单增删改与代客下单接口契约",
+    "保持 SQLite / PostgreSQL / MySQL 多方言兼容",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/admin/orders/index.ts",
+        "app/pages/admin/orders.vue",
+        "locales/zh.json",
+        "locales/en.json"
+      ],
+      "claims": [
+        "server/api/admin/orders/index.ts",
+        "app/pages/admin/orders.vue",
+        "locales/zh.json",
+        "locales/en.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "常规订单列表（包括「全部」及各支付状态）严格过滤排除已删除订单",
+    "「已删除」作为专属标签页独立展示所有已删除订单，并拥有独立数量角标",
+    "stats 统计口径明确区分有效订单总数与已删除订单总数",
+    "Vue 上下文边界守卫与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/admin/orders/index.ts app/pages/admin/orders.vue locales/zh.json locales/en.json"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { products } from "../../db/schema"
-import { eq, desc, count } from "drizzle-orm"
+import { and, eq, ne, desc, count } from "drizzle-orm"
 import { db } from '../../db/runtime'
 
 export default defineCachedEventHandler(async (event) => {
@@ -9,12 +9,14 @@ export default defineCachedEventHandler(async (event) => {
   const pageSize = Math.min(Math.max(parseInt(query.pageSize as string) || 100, 1), 200)
   const offset = (page - 1) * pageSize
 
-  const totalResult = await db.select({ value: count() }).from(products).where(eq(products.isActive, true))
+  const isPublicCondition = eq(products.isActive, true)
+
+  const totalResult = await db.select({ value: count() }).from(products).where(isPublicCondition)
   const total = totalResult[0]?.value || 0
 
   const result = await db.select()
     .from(products)
-    .where(eq(products.isActive, true))
+    .where(isPublicCondition)
     .orderBy(desc(products.sortOrder), desc(products.id))
     .limit(pageSize)
     .offset(offset)

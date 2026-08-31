@@ -1,55 +1,35 @@
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '../../../db/runtime'
-import { orders, products } from '../../../db/schema'
+import { products } from '../../../db/schema'
 import { getRequestLocale } from '../../../utils/requestLocale'
+import { requireOrderOwnership } from '../../../utils/orderAccess'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
   const messages = locale === 'zh'
     ? {
-        unauthorized: '未登录',
         orderIdRequired: '订单 ID 不能为空',
         invoiceNotFound: '发票不存在',
         customPurchase: '自定义购买',
+        defaultClientName: '客户',
       }
     : {
-        unauthorized: 'Unauthorized',
         orderIdRequired: 'Order ID is required',
         invoiceNotFound: 'Invoice not found',
         customPurchase: 'Custom Purchase',
+        defaultClientName: 'Customer',
       }
-  const session: any = await requireUserSession(event)
-  if (!session || !session.user || !session.user.id) {
-    throw createError({
-      statusCode: 401,
-      message: messages.unauthorized
-    })
-  }
 
   const orderId = getRouterParam(event, 'id')
   if (!orderId) {
     throw createError({
       statusCode: 400,
-      message: messages.orderIdRequired
+      message: messages.orderIdRequired,
     })
   }
 
-  const userId = session.user.id
-
-  const orderRecord = await db.select().from(orders as any)
-    .where(and(
-      eq(orders.id, orderId),
-      eq(orders.userId, userId)
-    ))
-    .limit(1)
-
-  if (!orderRecord.length) {
-    throw createError({
-      statusCode: 404,
-      message: messages.invoiceNotFound
-    })
-  }
-  const order: any = orderRecord[0]
+  const order = await requireOrderOwnership(event, orderId)
+  const session = await getUserSession(event)
 
   let productDescription = messages.customPurchase
   if (order.productId) {
@@ -79,8 +59,8 @@ export default defineEventHandler(async (event) => {
     rate: Number(order.amount), // Rate equals amount for qty=1
     currency: order.currency,
     client: {
-      name: order.contactEmail || session.user.email,
-      email: order.contactEmail || session.user.email,
+      name: order.contactEmail || (session?.user as any)?.email || messages.defaultClientName,
+      email: order.contactEmail || (session?.user as any)?.email || '',
     }
   }
 })

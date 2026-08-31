@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-publish-store-identity",
+  "title": "发布终态归属店铺与库存闭环修正",
+  "problem": "四个已核实的发布链路缺陷：(1) 渠道发布状态不记录提交时的店铺，轮询器一律按当前选中店铺解析凭证，用户在 A 店提交后切到 B 店会用 B 店凭证查询、传图、设价，甚至回落到 legacy 全局凭证，可能改错店铺；(2) 驱动首查即成功时 handler 直接落 published，渠道态变 succeeded 后轮询器不再认领，而推库存只在轮询器里，导致系统显示已发布、平台无库存；(3) classifyImportInfo 与 tracker 的 buildSyncedPublishProduct 都只对已回执 item 做 every 判断，从不比对商品的全部 offer 数，多规格商品只回来部分 SKU 也会被判整体成功；(4) WB 干跑早退发生在条码申领之后，点一次真发就白烧一批 WB 账号条码，而代码注释写着不留任何副作用。",
+  "expectedOutcome": "发布状态记录提交店铺并在轮询时按该店铺解析凭证，跨店切换不再打到错店；提交路径不再产出 published 终态，published 一律由轮询器在推库存成功后落定；导入回执按 offer 完整性判定，缺回执的商品保持 pending 由轮询接力；WB 干跑不再产生任何 WB 侧副作用。",
+  "constraints": [
+    "存量数据兼容：没有记录 storeKey 的历史发布状态按当前行为继续轮询，不得让升级前在途的商品失联",
+    "不得改变 hasPendingChannelPublishTask 之外的候选判定语义，内容评分重试链路保持不变",
+    "推库存/可售回读的既有语义不变（推成功才落 published，失败保持 publishing 重试）",
+    "导入回执完整性判据收敛到 shared/ozon-import-info 单点，驱动与 tracker 共用，不得各写一份",
+    "WB 条码申领必须挪到干跑早退之后，不改变正式发布路径的申领时机与配对逻辑",
+    "不新增 storage 根键，ChannelPublishState 扩字段按可选字段兼容演进"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/products/types.ts",
+        "src/shared/publish-tracking/registry.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/shared/publish-tracking/wb.ts",
+        "src/shared/ozon-import-info.ts",
+        "src/shared/api-client.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/domain/publish-drivers/types.ts",
+        "src/app/handlers/publish.ts",
+        "tests/ozon-driver-submission.test.ts",
+        "tests/ozon-import-sync.test.ts",
+        "tests/wb-driver-safety.test.ts",
+        "tests/publish-store-identity.test.ts"
+      ],
+      "claims": [
+        "src/domain/products/types.ts",
+        "src/shared/publish-tracking/registry.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/shared/publish-tracking/wb.ts",
+        "src/shared/ozon-import-info.ts",
+        "src/shared/api-client.ts",
+        "src/shared/pipeline/wb-api.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/domain/publish-drivers/types.ts",
+        "src/app/handlers/publish.ts",
+        "tests/ozon-driver-submission.test.ts",
+        "tests/ozon-import-sync.test.ts",
+        "tests/wb-driver-safety.test.ts",
+        "tests/publish-store-identity.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "提交成功的商品在渠道发布状态里记录提交店铺的 storeKey，Ozon 与 WB 同口径",
+    "轮询器按每个商品记录的 storeKey 解析该店铺的凭证与后续调用，其它店铺的商品本轮不被当前店铺凭证处理",
+    "历史数据（无 storeKey）继续按当前选中店铺轮询，不失联",
+    "提交路径不再把商品落成 published；首查成功只用于早失败识别，终态由轮询器落定",
+    "商品的全部 offer 未在回执中出齐时判为 pending，不判 published；驱动与 tracker 共用同一判据",
+    "WB 干跑不调用条码申领接口，正式发布路径申领时机不变",
+    "typecheck、相关 vitest、分层守卫、扩展构建全部通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查与发布链路测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-driver-submission.test.ts tests/ozon-import-sync.test.ts tests/wb-driver-safety.test.ts tests/wb-publish-tracking.test.ts tests/channel-publish-handler.test.ts tests/publish-store-identity.test.ts tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "分层守卫与构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run build"
+    }
+  ]
+}

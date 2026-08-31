@@ -1,7 +1,6 @@
 import { and, eq } from 'drizzle-orm'
-import { fulfillMinimalCheckoutRelay } from '../../app/themes/minimal/server/checkout/fulfillment'
-import { deliverMinimalCheckoutPaid } from '../../app/themes/minimal/server/checkout/notify'
-import { readMinimalCheckoutBridgeMeta } from '../../app/themes/minimal/server/checkout/bridge'
+import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta } from './checkoutBridge'
+import { emitEvent } from './eventActions'
 import { settlePromoCommission } from '../promo/service'
 import { db } from '../db/runtime'
 import { orders, topups } from '../db/schema'
@@ -25,6 +24,6 @@ export async function recoverCreditedApayTopup(orderId: string) {
   const fulfilled = await fulfillMinimalCheckoutRelay(orderId)
   if (!fulfilled) return false
   await settlePromoCommission(orderId)
-  await deliverMinimalCheckoutPaid(fulfilled)
+  await emitEvent('order.paid', fulfilled)
   return true
 }

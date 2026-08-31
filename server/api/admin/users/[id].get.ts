@@ -1,4 +1,4 @@
-import { users, userWallets, orders, products, subscriptions, oauthAccounts, userTokens, visitorProfiles, promoMembers } from "../../../db/schema"
+import { users, userWallets, orders, products, subscriptions, oauthAccounts, userTokens, visitorProfiles, promoMembers, emailLogs } from "../../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { getRequestLocale } from '../../../utils/requestLocale'
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     const BALANCE_SCALE = 100000000
     const toDisplayBalance = (v: unknown) => Number(v || 0) / BALANCE_SCALE
 
-    const [orderRows, subscriptionRows, oauthRows, tokenRows, profileRows, promoRows] = await Promise.all([
+    const [orderRows, subscriptionRows, oauthRows, tokenRows, profileRows, promoRows, emailLogRows] = await Promise.all([
       db.select({
         id: orders.id,
         amount: orders.amount,
@@ -109,6 +109,8 @@ export default defineEventHandler(async (event) => {
         agentCode: promoMembers.agentCode,
         joinedAt: promoMembers.joinedAt,
       }).from(promoMembers).where(eq(promoMembers.userId, userId)).limit(1),
+
+      db.select().from(emailLogs).where(eq(emailLogs.to, user.email)).orderBy(desc(emailLogs.createdAt)).limit(30),
     ])
 
     const typedOrderRows = orderRows as Array<OrderCurrencyInput & Record<string, unknown> & { payStatus: string }>
@@ -136,6 +138,7 @@ export default defineEventHandler(async (event) => {
       tokens: tokenRows,
       profile: profileRows[0] || null,
       promoMember: promoRows[0] || null,
+      emailLogs: emailLogRows || [],
     }
   } catch (error: any) {
     throw createError({

@@ -72,6 +72,13 @@ export default defineEventHandler(async (event) => {
     updateData.imageUrls = normalizeImageUrls(updateData.imageUrls)
     updateData.metaData = normalizeMetaData(updateData.metaData)
     
+    if (updateData.status) {
+      updateData.isActive = updateData.status !== 'inactive'
+      delete updateData.status
+    } else if (updateData.isActive !== undefined) {
+      delete updateData.status
+    }
+
     // SQLite doesn't like null values for string columns sometimes or missing fields
     // Ensure all undefined values are stripped out
     Object.keys(updateData).forEach(key => {

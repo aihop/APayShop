@@ -126,10 +126,10 @@
           </template>
           <template #isActive-cell="{ row }">
             <UBadge
-              :color="row.original.isActive ? 'success' : 'neutral'"
+              :color="getProductStatusColor(row.original)"
               variant="subtle"
             >
-              {{ row.original.isActive ? $t('admin.products.active') : $t('admin.products.inactive') }}
+              {{ getProductStatusLabel(row.original) }}
             </UBadge>
           </template>
           <template #actions-cell="{ row }">
@@ -169,7 +169,7 @@
         <UPagination
           v-model="page"
           :total="totalItems"
-          :page-count="pageCount"
+          :items-per-page="pageCount"
           @update:page="(val) => onPageChange(val, () => refresh())"
         />
       </div>
@@ -201,6 +201,20 @@ const { getSetting, fetchSettings } = useSettings()
 
 await fetchSettings()
 const baseCurrency = computed(() => getSetting('currency', 'USD'))
+
+const getProductStatusColor = (product: any) => {
+  const status = product?.status || (product?.isActive === false ? 'inactive' : 'active')
+  if (status === 'active') return 'success'
+  if (status === 'hidden') return 'warning'
+  return 'neutral'
+}
+
+const getProductStatusLabel = (product: any) => {
+  const status = product?.status || (product?.isActive === false ? 'inactive' : 'active')
+  if (status === 'active') return t('admin.products.active')
+  if (status === 'hidden') return t('admin.products.hidden')
+  return t('admin.products.inactive')
+}
 
 const columns = computed(() => [
   { accessorKey: 'drag', header: '' },

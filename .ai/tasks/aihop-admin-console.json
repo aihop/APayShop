@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "aihop-admin-console",
+  "title": "后台模型数据覆盖层,支持不发版调整价格与推荐位",
+  "problem": "模型数据目前是主题仓库里的静态 TS 文件,改一个价格就要发一次版。厂商调价、限时促销开始或结束都是随时发生的事,而本站的卖点正是价格准确,靠发版跟进必然滞后。另一方面静态文件是 git 可审计的基线,不该整体搬进数据库——真正需要的是一层可即时生效的覆盖,而不是把事实源搬家。此外 P8 原计划让游客直接经免登录代理读取本站价,但网关暴露模型价格的是 admin-only 接口(非 admin 代码从未读过价格字段),那类接口绝不能进免登录白名单,因此本任务建立的覆盖层同时是 P8 的落地前提。",
+  "expectedOutcome": "后台扩展页可按模型覆盖价格、标记与是否隐藏,并可切换首页推荐场景;覆盖层以 JSON 存于 settings 表,前台运行时叠加在静态数据之上,静态文件仍是基线;覆盖层解析失败或字段非法时前台回落静态数据而不是白屏。",
+  "constraints": [
+    "静态数据文件仍是事实源,覆盖层只允许覆盖价格、标记、场景标签与隐藏开关;不得覆盖 slug、sources、updatedAt 等可追溯性字段",
+    "覆盖层只存差异,不存整份模型记录:settings 表会被公开接口整表返回,体积直接影响每个页面",
+    "写入前必须校验(价格为非负数、slug 必须存在于静态数据),脏数据不得落库",
+    "前台解析覆盖层必须容错:JSON 非法、结构不符、键名未知时一律回落静态数据,绝不抛错",
+    "不得把任何敏感信息写入该 settings 键——该表除少数密钥外由 /api/settings 公开返回",
+    "后台页面可使用 @nuxt/ui(后台不受前台 Matters Blue 约束),但前台代码仍遵守主题硬约束",
+    "不引入新依赖,不改动 apay 核心仓库"
+  ],
+  "repositories": [
+    {
+      "name": "apay-aihop",
+      "path": "app/themes/aihop",
+      "allowedPaths": [
+        "theme.admin.json",
+        "admin/**",
+        "api/**",
+        "composables/**",
+        "types/**",
+        "locales/**",
+        "scripts/**",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "theme.admin.json",
+        "admin/**",
+        "api/**",
+        "composables/**",
+        "types/**",
+        "locales/**",
+        "scripts/**",
+        "AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台扩展页可读写覆盖层,注册在 theme.admin.json 中",
+    "写入接口拒绝非法数据:未知 slug、负数价格、结构错误",
+    "前台读取覆盖层并叠加到静态数据之上,隐藏的模型不出现在榜单",
+    "覆盖层为空、JSON 非法或结构不符时,前台结果与纯静态数据完全一致",
+    "覆盖层容错与合并逻辑有反向验证:注入各类脏数据不会导致异常",
+    "四个既有守卫仍通过"
+  ],
+  "verification": [
+    {
+      "name": "覆盖层合并与容错守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-overrides.mjs"
+    },
+    {
+      "name": "主题脚手架自检",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "模型数据守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    },
+    {
+      "name": "SFC 编译守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-sfc.mjs"
+    }
+  ]
+}

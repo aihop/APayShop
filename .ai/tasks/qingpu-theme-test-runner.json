@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-theme-test-runner",
+  "title": "主题测试注册可执行入口并修复随重构漂移的源码断言",
+  "problem": "app/themes/qingpu/tests 下 41 个 vitest 文件没有任何注册的执行入口：主题没有自己的 package.json，APay 根既没装 vitest 也没有 test 脚本，只有 check-all.mjs 跑 scripts/check-*.mjs 守卫。这批测试因此长期无人执行，实测 5 个文件 9 个用例已经失败。9 个失败全部是『读源码字符串做断言』随实现重构而漂移，不是功能回归：(1) runWbCopyStep / runWbAttributeFillStep 与 attributes/copy 的渠道分流已从 server/tasks/executors.ts 搬到 server/tasks/channel-workflow-drivers.ts，executors.ts 现在只留 TASK_EXECUTORS 派发表与 readTaskChannel(task)，而 task-executor-channel-assertion / wb-copy-task / wb-attribute-fill-task 三个文件仍在读 executors.ts 断言旧符号；(2) 类目定义加载已由直调 loadOzonCategoryResourcesForUser / loadWbSubjectCharacteristics 改为经 CATEGORY_RESOURCE_REPOSITORIES.{ozon,wb}.getOrFetch 间接调用，而 category-definition-loaders / wb-characteristics-persistence 仍断言直调。已 grep 确认被断言的符号全部存在，功能没丢。这与 check-all.mjs 注释记录的『近 60 个守卫只注册了 7 个』是同一类缺口：没有执行入口的检查等于没有检查。执行入口按 check-all.mjs 既有的自动发现约定交付——放一个 scripts/check-*.mjs 就会被主题守卫总闸跑到，无需改 APay 根 package.json（该文件当前有他人在途改动）。",
+  "expectedOutcome": "主题测试有一条注册的、可重复执行的命令，纳入日常验证；9 个漂移用例改为盯语义而不是盯文件路径与调用形状，在当前实现下通过，且实现真的退化时仍会失败。",
+  "constraints": [
+    "只修断言表达方式，不放宽被守护的语义：渠道分流、WB 分支早退、类目定义按渠道收口这些判据必须仍被守住",
+    "断言按符号/语义定位实现，不写死文件路径，避免下一次重构再次集体漂移",
+    "不新增 npm 依赖：runner 复用 qingpu-ai 已装的 vitest，按相对路径解析，缺失时给出可执行的提示而不是静默跳过",
+    "不改 app/themes/qingpu 下任何实现代码，本任务只动测试与执行入口",
+    "不触碰 codex-root 已租用的 components/QingpuStoreFormModal.vue、components/QingpuStoreMenu.vue、pages/user/stores.vue",
+    "check-all.mjs 的已知失败清单只许变短，不得为本任务加长",
+    "执行入口走 check-all.mjs 的 scripts/check-*.mjs 自动发现约定，不改 APay 根 package.json（有他人在途改动）"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "tests/task-executor-channel-assertion.test.ts",
+        "tests/wb-copy-task.test.ts",
+        "tests/wb-attribute-fill-task.test.ts",
+        "tests/category-definition-loaders.test.ts",
+        "tests/wb-characteristics-persistence.test.ts",
+        "scripts/check-theme-tests.mjs"
+      ],
+      "claims": [
+        "tests/task-executor-channel-assertion.test.ts",
+        "tests/wb-copy-task.test.ts",
+        "tests/wb-attribute-fill-task.test.ts",
+        "tests/category-definition-loaders.test.ts",
+        "tests/wb-characteristics-persistence.test.ts",
+        "scripts/check-theme-tests.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题 tests 全量有一条可重复执行的入口，并被 npm run check:qingpu-all 自动发现跑到；缺少 vitest 时报出可执行的补救提示而不是静默跳过",
+    "主题 tests 全量执行 0 失败",
+    "task-executor-channel-assertion / wb-copy-task / wb-attribute-fill-task 按语义断言渠道分流，实现搬文件不会再让它们集体失效",
+    "category-definition-loaders / wb-characteristics-persistence 断言类目定义按渠道收口，兼容经仓储间接调用的当前实现",
+    "把任一被守护的语义人为破坏后，对应用例仍会失败（护栏不是永远绿）",
+    "主题守卫总闸仍通过，已知失败清单未加长"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸（含新增的测试入口）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm run check:qingpu-all"
+    }
+  ]
+}

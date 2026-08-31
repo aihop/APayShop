@@ -66,7 +66,6 @@ const I18N_ALL_LOCALES = [
   { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
   { code: 'zh', iso: 'zh-CN', file: 'zh.json', name: '简体中文' },
   { code: 'zh-HK', iso: 'zh-HK', file: 'zh-HK.json', name: '香港繁體' },
-  { code: 'id', iso: 'id-ID', file: 'id.json', name: 'Bahasa Indonesia' },
   { code: 'ru', iso: 'ru-RU', file: 'ru.json', name: 'Русский' },
 ]
 
@@ -270,6 +269,17 @@ export default defineNuxtConfig({
           if (fs.existsSync(vendorDir)) {
             nitroAliases[`@${theme}-vendor`] = vendorDir
           }
+
+          // 自动发现并挂载主题服务端插件（如事件动作注册）
+          const pluginsDir = path.join(themesDir, theme, 'server', 'plugins')
+          if (fs.existsSync(pluginsDir)) {
+            fs.readdirSync(pluginsDir).forEach(file => {
+              if (file.endsWith('.ts') || file.endsWith('.js')) {
+                nitroConfig.plugins = nitroConfig.plugins || []
+                nitroConfig.plugins.push(path.join(pluginsDir, file).replace(/\\/g, '/'))
+              }
+            })
+          }
         })
 
         buildThemes.forEach(theme => {
@@ -402,6 +412,7 @@ export default defineNuxtConfig({
       'admin/settings/product-presets': false,
       'admin/payments': false,
       'admin/profile': false,
+      'admin/settings/extensions': false,
       'admin/extensions/[...slug]': false,
       'admin/cards': false,
       'admin/subscriptions': false,

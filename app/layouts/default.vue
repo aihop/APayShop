@@ -1,5 +1,9 @@
 <template>
+  <div v-if="isBareLayout" class="min-h-0 bg-transparent">
+    <slot />
+  </div>
   <component
+    v-else
     :is="activeLayout"
     :key="activeTheme"
   >
@@ -14,12 +18,16 @@
 import { computed, defineAsyncComponent } from 'vue'
 import * as themeBuild from '~/generated/theme-build'
 
-const { getSetting } = useSettings()
-
-const activeTheme = computed(() => {
-  const theme = getSetting('active_theme') || ''
-  return themeBuild.publishedOptionalThemeSet.has(theme) ? theme : ''
+const route = useRoute()
+const isBareLayout = computed(() => {
+  const path = route.path || ''
+  return path.startsWith('/payment/mini') || route.meta?.layout === false
 })
+
+// 主题解析与页面分发器(app/pages/[...slug].vue)共用 useActiveTheme:
+// devTheme(APAY_DEV_THEME/NUXT_PUBLIC_DEV_THEME) > settings.active_theme。
+// 这里曾自行只读 settings.active_theme,导致 dev 下页面走目标主题、布局却回落 core。
+const activeTheme = useActiveTheme()
 
 // Dynamic layout loader
 const activeLayout = computed(() => {

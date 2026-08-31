@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "vue-i18n-middleware-context-guard",
+  "title": "修复扩展中间件 i18n 上下文并建立构建守卫",
+  "problem": "useExtensions 通过 useI18n 依赖 Vue 组件实例，但后台和用户扩展路由中间件会直接或间接调用它，导致运行时抛出 Must be called at the top of a setup function；现有注释约束不能阻止同类问题再次引入。",
+  "expectedOutcome": "扩展 composable 在组件和 Nuxt 路由中间件中都能安全读取响应式语言状态，后台与用户扩展路由不再触发 vue-i18n setup 错误；构建会递归检查中间件和插件调用的本地 composable，禁止直接或间接调用 useI18n。",
+  "constraints": [
+    "不改变扩展启用、迁移校验、权限、路由或本地化选择行为",
+    "中间件和插件只能使用不依赖 Vue 组件实例的国际化入口",
+    "守卫使用现有 TypeScript 依赖，不新增第三方依赖",
+    "守卫必须覆盖从 app/middleware 与 app/plugins 到 app/composables 的传递调用链，并在失败时输出可定位的调用链",
+    "通过现有构建入口强制执行守卫，不修改已有并行改动的 package.json",
+    "保留全部无关工作区改动，不提交、不推送、不发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/composables/useExtensions.ts",
+        "docs/engineering-constraints.md",
+        "scripts/check-vue-context-boundaries.mjs",
+        "scripts/run-nuxt-build.mjs"
+      ],
+      "claims": [
+        "app/composables/useExtensions.ts",
+        "docs/engineering-constraints.md",
+        "scripts/check-vue-context-boundaries.mjs",
+        "scripts/run-nuxt-build.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useExtensions 不再调用需要 Vue 组件实例的 useI18n，并继续响应语言切换",
+    "admin-auth 与 extension-user-auth 中间件调用扩展 composable 时不再抛出 setup 上下文错误",
+    "机器守卫能发现中间件或插件直接及经本地 composable 间接调用 useI18n，并输出完整调用链",
+    "npm run build 在启动 Nuxt 构建前强制通过该守卫",
+    "工程约束明确禁止非组件上下文直接或间接使用 useI18n，并给出允许的替代入口"
+  ],
+  "verification": [
+    {
+      "name": "Vue 上下文边界守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-vue-context-boundaries.mjs"
+    },
+    {
+      "name": "扩展系统专项守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-extension-system.mjs"
+    },
+    {
+      "name": "Nuxt 类型检查",
+      "repository": "apay",
+      "always": true,
+      "command": "./node_modules/.bin/nuxt typecheck"
+    },
+    {
+      "name": "脚本语法与差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "node --check scripts/check-vue-context-boundaries.mjs && node --check scripts/run-nuxt-build.mjs && git diff --check -- app/composables/useExtensions.ts docs/engineering-constraints.md scripts/check-vue-context-boundaries.mjs scripts/run-nuxt-build.mjs"
+    }
+  ]
+}

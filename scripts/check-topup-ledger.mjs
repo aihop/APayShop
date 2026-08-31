@@ -39,7 +39,7 @@ for (const path of [
   'server/db/migrations/sqlite/meta/_journal.json',
 ]) {
   const journal = JSON.parse(read(path))
-  assert.equal(journal.entries.at(-1)?.tag.endsWith('_add_topups'), true, `${path}: topups journal entry missing`)
+  assert.equal(journal.entries.some(entry => entry.tag.endsWith('_add_topups')), true, `${path}: topups journal entry missing`)
   journal.entries.forEach((entry, index) => assert.equal(entry.idx, index, `${path}: journal idx ${index} is invalid`))
 }
 

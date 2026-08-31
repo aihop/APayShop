@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "event-rule-sync-async-mode",
+  "title": "事件自动化支持同步/异步执行模式与注册支付错误拦截",
+  "problem": "目前事件规则执行均为异步非阻塞，无法满足需要强门禁同步校验（如外部风控、前置开户校验，失败时需拦截并报错）的业务场景；且支付成功 order.paid 尚未完全打通事件自动化规则。",
+  "expectedOutcome": "后台事件自动化支持为单条规则配置「同步执行」或「异步执行」；后端 eventActions 支持区分同步与异步规则，同步规则失败时抛出具体错误并拦截主业务流程；注册流程在同步拦截时自动回滚临时账号防脏数据；支付流程全面接入 emitEvent 支持同步与异步动作。",
+  "constraints": [
+    "不修改 APay 核心数据库 Schema，event_rules.config 保持 JSON 结构兼容",
+    "默认执行模式必须为异步，确保常规操作性能与稳定性不受影响",
+    "同步模式失败时必须精确提取并向调用方返回错误信息",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/admin/settings/AutomationsTab.vue",
+        "server/utils/eventActions.ts",
+        "server/api/auth/register.post.ts",
+        "server/utils/orderPayment.ts",
+        "server/api/admin/orders/[id].put.ts"
+      ],
+      "claims": [
+        "app/components/admin/settings/AutomationsTab.vue",
+        "server/utils/eventActions.ts",
+        "server/api/auth/register.post.ts",
+        "server/utils/orderPayment.ts",
+        "server/api/admin/orders/[id].put.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台「事件自动化」新建/编辑规则支持「异步执行（默认）」与「同步执行（强门禁拦截）」选择并展示提示与摘要",
+    "后端 eventActions 准确区分同步规则与异步规则，同步规则失败时抛出 422 错误并附带下游错误信息",
+    "用户注册 /api/auth/register 在同步规则失败时拦截响应并自动清理临时用户数据",
+    "订单支付 orderPayment.ts 与 admin orders put 接入 emitEvent('order.paid', ...) 并正确支持同步/异步规则",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/admin/settings/AutomationsTab.vue server/utils/eventActions.ts server/api/auth/register.post.ts server/utils/orderPayment.ts 'server/api/admin/orders/[id].put.ts'"
+    }
+  ]
+}

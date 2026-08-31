@@ -1,0 +1,21 @@
+{
+  "public": [
+    "/",
+    "/pricing",
+    "/downloads",
+    "/activate",
+    "/docs",
+    "/contact-support",
+    "/privacy",
+    "/terms",
+    "/refund-policy"
+  ],
+  "dynamic": [
+    { "pattern": "/products/:slug", "source": "products" }
+  ],
+  "private": [
+    "/auth/**",
+    "/user/**"
+  ],
+  "redirect": []
+}

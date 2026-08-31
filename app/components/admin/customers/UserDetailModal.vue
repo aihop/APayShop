@@ -38,16 +38,58 @@
             <div class="text-xs text-gray-500 dark:text-gray-400">{{ detail.user.email }} · ID {{ detail.user.id }}</div>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <UBadge
             :color="detail.user.status === 1 ? 'success' : 'error'"
             variant="subtle"
           >{{ detail.user.status === 1 ? activeLabel : disabledLabel }}</UBadge>
           <UBadge
-            v-if="detail.user.emailVerifiedAt"
-            color="info"
+            :color="detail.user.emailVerifiedAt ? 'success' : 'warning'"
             variant="subtle"
-          >{{ verifiedLabel }}</UBadge>
+          >{{ detail.user.emailVerifiedAt ? verifiedLabel : unverifiedLabel }}</UBadge>
+
+          <!-- 邮箱人工审核 & 代发快捷操作 -->
+          <div class="flex items-center gap-1.5 ml-2">
+            <UButton
+              v-if="!detail.user.emailVerifiedAt"
+              size="xs"
+              color="primary"
+              variant="soft"
+              class="rounded-lg font-medium"
+              :loading="isVerifying"
+              @click="handleManualVerify(true)"
+            >
+              <template #leading>
+                <UIcon name="ph:check-circle-bold" class="w-3.5 h-3.5" />
+              </template>
+              {{ isZh ? '人工通过认证' : 'Manual Verify' }}
+            </UButton>
+            <UButton
+              v-else
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              class="rounded-lg text-xs text-gray-400 hover:text-red-500"
+              :loading="isVerifying"
+              @click="handleManualVerify(false)"
+            >
+              {{ isZh ? '撤销认证' : 'Revoke Verify' }}
+            </UButton>
+
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="soft"
+              class="rounded-lg font-medium"
+              :loading="isResending"
+              @click="handleAdminResendVerify"
+            >
+              <template #leading>
+                <UIcon name="ph:paper-plane-tilt-bold" class="w-3.5 h-3.5" />
+              </template>
+              {{ isZh ? '代发验证邮件' : 'Send Verify Email' }}
+            </UButton>
+          </div>
         </div>
       </div>
 
@@ -220,12 +262,105 @@
           </div>
         </div>
       </div>
+
+      <!-- Email Logs History -->
+      <div class="rounded-2xl border border-gray-200 dark:border-gray-800/60 bg-white dark:bg-[#121214] p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+            <UIcon name="ph:envelope-simple-fill" class="w-5 h-5 text-indigo-500" />
+            <span>{{ isZh ? '邮件发送记录' : 'Email History' }}</span>
+            <span class="text-xs font-normal text-gray-400">({{ detail.emailLogs?.length || 0 }})</span>
+          </div>
+        </div>
+
+        <div v-if="!detail.emailLogs || detail.emailLogs.length === 0" class="py-8 text-center text-xs text-gray-400">
+          {{ isZh ? '暂无发送给该用户的邮件记录' : 'No emails sent to this user yet' }}
+        </div>
+
+        <div v-else class="divide-y divide-gray-100 dark:divide-gray-800/60 -mx-5 px-5">
+          <div
+            v-for="log in detail.emailLogs"
+            :key="log.id"
+            class="py-3 flex items-center justify-between gap-4 text-xs hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors"
+          >
+            <div class="min-w-0 flex-1 space-y-0.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium text-gray-900 dark:text-white">{{ log.subject }}</span>
+                <UBadge
+                  :color="log.status === 'success' ? 'success' : 'error'"
+                  variant="subtle"
+                  size="xs"
+                >
+                  {{ log.status === 'success' ? (isZh ? '成功' : 'Success') : (isZh ? '失败' : 'Failed') }}
+                </UBadge>
+                <span v-if="log.templateCode" class="text-[10px] px-1.5 py-0.2 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 font-mono">
+                  {{ log.templateCode }}
+                </span>
+              </div>
+              <div v-if="log.error" class="text-red-500 truncate text-[11px]">
+                {{ log.error }}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-gray-400 text-[11px] font-mono">{{ formatDateTime(log.createdAt) }}</span>
+              <UButton
+                v-if="log.html"
+                size="xs"
+                variant="soft"
+                color="neutral"
+                class="rounded-lg text-xs"
+                @click="openEmailPreview(log)"
+              >
+                {{ isZh ? '查看正文' : 'View' }}
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div
       v-else
       class="py-16 text-center text-sm text-gray-500 dark:text-gray-400"
     >{{ loadErrorLabel }}</div>
+
+    <!-- Email Content Snapshot Modal -->
+    <UModal v-model:open="isEmailPreviewOpen">
+      <template #content>
+        <div v-if="previewingLog" class="p-6 space-y-4 max-w-2xl w-full">
+          <div class="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ isZh ? '邮件快照预览' : 'Email Preview' }}</h3>
+              <p class="text-xs text-gray-500 mt-1">To: <span class="font-mono text-gray-700 dark:text-gray-300">{{ previewingLog.to }}</span> · {{ formatDateTime(previewingLog.createdAt) }}</p>
+            </div>
+            <UBadge :color="previewingLog.status === 'success' ? 'success' : 'error'" variant="subtle">
+              {{ previewingLog.status === 'success' ? (isZh ? '成功' : 'Success') : (isZh ? '失败' : 'Failed') }}
+            </UBadge>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-gray-500">{{ isZh ? '邮件主题：' : 'Subject:' }}</div>
+            <div class="text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-black/30 p-2.5 rounded-lg border border-gray-200 dark:border-gray-800">
+              {{ previewingLog.subject }}
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-gray-500">{{ isZh ? 'HTML 内容快照：' : 'HTML Content:' }}</div>
+            <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-zinc-900 max-h-80 overflow-auto text-xs font-mono select-all">
+              <div v-html="previewingLog.html" class="prose dark:prose-invert max-w-none"></div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <UButton color="neutral" variant="soft" @click="isEmailPreviewOpen = false">
+              {{ isZh ? '关闭' : 'Close' }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </FullScreenModal>
 </template>
 
@@ -261,6 +396,7 @@ const activeLabel = computed(() => (isZh.value ? '正常' : 'Active'))
 const activeLabelShort = computed(() => (isZh.value ? '有效' : 'active'))
 const disabledLabel = computed(() => (isZh.value ? '已禁用' : 'Disabled'))
 const verifiedLabel = computed(() => (isZh.value ? '邮箱已验证' : 'Email Verified'))
+const unverifiedLabel = computed(() => (isZh.value ? '邮箱未验证' : 'Email Unverified'))
 const balancesTitle = computed(() => (isZh.value ? '账户余额' : 'Balances'))
 const cashBalanceLabel = computed(() => (isZh.value ? '充值余额' : 'Cash Balance'))
 const grantBalanceLabel = computed(() => (isZh.value ? '赠送余额' : 'Grant Balance'))
@@ -368,6 +504,68 @@ const statusColor = (status: string): any => {
       return 'warning'
     default:
       return 'neutral'
+  }
+}
+
+const isVerifying = ref(false)
+const isResending = ref(false)
+const isEmailPreviewOpen = ref(false)
+const previewingLog = ref<any>(null)
+
+const openEmailPreview = (log: any) => {
+  previewingLog.value = log
+  isEmailPreviewOpen.value = true
+}
+
+const handleManualVerify = async (verified: boolean) => {
+  if (!detail.value?.user?.id) return
+  isVerifying.value = true
+  try {
+    const res: any = await $fetch(`/api/admin/users/${detail.value.user.id}/verify-email`, {
+      method: 'POST',
+      body: { verified },
+    })
+    detail.value.user.emailVerifiedAt = res.emailVerifiedAt
+    toast.add({
+      title: isZh.value ? '操作成功' : 'Success',
+      description: res.message,
+      color: 'success',
+    })
+  } catch (err: any) {
+    toast.add({
+      title: isZh.value ? '操作失败' : 'Failed',
+      description: err?.data?.message || err?.message,
+      color: 'error',
+    })
+  } finally {
+    isVerifying.value = false
+  }
+}
+
+const handleAdminResendVerify = async () => {
+  if (!detail.value?.user?.id) return
+  isResending.value = true
+  try {
+    const res: any = await $fetch(`/api/admin/users/${detail.value.user.id}/resend-verify`, {
+      method: 'POST',
+    })
+    toast.add({
+      title: isZh.value ? '发送成功' : 'Success',
+      description: res.message,
+      color: 'success',
+    })
+    // 刷新详情以加载最新邮件日志
+    if (props.userId) {
+      await fetchDetail(props.userId)
+    }
+  } catch (err: any) {
+    toast.add({
+      title: isZh.value ? '发送失败' : 'Failed',
+      description: err?.data?.message || err?.message,
+      color: 'error',
+    })
+  } finally {
+    isResending.value = false
   }
 }
 </script>

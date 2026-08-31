@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-orders-modal-payment-link-title-i18n",
+  "title": "补充订单详情弹窗 admin.orders.modal.payment_link_title 语言包词条",
+  "problem": "订单详情弹窗中引用了 admin.orders.modal.payment_link_title 词条，但 locales 中缺失该词条。",
+  "expectedOutcome": "在 zh.json、en.json、ru.json 中补充 admin.orders.modal.payment_link_title 词条，消除页面未翻译提示。",
+  "constraints": [
+    "不修改代码逻辑与 API 契约",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "locales/zh.json",
+        "locales/en.json",
+        "locales/ru.json"
+      ],
+      "claims": [
+        "locales/zh.json",
+        "locales/en.json",
+        "locales/ru.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "zh.json、en.json、ru.json 均包含 admin.orders.modal.payment_link_title",
+    "差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- locales/zh.json locales/en.json locales/ru.json"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-e2e-auth-fixture",
+  "title": "隔离 Qingpu 扩展 E2E 的设备会话校验",
+  "problem": "Playwright fixture 使用 dummy 设备令牌并放行本机账号 API；本机服务对该令牌返回 401，产品按设计清除登录态，导致所有 Dash E2E 在断言前回到登录页。",
+  "expectedOutcome": "扩展 E2E 在不访问真实账号或渠道服务的前提下稳定保持已登录状态，并验证 Dash 空态、商品列表和核价联动场景。",
+  "constraints": [
+    "只修改 qingpu-ai 的 E2E fixture",
+    "不修改产品鉴权、设备令牌语义、消息协议或运行时业务代码",
+    "不访问真实 Ozon、WB、qingpu.ai 账号接口或执行真实发布",
+    "mock 只覆盖 fixture 使用的设备令牌校验响应，其他网络请求继续按现有密闭策略处理",
+    "不提交、不推送，保留其他任务改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "e2e/fixtures.ts"
+      ],
+      "claims": [
+        "e2e/fixtures.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Playwright fixture 注入的 dummy 设备令牌不会因本机 API 的 401 被应用登出",
+    "Dash 空库、种子商品和核价联动三条 E2E 全部通过",
+    "fixture 仍阻断非本地网络请求，且不改变产品鉴权逻辑"
+  ],
+  "verification": [
+    {
+      "name": "扩展 E2E 与差异检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run test:e2e && git diff --check -- e2e/fixtures.ts"
+    }
+  ]
+}

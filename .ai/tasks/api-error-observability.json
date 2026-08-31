@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "api-error-observability",
+  "title": "服务端 API 错误留痕：requestId 贯穿与结构化错误日志",
+  "problem": "系统对 5xx 完全没有服务端留痕，排查只能靠肉眼盯 dev server 终端。两个既有日志通道都覆盖不到：server/plugins/access-log.ts 挂在 afterResponse 上，而 Nitro 的错误处理器会自己写响应并置 event.handled，错误请求根本到不了这个 hook（audit-log.ts 的注释已经记录了这个事实）；server/plugins/audit-log.ts 虽然 hook 了 error，但只记录 admin API 前缀下的写操作，/api/qingpu/* 一条都不进。实测查库确认 access_logs 里 5xx 记录为零。\n\n后果是 2026-08-28 这一天连续排查三个 ReferenceError（blueprintProgressMap、getTranslationGlossaryByUser、resetSkuState 里的 skuFieldDebounceTimer/pendingVariantPatches）全靠读提交与跑类型检查倒推，没有一个是从实际报错定位的，用户报『又 500 了』时双方都没有可对照的证据。dev 模式响应体里其实带着 message 与 stack，但那是一次性的、不落盘的，请求关掉就没了。",
+  "expectedOutcome": "每个请求有稳定的 requestId 并通过响应头回传；任何经 Nitro error hook 的失败都留下一条结构化记录（requestId、时间、方法、路径、状态码、userId、message、stack），同时写 stdout 与可 tail 的日志文件；据此可以按 requestId 或时间直接定位一次 500，不再依赖用户手动抓 Network 面板。",
+  "constraints": [
+    "只新增插件与自检脚本，不改 access-log.ts / audit-log.ts 的既有行为",
+    "不改 APay 根 package.json（有他人在途改动）；nitro plugin 由 server/plugins 自动加载，不需要注册",
+    "日志文件写在 .tmp 下（已被忽略），滚动截断，不得无限增长",
+    "生产环境不把 stack 写进响应体，只回 requestId；dev 保持现有透传行为",
+    "记录本身不得抛错影响请求：写日志失败只降级到 console，不冒泡",
+    "不记录请求体与响应体，避免把凭证、密钥写进日志",
+    "健康检查、静态资源、devtools 这类噪音路径要排除"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/plugins/error-log.ts",
+        "scripts/check-error-observability.mjs"
+      ],
+      "claims": [
+        "server/plugins/error-log.ts",
+        "scripts/check-error-observability.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "存在一个 nitro plugin，同时 hook request（生成 requestId、写响应头）与 error（结构化记录）",
+    "错误记录包含 requestId、时间戳、method、path、statusCode、message 与 stack",
+    "记录写入 .tmp 下的 jsonl 文件并可 tail；文件超过上限时截断而不是无限增长",
+    "写日志过程中的任何异常都被吞在插件内部，不影响原请求的响应",
+    "不记录请求体/响应体；噪音路径被排除",
+    "自检脚本在插件缺失或缺少关键字段时失败，在当前实现下通过",
+    "实测：对一个会失败的接口发请求后，日志文件里出现对应记录且 requestId 与响应头一致"
+  ],
+  "verification": [
+    {
+      "name": "错误可观测性自检",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-error-observability.mjs"
+    }
+  ]
+}

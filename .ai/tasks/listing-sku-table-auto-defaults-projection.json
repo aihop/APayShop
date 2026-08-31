@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-sku-table-auto-defaults-projection",
+  "title": "Listing 选类目后 SKU 表格自愈属性即时重投影",
+  "problem": "工作台选择类目后，服务端在 getSkuTableForUser 中自愈填充了默认参数与变体规格轴并写入数据库，但未触发 productProjectionFactory.project 重建渠道草稿快照，导致当次返回的 payload 仍为旧草稿空属性，需刷新页面才能看到解析后的参数。",
+  "expectedOutcome": "选类目后拉取 SKU 表格直接返回带有自动解析属性与规格轴的最新草稿数据，无需手动刷新页面。",
+  "constraints": [
+    "不修改 Product 四层模型与持久化协议",
+    "属性与规格轴推断口径继续以 engine 出口为唯一权威",
+    "不覆盖工作区其他并行改动",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.operations.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryBinding.ts",
+        "tests/sku-table-auto-defaults-projection.test.ts"
+      ],
+      "claims": [
+        "server/listing/sku.operations.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryBinding.ts",
+        "tests/sku-table-auto-defaults-projection.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "getSkuTableForUser 在自愈推断默认属性、规格轴或发码后，执行 productProjectionFactory.project 刷新草稿快照",
+    "toTablePayload 基于最新草稿输出 skuCardFields 与 skuItems，包含自动解析的默认属性与对齐规格",
+    "前端选类目保存后，等待 loadSkuTable 完成再关闭选择器，保证 UI 获得即时更新",
+    "专项测试通过"
+  ],
+  "verification": [
+    {
+      "name": "SKU 表格自愈重投影专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/sku-table-auto-defaults-projection.test.ts"
+    }
+  ]
+}

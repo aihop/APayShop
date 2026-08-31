@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "event-rule-webhook-action",
+  "title": "事件自动化支持 Webhook 回调动作与注册流程异常隔离",
+  "problem": "用户注册 /api/auth/register 时，事件派发与外部调用可能受下游网络超时或异常影响；且目前 Webhook 回调与事件自动化规则分散，缺乏统一的规则驱动动作支持。",
+  "expectedOutcome": "在「事件自动化」后台规则中新增「发送 Webhook 回调 (send_webhook)」动作，支持走系统默认地址或自定义 URL/Token；后端执行器提供完善的故障隔离沙箱，确保无论是 Webhook 还是其他事件动作失败，注册主流程均 100% 极速稳定返回，并将失败信息记录至系统日志。",
+  "constraints": [
+    "不修改 APay 核心数据库 Schema，event_rules.config 保持 JSON 兼容存储",
+    "事件派发与动作执行失败严禁向外抛出未捕获异常，绝不阻塞用户注册主响应",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/eventActions.ts",
+        "server/api/auth/register.post.ts",
+        "app/components/admin/settings/AutomationsTab.vue"
+      ],
+      "claims": [
+        "server/utils/eventActions.ts",
+        "server/api/auth/register.post.ts",
+        "app/components/admin/settings/AutomationsTab.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "后台「事件自动化」新建/编辑规则支持「发送 Webhook 回调 (send_webhook)」动作",
+    "Webhook 动作支持「使用系统默认 Webhook 地址」与「自定义 Webhook 地址 (URL & Token)」两种模式",
+    "规则列表准确展示 Webhook 规则的配置摘要",
+    "后端 eventActions 正确执行 send_webhook 动作，支持默认与自定义 URL/Token 投递并记录日志",
+    "用户注册接口 /api/auth/register 在任何事件动作异常或超时下均能稳定成功响应",
+    "差异格式检查与生产构建通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/utils/eventActions.ts server/api/auth/register.post.ts app/components/admin/settings/AutomationsTab.vue"
+    }
+  ]
+}

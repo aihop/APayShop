@@ -76,9 +76,6 @@ export default defineEventHandler(async (event) => {
 
     const localeConfig = await getSiteLocaleConfig()
     const requestLocale = resolveRequestLocale(event, body.locale, localeConfig)
-    if (!isPaymentMethodAvailableForLocale(method, requestLocale, localeConfig)) {
-      return { code: 1, message: messages.methodUnavailableForLocale }
-    }
 
     let createScript = method.create || ''
     if (!createScript.trim()) {
@@ -176,7 +173,8 @@ export default defineEventHandler(async (event) => {
         paymentUrl: result.paymentUrl,
         qrCodeText: result.qrCodeText,
         tradeType: result.tradeType,
-        tradeNo: result.tradeNo
+        tradeNo: result.tradeNo,
+        qrPayMode: result.qrPayMode,
       }
     }
   } catch (error: any) {

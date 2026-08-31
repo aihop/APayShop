@@ -26,9 +26,17 @@ export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
   try {
     const query = getQuery(event)
-    const page = parseInt(query.page as string) || 1
-    const pageSize = parseInt(query.pageSize as string) || 15
+    const page = Math.max(parseInt(query.page as string) || 1, 1)
+    const pageSize = Math.min(Math.max(parseInt(query.pageSize as string) || 15, 1), 100)
     const offset = (page - 1) * pageSize
+    const search = String(query.search || query.q || query.keyword || '').trim().toLowerCase()
+    const searchPattern = search ? `%${search}%` : ''
+
+    let namedWhere = sql`${orders.contactEmail} IS NOT NULL AND ${orders.contactEmail} != '' AND ${orders.payStatus} != 'deleted' AND ${orders.status} != 'deleted'`
+    if (search) {
+      namedWhere = sql`${orders.contactEmail} IS NOT NULL AND ${orders.contactEmail} != '' AND ${orders.payStatus} != 'deleted' AND ${orders.status} != 'deleted' AND (lower(${orders.contactEmail}) LIKE ${searchPattern} OR lower(coalesce(${orders.visitorId}, '')) LIKE ${searchPattern})`
+    }
+
     const namedGroups = await db.select({
       email: orders.contactEmail,
       visitorId: sql<string | null>`MAX(${orders.visitorId})`,
@@ -37,8 +45,13 @@ export default defineEventHandler(async (event) => {
       lastOrderAt: sql<unknown>`MAX(${orders.createdAt})`,
       unpaidOrders: sql<number>`SUM(CASE WHEN ${orders.payStatus} != 'paid' THEN 1 ELSE 0 END)`,
     }).from(orders)
-      .where(sql`${orders.contactEmail} IS NOT NULL AND ${orders.contactEmail} != ''`)
+      .where(namedWhere)
       .groupBy(orders.contactEmail) as CustomerGroupRow[]
+
+    let anonymousWhere = sql`(${orders.contactEmail} IS NULL OR ${orders.contactEmail} = '') AND ${orders.visitorId} IS NOT NULL AND ${orders.payStatus} != 'deleted' AND ${orders.status} != 'deleted'`
+    if (search) {
+      anonymousWhere = sql`(${orders.contactEmail} IS NULL OR ${orders.contactEmail} = '') AND ${orders.visitorId} IS NOT NULL AND ${orders.payStatus} != 'deleted' AND ${orders.status} != 'deleted' AND lower(${orders.visitorId}) LIKE ${searchPattern}`
+    }
 
     const anonymousGroups = await db.select({
       email: sql<string | null>`NULL`,
@@ -48,7 +61,7 @@ export default defineEventHandler(async (event) => {
       lastOrderAt: sql<unknown>`MAX(${orders.createdAt})`,
       unpaidOrders: sql<number>`SUM(CASE WHEN ${orders.payStatus} != 'paid' THEN 1 ELSE 0 END)`,
     }).from(orders)
-      .where(sql`(${orders.contactEmail} IS NULL OR ${orders.contactEmail} = '') AND ${orders.visitorId} IS NOT NULL`)
+      .where(anonymousWhere)
       .groupBy(orders.visitorId) as CustomerGroupRow[]
 
     const groups = [...namedGroups, ...anonymousGroups]

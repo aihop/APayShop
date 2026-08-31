@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "theme-typecheck-gate",
+  "title": "修复未定义引用导致的 500 并建立主题类型检查门禁",
+  "problem": "主题仓没有任何类型检查执行入口：scripts/ 下没有 typecheck 守卫，APay 根也没有对应脚本，只有 check-all.mjs 跑 check-*.mjs。于是编译期就能发现的错误直接进了运行时，今天连出两个：(1) server/tasks/queries.ts 的 projectTaskRows 在返回对象字面量末尾追加了 result 与 blueprintProgress 两个重复键，其中 blueprintProgress 引用了从未定义的 blueprintProgressMap，任务列表与工作流运行两个查询共用这个出口，任务抽屉一打开必 ReferenceError 500；重复的 result 还覆盖了原有带 latestAttempt 回落的取值，是一处安静的行为回归。(2) server/tasks/executors.ts 的 loadContentTask 调用 getTranslationGlossaryByUser 但没有 import 它（该函数在 server/settings/queries.ts 有导出），所有内容加工任务（translate_facts/attributes/translate/copy）一执行就同样 ReferenceError 500。实跑 vue-tsc 确认这两处连同 TaskQueryFilters 缺 offset 字段全部能被编译期捕获，其中 blueprintProgressMap 连正确变量名都提示了。问题的第二面是前端把证据吞了：listingTasksFeed.ts 的共享拉取以 .catch(() => null) 收尾，500 在前端表现为『没数据』，dev 模式响应体里本来带着完整 message 与 stack 也没人看。",
+  "expectedOutcome": "两个 ReferenceError 500 修复；任务列表拉取失败不再无声无息，错误落到控制台并可被排查；主题有一条注册的类型检查门禁，被守卫总闸自动跑到，存量错误按基线放行且只减不增，新增的未定义引用/重复键这类错误在提交前就会被拦下。",
+  "constraints": [
+    "queries.ts 只删除新增的两个重复键，保留 createdAt；result 恢复为原有带 latestAttempt 回落的局部变量取值，不改其它字段语义",
+    "executors.ts 只补 import，不动 loadContentTask 的逻辑",
+    "listingTasksFeed 保留失败回 null 的既有契约（多个消费方靠它本轮跳过、下轮再试），只增加错误记录，不改为向调用方抛错",
+    "轮询失败的提示必须节流，不得每个轮询周期弹一次 toast",
+    "类型检查门禁只管 app/themes/qingpu 范围的错误，APay 宿主代码的存量不由主题守卫拦",
+    "基线按『文件 + 错误码 + 消息』签名记录，不含行列号，避免行号漂移造成误报",
+    "基线只减不增：修好的错误要从基线移除，新增错误一律失败",
+    "本次 500 的相关错误必须真正修掉，不得登记进基线",
+    "执行入口走 check-all.mjs 的 scripts/check-*.mjs 自动发现约定，不改 APay 根 package.json（有他人在途改动）"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/queries.ts",
+        "server/tasks/executors.ts",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "scripts/check-theme-typecheck.mjs",
+        "scripts/theme-typecheck-baseline.json"
+      ],
+      "claims": [
+        "server/tasks/queries.ts",
+        "server/tasks/executors.ts",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "scripts/check-theme-typecheck.mjs",
+        "scripts/theme-typecheck-baseline.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "vue-tsc 对 server/tasks/queries.ts 与 server/tasks/executors.ts 零错误，blueprintProgressMap 与 getTranslationGlossaryByUser 两处未定义引用消失",
+    "projectTaskRows 的 result 恢复 latestAttempt 优先的回落取值，blueprintProgress 只保留一处正确实现",
+    "任务列表拉取失败时控制台留下可定位的错误记录，返回值仍为 null，消费方行为不变",
+    "存在一条主题类型检查门禁，被 npm run check:qingpu-all 自动发现执行",
+    "门禁在人为引入一个新的类型错误时失败，在当前代码下通过",
+    "基线不含本次修复的错误；主题守卫总闸的已知失败清单未加长",
+    "主题测试全量仍 0 失败"
+  ],
+  "verification": [
+    {
+      "name": "主题类型门禁与测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-typecheck.mjs && node scripts/check-theme-tests.mjs"
+    }
+  ]
+}

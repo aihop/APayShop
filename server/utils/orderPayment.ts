@@ -5,17 +5,10 @@ import { getAffectedRows } from './dbResult'
 import { ORDER_PAY_STATUS, ORDER_STATUS } from './constants'
 import { logger } from './logger'
 import { fulfillOrder } from './fulfillment'
-import { dispatchEvent } from './eventBus'
+import { emitEvent } from './eventActions'
 import { trackVisitorEvent } from './visitorAnalytics'
 import { createOrderAttribution, settlePromoCommission } from '../promo/service'
-import { deliverMinimalCheckoutPaid } from '../../app/themes/minimal/server/checkout/notify'
-import { readMinimalCheckoutBridgeMeta } from '../../app/themes/minimal/server/checkout/bridge'
-import { fulfillMinimalCheckoutRelay } from '../../app/themes/minimal/server/checkout/fulfillment'
-import { fulfillPaidTrialOrder } from '../../app/themes/qingpu/server/trials/pass'
-import {
-  markQingpuTrialPaymentReceived,
-  QINGPU_TRIAL_ORDER_SOURCE,
-} from './qingpuTrialOrders'
+import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta } from './checkoutBridge'
 import { settlePaidTopup } from './topupLedger'
 import { recoverCreditedApayTopup } from './apayTopupFulfillment'
 
@@ -70,14 +63,9 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
   }
 
   if (order.payStatus === ORDER_PAY_STATUS.PAID) {
-    if (order.source === QINGPU_TRIAL_ORDER_SOURCE) {
-      const next = await markQingpuTrialPaymentReceived(orderId)
-      if (next === 'ready') await fulfillPaidTrialOrder(orderId)
-    }
-    else {
-      await settlePaidTopup(orderId)
-      await recoverCreditedApayTopup(orderId)
-    }
+    await settlePaidTopup(orderId)
+    await recoverCreditedApayTopup(orderId)
+    await emitEvent('order.paid', order)
     return { outcome: 'already_paid', order }
   }
 
@@ -128,13 +116,6 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
   })
 
   const orderMeta = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
-  if (order.source === QINGPU_TRIAL_ORDER_SOURCE) {
-    const next = await markQingpuTrialPaymentReceived(orderId)
-    if (next === 'ready') {
-      await fulfillPaidTrialOrder(orderId)
-    }
-    return { outcome: 'paid', order }
-  }
   await settlePaidTopup(orderId)
   const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(orderMeta))
   const isApayTopup = readMinimalCheckoutBridgeMeta(orderMeta)?.attach?.walletOwner === 'apay'
@@ -146,11 +127,7 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
   const fulfilledOrder = isMinimalRelay ? await fulfillMinimalCheckoutRelay(orderId) : await fulfillOrder(orderId)
   if (fulfilledOrder) {
     await settlePromoCommission(orderId)
-    if (isMinimalRelay) {
-      await deliverMinimalCheckoutPaid(fulfilledOrder)
-    } else {
-      await dispatchEvent('order.paid', fulfilledOrder)
-    }
+    await emitEvent('order.paid', fulfilledOrder)
   }
 
   return { outcome: 'paid', order: fulfilledOrder || order }

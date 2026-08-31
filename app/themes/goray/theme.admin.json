@@ -1,0 +1,77 @@
+{
+  "name": "Goray 管理",
+  "pages": [
+    {
+      "key": "nodes",
+      "title": "节点管理",
+      "description": "管理 Goray 控制面 VMess/Hysteria2 节点线路、密钥加密配置、展示顺序与健康探针。",
+      "route": "/admin/extensions/nodes",
+      "component": "nodes.vue",
+      "icon": "ph:globe-hemisphere-west",
+      "order": 10,
+      "apiPrefixes": [
+        "nodes"
+      ]
+    },
+    {
+      "key": "devices",
+      "title": "设备会话",
+      "description": "查看用户已授权的终端设备会话、DPoP 密钥指纹、最近活跃时间及远程强制解绑。",
+      "route": "/admin/extensions/devices",
+      "component": "devices.vue",
+      "icon": "ph:devices",
+      "order": 20,
+      "apiPrefixes": [
+        "devices"
+      ]
+    },
+    {
+      "key": "entitlements",
+      "title": "权益管理",
+      "description": "查看用户有效权益（订阅、订单、兑换码）、设备数限制、流量配额与状态。",
+      "route": "/admin/extensions/entitlements",
+      "component": "entitlements.vue",
+      "icon": "ph:shield-check",
+      "order": 30,
+      "apiPrefixes": [
+        "entitlements"
+      ]
+    },
+    {
+      "key": "releases",
+      "title": "版本发布",
+      "description": "管理 macOS/iOS/Android/Windows 客户端版本、下载链接、SHA-256 校验和与更新清单签名。",
+      "route": "/admin/extensions/releases",
+      "component": "releases.vue",
+      "icon": "ph:rocket-launch",
+      "order": 40,
+      "apiPrefixes": [
+        "releases"
+      ]
+    },
+    {
+      "key": "redeems",
+      "title": "兑换码",
+      "description": "批量生成指定套餐的激活兑换码、单次安全导出 CSV 与核销记录审计。",
+      "route": "/admin/extensions/redeems",
+      "component": "redeems.vue",
+      "icon": "ph:ticket",
+      "order": 50,
+      "apiPrefixes": [
+        "redeems"
+      ]
+    },
+    {
+      "key": "traffic",
+      "title": "流量审计",
+      "description": "按日/平台查看节点与客户端流量汇总与审计日志。",
+      "route": "/admin/extensions/traffic",
+      "component": "traffic.vue",
+      "icon": "ph:chart-bar",
+      "order": 60,
+      "apiPrefixes": [
+        "traffic"
+      ]
+    }
+  ]
+}

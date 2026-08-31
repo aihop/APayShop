@@ -6,6 +6,7 @@ import { acquireBuildLock } from './build-lock.mjs'
 const projectRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const nuxtBin = path.join(projectRoot, 'node_modules/nuxt/bin/nuxt.mjs')
 const themeBuildScript = path.join(projectRoot, 'scripts/generate-theme-build.mjs')
+const contextBoundaryGuardScript = path.join(projectRoot, 'scripts/check-vue-context-boundaries.mjs')
 const alreadyHeld = process.env.APAY_BUILD_LOCK_HELD === '1'
 const releaseBuildLock = alreadyHeld ? async () => {} : await acquireBuildLock()
 
@@ -15,6 +16,18 @@ try {
     ...childEnvironment,
     APAY_NUXT_BUILD: '1',
     NUXT_BUILD_DIR: process.env.NUXT_BUILD_DIR || '.nuxt-build',
+  }
+  const contextBoundaryExitCode = await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [contextBoundaryGuardScript], {
+      cwd: projectRoot,
+      env: childEnvironment,
+      stdio: 'inherit',
+    })
+    child.once('error', reject)
+    child.once('exit', code => resolve(code ?? 1))
+  })
+  if (contextBoundaryExitCode !== 0) {
+    throw new Error(`Vue 上下文边界检查失败（退出码 ${contextBoundaryExitCode}）`)
   }
   const prepareExitCode = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [themeBuildScript], {

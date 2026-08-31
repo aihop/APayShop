@@ -161,6 +161,19 @@ export const emailProviders = pgTable('email_providers', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 })
 
+export const emailLogs = pgTable('email_logs', {
+  id: serial('id').primaryKey(),
+  to: text('to').notNull(),
+  subject: text('subject').notNull(),
+  templateCode: text('template_code'),
+  html: text('html'),
+  provider: text('provider'),
+  status: text('status').notNull().default('success'),
+  messageId: text('message_id'),
+  error: text('error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+})
+
 export const orders = pgTable('orders', {
   id: text('id').primaryKey(), // UUID
   amount: real('amount').notNull(),

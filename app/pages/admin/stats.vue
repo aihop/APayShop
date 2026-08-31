@@ -436,7 +436,7 @@
         <UPagination
           v-model="modalPage"
           :total="modalTotalItems"
-          :page-count="modalPageSize"
+          :items-per-page="modalPageSize"
           :disabled="modalPending"
           @update:page="(val) => onModalPageChange(val)"
         />

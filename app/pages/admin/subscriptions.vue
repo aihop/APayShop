@@ -21,10 +21,23 @@
           :loading="pending"
           class="min-w-full"
         >
-          <template #gatewaySubId-cell="{ row }">
-            <span class="text-xs text-purple-400 font-mono">
-              {{ String(row.original.gatewaySubId || row.original.id || '').substring(0, 16) }}...
-            </span>
+          <template #orderId-cell="{ row }">
+            <div class="flex flex-col min-w-[150px]">
+              <span
+                class="text-sm font-mono text-gray-900 dark:text-white cursor-pointer hover:text-primary-400 truncate"
+                :title="row.original.orderId || row.original.id"
+                @click="copyToClipboard(row.original.orderId || row.original.id, t('admin.orders.modal.order_id'))"
+              >
+                {{ row.original.orderId || row.original.id }}
+              </span>
+              <span
+                v-if="row.original.gatewaySubId && row.original.gatewaySubId !== row.original.orderId"
+                class="text-[11px] text-gray-500 font-mono truncate"
+                :title="row.original.gatewaySubId"
+              >
+                {{ row.original.gatewaySubId }}
+              </span>
+            </div>
           </template>
 
           <template #productName-cell="{ row }">
@@ -41,7 +54,7 @@
 
           <template #customer-cell="{ row }">
             <div class="flex flex-col">
-              <span class="text-sm text-gray-500 dark:text-gray-300">{{ row.original.userEmail || 'Unknown User' }}</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">{{ row.original.userEmail || row.original.contactEmail || 'Unknown User' }}</span>
               <span
                 v-if="row.original.userNickname"
                 class="text-xs text-gray-500"
@@ -88,13 +101,13 @@
       <!-- Pagination Footer -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
         <span class="text-sm text-gray-500 dark:text-gray-400">
-          Showing {{ Math.min((page - 1) * pageSize + 1, totalItems) }} to
+          Showing {{ totalItems > 0 ? Math.min((page - 1) * pageSize + 1, totalItems) : 0 }} to
           {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
         </span>
         <UPagination
           v-model="page"
           :total="totalItems"
-          :page-count="pageSize"
+          :items-per-page="pageSize"
           :max="5"
         />
       </div>
@@ -103,12 +116,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { definePageMeta, useI18n, useFetch, useToast } from '#imports'
 
 definePageMeta({ title: 'Subscriptions Management', layout: 'admin' })
 
 const { t } = useI18n()
 const { formatDate } = useFormatTime()
+const toast = useToast()
 
 const columns = [
   { accessorKey: 'orderId', header: t('admin.orders.orderId') },
@@ -139,12 +154,16 @@ const filteredSubscriptions = computed(() => {
 
   if (!searchQuery.value) return subscriptions.value
 
-  const q = searchQuery.value.toLowerCase()
+  const q = searchQuery.value.toLowerCase().trim()
   return subscriptions.value.filter(
     (sub) =>
-      sub.contactEmail?.toLowerCase().includes(q) ||
-      sub.id?.toLowerCase().includes(q) ||
-      sub.productName?.toLowerCase().includes(q)
+      String(sub.orderId || '').toLowerCase().includes(q) ||
+      String(sub.gatewaySubId || '').toLowerCase().includes(q) ||
+      String(sub.id || '').toLowerCase().includes(q) ||
+      String(sub.userEmail || '').toLowerCase().includes(q) ||
+      String(sub.contactEmail || '').toLowerCase().includes(q) ||
+      String(sub.userNickname || '').toLowerCase().includes(q) ||
+      String(sub.productName || '').toLowerCase().includes(q)
   )
 })
 
@@ -160,4 +179,22 @@ const paginatedSubscriptions = computed(() => {
 watch(searchQuery, () => {
   page.value = 1
 })
+
+const copyToClipboard = async (text: string, label?: string) => {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.add({
+      title: t('admin.orders.toast.copied'),
+      description: t('admin.orders.toast.copied_to_clipboard', { label: label || t('admin.orders.modal.order_id') }),
+      color: 'success',
+    })
+  } catch (e) {
+    toast.add({
+      title: t('admin.orders.toast.error'),
+      description: 'Copy failed',
+      color: 'error',
+    })
+  }
+}
 </script>

@@ -8,7 +8,6 @@ import { markOrderPaid } from "../../utils/orderPayment"
 import { logger } from "../../utils/logger"
 import { trackVisitorEvent } from "../../utils/visitorAnalytics"
 import { createOrderAttribution, settlePromoCommission } from "../../promo/service"
-import { sendMinimalCheckoutPaidNotification } from "../../../app/themes/minimal/server/checkout/notify"
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../db/runtime'

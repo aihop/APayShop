@@ -15,7 +15,7 @@
       <UPagination
         :model-value="page"
         :total="total"
-        :page-count="pageSize"
+        :items-per-page="pageSize"
         :max="5"
         @update:page="(val: number) => emit('update:page', val)"
       />

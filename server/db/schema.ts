@@ -49,6 +49,7 @@ export const {
   cards,
   paymentMethods,
   emailProviders,
+  emailLogs,
   orders,
   topups,
   settings,

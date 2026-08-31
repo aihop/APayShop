@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-pagination-items-per-page-fix",
+  "title": "修复客户及后台各模块分页组件每页数量不匹配导致末页空白的问题",
+  "problem": "后台管理 customers/orders/products/subscriptions/topups 等页面的 UPagination 组件使用了旧版属性 :page-count 代替 Nuxt UI v3 标准的 :items-per-page，导致组件内部默认按 10 条/页计算总页数，而服务端按 15 或 20 条/页分页，产生总页数虚高且翻到最后一页数据为空的问题。",
+  "expectedOutcome": "将所有相关页面的 UPagination 组件属性统一升级为标准 :items-per-page（并支持 v-model:page），分页总页数计算与展示区间准确无误，翻页到最后一页时正常展示数据不再出现空白。",
+  "constraints": [
+    "不修改数据库 Schema 与后端 API 契约",
+    "保持所有页面分页与过滤逻辑正常运行",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/pages/admin/customers.vue",
+        "app/pages/admin/orders.vue",
+        "app/pages/admin/cards.vue",
+        "app/pages/admin/products.vue",
+        "app/pages/admin/posts.vue",
+        "app/pages/admin/subscriptions.vue",
+        "app/pages/admin/topups.vue",
+        "app/pages/admin/settings/manages.vue",
+        "app/pages/admin/stats.vue",
+        "app/components/admin/logs/TableCard.vue",
+        "app/core/pages/user/orders/index.vue"
+      ],
+      "claims": [
+        "app/pages/admin/customers.vue",
+        "app/pages/admin/orders.vue",
+        "app/pages/admin/cards.vue",
+        "app/pages/admin/products.vue",
+        "app/pages/admin/posts.vue",
+        "app/pages/admin/subscriptions.vue",
+        "app/pages/admin/topups.vue",
+        "app/pages/admin/settings/manages.vue",
+        "app/pages/admin/stats.vue",
+        "app/components/admin/logs/TableCard.vue",
+        "app/core/pages/user/orders/index.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "admin/customers 页面 Customers 与 Users 两标签页的 UPagination 正确使用 :items-per-page",
+    "分页总页数与每页容量严格按后台配置（如 15/20）精确计算，最后一页不再出现空白",
+    "admin/orders、cards、products、posts、subscriptions、topups 等页面的分页组件同步修正",
+    "Vue 上下文边界守卫与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/pages/admin/customers.vue app/pages/admin/orders.vue app/pages/admin/cards.vue app/pages/admin/products.vue app/pages/admin/posts.vue app/pages/admin/subscriptions.vue app/pages/admin/topups.vue app/pages/admin/settings/manages.vue app/pages/admin/stats.vue app/components/admin/logs/TableCard.vue app/core/pages/user/orders/index.vue"
+    }
+  ]
+}

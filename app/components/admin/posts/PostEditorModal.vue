@@ -2,7 +2,7 @@
   <FullScreenModal
     v-model="isOpen"
     maxWidth="sm:max-w-6xl"
-    :title="editingId ? 'Edit Post' : 'Create Post'"
+    :title="editingId ? $t('admin.posts.editor.editTitle') : $t('admin.posts.editor.createTitle')"
   >
     <div
       v-if="supportedLocales.length > 1"
@@ -45,7 +45,9 @@
     >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          :label="`Title` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')"
+          :label="currentTabLocale === defaultLocale
+            ? $t('admin.posts.editor.fieldTitle')
+            : $t('admin.posts.editor.fieldTitleLocale', { locale: currentTabLocale })"
           name="title"
           required
         >
@@ -59,12 +61,12 @@
             v-else
             v-model="translationForms[currentTabLocale].title"
             class="w-full"
-            :placeholder="`Translated title in ${currentTabLocale}`"
+            :placeholder="$t('admin.posts.editor.translatedTitlePlaceholder', { locale: currentTabLocale })"
           />
         </UFormField>
 
         <UFormField
-          label="Slug (URL)"
+          :label="$t('admin.posts.editor.fieldSlug')"
           name="slug"
           required
           v-if="currentTabLocale === defaultLocale"
@@ -76,19 +78,19 @@
         </UFormField>
 
         <UFormField
-          label="Key (Optional)"
+          :label="$t('admin.posts.editor.fieldKey')"
           name="key"
           v-if="currentTabLocale === defaultLocale"
         >
           <UInput
             v-model="form.key"
             class="w-full font-mono text-sm"
-            placeholder="例如：gopanel-changelog / release-gopanel"
+            :placeholder="$t('admin.posts.editor.keyPlaceholder')"
           />
         </UFormField>
 
         <UFormField
-          label="Sort (Optional)"
+          :label="$t('admin.posts.editor.fieldSort')"
           name="sort"
           v-if="currentTabLocale === defaultLocale"
         >
@@ -96,12 +98,12 @@
             v-model="form.sort"
             type="number"
             class="w-full font-mono text-sm"
-            placeholder="例如：100 / 200"
+            :placeholder="$t('admin.posts.editor.sortPlaceholder')"
           />
         </UFormField>
 
         <UFormField
-          label="Type"
+          :label="$t('admin.posts.editor.fieldType')"
           name="type"
           v-if="currentTabLocale === defaultLocale"
         >
@@ -114,7 +116,7 @@
         </UFormField>
 
         <UFormField
-          label="Cover Image URL"
+          :label="$t('admin.posts.editor.fieldCover')"
           name="imageUrl"
           v-if="currentTabLocale === defaultLocale"
         >
@@ -130,7 +132,7 @@
               :loading="isUploading"
               @click="fileInput?.click()"
             >
-              Upload
+              {{ $t('admin.posts.editor.upload') }}
             </UButton>
             <input
               type="file"
@@ -144,9 +146,29 @@
       </div>
 
       <UFormField
-        :label="`Description` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')"
         name="description"
       >
+        <template #label>
+          <div class="flex items-center justify-between w-full">
+            <span>
+              {{ currentTabLocale === defaultLocale
+                ? $t('admin.posts.editor.fieldDescription')
+                : $t('admin.posts.editor.fieldDescriptionLocale', { locale: currentTabLocale }) }}
+            </span>
+            <UButton
+              v-if="currentTabLocale === defaultLocale"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              icon="ph:text-align-left"
+              :disabled="!form.content"
+              @click="generateDescription"
+              class="ml-2 shrink-0"
+            >
+              {{ $t('admin.posts.editor.generateDesc') }}
+            </UButton>
+          </div>
+        </template>
         <UTextarea
           v-if="currentTabLocale === defaultLocale"
           v-model="form.description"
@@ -158,12 +180,14 @@
           v-model="translationForms[currentTabLocale].description"
           :rows="2"
           class="w-full"
-          :placeholder="`Translated description in ${currentTabLocale}`"
+          :placeholder="$t('admin.posts.editor.translatedDescPlaceholder', { locale: currentTabLocale })"
         />
       </UFormField>
 
       <UFormField
-        :label="`Content` + (currentTabLocale !== defaultLocale ? ` (${currentTabLocale})` : '')"
+        :label="currentTabLocale === defaultLocale
+          ? $t('admin.posts.editor.fieldContent')
+          : $t('admin.posts.editor.fieldContentLocale', { locale: currentTabLocale })"
         name="content"
       >
         <div class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50">
@@ -184,7 +208,7 @@
       >
         <UCheckbox
           v-model="form.isActive"
-          label="Publish immediately"
+          :label="$t('admin.posts.editor.publishNow')"
         />
       </UFormField>
     </UForm>
@@ -194,7 +218,7 @@
           variant="ghost"
           @click="isOpen = false"
         >
-          Cancel
+          {{ $t('admin.common.cancel') }}
         </UButton>
         <UButton
           type="submit"
@@ -204,7 +228,7 @@
           :loading="isSaving"
           :disabled="!hasAdminPerm('posts:edit')"
         >
-          {{ editingId ? 'Save' : 'Create' }}
+          {{ editingId ? $t('admin.common.save') : $t('admin.posts.editor.createTitle') }}
         </UButton>
       </div>
     </template>
@@ -224,6 +248,7 @@ const emit = defineEmits<{
   saved: []
 }>()
 
+const { t } = useI18n()
 const toast = useToast()
 const { settings } = useSettings()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
@@ -233,24 +258,35 @@ const isOpen = computed({
   set: (val) => emit('update:modelValue', val),
 })
 
-const typeOptions = [
-  { label: '默认文章', value: 'blog' },
-  { label: '公告', value: 'announcement' },
-  { label: '页面', value: 'page' },
-  { label: '更新记录', value: 'changelog' },
-]
+const typeOptions = computed(() => [
+  { label: t('admin.posts.type.blog'), value: 'blog' },
+  { label: t('admin.posts.type.announcement'), value: 'announcement' },
+  { label: t('admin.posts.type.page'), value: 'page' },
+  { label: t('admin.posts.type.changelog'), value: 'changelog' },
+])
 
-const supportedLocales = computed(() => {
-  if (settings.value && Array.isArray(settings.value)) {
-    const i18nEnabledSetting = settings.value.find((s: any) => s.key === 'i18n_enabled')
-    const i18nEnabled = i18nEnabledSetting ? i18nEnabledSetting.value : 'true'
+const rawSupportedLocales = computed(() => {
+  if (settings.value) {
+    let i18nEnabled = 'true'
+    let rawLocales = 'en,zh'
 
-    if (i18nEnabled === 'false' || i18nEnabled === false) {
-      return ['en']
+    if (Array.isArray(settings.value)) {
+      const i18nSetting = settings.value.find((s: any) => s.key === 'i18n_enabled')
+      if (i18nSetting) i18nEnabled = String(i18nSetting.value)
+      const localesSetting = settings.value.find((s: any) => s.key === 'supported_locales')
+      if (localesSetting) rawLocales = String(localesSetting.value)
+    } else {
+      if ((settings.value as any).i18n_enabled !== undefined) {
+        i18nEnabled = String((settings.value as any).i18n_enabled)
+      }
+      if ((settings.value as any).supported_locales !== undefined) {
+        rawLocales = String((settings.value as any).supported_locales)
+      }
     }
 
-    const localesSetting = settings.value.find((s: any) => s.key === 'supported_locales')
-    const rawLocales = localesSetting ? localesSetting.value : 'en,zh'
+    if (i18nEnabled === 'false') {
+      return ['en']
+    }
 
     if (rawLocales === '') {
       return ['en']
@@ -265,13 +301,24 @@ const supportedLocales = computed(() => {
 })
 
 const defaultLocale = computed(() => {
-  if (settings.value && Array.isArray(settings.value)) {
-    const defaultLocaleSetting = settings.value.find((s: any) => s.key === 'default_locale')
-    if (defaultLocaleSetting && defaultLocaleSetting.value) {
-      return defaultLocaleSetting.value
+  if (settings.value) {
+    if (Array.isArray(settings.value)) {
+      const defaultLocaleSetting = settings.value.find((s: any) => s.key === 'default_locale')
+      if (defaultLocaleSetting && defaultLocaleSetting.value) {
+        return defaultLocaleSetting.value
+      }
+    } else if ((settings.value as any).default_locale) {
+      return (settings.value as any).default_locale
     }
   }
-  return supportedLocales.value[0] || 'en'
+  return rawSupportedLocales.value[0] || 'en'
+})
+
+const supportedLocales = computed(() => {
+  const list = [...rawSupportedLocales.value]
+  const def = defaultLocale.value
+  if (!def || !list.includes(def)) return list
+  return [def, ...list.filter((l) => l !== def)]
 })
 const currentTabLocale = ref(defaultLocale.value || 'en') as any
 
@@ -314,6 +361,25 @@ const generateSlug = () => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '')
+}
+
+const generateDescription = () => {
+  const raw = (form.value.content || '')
+    .replace(/<[^>]+>/g, ' ')   // strip tags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!raw) return
+
+  const MAX = 200
+  const trimmed = raw.length <= MAX ? raw : raw.slice(0, MAX).replace(/\s+\S*$/, '') + '…'
+  form.value.description = trimmed
 }
 
 watch(
@@ -365,7 +431,7 @@ watch(
 
 const onSubmit = async () => {
   if (!form.value.title || !form.value.slug) {
-    toast.add({ title: 'Error', description: 'Title and Slug are required', color: 'error' })
+    toast.add({ title: t('admin.common.error'), description: t('admin.posts.toast.titleRequired'), color: 'error' })
     return
   }
 
@@ -407,8 +473,8 @@ const onSubmit = async () => {
     })
 
     toast.add({
-      title: 'Success',
-      description: editingId.value ? 'Post updated successfully' : 'Post created successfully',
+      title: t('admin.common.success'),
+      description: editingId.value ? t('admin.posts.toast.saved') : t('admin.posts.toast.created'),
       color: 'success',
     })
 
@@ -416,8 +482,8 @@ const onSubmit = async () => {
     emit('saved')
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to save post',
+      title: t('admin.common.error'),
+      description: e.data?.message || t('admin.posts.toast.saveFailed'),
       color: 'error',
     })
   } finally {
@@ -446,7 +512,7 @@ const handleFileUpload = async (event: Event) => {
       form.value.imageUrl = res.urls[0]
     }
   } catch (error) {
-    toast.add({ title: 'Error', description: 'Failed to upload image', color: 'error' })
+    toast.add({ title: t('admin.common.error'), description: t('admin.posts.toast.uploadFailed'), color: 'error' })
     console.error(error)
   } finally {
     isUploading.value = false

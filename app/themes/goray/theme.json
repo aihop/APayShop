@@ -1,0 +1,75 @@
+{
+  "name": "Goray",
+  "description": "Goray 极简蓝色网络保护官方主题，包含一键下载、设备激活、定价购买闭环与服务端控制面。",
+  "version": "1.0.0",
+  "author": "Goray Team",
+  "deployAssets": [
+    "database",
+    "scripts/apply-goray-sql.mjs"
+  ],
+  "settings": [
+    {
+      "key": "hero_badge",
+      "type": "string",
+      "label": "Hero 徽标",
+      "default": "面向现代开发者的极简网络保护",
+      "description": "首页顶部小徽章文案。"
+    },
+    {
+      "key": "hero_title",
+      "type": "text",
+      "label": "Hero 标题",
+      "default": "一键开启高速安全网络",
+      "description": "首页 Hero 区域主标题。"
+    },
+    {
+      "key": "hero_subtitle",
+      "type": "text",
+      "label": "Hero 副标题",
+      "default": "无需复杂的配置，大留白柔和视觉，智能识别国内直连与海外线路，专为 AI 编码助手与多端开发深度优化。",
+      "description": "首页 Hero 区域副标题描述。"
+    },
+    {
+      "key": "hero_primary_cta_text",
+      "type": "string",
+      "label": "主按钮文案",
+      "default": "立即获取",
+      "description": "主要操作按钮文字。"
+    },
+    {
+      "key": "hero_primary_cta_link",
+      "type": "string",
+      "label": "主按钮链接",
+      "default": "/pricing",
+      "description": "主要操作按钮跳转目标。"
+    },
+    {
+      "key": "hero_secondary_cta_text",
+      "type": "string",
+      "label": "次按钮文案",
+      "default": "客户端下载",
+      "description": "次要操作按钮文字。"
+    },
+    {
+      "key": "hero_secondary_cta_link",
+      "type": "string",
+      "label": "次按钮链接",
+      "default": "/downloads",
+      "description": "次要操作按钮跳转目标。"
+    },
+    {
+      "key": "support_email",
+      "type": "string",
+      "label": "支持邮箱",
+      "default": "support@goray.org",
+      "description": "在联系我们与页脚展示的客户支持邮箱。"
+    },
+    {
+      "key": "footer_tagline",
+      "type": "text",
+      "label": "页脚标语",
+      "default": "安全、纯净、专注于性能与极简体验的下一代网络保护工具。",
+      "description": "页脚品牌简介文案。"
+    }
+  ]
+}

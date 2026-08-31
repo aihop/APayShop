@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "aihop-model-detail",
+  "title": "实现模型详情页 /models/[slug]",
+  "problem": "榜单页只能回答「谁排前面」,回答不了「这个模型适合我吗」。读者从榜单点进一个模型后,需要看到完整价格结构(含缓存价与各种阶梯/时段差价的说明)、能力分的来源与取用档位、适用场景与已知的坑,以及「有没有更划算的替代」。这些信息目前散落在数据层里没有出口。另外榜单页把限时折扣、分时段价、长上下文加价等差异都折叠掉了,只有详情页有版面把它们讲清楚,否则读者会按刊例价做成本估算而算错。",
+  "expectedOutcome": "/models/[slug] 呈现单个模型的完整信息:关键指标、按维度展开的能力分(只展示有数据的维度)、含缓存价的价格明细、适用场景、优点与注意事项、替代模型推荐、数据来源与核对日期;不存在的 slug 返回 404;页面输出面向搜索引擎的结构化数据。",
+  "constraints": [
+    "只展示有数据的能力维度,没有数据的维度不占位、不显示 0",
+    "价格明细按厂商原始币种展示,另给出统一折算的混合价并标注汇率",
+    "caveats 必须完整展示,不得因版面折叠——分时段价、阶梯价、限时折扣、分词器差异正是详情页存在的理由",
+    "替代模型的筛选逻辑放 composable,页面只做展示;没有综合分的模型不参与「更强」类推荐,改用价格邻近推荐并如实标注",
+    "不引入指向尚不存在页面的链接(如 /pricing 由 P8 建立,本期不加 CTA)",
+    "sitemap 的 aihop-models 数据源涉及 apay 核心文件,本期不做,留待与 P10 一并处理;seo.routes.json 先以无 source 的 dynamic 条目声明该路由",
+    "遵守主题硬约束:不使用 primary-*、不写 dark: 变体、不使用 @nuxt/ui 组件、类名不得运行时拼接",
+    "所有面向用户的文案走 $t('aihop.*')"
+  ],
+  "repositories": [
+    {
+      "name": "apay-aihop",
+      "path": "app/themes/aihop",
+      "allowedPaths": [
+        "pages/**",
+        "components/**",
+        "composables/**",
+        "locales/**",
+        "seo.routes.json"
+      ],
+      "claims": [
+        "pages/**",
+        "components/**",
+        "composables/**",
+        "locales/**",
+        "seo.routes.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "全部 20 个模型的详情页均可访问,内容与数据层一致",
+    "不存在的 slug 返回 404 而非空白页",
+    "能力分只渲染有数据的维度;当前数据下应只出现综合分一项",
+    "价格明细展示输入、输出、缓存读、缓存写(缺项显示「—」),并给出混合价与折算汇率",
+    "注意事项(caveats)全部展示,不截断",
+    "有综合分的模型给出「更强」与「更便宜」两类替代;无综合分的模型改为价格邻近推荐并标注原因",
+    "页面输出结构化数据,标题与描述随模型变化",
+    "主题脚手架自检与模型数据守卫均通过"
+  ],
+  "verification": [
+    {
+      "name": "主题脚手架与硬约束自检",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "模型数据守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    }
+  ]
+}

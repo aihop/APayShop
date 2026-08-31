@@ -1,5 +1,5 @@
 import type { MaybeRefOrGetter } from 'vue'
-import { computed, onBeforeUnmount, toValue } from 'vue'
+import { computed, onBeforeUnmount, toValue, watch } from 'vue'
 import { SEO_LOCALE_LANGUAGE } from '~~/shared/siteSeo'
 
 export type JsonLdNode = Record<string, unknown>
@@ -12,14 +12,16 @@ export const useJsonLd = (key: string, nodes: MaybeRefOrGetter<JsonLdNode | Json
       .filter(node => node && typeof node === 'object' && node['@type'])
   })
 
-  watchEffect(() => {
-    registry.value = { ...registry.value, [key]: normalized.value }
-  })
+  watch(normalized, (val) => {
+    registry.value = { ...registry.value, [key]: val }
+  }, { immediate: true })
 
   onBeforeUnmount(() => {
-    const next = { ...registry.value }
-    delete next[key]
-    registry.value = next
+    if (key in registry.value) {
+      const next = { ...registry.value }
+      delete next[key]
+      registry.value = next
+    }
   })
 }
 

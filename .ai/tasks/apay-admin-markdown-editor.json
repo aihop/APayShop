@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "apay-admin-markdown-editor",
+  "title": "系统核心编辑器增加 Markdown 编辑与多模态支持",
+  "problem": "后台文章博客、更新记录、公告及商品详情使用的 RichEditor 仅支持基础富文本和原始 HTML 模式，无法直接编写或智能解析 Markdown（如从 Notion、Obsidian、Claude/ChatGPT 复制的内容），导致技术内容排版效率低、易丢失格式。",
+  "expectedOutcome": "升级核心内容编辑器 RichEditor，支持「所见即所得 (Visual)」、「Markdown 源码 (带实时双栏预览与快捷工具栏)」、「HTML 源码」三模态平滑切换；Visual 模式支持 Markdown 语法快捷输入与智能粘贴解析；双向转换无损输出标准语义 HTML，100% 兼容所有前台主题渲染与数据库 Schema。",
+  "constraints": [
+    "不修改 APay 核心数据库 Schema，posts.content 与 products.content 保持存储标准语义 HTML",
+    "不破坏现有前台主题（official, ainode, qingpu, shoply 等）的 <div v-html='...'> 渲染与 SEO 结构",
+    "不引入 Node/C++ 原生绑定依赖，所有 Markdown 解析与转换在 SSR/客户端运行均必须纯 JS 且兼容 Cloudflare Pages",
+    "编辑器向外保持 emit('update:modelValue', html) 接口一致，零破坏兼容 PostEditorModal、ChangelogModal、ProductFormModal 及多语言 tabs",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/RichEditor.vue",
+        "app/utils/markdown.ts",
+        "locales/en.json",
+        "locales/zh.json"
+      ],
+      "claims": [
+        "app/components/RichEditor.vue",
+        "app/utils/markdown.ts",
+        "locales/en.json",
+        "locales/zh.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "RichEditor 提供 Visual（所见即所得）、Markdown（源码与双栏预览）、HTML（源码）三模态切换",
+    "Visual 模式支持常见 Markdown 快捷输入（# 标题、* 列表、> 引用、``` 代码块、--- 分割线、` 代码等）",
+    "Visual 模式支持智能 Markdown 粘贴，外部 Markdown 文本粘贴时自动解析为富文本节点",
+    "Markdown 模式支持工具栏快捷插入（标题、加粗、斜体、代码块、引用、列表、表格、链接、图片上传）与实时双栏预览",
+    "支持在编辑器内直接上传图片并插入内容（对接 /api/admin/upload）",
+    "模态切换时内容正确双向同步且对外统一输出语义化 HTML",
+    "生产构建和差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/RichEditor.vue app/utils/markdown.ts locales/en.json locales/zh.json"
+    }
+  ]
+}

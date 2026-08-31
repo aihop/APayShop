@@ -94,6 +94,7 @@ export const useAdminProductForm = (emit: any) => {
     imageUrl: '',
     imageUrls: [] as string[],
     isActive: true,
+    status: 'active' as 'active' | 'hidden' | 'inactive',
     metaData: {} as any,
   })
 
@@ -291,9 +292,11 @@ export const useAdminProductForm = (emit: any) => {
       Object.assign(form, {
         id: null, name: '', slug: '', price: 0, type: 'basic',
         description: '', content: '', imageUrl: '', imageUrls: [],
-        isActive: true, metaData: {},
+        isActive: true, status: 'active', metaData: {},
       })
       Object.assign(form, productClone)
+      form.status = productClone.status || (productClone.isActive === false ? 'inactive' : 'active')
+      form.isActive = form.status !== 'inactive'
 
       // 解析 imageUrls
       if (!form.imageUrls) form.imageUrls = []
@@ -378,7 +381,7 @@ export const useAdminProductForm = (emit: any) => {
       Object.assign(form, {
         id: null, name: '', slug: '', price: 0, type: 'basic',
         description: '', content: '', imageUrl: '', imageUrls: [],
-        isActive: true, metaData: {},
+        isActive: true, status: 'active', metaData: {},
       })
       serviceFormSchemaStr.value = '[\n  {\n    "name": "server_ip",\n    "label": "Server IP",\n    "type": "text",\n    "required": true\n  }\n]'
       syncServiceSchemaJsonToList()

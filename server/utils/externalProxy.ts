@@ -15,6 +15,8 @@ interface ProxyExternalRequestOptions {
 
 const tenantDepositPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)\/deposit$/
 const tenantDepositLikePathPattern = /^\/api\/admin\/tenants\/[^/]+\/deposit$/
+const tenantFundingPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)\/funding$/
+const tenantFundingLikePathPattern = /^\/api\/admin\/tenants\/[^/]+\/funding$/
 const tenantCollectionPath = '/api/admin/tenants'
 const tenantDetailPathPattern = /^\/api\/admin\/tenants\/([1-9]\d*)$/
 const tenantDetailLikePathPattern = /^\/api\/admin\/tenants\/[^/]+$/
@@ -40,10 +42,12 @@ const tenantAmountFields = [
   'refTransactionId',
 ]
 const tenantDepositTypes = new Set(['deposit_topup', 'deposit_grant', 'opening_balance', 'admin_adjust'])
+const tenantFundingModes = new Set(['unlimited', 'shadow', 'prepaid'])
 const tenantAmountPattern = /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/
 const requestIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const tenantCodePattern = /^[a-z0-9][a-z0-9_-]{1,62}$/
 const tenantBodyFields = new Set(['name', 'code', 'status', 'allowDirectLogin', 'keyGroupId'])
+const tenantFundingBodyFields = new Set(['fundingMode', 'wholesaleRateBp', 'chargeGrant', 'chargePoints'])
 
 const quoteIntegerFields = (raw: string, fields: string[]) => {
   let result = raw
@@ -63,6 +67,28 @@ const assertTenantBodyFields = (input: Record<string, unknown>, allowedFields: S
   }
 }
 
+const normalizeTenantFundingBody = (body: unknown) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid tenant funding body' })
+  }
+  const input = body as Record<string, unknown>
+  assertTenantBodyFields(input, tenantFundingBodyFields)
+  const fundingMode = typeof input.fundingMode === 'string' ? input.fundingMode.trim().toLowerCase() : ''
+  if (!tenantFundingModes.has(fundingMode)) {
+    throw createError({ statusCode: 400, statusMessage: 'fundingMode must be unlimited | shadow | prepaid' })
+  }
+  const wholesaleRateBp = Number(input.wholesaleRateBp ?? 10000)
+  if (!Number.isInteger(wholesaleRateBp) || wholesaleRateBp <= 0 || wholesaleRateBp > 1000000) {
+    throw createError({ statusCode: 400, statusMessage: 'wholesaleRateBp is out of range' })
+  }
+  return {
+    fundingMode,
+    wholesaleRateBp,
+    chargeGrant: input.chargeGrant !== false,
+    chargePoints: input.chargePoints !== false,
+  }
+}
+
 const normalizeTenantFields = (body: unknown, includeStatus: boolean) => {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid tenant body' })
@@ -79,7 +105,7 @@ const normalizeTenantFields = (body: unknown, includeStatus: boolean) => {
   const allowDirectLogin = input.allowDirectLogin
   const keyGroupId = input.keyGroupId
   const status = input.status
-  if (!name || name.length > 255 || !tenantCodePattern.test(code) || code === 'default') {
+  if (!name || name.length > 255 || !tenantCodePattern.test(code) || (!includeStatus && code === 'default')) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid tenant name or code' })
   }
   if (typeof allowDirectLogin !== 'boolean') {
@@ -108,7 +134,10 @@ const buildTenantAdminBody = (method: string, targetPath: string, body: unknown)
   if (method === 'PUT' && tenantDetailPathPattern.test(targetPath)) {
     return normalizeTenantFields(body, true)
   }
-  if (method === 'PUT' && tenantDetailLikePathPattern.test(targetPath)) {
+  if (method === 'PUT' && tenantFundingPathPattern.test(targetPath)) {
+    return normalizeTenantFundingBody(body)
+  }
+  if (method === 'PUT' && (tenantDetailLikePathPattern.test(targetPath) || tenantFundingLikePathPattern.test(targetPath))) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid tenant ID' })
   }
   if (method === 'POST' && tenantRotateTokenPathPattern.test(targetPath)) {
@@ -358,6 +387,10 @@ export async function proxyExternalRequest(event: H3Event, options: ProxyExterna
         statusMessage: 'Bad Request: invalid path parameter',
       })
     }
+    // host 被钉死在网关不等于路径就可以随便挑:免登录的 public-external 正是走这个
+    // 分支,它声明的 allowedPaths 此前从未生效,等于未认证请求就能借服务端的
+    // integration_token 打网关上任意非 admin 接口。与 target= 分支共用同一套校验。
+    assertTargetAllowed(targetUrl, allowedOrigins, allowedPaths)
   } else if (rawTarget) {
     targetUrl = normalizeTargetUrl(rawTarget)
     // 调用方未显式传白名单时不再无条件放行,回落到受信来源默认值(见上方说明)

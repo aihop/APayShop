@@ -51,6 +51,7 @@ API 与前端统一 camelCase；手写 db struct 不得重复定义 sqlc 模型�
 
 ## 3. 前端约定
 
+- `app/middleware/` 与 `app/plugins/` 不具备 Vue 组件实例上下文，禁止直接或经 `app/composables/` 间接调用 `useI18n()`；需要语言状态时使用 `useNuxtApp().$i18n`，或把本地化留在组件层。`scripts/check-vue-context-boundaries.mjs` 在 Nuxt 构建前强制检查完整调用链。
 - Nuxt UI 已提供的功能优先使用原生 prop；通用组件不使用 `Common` 前缀。
 - 弹窗使用 `v-model:open` 和 `<template #content>`。
 - 列表分页统一使用 `usePagination()`；页码更新调用 `onPageChange(refresh)`。

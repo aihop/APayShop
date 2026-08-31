@@ -19,9 +19,9 @@ import {
   getMinimalCheckoutAdminConfig,
   mergeMinimalCheckoutMeta,
   prepareOrderMetaForInsert,
-} from '../../../app/themes/minimal/server/checkout/bridge'
-import { fulfillMinimalCheckoutRelay } from '../../../app/themes/minimal/server/checkout/fulfillment'
-import { deliverMinimalCheckoutPaid } from '../../../app/themes/minimal/server/checkout/notify'
+  fulfillMinimalCheckoutRelay,
+} from '../../utils/checkoutBridge'
+import { emitEvent } from '../../utils/eventActions'
 import { ensureTopupRecordForOrder, settlePaidTopup } from '../../utils/topupLedger'
 import { requireTrustedRequestOrigin } from '../../utils/domainLocale'
 
@@ -265,8 +265,8 @@ export default defineEventHandler(async (event) => {
 
     const product = productList[0]
 
-    // 可售状态检查:下架商品不允许下单(此前只查存在性,隐藏商品可被直接下单)
-    if (product.isActive === false) {
+    // 可售状态检查:下架商品不允许下单(active 与 hidden 隐藏商品均允许下单)
+    if (product.isActive === false || (product as any).status === 'inactive') {
       return { code: 1, message: messages.productUnavailable }
     }
     if (product.type === 'topup' && !userId) {
@@ -342,7 +342,7 @@ export default defineEventHandler(async (event) => {
         cancelUrl: minimalCheckoutConfig.defaultCancelUrl || undefined,
         customerEmail: contactEmail,
         attach: {
-          channel: 'qingpu-storefront',
+          channel: 'storefront',
           businessType: product.type,
           sourceProductId: product.id,
           productName: product.name,
@@ -360,7 +360,7 @@ export default defineEventHandler(async (event) => {
     const fulfillFreeRelayOrder = async (targetOrderId: string) => {
       const fulfilled = await fulfillMinimalCheckoutRelay(targetOrderId)
       if (!fulfilled) return
-      await deliverMinimalCheckoutPaid(fulfilled)
+      await emitEvent('order.paid', fulfilled)
     }
 
     // ==========================================

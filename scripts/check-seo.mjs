@@ -14,7 +14,7 @@ import {
 const root = process.cwd()
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'))
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
-const themeNames = ['ainode', 'design', 'minimal', 'nft', 'official', 'panel', 'qingpu', 'shoply']
+const themeNames = ['aihop', 'ainode', 'design', 'minimal', 'nft', 'official', 'panel', 'qingpu', 'shoply']
 const registry = {
   core: readJson('app/core/seo.routes.json'),
   themes: Object.fromEntries(themeNames.map(theme => [theme, readJson(`app/themes/${theme}/seo.routes.json`)])),

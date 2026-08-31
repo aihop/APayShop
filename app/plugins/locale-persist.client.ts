@@ -31,6 +31,15 @@ export default defineNuxtPlugin({
       if (saved !== unref(i18n.locale)) {
         await i18n.setLocale(saved)
       }
+      return
+    }
+
+    // 若本地无手动选语言记录，优先对齐后台配置的站点默认语言
+    const { fetchSettings, getSetting } = useSettings()
+    await fetchSettings()
+    const siteDefault = getSetting('default_locale') || ''
+    if (supportedLocales.has(siteDefault) && siteDefault !== unref(i18n.locale)) {
+      await i18n.setLocale(siteDefault)
     }
   },
 })

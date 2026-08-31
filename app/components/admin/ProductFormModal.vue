@@ -385,13 +385,90 @@
       </UFormField>
 
       <div
-        class="flex items-center gap-6 mt-4 pb-8"
+        class="mt-4 pb-8"
         v-if="currentTabLocale === defaultLocale"
       >
-        <UCheckbox
-          v-model="form.isActive"
-          :label="$t('admin.products.active')"
-        />
+        <UFormField :label="$t('admin.products.status')">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- Active -->
+            <div
+              class="p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3"
+              :class="form.status === 'active' ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 ring-1 ring-emerald-500' : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'"
+              @click="form.status = 'active'"
+            >
+              <div
+                class="w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0"
+                :class="form.status === 'active' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'"
+              >
+                <div
+                  v-if="form.status === 'active'"
+                  class="w-1.5 h-1.5 rounded-full bg-white"
+                />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  {{ $t('admin.products.status_active') }}
+                </span>
+                <span class="text-[11px] text-gray-500 mt-1 line-clamp-2">
+                  {{ $t('admin.products.status_active_help') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Hidden -->
+            <div
+              class="p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3"
+              :class="form.status === 'hidden' ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-950/20 ring-1 ring-amber-500' : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'"
+              @click="form.status = 'hidden'"
+            >
+              <div
+                class="w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0"
+                :class="form.status === 'hidden' ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-400'"
+              >
+                <div
+                  v-if="form.status === 'hidden'"
+                  class="w-1.5 h-1.5 rounded-full bg-white"
+                />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  {{ $t('admin.products.status_hidden') }}
+                </span>
+                <span class="text-[11px] text-gray-500 mt-1 line-clamp-2">
+                  {{ $t('admin.products.status_hidden_help') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Inactive -->
+            <div
+              class="p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3"
+              :class="form.status === 'inactive' ? 'border-neutral-500 bg-neutral-50/50 dark:bg-neutral-900/30 ring-1 ring-neutral-500' : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'"
+              @click="form.status = 'inactive'"
+            >
+              <div
+                class="w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0"
+                :class="form.status === 'inactive' ? 'border-neutral-500 bg-neutral-500 text-white' : 'border-gray-400'"
+              >
+                <div
+                  v-if="form.status === 'inactive'"
+                  class="w-1.5 h-1.5 rounded-full bg-white"
+                />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-gray-400 shrink-0" />
+                  {{ $t('admin.products.status_inactive') }}
+                </span>
+                <span class="text-[11px] text-gray-500 mt-1 line-clamp-2">
+                  {{ $t('admin.products.status_inactive_help') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </UFormField>
       </div>
     </form>
 

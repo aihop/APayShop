@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-category-slots-projection",
+  "title": "Listing 工作台详情查询补齐渠道类目槽投影",
+  "problem": "在类目单槽退役后，类目选择权威保存在 workspace.categoryHints 渠道槽中，但 getWorkspaceDetailForUser / getProductSourceDetailForUser / listListingChannelDraftItems 等详情与草稿列表 SQL 遗漏了 category_slots 列的查询，导致 toListingProductListItem 无法解析渠道类目槽，前端详情与草稿列表始终拿到空类目并提示未选择类目。",
+  "expectedOutcome": "工作台详情和草稿列表查询正确包含 category_slots 渠道槽投影，前端在加载商品详情时能准确读出所选渠道的类目信息并正确显示为已选择状态。",
+  "constraints": [
+    "不修改 Product 四层模型与持久化协议",
+    "类目解析口径继续以 resolveCategoryDisplay 与渠道槽为准",
+    "不覆盖工作区其他并行改动",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/product-detail.source.ts",
+        "server/listing/queries.channels.ts",
+        "server/listing/helpers.ts",
+        "api/listing/products/workspace-detail.ts",
+        "tests/workspace-category-slots-projection.test.ts"
+      ],
+      "claims": [
+        "server/listing/product-detail.workspace.ts",
+        "server/listing/product-detail.source.ts",
+        "server/listing/queries.channels.ts",
+        "server/listing/helpers.ts",
+        "api/listing/products/workspace-detail.ts",
+        "tests/workspace-category-slots-projection.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "getWorkspaceDetailForUser SQL 查询包含 category_slots 渠道槽（ozonId, ozonName, ozonTypeId, wbId, wbName）",
+    "getProductSourceDetailForUser 与 listListingChannelDraftItems SQL 查询包含 category_slots 渠道槽",
+    "toListingProductListItem 与 getWorkspaceDetailForUser 支持透传 targetChannel 准确解析当前工作台渠道类目",
+    "专项测试通过"
+  ],
+  "verification": [
+    {
+      "name": "工作台渠道类目槽投影专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-category-slots-projection.test.ts"
+    }
+  ]
+}

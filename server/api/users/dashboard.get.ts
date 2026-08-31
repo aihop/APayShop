@@ -1,5 +1,5 @@
 import { users, userWallets, orders, products } from "../../db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, and, ne } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from "../../utils/requestLocale"
 
@@ -20,9 +20,9 @@ export default defineEventHandler(async (event) => {
   }).from(users)
     .leftJoin(userWallets, eq(userWallets.userId, users.id))
     .where(eq(users.id, userId))
-  const user: any = userRecords[0]
+  const user: any = userRecords[0] || {}
 
-  // 2. 获取订单统计
+  // 2. 获取订单统计（排除已软删除的订单）
   const allOrders = await db.select({
     id: orders.id as any,
     status: orders.status as any,
@@ -34,7 +34,10 @@ export default defineEventHandler(async (event) => {
   })
   .from(orders as any)
   .leftJoin(products as any, eq(orders.productId as any, products.id as any))
-  .where(eq(orders.userId as any, userId))
+  .where(and(
+    eq(orders.userId as any, userId),
+    ne(orders.payStatus as any, 'deleted')
+  ))
   .orderBy(desc(orders.createdAt as any))
 
   const totalOrders = allOrders.length

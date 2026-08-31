@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "dev-theme-layout-dispatch",
+  "title": "前台布局分发器遵循 devTheme,与页面分发器口径一致",
+  "problem": "nuxt.config.ts 明确声明 APAY_DEV_THEME 会同时收窄 dev 构建主题并强制前台主题(runtimeConfig.public.devTheme),app/composables/useActiveTheme.ts 也按 devTheme > settings.active_theme 的优先级实现了这个口径,页面分发器 app/pages/[...slug].vue 与 seo-social/i18n-seo 两个插件都走该 composable。但布局分发器 app/layouts/default.vue 自行重复了一份只读 settings.active_theme 的逻辑,漏掉了 devTheme 分支。结果是用 APAY_DEV_THEME=<theme> npm run dev 开发任一主题时,页面来自目标主题、布局却回落到 app/core/layouts/default.vue:主题的页头页脚、以及布局内 mergeLocaleMessage 注入的主题文案全部失效(前台直接显示 i18n 原始键名)。数据库 active_theme 恰好等于目标主题时才不暴露,因此该缺陷长期潜伏。",
+  "expectedOutcome": "app/layouts/default.vue 通过 useActiveTheme() 解析当前主题,与页面分发器共用同一份优先级;APAY_DEV_THEME=<theme> npm run dev 时前台渲染该主题自带布局,主题 locales 正常注入;未设置 devTheme 时行为与改动前完全一致(仍按 settings.active_theme,非法或未激活时回落 core 布局)。",
+  "constraints": [
+    "不得改变未设置 devTheme 时的既有语义:仍以 settings.active_theme 为准,取值不在 publishedOptionalThemeSet 内时回落 core 布局",
+    "不得改变主题 layout 加载失败时回落 core 布局的容错行为",
+    "不得修改 useActiveTheme.ts 的优先级实现",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/layouts/default.vue",
+        "shared/generated/seo-routes.ts"
+      ],
+      "claims": [
+        "app/layouts/default.vue",
+        "shared/generated/seo-routes.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "app/layouts/default.vue 不再自行读取 settings.active_theme,改用 useActiveTheme()",
+    "APAY_DEV_THEME=aihop npm run dev 时前台渲染 aihop 自带布局(页头 AIHop、页脚发丝线),主题 locales 正常解析为中文而非 i18n 键名",
+    "未设置 devTheme 时按 settings.active_theme 解析,取值非法时仍回落 core 布局",
+    "shared/generated/seo-routes.ts 与当前主题目录一致(包含 aihop)",
+    "npm run check:seo 通过"
+  ],
+  "verification": [
+    {
+      "name": "主题构建索引与 SEO 注册表生成",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/generate-theme-build.mjs --all"
+    },
+    {
+      "name": "SEO 路由清单校验",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:seo"
+    }
+  ]
+}

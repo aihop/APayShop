@@ -1,74 +1,28 @@
 import { orders, products } from "../../db/schema"
-import { eq, and, or } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from '../../utils/requestLocale'
+import { requireOrderOwnership } from '../../utils/orderAccess'
 
-// 安全约束:订单详情含邮箱/卡密/交易号,禁止使用共享响应缓存——此前
-// defineCachedEventHandler 的 getKey 读路由参数而路由实际走查询参数,
-// 缓存键恒为 'unknown',60s 内跨用户返回同一份订单(高危泄露)。
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
-  const messages = locale === 'zh'
-    ? {
-        missingOrderId: '缺少订单 ID',
-        unauthorized: '未登录，且未找到访客凭证',
-        orderNotFound: '订单不存在',
-      }
-    : {
-        missingOrderId: 'Missing order id',
-        unauthorized: 'Unauthorized: No user session or visitor cookie found',
-        orderNotFound: 'Order not found',
-      }
   const orderId = getQuery(event).orderId as string
   
   if (!orderId) {
-    throw createError({ statusCode: 400, message: messages.missingOrderId })
+    throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少订单 ID' : 'Missing order id' })
   }
 
-  // Auth & Identity checks for security
-  const session = await getUserSession(event)
-  const userId = (session?.user as any)?.id
-  const visitorId = getCookie(event, 'visitor_id')
+  const order = await requireOrderOwnership(event, orderId)
 
-  if (!userId && !visitorId) {
-    throw createError({
-      statusCode: 401,
-      message: messages.unauthorized
-    })
-  }
-
-  // Build the condition: must match orderId AND belong to the logged-in user OR the current visitorId
-  const authCondition = userId 
-    ? or(eq(orders.userId, userId), eq(orders.visitorId, visitorId || ''))
-    : eq(orders.visitorId, visitorId as string)
-
-  const orderList = await db.select({
-    id: orders.id,
-    amount: orders.amount,
-    currency: orders.currency,
-    status: orders.status,
-    payStatus: orders.payStatus,
-    createdAt: orders.createdAt,
-    paidAt: orders.paidAt,
-    tradeNo: orders.tradeNo,
-    payMethod: orders.payMethod,
-    contactEmail: orders.contactEmail,
-    deliveryInfo: orders.deliveryInfo,
-    metaData: orders.metaData,
-    productName: products.name,
-    productImageUrl: products.imageUrl,
-    productType: products.type,
-    productSlug: products.slug,
-  })
-  .from(orders)
-  .leftJoin(products, eq(orders.productId, products.id))
-  .where(and(eq(orders.id, orderId), authCondition))
-  .limit(1)
-  
-  const order = orderList[0]
-
-  if (!order) {
-    throw createError({ statusCode: 404, message: messages.orderNotFound })
+  let product: any = null
+  if (order.productId) {
+    const productRows = await db.select({
+      name: products.name,
+      imageUrl: products.imageUrl,
+      type: products.type,
+      slug: products.slug,
+    }).from(products).where(eq(products.id, order.productId)).limit(1)
+    product = productRows[0] || null
   }
 
   let parsedMetaData = null
@@ -83,7 +37,21 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    ...order,
-    metaData: parsedMetaData
+    id: order.id,
+    amount: order.amount,
+    currency: order.currency,
+    status: order.status,
+    payStatus: order.payStatus,
+    createdAt: order.createdAt,
+    paidAt: order.paidAt,
+    tradeNo: order.tradeNo,
+    payMethod: order.payMethod,
+    contactEmail: order.contactEmail,
+    deliveryInfo: order.deliveryInfo,
+    metaData: parsedMetaData,
+    productName: product?.name || null,
+    productImageUrl: product?.imageUrl || null,
+    productType: product?.type || null,
+    productSlug: product?.slug || null,
   }
 })

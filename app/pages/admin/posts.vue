@@ -64,7 +64,7 @@
               variant="subtle"
               size="sm"
             >
-              {{ typeLabels[String(row.original.type)] || row.original.type }}
+              {{ typeLabel(String(row.original.type)) }}
             </UBadge>
           </template>
 
@@ -84,7 +84,7 @@
               variant="subtle"
               size="sm"
             >
-              {{ row.original.isActive ? 'Published' : 'Draft' }}
+              {{ row.original.isActive ? $t('admin.posts.status.published') : $t('admin.posts.status.draft') }}
             </UBadge>
           </template>
 
@@ -128,13 +128,16 @@
       <!-- Pagination Footer -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex items-center justify-between shrink-0 bg-white dark:bg-[#121214] rounded-b-2xl">
         <span class="text-sm text-gray-500 dark:text-gray-400">
-          Showing {{ Math.min((page - 1) * pageSize + 1, totalItems) }} to
-          {{ Math.min(page * pageSize, totalItems) }} of {{ totalItems }} entries
+          {{ $t('admin.posts.pagination.showing', {
+            from: Math.min((page - 1) * pageSize + 1, totalItems),
+            to: Math.min(page * pageSize, totalItems),
+            total: totalItems,
+          }) }}
         </span>
         <UPagination
           v-model="page"
           :total="totalItems"
-          :page-count="pageSize"
+          :items-per-page="pageSize"
           :max="5"
           @update:page="(val) => onPageChange(val, () => refresh())"
         />
@@ -160,6 +163,7 @@ import { useLocaleRouter } from '~/composables/useLocaleRouter'
 
 definePageMeta({ title: 'Posts Management', layout: 'admin' })
 
+const { t } = useI18n()
 const toast = useToast()
 const { formatDate } = useFormatTime()
 const { confirm } = useConfirm()
@@ -179,24 +183,20 @@ interface AdminPostRow {
   createdAt: string
 }
 
-const typeLabels: Record<string, string> = {
-  blog: '默认文章',
-  announcement: '公告',
-  page: '页面',
-  changelog: '更新记录',
-}
+const typeLabel = (type: string) =>
+  t(`admin.posts.type.${type}`, t(`admin.posts.type.blog`))
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'image', header: 'Cover' },
-  { accessorKey: 'title', header: 'Title' },
-  { accessorKey: 'type', header: 'Type' },
-  { accessorKey: 'views', header: 'Views' },
-  { accessorKey: 'status', header: 'Status' },
-  { accessorKey: 'createdAt', header: 'Date' },
+  { accessorKey: 'image', header: t('admin.posts.col.cover') },
+  { accessorKey: 'title', header: t('admin.posts.col.title') },
+  { accessorKey: 'type', header: t('admin.posts.col.type') },
+  { accessorKey: 'views', header: t('admin.posts.col.views') },
+  { accessorKey: 'status', header: t('admin.posts.col.status') },
+  { accessorKey: 'createdAt', header: t('admin.posts.col.date') },
   {
     accessorKey: 'actions',
-    header: 'Actions',
+    header: t('admin.posts.col.actions'),
     meta: {
       class: {
         th: 'text-right sticky right-0 bg-white dark:bg-[#121214] z-10 before:absolute before:inset-y-0 before:-left-4 before:w-4 before:bg-gradient-to-r before:from-transparent before:to-white dark:before:to-[#121214]',
@@ -204,7 +204,7 @@ const columns = [
       },
     },
   },
-]
+])
 
 // Pagination
 const { page, pageSize, onPageChange } = usePagination(15)
@@ -246,12 +246,12 @@ const openChangelogModal = (post?: any) => {
 const createMenuItems = computed(() => [
   [
     {
-      label: '默认文章',
+      label: t('admin.posts.createMenu.article'),
       icon: 'ph:article',
       onSelect: () => openModal(),
     },
     {
-      label: '更新记录',
+      label: t('admin.posts.createMenu.changelog'),
       icon: 'ph:rocket-launch',
       onSelect: () => openChangelogModal(),
     },
@@ -265,8 +265,8 @@ const editPost = (post: any) => {
 
 const deletePost = async (id: number) => {
   const isConfirmed = await confirm({
-    title: 'Delete Post',
-    description: 'Are you sure you want to delete this post?',
+    title: t('admin.posts.delete.title'),
+    description: t('admin.posts.delete.description'),
   })
 
   if (!isConfirmed) return
@@ -276,15 +276,15 @@ const deletePost = async (id: number) => {
       method: 'DELETE',
     })
     toast.add({
-      title: 'Success',
-      description: 'Post deleted successfully',
+      title: t('admin.common.success'),
+      description: t('admin.posts.toast.deleted'),
       color: 'success',
     })
     refresh()
   } catch (e: any) {
     toast.add({
-      title: 'Error',
-      description: e.data?.message || 'Failed to delete post',
+      title: t('admin.common.error'),
+      description: e.data?.message || t('admin.posts.toast.deleteFailed'),
       color: 'error',
     })
   }

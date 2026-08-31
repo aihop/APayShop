@@ -1,13 +1,41 @@
-import { emailProviders, settings } from '../db/schema'
+import { emailProviders, emailLogs, settings } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { db } from '../db/runtime'
 import fs from 'fs'
 import path from 'path'
+import { defaultEmailTemplates } from '../data/defaultEmailTemplates'
 
 export interface EmailSendResult {
   ok: boolean
   messageId?: string
   error?: string
+}
+
+async function logEmailSend(data: {
+  to: string
+  subject: string
+  templateCode?: string
+  html?: string
+  provider?: string
+  status: 'success' | 'failed'
+  messageId?: string
+  error?: string
+}) {
+  try {
+    await db.insert(emailLogs).values({
+      to: data.to,
+      subject: data.subject,
+      templateCode: data.templateCode || null,
+      html: data.html || null,
+      provider: data.provider || null,
+      status: data.status,
+      messageId: data.messageId || null,
+      error: data.error || null,
+      createdAt: new Date(),
+    })
+  } catch (logErr) {
+    console.error('[Email] Failed to persist email log:', logErr)
+  }
 }
 
 // 与支付沙盒(sandbox.ts)同一套防护:只允许 http/https 协议与常规 HTTP 方法,
@@ -67,10 +95,6 @@ export async function executeEmailScript(
       },
     }
 
-    // 危险全局遮蔽(与支付沙盒 sandbox.ts 同一套说明):AsyncFunction 本质是 Function
-    // 构造器,脚本与宿主同环境。用同名参数把 process/globalThis/require 等挡在词法
-    // 作用域外,防止脚本"顺手"读环境变量/文件系统。注意这不是完整隔离(原型链仍可
-    // 摸到构造器),真隔离需 isolated-vm/独立进程——邮件脚本的信任边界仍是后台管理员。
     const wrapper = `
       return (async function(process, globalThis, global, require, module, exports, __dirname, __filename, Function, AsyncFunction) {
         const { config, crypto, fetch, console } = sandboxEnv;
@@ -110,8 +134,7 @@ interface EmailTemplate {
 
 /**
  * Send an email using a configured template and the active email provider.
- * Templates are stored in settings.email_templates as a JSON array,
- * or can be passed inline via options.templates.
+ * Automatically falls back to built-in presets when custom templates are missing.
  */
 export async function sendEmail(options: {
   to: string
@@ -120,18 +143,19 @@ export async function sendEmail(options: {
   locale?: string
   templates?: string // optional inline JSON array of EmailTemplate, skips DB lookup
 }): Promise<EmailSendResult> {
+  let subject = `[${options.templateCode}]`
+  let html = ''
+  let providerName = 'custom'
+
   try {
-    // 1. Load templates from settings or inline
-    let templates: EmailTemplate[]
+    // 1. Load templates: custom from settings/inline + built-in presets fallback
+    let templates: EmailTemplate[] = []
 
     if (options.templates) {
       try {
         templates = JSON.parse(options.templates)
       } catch {
-        return { ok: false, error: 'Invalid JSON in inline templates' }
-      }
-      if (!templates.length) {
-        return { ok: false, error: 'No email templates available. Create a template first.' }
+        templates = []
       }
     } else {
       const templateSetting = await db
@@ -140,41 +164,50 @@ export async function sendEmail(options: {
         .where(eq(settings.key, 'email_templates'))
         .limit(1)
 
-      if (!templateSetting.length || !templateSetting[0].value) {
-        return { ok: false, error: 'No email templates configured (email_templates setting is empty)' }
+      if (templateSetting.length > 0 && templateSetting[0].value) {
+        try {
+          templates = JSON.parse(templateSetting[0].value)
+        } catch {
+          templates = []
+        }
       }
+    }
 
-      try {
-        templates = JSON.parse(templateSetting[0].value)
-      } catch {
-        return { ok: false, error: 'Invalid JSON in email_templates setting' }
-      }
-
-      if (!templates.length) {
-        return { ok: false, error: 'No email templates available. Create a template first.' }
+    // Merge with built-in templates (custom overrides preset)
+    const combinedTemplates = [...templates]
+    const customCodes = new Set(templates.map((t) => t.code))
+    for (const preset of defaultEmailTemplates) {
+      if (!customCodes.has(preset.code)) {
+        combinedTemplates.push(preset)
       }
     }
 
     // Locale-aware template lookup:
-    // 1) requested locale
-    // 2) Chinese default pack
-    // 3) generic code
+    // 1) requested locale (e.g. verify_email-zh)
+    // 2) Chinese default (e.g. verify_email-zh)
+    // 3) English default (e.g. verify_email-en)
+    // 4) generic code (e.g. verify_email)
     const normalizedLocale = options.locale?.trim().toLowerCase() || ''
     const localeCode = normalizedLocale ? `${options.templateCode}-${normalizedLocale}` : null
     const zhLocaleCode = `${options.templateCode}-zh`
+    const enLocaleCode = `${options.templateCode}-en`
     let tpl: EmailTemplate | undefined
 
     if (localeCode) {
-      tpl = templates.find((t) => t.code === localeCode)
+      tpl = combinedTemplates.find((t) => t.code === localeCode)
     }
     if (!tpl && localeCode !== zhLocaleCode) {
-      tpl = templates.find((t) => t.code === zhLocaleCode)
+      tpl = combinedTemplates.find((t) => t.code === zhLocaleCode)
+    }
+    if (!tpl && localeCode !== enLocaleCode) {
+      tpl = combinedTemplates.find((t) => t.code === enLocaleCode)
     }
     if (!tpl) {
-      tpl = templates.find((t) => t.code === options.templateCode)
+      tpl = combinedTemplates.find((t) => t.code === options.templateCode)
     }
+
     if (!tpl) {
-      // Fallback to default template if configured
+      // Fallback to default template setting if configured
       const defaultSetting = await db
         .select()
         .from(settings)
@@ -183,17 +216,25 @@ export async function sendEmail(options: {
 
       const defaultCode = defaultSetting.length > 0 ? defaultSetting[0].value : null
       if (defaultCode && defaultCode !== '__none__') {
-        tpl = templates.find((t) => t.code === defaultCode)
+        tpl = combinedTemplates.find((t) => t.code === defaultCode)
       }
 
       if (!tpl) {
-        return { ok: false, error: `Email template "${options.templateCode}"${localeCode ? ` (or "${localeCode}")` : ''} not found` }
+        const error = `Email template "${options.templateCode}"${localeCode ? ` (or "${localeCode}")` : ''} not found`
+        await logEmailSend({
+          to: options.to,
+          subject,
+          templateCode: options.templateCode,
+          status: 'failed',
+          error,
+        })
+        return { ok: false, error }
       }
     }
 
     // 2. Variable substitution
-    let html = tpl.html
-    let subject = tpl.subject
+    html = tpl.html
+    subject = tpl.subject
     for (const [key, value] of Object.entries(options.variables)) {
       html = html.replaceAll(`{{${key}}}`, value)
       subject = subject.replaceAll(`{{${key}}}`, value)
@@ -211,6 +252,7 @@ export async function sendEmail(options: {
 
     if (providers.length > 0 && providers[0].sendScript?.trim()) {
       sendScript = providers[0].sendScript
+      providerName = providers[0].code || 'custom'
       configJson = providers[0].configJson ? JSON.parse(providers[0].configJson) : {}
     } else {
       // Fallback to local directory
@@ -227,6 +269,8 @@ export async function sendEmail(options: {
           providerCode = codeSetting[0].value
         }
       }
+
+      providerName = providerCode
 
       const localScriptPath = path.join(process.cwd(), 'emails', providerCode, 'send.js')
       const localConfigPath = path.join(process.cwd(), 'emails', providerCode, 'config.json')
@@ -261,7 +305,17 @@ export async function sendEmail(options: {
     }
 
     if (!sendScript.trim()) {
-      return { ok: false, error: 'No email provider configured. Add a provider in Settings → Email.' }
+      const error = 'No email provider configured. Add a provider in Settings → Email.'
+      await logEmailSend({
+        to: options.to,
+        subject,
+        templateCode: options.templateCode,
+        html,
+        provider: providerName,
+        status: 'failed',
+        error,
+      })
+      return { ok: false, error }
     }
 
     // 4. Execute sandbox
@@ -271,9 +325,30 @@ export async function sendEmail(options: {
       configJson
     )
 
+    // 5. Persist log synchronously
+    await logEmailSend({
+      to: options.to,
+      subject,
+      templateCode: options.templateCode,
+      html,
+      provider: providerName,
+      status: result.ok ? 'success' : 'failed',
+      messageId: result.messageId,
+      error: result.error,
+    })
+
     return result
   } catch (error: any) {
     console.error('[Email] Failed to send email:', error)
+    await logEmailSend({
+      to: options.to,
+      subject: subject || `[Failed] ${options.templateCode}`,
+      templateCode: options.templateCode,
+      html,
+      provider: providerName,
+      status: 'failed',
+      error: error.message,
+    })
     return { ok: false, error: error.message }
   }
 }

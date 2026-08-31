@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-sku-override-consumption",
+  "title": "WB 工作台 SKU 行消费人工覆盖并按渠道分流规格轴写入",
+  "problem": "WB 工作台的 SKU 表格输入框「填了就消失」，已定位两个根因。(1) 读路径：src/app/presenters/listing-workbench-presenter.ts 的 WbWorkbenchRowBuilder 完全不读 listingWorkspace.manualOverrides.skuPricing 与 skuAspects，每行都从 canonical 变体重新推导——priceRub 直接取 variant.price（那是 1688 人民币源价，与 sourcePriceCny 同一个字段，币种口径也错），stock 取 variant.stock，oldPriceRub 与包装四项恒为 null，priceOrigin 恒为 derived，规格轴值按 optionValues 推导且 overridden 恒 false。用户输入经 op:'update' 已正确落进 skuPricing，但服务端回包用同一个行模型重建，覆盖值当场被丢弃，前端 applySkuPayload 整表替换后输入即消失，且全程无报错。(2) 写路径：server/listing/sku.operations.ts 的 op:'aspect'、op:'create' 的 aspects、op:'fillDown' 的 aspect 三处无条件调用 validateOzonAttributeMutationForUser，它第一步 readLockedCategory 读的是 qingpu_listing_products 的 Ozon 类目列，而 WB 品类只落在 categoryHints.selectedWbSubjectId，于是 WB 工作台改规格轴一律 400『先锁定完整 Ozon 类目再填写参数』。同文件的 op:'cardField' 已有 WB 分支，这三处是漏网。",
+  "expectedOutcome": "WB 工作台 SKU 行的售价、旧价、库存、成本、包装四项、规格轴值都按『人工覆盖 > 采集/派生值』解析并原样回读，输入后不再消失；priceRub 走 RUB 口径的定价派生而不是直接拿人民币源价；规格轴写入按渠道分流，WB 走 WB 特征校验，不再打 Ozon 类目契约。Ozon 工作台行为逐字节不变。",
+  "constraints": [
+    "SKU 定价派生口径只有一份：WB 复用既有的 deriveVariantPriceRub / deriveVariantOldPriceRub，不得另写一套定价规则",
+    "包装兜底沿用 buildListingWorkbenchRowModel 顶层已算好的 skuPackagingFallback，不在 WB 分支重算商品级包装",
+    "覆盖层读写只经 domain/workspace/workspace-overrides 的既有入口，不新增 storage 键、不改 ListingWorkspace 结构",
+    "op:'aspect' / 'create' / 'fillDown' 的渠道分流沿用 op:'cardField' 已有的 viewChannel 传参方式，不新增消息协议、不在入口写渠道 if/switch 扩散",
+    "WB 规格轴校验只做『该特征属于当前品类特征集合』这一层，不发明 WB 字典校验",
+    "Ozon 路径的校验、派生与回包结构不得改变，既有 Ozon 测试全绿",
+    "engine vendor 只允许 npm run engine:release 写入，不手改 server/vendor/qingpu-engine"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "tests/workbench-row-model-wb.test.ts"
+      ],
+      "claims": [
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "tests/workbench-row-model-wb.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/sku.operations.ts",
+        "api/listing/skus.ts",
+        "server/vendor/qingpu-engine/**",
+        "tests/wb-sku-aspect-channel.test.ts"
+      ],
+      "claims": [
+        "server/listing/sku.operations.ts",
+        "api/listing/skus.ts",
+        "server/vendor/qingpu-engine/**",
+        "tests/wb-sku-aspect-channel.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WB 行模型对某个 SKU 写入 priceRub/oldPriceRub/stock/costPriceCny 覆盖后，回读同名字段等于覆盖值，priceOrigin 在 priceRub 有覆盖时为 override",
+    "WB 行模型对某个 SKU 写入包装四项覆盖后，packageDepthCm/WidthCm/HeightCm/WeightG 回读等于覆盖值；无覆盖时为 null 并由 skuPackagingFallback 兜底提示",
+    "WB 行模型无 priceRub 覆盖时按 deriveVariantPriceRub 派生 RUB 价，不再把 variant.price（人民币源价）当卢布返回；sourcePriceCny 仍为人民币源价",
+    "WB 行模型对某个 SKU 写入规格轴覆盖后，对应 aspect 的 value 等于覆盖值且 overridden 为 true；显式清空时 cleared 为 true",
+    "WB 工作台提交 op:'aspect' 不再触发 Ozon 类目契约加载，不再返回『先锁定完整 Ozon 类目再填写参数』；attributeId 不属于当前 WB 品类特征集合时返回 422",
+    "op:'create' 的 aspects 与 op:'fillDown' 的 aspect 分支同样按渠道分流",
+    "Ozon 工作台的行模型输出与规格轴写入行为不变，既有 Ozon 相关测试全绿",
+    "qingpu-ai typecheck、相关 vitest、分层守卫、扩展构建、engine bundle 守卫全部通过；主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "行模型覆盖消费测试与类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/workbench-row-model-wb.test.ts tests/workbench-aspect-columns.test.ts tests/ozon-publish.test.ts"
+    },
+    {
+      "name": "分层守卫、构建与 engine bundle",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run build && npm run engine:build"
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm run check:qingpu-all"
+    }
+  ]
+}

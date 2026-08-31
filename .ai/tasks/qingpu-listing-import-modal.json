@@ -7,7 +7,7 @@
   "constraints": [
     "保留现有 /api/qingpu/listing/collect 接口与单次最多 10 条链接的行为",
     "导入成功后刷新货源商品列表，不改变商品、任务或发布数据模型",
-    "旧 /user/listing/import 路由必须兼容现有书签和历史入口",
+    "旧 /user/listing/products 路由必须兼容现有书签和历史入口",
     "不触及 Dashboard 及其他并行任务已有未提交改动的文件",
     "不新增依赖，不修改扩展端或共享 engine"
   ],
@@ -17,12 +17,10 @@
       "path": "app/themes/qingpu",
       "allowedPaths": [
         "pages/user/listing/components/ListingImportModal.vue",
-        "pages/user/listing/import.vue",
         "pages/user/listing/products.vue"
       ],
       "claims": [
         "pages/user/listing/components/ListingImportModal.vue",
-        "pages/user/listing/import.vue",
         "pages/user/listing/products.vue"
       ]
     }
@@ -40,7 +38,7 @@
       "name": "导入入口守卫",
       "repository": "qingpu-theme",
       "always": true,
-      "command": "rg -q 'ListingImportModal' pages/user/listing/products.vue && rg -q \"/user/listing/products?import=1\" pages/user/listing/import.vue"
+      "command": "rg -q 'ListingImportModal' pages/user/listing/products.vue && rg -q \"/user/listing/products?import=1\""
     },
     {
       "name": "Listing 类型检查",
@@ -52,7 +50,7 @@
       "name": "修改文件格式检查",
       "repository": "qingpu-theme",
       "always": true,
-      "command": "git diff --check -- pages/user/listing/components/ListingImportModal.vue pages/user/listing/import.vue pages/user/listing/products.vue"
+      "command": "git diff --check -- pages/user/listing/components/ListingImportModal.vue pages/user/listing/products.vue"
     }
   ]
 }

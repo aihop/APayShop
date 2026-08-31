@@ -47,7 +47,7 @@
 
       <div class="flex shrink-0 items-center justify-between border-t border-gray-200 p-4 dark:border-gray-800/50">
         <span class="text-sm text-gray-500">{{ total }} {{ t('admin.common.results') }}</span>
-        <UPagination v-model="page" :total="total" :page-count="pageSize" :max="7" />
+        <UPagination v-model="page" :total="total" :items-per-page="pageSize" :max="7" />
       </div>
     </div>
   </div>

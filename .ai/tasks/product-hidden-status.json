@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "product-hidden-status",
+  "title": "商品增加隐藏态（status: active/hidden/inactive）并完善全链路展示逻辑",
+  "problem": "商品目前仅有二元开关 isActive，缺少「隐藏在售（Hidden/Unlisted）」状态，导致大客户定制、代客下单、补差价及私域定向专属商品无法在隐藏前台公开货架展示的同时保持专属链接购买与用户关联数据正常显示。",
+  "expectedOutcome": "商品表增加 status 字段（'active' | 'hidden' | 'inactive'），前台公开商品列表与 Sitemap 自动过滤 hidden 与 inactive 商品；专属链接、收银台下单、代客下单以及所有用户关联页面（订单、订阅、履约等）均正常展示与结算 hidden 商品；后台商品管理提供三态选择与标签展示。",
+  "constraints": [
+    "同步维护 SQLite / PostgreSQL / MySQL 三方言 Schema（server/db/schema.*.ts）",
+    "保持与 isActive 字段双向兼容（status !== 'inactive' 时 isActive 为 true）",
+    "前台公共列表与 Sitemap 过滤 hidden 商品，详情页与下单页允许访问 hidden 商品",
+    "用户订单、订阅、履约及后台代客下单全流程完整支持 hidden 商品",
+    "支持中英文国际化，只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/db/schema.sqlite.ts",
+        "server/db/schema.pg.ts",
+        "server/db/schema.mysql.ts",
+        "server/api/products/index.get.ts",
+        "server/api/products/types.get.ts",
+        "server/api/products/[slug].get.ts",
+        "server/api/admin/products/index.ts",
+        "server/api/admin/products/[id].ts",
+        "server/api/orders/checkout.post.ts",
+        "server/utils/seoSitemap.ts",
+        "app/composables/useAdminProductForm.ts",
+        "app/components/admin/ProductFormModal.vue",
+        "app/pages/admin/products.vue",
+        "locales/en.json",
+        "locales/zh.json"
+      ],
+      "claims": [
+        "server/db/schema.sqlite.ts",
+        "server/db/schema.pg.ts",
+        "server/db/schema.mysql.ts",
+        "server/api/products/index.get.ts",
+        "server/api/products/types.get.ts",
+        "server/api/products/[slug].get.ts",
+        "server/api/admin/products/index.ts",
+        "server/api/admin/products/[id].ts",
+        "server/api/orders/checkout.post.ts",
+        "server/utils/seoSitemap.ts",
+        "app/composables/useAdminProductForm.ts",
+        "app/components/admin/ProductFormModal.vue",
+        "app/pages/admin/products.vue",
+        "locales/en.json",
+        "locales/zh.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "SQLite/PG/MySQL 核心 Schema 均同步包含 products.status 字段",
+    "公共商品列表 /api/products 与 /sitemap.xml 仅展示 status === 'active' 商品",
+    "商品详情页 /products/[slug] 与下单接口允许购买 status === 'hidden' 商品，拒绝 status === 'inactive' 商品",
+    "用户订单与订阅等所有用户关联页面完整展示关联的隐藏商品数据",
+    "后台商品管理列表正确展示「公开 / 隐藏 / 下架」状态 Badge，编辑弹窗支持切换三态",
+    "静态边界与格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/db/schema.sqlite.ts server/db/schema.pg.ts server/db/schema.mysql.ts server/api/products/index.get.ts server/api/products/types.get.ts 'server/api/products/[slug].get.ts' server/api/admin/products/index.ts 'server/api/admin/products/[id].ts' server/api/orders/checkout.post.ts server/utils/seoSitemap.ts app/composables/useAdminProductForm.ts app/components/admin/ProductFormModal.vue app/pages/admin/products.vue locales/en.json locales/zh.json"
+    }
+  ]
+}

@@ -53,6 +53,19 @@ export const useNotificationState = () => {
     void refreshUnreadCount()
   }
 
+  const deleteNotification = async (notificationId: number) => {
+    await $fetch(`/api/users/notifications/${notificationId}`, { method: 'DELETE' })
+    mutationRevision.value += 1
+    void refreshUnreadCount()
+  }
+
+  const clearAllNotifications = async () => {
+    await $fetch('/api/users/notifications/clear-all', { method: 'DELETE' })
+    mutationRevision.value += 1
+    unreadCount.value = 0
+    void refreshUnreadCount()
+  }
+
   const syncNotificationScope = (scope: string) => {
     if (scope === activeScope.value) {
       if (scope && !initialized.value) void refreshUnreadCount()
@@ -73,5 +86,7 @@ export const useNotificationState = () => {
     syncNotificationScope,
     markNotificationRead,
     markAllNotificationsRead,
+    deleteNotification,
+    clearAllNotifications,
   }
 }

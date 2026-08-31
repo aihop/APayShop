@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const page = parseInt(query.page as string) || 1
   const pageSize = parseInt(query.pageSize as string) || 15
   const offset = (page - 1) * pageSize
-  const keyword = String(query.q || query.keyword || '').trim()
+  const keyword = String(query.search || query.q || query.keyword || '').trim()
   const hasSpending = String(query.hasSpending || '').trim()
 
   const likePattern = keyword ? `%${keyword.toLowerCase()}%` : ''
@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
       createdAt: users.createdAt,
       status: users.status,
       lastLoginAt: users.lastLoginAt,
+      emailVerifiedAt: users.emailVerifiedAt,
       cashBalance: userWallets.cashBalance,
       grantBalance: userWallets.grantBalance,
     }).from(users).leftJoin(userWallets, eq(userWallets.userId, users.id))
@@ -83,7 +84,7 @@ export default defineEventHandler(async (event) => {
       )) as any
     }
 
-    const allUsers = await usersQuery.orderBy(desc(users.createdAt)) as LocalUserRow[]
+    const allUsers = await usersQuery.orderBy(desc(users.createdAt)) as (LocalUserRow & { emailVerifiedAt: Date | string | null })[]
 
     // 合并本地用户与外部消费数据
     const mergedUsers = allUsers.map((user) => {
@@ -96,6 +97,7 @@ export default defineEventHandler(async (event) => {
         createdAt: user.createdAt,
         status: user.status,
         lastLoginAt: user.lastLoginAt,
+        emailVerifiedAt: user.emailVerifiedAt,
         cashBalance: Number(user.cashBalance || 0) / 1e8,
         grantBalance: Number(user.grantBalance || 0) / 1e8,
         availableBalance: (Number(user.cashBalance || 0) + Number(user.grantBalance || 0)) / 1e8,

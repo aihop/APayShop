@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "aihop-rename-coding-plans",
+  "title": "aihop 主题「订阅套餐」全面更名为「Coding Plan / 编程套餐」",
+  "problem": "原「订阅套餐」文案过于宽泛，容易让访客误以为是站内 VIP 会员或泛化 SaaS 订阅。此外业界大厂（如百炼、方舟）与开发者圈已将 AI 辅助编程的计费包与额度统称为 Coding Plan。同时仓库内部路由 (/coding-plans) 与数据库表 (aihop_coding_plans) 天然以 coding-plans 命名，需要统一前台、多语言及后台扩展文案。",
+  "expectedOutcome": "顶栏导航、前台视图、多语言文案及后台扩展管理页面中，所有「订阅套餐」文案统一升级为「Coding Plan / AI 编程套餐 (Coding Plans)」，保持中英文一致与开发者心智聚焦。",
+  "constraints": [
+    "保持 Matters Blue 设计语言与 Tailwind 静态类名约束",
+    "中英文双语保持对应与自然流畅",
+    "不破坏现有路由与数据结构",
+    "主题内守卫测试全部通过"
+  ],
+  "repositories": [
+    {
+      "name": "apay-aihop",
+      "path": "app/themes/aihop",
+      "allowedPaths": [
+        "locales/**",
+        "theme.admin.json",
+        "admin/**",
+        "pages/**",
+        "layouts/**",
+        "components/**"
+      ],
+      "claims": [
+        "locales/**",
+        "theme.admin.json",
+        "admin/**",
+        "pages/**",
+        "layouts/**",
+        "components/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "中文顶栏导航与英文导航分别显示为 Coding Plan 与 Coding Plans",
+    "前台 /coding-plans 页面与首页、关于页、模型详情页的相关引导文案全部统一",
+    "后台扩展列表与页面标题统一为 Coding Plan / AI 编程套餐管理",
+    "主题脚手架、SFC 编译等所有守卫测试通过"
+  ],
+  "verification": [
+    {
+      "name": "主题脚手架自检",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "模型数据守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    },
+    {
+      "name": "SFC 编译守卫",
+      "repository": "apay-aihop",
+      "always": true,
+      "command": "node scripts/check-sfc.mjs"
+    }
+  ]
+}

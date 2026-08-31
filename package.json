@@ -7,7 +7,7 @@
     "build": "node scripts/run-nuxt-build.mjs",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
     "predev": "node scripts/reset-theme-manifest.mjs && node --env-file-if-exists=.env scripts/generate-theme-build.mjs",
-    "dev": "ulimit -n 65536; NODE_OPTIONS='--max-old-space-size=32768' nuxt dev --host 192.168.1.88 --env-file=.env --port 5400",
+    "dev": "ulimit -n 65536; NODE_OPTIONS='--max-old-space-size=32768' nuxt dev --host 127.0.0.1 --env-file=.env --port 5400",
     "generate": "nuxt generate",
     "preview": "nuxt preview --port 5400",
     "postinstall": "node scripts/generate-theme-build.mjs --all && nuxt prepare",

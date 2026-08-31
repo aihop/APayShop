@@ -2,18 +2,14 @@ import { orders } from "../../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../../db/runtime'
 import { fulfillOrder } from '../../../utils/fulfillment'
-import { dispatchEvent } from '../../../utils/eventBus'
+import { emitEvent } from '../../../utils/eventActions'
 import { ORDER_PAY_STATUS } from '../../../utils/constants'
 import { createOrderAttribution, settlePromoCommission } from '../../../promo/service'
-import { deliverMinimalCheckoutPaid } from '../../../../app/themes/minimal/server/checkout/notify'
-import { readMinimalCheckoutBridgeMeta } from '../../../../app/themes/minimal/server/checkout/bridge'
-import { fulfillMinimalCheckoutRelay } from '../../../../app/themes/minimal/server/checkout/fulfillment'
+import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta } from '../../../utils/checkoutBridge'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { setAuditMeta } from '../../../utils/auditLog'
 import { refundTopup, settlePaidTopup } from '../../../utils/topupLedger'
 import { recoverCreditedApayTopup } from '../../../utils/apayTopupFulfillment'
-import { fulfillPaidTrialOrder } from '../../../../app/themes/qingpu/server/trials/pass'
-import { markQingpuTrialPaymentReceived, QINGPU_TRIAL_ORDER_SOURCE } from '../../../utils/qingpuTrialOrders'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -62,21 +58,14 @@ export default defineEventHandler(async (event) => {
         metaData: updatedOrder?.metaData,
       })
     }
-    if (updatedOrder?.source === QINGPU_TRIAL_ORDER_SOURCE) {
-      const next = await markQingpuTrialPaymentReceived(id)
-      if (next === 'ready') await fulfillPaidTrialOrder(id)
-    } else if (isApayTopup) {
+    if (isApayTopup) {
       await settlePaidTopup(id)
       await recoverCreditedApayTopup(id)
     } else if (!wasAlreadyPaid) {
       const fulfilledOrder = isMinimalRelay ? await fulfillMinimalCheckoutRelay(id) : await fulfillOrder(id)
       if (fulfilledOrder) {
         await settlePromoCommission(id)
-        if (isMinimalRelay) {
-          await deliverMinimalCheckoutPaid(fulfilledOrder)
-        } else {
-          await dispatchEvent('order.paid', fulfilledOrder)
-        }
+        await emitEvent('order.paid', fulfilledOrder)
       }
     }
   }

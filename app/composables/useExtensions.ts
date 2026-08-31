@@ -79,7 +79,7 @@ export const pluginPermissionCode = (extension: string, capability: string) =>
 
 export const useExtensions = () => {
   const { getSetting } = useSettings()
-  const { locale } = useI18n()
+  const { locale } = useNuxtApp().$i18n
 
   const installedExtensions = computed(() => Object.values(manifestModules)
     .slice()

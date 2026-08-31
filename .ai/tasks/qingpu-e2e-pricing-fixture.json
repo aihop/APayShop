@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-e2e-pricing-fixture",
+  "title": "同步核价 E2E 夹具与物流确认门禁",
+  "problem": "核价 E2E 仍使用未确认的手填运费，定价门禁按设计返回待补运费，导致旧测试无法验证采购价联动。",
+  "expectedOutcome": "核价 E2E 使用本地已核验物流报价，稳定验证采购价变化会驱动建议售价变化，不放宽产品物流确认门禁。",
+  "constraints": [
+    "只修改 qingpu-ai 的核价 E2E 测试夹具",
+    "不修改定价算法、物流确认语义、发布协议或生产代码",
+    "不访问真实 Ozon、WB、qingpu.ai 账号接口或执行真实发布",
+    "使用仓库内本地资费表，不依赖外部网络",
+    "不提交、不推送，保留其他任务改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "e2e/pricing-sidebar.spec.ts"
+      ],
+      "claims": [
+        "e2e/pricing-sidebar.spec.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "核价种子商品的物流报价在本地规则下为已核验",
+    "采购价翻倍后建议售价断言可执行并通过",
+    "产品对未确认物流报价的阻断逻辑保持不变"
+  ],
+  "verification": [
+    {
+      "name": "核价 E2E 与差异检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run test:e2e -- e2e/pricing-sidebar.spec.ts --workers=1 && git diff --check -- e2e/pricing-sidebar.spec.ts"
+    }
+  ]
+}

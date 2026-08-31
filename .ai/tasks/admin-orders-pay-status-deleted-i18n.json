@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-orders-pay-status-deleted-i18n",
+  "title": "补充订单管理 admin.orders.pay_status_deleted 状态多语言及兜底解析",
+  "problem": "在后台订单管理页面中，遇到 payStatus 为 deleted 等状态时缺失对应语言包词条 admin.orders.pay_status_deleted，导致前端展示未翻译键名。",
+  "expectedOutcome": "在 zh/en/ru 多语言文件中补充 pay_status_deleted、pay_status_cancelled、pay_status_expired 等状态词条，并在 orders.vue 中增加翻译存在性安全兜底与标签状态颜色映射。",
+  "constraints": [
+    "不修改后端 API 契约与数据库模型",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "locales/zh.json",
+        "locales/en.json",
+        "locales/ru.json",
+        "app/pages/admin/orders.vue"
+      ],
+      "claims": [
+        "locales/zh.json",
+        "locales/en.json",
+        "locales/ru.json",
+        "app/pages/admin/orders.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "locales/zh.json、en.json、ru.json 中包含 pay_status_deleted 与扩展状态词条",
+    "app/pages/admin/orders.vue 支持安全解析各类订单状态与退化兜底",
+    "静态边界检查与差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- locales/zh.json locales/en.json locales/ru.json app/pages/admin/orders.vue"
+    }
+  ]
+}

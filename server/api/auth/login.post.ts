@@ -70,7 +70,9 @@ export default defineEventHandler(async (event) => {
     user: {
       id: user.id,
       email: user.email,
-      nickname: user.nickname
+      nickname: user.nickname,
+      emailVerified: Boolean(user.emailVerifiedAt),
+      emailVerifiedAt: user.emailVerifiedAt || null,
     }
   }
 })

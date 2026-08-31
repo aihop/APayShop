@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-dash-runtime-regression",
+  "title": "修复 Dash 店铺弹层初始化时序回归",
+  "problem": "AddStoreModal 在 newStore ref 初始化前创建 computed 和 watch，生产打包后的模块执行触发 TDZ ReferenceError，Dash 工作台首屏和核价面板无法稳定挂载。",
+  "expectedOutcome": "AddStoreModal 在所有入口加载时不再抛出初始化时序异常，Dash 空态、商品列表和核价联动可以正常执行。",
+  "constraints": [
+    "只调整 qingpu-ai 的 AddStoreModal 初始化声明顺序",
+    "不改变店铺表单字段、鉴权、消息协议或业务语义",
+    "不访问真实 Ozon、WB、qingpu.ai 账号接口或执行真实发布",
+    "不修改其他任务文件，不提交、不推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/dash/AddStoreModal.vue"
+      ],
+      "claims": [
+        "entrypoints/dash/AddStoreModal.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AddStoreModal 的 setup 执行不再产生 Cannot access before initialization 异常",
+    "现有 Dash E2E 至少能完成登录、商品列表渲染和核价面板挂载",
+    "店铺表单现有字段和平台切换行为保持不变"
+  ],
+  "verification": [
+    {
+      "name": "扩展构建与 Dash E2E",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run build && npm run test:e2e && git diff --check -- entrypoints/dash/AddStoreModal.vue"
+    }
+  ]
+}

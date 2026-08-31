@@ -1,5 +1,5 @@
 import { products, cards } from "../../db/schema"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, ne, sql } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from '../../utils/requestLocale'
 
@@ -11,8 +11,14 @@ export default defineCachedEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: locale === 'zh' ? '缺少商品 slug' : 'Missing product slug' })
   }
 
-  // Get product by slug instead of ID
-  const productList = await db.select().from(products).where(and(eq(products.slug, slug), eq(products.isActive, true))).limit(1)
+  // Get product by slug instead of ID (allows active and hidden products; blocks inactive)
+  const productList = await db.select()
+    .from(products)
+    .where(and(
+      eq(products.slug, slug),
+      eq(products.isActive, true),
+    ))
+    .limit(1)
   const product = productList[0]
   
   if (!product) {

@@ -10,6 +10,7 @@ import { bindInviteRelation, capturePromoTracking, ensurePromoMember, mergePromo
 import { getRequestLocale } from "../../utils/requestLocale"
 import { getLocalizedSettingValue } from '../../utils/localizedSettings'
 import { requireTrustedRequestOrigin } from '../../utils/domainLocale'
+import { validateEmail } from '../../utils/emailValidation'
 
 export default defineEventHandler(async (event) => {
   const siteUrl = requireTrustedRequestOrigin(event)
@@ -17,26 +18,44 @@ export default defineEventHandler(async (event) => {
   const messages = locale === 'zh'
     ? {
         emailPasswordRequired: '邮箱和密码不能为空',
+        invalidEmail: '请输入有效的电子邮箱地址',
+        disposableEmail: '系统不支持临时/一次性邮箱注册，请使用常用邮箱',
         userExists: '该邮箱已被注册',
       }
     : {
         emailPasswordRequired: 'Email and password are required',
+        invalidEmail: 'Please enter a valid email address',
+        disposableEmail: 'Disposable email addresses are not supported. Please use a standard email.',
         userExists: 'User with this email already exists',
       };
 
   const body = await readBody(event)
-  const { email, password, nickname, inviteCode } = body
+  const { email: rawEmail, password, nickname, inviteCode } = body
   const promoTracking = mergePromoTracking(
     readPromoTracking(event),
     await capturePromoTracking(event),
   )
 
-  if (!email || !password) {
+  if (!rawEmail || !password) {
     throw createError({
       statusCode: 400,
       message: messages.emailPasswordRequired
     })
   }
+
+  // 严格邮箱合法性校验
+  const emailValidation = validateEmail(rawEmail)
+  if (!emailValidation.valid) {
+    const errorMsg = emailValidation.errorKey === 'email_disposable_rejected'
+      ? messages.disposableEmail
+      : messages.invalidEmail
+    throw createError({
+      statusCode: 400,
+      message: errorMsg,
+    })
+  }
+
+  const email = emailValidation.normalizedEmail!
 
   // Check if user already exists
   const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1)
@@ -85,14 +104,28 @@ export default defineEventHandler(async (event) => {
     .where(eq(orders.contactEmail, user.email))
 
   // Dispatch event for user registration
-  // 外发 webhook + 执行后台配置的事件动作(如注册奖励)。不阻塞注册响应。
-  emitEvent('user.registered', {
-    id: user.id,
-    userId: user.id,
-    email: user.email,
-    nickname: user.nickname,
-    inviteCode: inviteCode,
-  }).catch((err) => console.error('user.registered event actions failed', err))
+  // 支持同步规则强门禁拦截与异步规则后台分发
+  try {
+    await emitEvent('user.registered', {
+      id: user.id,
+      userId: user.id,
+      email: user.email,
+      nickname: user.nickname,
+      inviteCode: inviteCode,
+    })
+  } catch (err: any) {
+    console.error('[Register] user.registered sync rule failed, rolling back user:', err)
+    // 发生同步拦截时，清理刚插入的未生效用户记录，避免脏数据占用邮箱
+    try {
+      await db.delete(users).where(eq(users.id, user.id))
+    } catch (cleanupErr) {
+      console.error('[Register] Failed to rollback user after sync rule failure:', cleanupErr)
+    }
+    throw createError({
+      statusCode: err.statusCode || 422,
+      statusMessage: err.statusMessage || err.message || '注册前置规则校验失败，操作已终止',
+    })
+  }
 
   await issueWebSession(event, user, 'register')
 
@@ -118,7 +151,7 @@ export default defineEventHandler(async (event) => {
   const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
   const siteName = await getLocalizedSettingValue('site_name', locale, 'APay')
 
-  sendEmail({
+  const emailPromise = sendEmail({
     to: user.email,
     templateCode: 'verify_email',
     locale,
@@ -130,12 +163,18 @@ export default defineEventHandler(async (event) => {
     },
   }).catch((err) => console.error('[Register] Failed to send verification email:', err))
 
+  if (typeof (event as any)?.waitUntil === 'function') {
+    (event as any).waitUntil(emailPromise)
+  }
+
   return {
     success: true,
     user: {
       id: user.id,
       email: user.email,
-      nickname: user.nickname
+      nickname: user.nickname,
+      emailVerified: false,
+      emailVerifiedAt: null,
     }
   }
 })
