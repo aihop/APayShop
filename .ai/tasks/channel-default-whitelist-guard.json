@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "channel-default-whitelist-guard",
+  "title": "渠道缺省白名单守卫 + ozonSelectionMeta 死字段删除",
+  "problem": "账本两条:① 全主题 22+ 处「渠道缺省/兜底落 Ozon」——缺省本身有正当性,债在于没有机制阻止第 23 处(编译/测试/运行都不报错,只是结果不对);② queries.workspace.ts:78 的 ozonSelectionMeta 只写不读(全仓唯一出现即写入点),占空间且误导后来者。",
+  "expectedOutcome": "新守卫 check-channel-default-whitelist.mjs:扫描 `: Channel = 'ozon'/OZON_CHANNEL` 与 `|| 'ozon'/OZON_CHANNEL` 两族形态,存量普查结果灌入基线(签名=路径|归一化匹配行,只减不增),新增点即报错并要求登记;负向探针验证;check-all 自动发现。ozonSelectionMeta 写入点删除(先全仓确认零读取方),存量 jsonb 字段留置无害。两账销记。",
+  "constraints": [
+    "不禁止缺省,只逼登记(账本原口径);不动 vendor 与他会话在途文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-channel-default-whitelist.mjs",
+        "server/listing/queries.workspace.ts",
+        "docs/tech-debt-map.md",
+        "tests/wb-category-selection-persistence.test.ts"
+      ],
+      "claims": [
+        "scripts/check-channel-default-whitelist.mjs",
+        "server/listing/queries.workspace.ts",
+        "docs/tech-debt-map.md",
+        "tests/wb-category-selection-persistence.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "守卫正向绿+植入探针负向红",
+    "ozonSelectionMeta 全仓零引用",
+    "主题守卫总闸通过(65/65 不倒退)",
+    "两条账目销记",
+    "钉住测试随合同反转:断言不再写 ozonSelectionMeta"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "scripts/check-channel-default-whitelist.mjs",
+        "server/listing/queries.workspace.ts"
+      ]
+    }
+  ]
+}
