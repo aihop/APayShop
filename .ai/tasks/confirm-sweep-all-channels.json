@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "confirm-sweep-all-channels",
+  "title": "回执确认触发渠道化:懒扫与 cron 遍历 KNOWN_CHANNELS,销过时账目",
+  "problem": "账本「发布回执确认子系统 Ozon 专属」条目核实为**部分过时**:确认逻辑本体已渠道化(confirmPendingPublishResults :209 分发 WB,54d4363 落地),:212 throw 只拦未知渠道属正当穷尽防线;真缺口只剩触发面——5 个入口写死 'ozon',WB pending 记录不搭车、cron 不扫,只能等用户手动进 records 页。",
+  "expectedOutcome": "新增 maybeConfirmAllChannelsLazily(遍历 KNOWN_CHANNELS,沿用 per-channel 节流);纯触发 3 入口改调并删写死行(渠道缺省守卫基线首次兑现只减);dashboard 触发改 all、看板消费保留显式 ozon 并注明渠道化另案;cron 遍历全渠道聚合 outcome。账本条目改写为已还+真相修正。",
+  "constraints": [
+    "确认逻辑本体零改动;看板渠道化不在本契约"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.confirm.ts",
+        "api/upgrade.ts",
+        "api/listing/channels.ts",
+        "api/listing/dashboard.get.ts",
+        "api/listing/products/index.ts",
+        "api/listing/cron/confirm-publish.get.ts",
+        "scripts/check-channel-default-whitelist.mjs",
+        "docs/tech-debt-map.md",
+        "tests/publish-channel-parameterization.test.ts"
+      ],
+      "claims": [
+        "server/listing/publish.confirm.ts",
+        "api/upgrade.ts",
+        "api/listing/channels.ts",
+        "api/listing/dashboard.get.ts",
+        "api/listing/products/index.ts",
+        "api/listing/cron/confirm-publish.get.ts",
+        "scripts/check-channel-default-whitelist.mjs",
+        "docs/tech-debt-map.md",
+        "tests/publish-channel-parameterization.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WB pending 随任意入口搭车与 cron 收敛",
+    "守卫基线净减(写死行删除)",
+    "总闸 66/66 不倒退",
+    "账本条目按真相改写并销记"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "server/listing/publish.confirm.ts"
+      ]
+    }
+  ]
+}
