@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "guard-zero-batch",
+  "title": "守卫清零批次:五个红守卫按分诊落地(4 重定契约 + 1 修实现)",
+  "problem": "债务账本 §三:总闸长期 5 个已知失败,红墙掩护新回归(有实例)。2026-08-31 已全部分诊(记录在案):billing 断言钉旧写法而判据已迁 useQingpuCurrencyDisplay;plan-operations 断言钉被重构换掉的旧文案;ainode-base-url 守卫清单读已删除文件;ops-shell 断言钉旧品牌名(现为共享导航键 storeOperations);presets 是真回归——统一预设管理器入口链接全站消失,页面本身健在。",
+  "expectedOutcome": "四个守卫断言跟随现实重定;picker 补回 /user/studio/presets 入口链接;check-all 的 KNOWN_FAILING 清单减 5,总闸 64/64 全绿;账本 §三 清零留档。",
+  "constraints": ["不动 locales(第三会话在途);守卫语义只跟随不放宽"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-billing-currency-display.mjs",
+        "scripts/check-customer-plan-operations.mjs",
+        "scripts/check-listing-engine-ainode-base-url.mjs",
+        "scripts/check-ops-shell.mjs",
+        "scripts/check-listing-presets.mjs",
+        "pages/user/listing/components/ListingVisualPresetPicker.vue",
+        "scripts/check-all.mjs",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "scripts/check-billing-currency-display.mjs",
+        "scripts/check-customer-plan-operations.mjs",
+        "scripts/check-listing-engine-ainode-base-url.mjs",
+        "scripts/check-ops-shell.mjs",
+        "scripts/check-listing-presets.mjs",
+        "pages/user/listing/components/ListingVisualPresetPicker.vue",
+        "scripts/check-all.mjs",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": ["五守卫独立执行全绿", "check-all 已知失败清单清零,总闸 64/64", "账本 §三 更新为已清零留档"],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["scripts/check-all.mjs"]
+    }
+  ]
+}

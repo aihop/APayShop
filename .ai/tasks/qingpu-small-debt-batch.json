@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-small-debt-batch",
+  "title": "扩展仓小额债务批次:归一化入口改名 + 筛图 profile 命名空间穷尽化",
+  "problem": "上线前批次(用户批准)中的两条 qingpu-ai 账目:① migrateLegacyCategorySettings 名不副实——它是全量设置归一化唯一入口(每次读设置都走),名字诱导另起第二个归一化入口;② 筛图 profile 命名空间混用通用名与渠道名(Record<string> 注册 'default'/'ozon',profileId: string 未与 Channel 对齐),加渠道 profile 只能靠命名约定。",
+  "expectedOutcome": "① 改名 normalizeSettings,引用点跟随(4 文件),原名留 @deprecated 别名一版防并行会话在途引用崩;② 注册表改 Record<Channel | 'default', Profile | null> 穷尽表(wb: null 已登记缺口,新渠道进 KNOWN_CHANNELS 编译期逼决策),getScreeningProfile 对 null 位抛「已登记缺口」;存量持久化 'default'/'ozon' 均为合法键零迁移;测试补 wb 缺口用例;两条账目销账。",
+  "constraints": ["settings-normalize 保持 type-only 依赖性质(tests/channel-resolution-total.test.ts 钉住,不引运行时 Channel 常量——类型 import type 可以)"],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/settings-normalize.ts",
+        "src/shared/storage-settings.ts",
+        "tests/pricing-defaults.test.ts",
+        "tests/settings-store-rename.test.ts",
+        "src/domain/image-screening/registry.ts",
+        "src/domain/image-screening/types.ts",
+        "src/domain/image-screening/profiles/default.ts",
+        "src/domain/image-screening/profiles/ozon.ts",
+        "tests/image-screening-profile-resolution.test.ts",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "src/shared/settings-normalize.ts",
+        "src/shared/storage-settings.ts",
+        "tests/pricing-defaults.test.ts",
+        "tests/settings-store-rename.test.ts",
+        "src/domain/image-screening/registry.ts",
+        "src/domain/image-screening/types.ts",
+        "src/domain/image-screening/profiles/default.ts",
+        "src/domain/image-screening/profiles/ozon.ts",
+        "tests/image-screening-profile-resolution.test.ts",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "归一化入口新名生效且旧名引用清零(别名仅保过渡)",
+    "筛图注册表穷尽化,wb 缺口显式,持久化兼容零迁移",
+    "typecheck + check:deps + 相关测试通过,两条账目移入已还"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npx vitest run tests/settings-store-rename.test.ts tests/pricing-defaults.test.ts tests/image-screening-profile-resolution.test.ts tests/channel-resolution-total.test.ts"
+    }
+  ]
+}

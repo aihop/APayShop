@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "dev-sync-jsonb-overload",
+  "title": "dev-sync SQL 插值修复:jsonb 对象经 sql.json() 传参",
+  "problem": "dev-sync.ts(今晨 cb6b38d 新增)三个 insert 模板把标量与 Record<string,unknown> 的 ::jsonb 插值混在同一 tagged template,postgres.js 重载把参数收窄成 never → TS2769 新增类型错误,check-theme-typecheck 门禁正确拦截,连带挡住所有 check-qingpu-all 消费方。邻会话 qingpu-ai-fe 定位根因并确认不在其契约范围。",
+  "expectedOutcome": "四处 jsonb 插值改 sql.json(x)(sku.codes.ts 既有惯例),类型检查恢复绿;SQL 语义不变。",
+  "constraints": ["不动 vendor(另一会话在途 0.7.251 未提交改动);不改 dev-sync 业务逻辑"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/dev-sync.ts"],
+      "claims": ["server/listing/dev-sync.ts"]
+    }
+  ],
+  "acceptanceCriteria": ["check-theme-typecheck 通过(基线不增)", "主题守卫总闸通过"],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/dev-sync.ts"]
+    }
+  ]
+}

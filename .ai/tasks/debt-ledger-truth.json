@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "debt-ledger-truth",
+  "title": "债务账本对账:销 T5 已还项,修正两处过时记录",
+  "problem": "债务盘点(2026-08-31)发现账实不符三处:① helpers.ts:38 渠道第二名册已于 T5(主题 1387e67)还清,账本未销(4.7 违规,我的疏漏);② §四「WB 上品链路从未真实跑通」已过时——WB 真实建卡、声明式同步 live 执行与状态收敛均已发生(08-30 实证);③ §三 说 7 个已知失败,check-all 现状为 5 个。",
+  "expectedOutcome": "三处账本记录与现实对齐;不改任何代码。",
+  "constraints": ["纯账本修正,零代码"],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["docs/tech-debt-map.md"],
+      "claims": ["docs/tech-debt-map.md"]
+    }
+  ],
+  "acceptanceCriteria": ["账本三处修正落档,主题守卫总闸通过"],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["docs/tech-debt-map.md"]
+    }
+  ]
+}
