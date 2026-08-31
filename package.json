@@ -3,11 +3,11 @@
   "version": "1.0.1",
   "main": "index.js",
   "scripts": {
-    "prebuild": "npm run check:qingpu-listing-publish-facts && npm run check:qingpu-listing-layout && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate && npm run check:qingpu-asset-upload-contract && npm run check:qingpu-unified-listing-workflow",
+    "prebuild": "npm run check:external-proxy-allowlist && npm run check:qingpu-listing-publish-facts && npm run check:qingpu-listing-layout && npm run check:qingpu-employee-access-gate && npm run check:qingpu-quota-gate && npm run check:qingpu-asset-upload-contract && npm run check:qingpu-unified-listing-workflow",
     "build": "node scripts/run-nuxt-build.mjs",
     "build-pg": "unset DATABASE_URL && DB_DIALECT=postgresql yarn build",
     "predev": "node scripts/reset-theme-manifest.mjs && node --env-file-if-exists=.env scripts/generate-theme-build.mjs",
-    "dev": "ulimit -n 65536; NODE_OPTIONS='--max-old-space-size=32768' nuxt dev --host 127.0.0.1 --env-file=.env --port 5400",
+    "dev": "ulimit -n 65536; NODE_OPTIONS='--max-old-space-size=32768' nuxt dev --host 192.168.1.88 --env-file=.env --port 5400",
     "generate": "nuxt generate",
     "preview": "nuxt preview --port 5400",
     "postinstall": "node scripts/generate-theme-build.mjs --all && nuxt prepare",
@@ -39,7 +39,11 @@
     "check:qingpu-asset-upload-contract": "node app/themes/qingpu/scripts/check-asset-upload-contract.mjs",
     "check:qingpu-unified-listing-workflow": "node app/themes/qingpu/scripts/check-unified-listing-workflow.mjs",
     "check:seo": "node --experimental-strip-types scripts/check-seo.mjs",
-    "check:qingpu-all": "node app/themes/qingpu/scripts/check-all.mjs"
+    "check:external-proxy-allowlist": "node scripts/check-external-proxy-allowlist.mjs",
+    "check:qingpu-all": "node app/themes/qingpu/scripts/check-all.mjs",
+    "dev:pull": "node app/themes/qingpu/scripts/dev-sync.mjs pull",
+    "dev:push": "node app/themes/qingpu/scripts/dev-sync.mjs push",
+    "dev:sync": "node app/themes/qingpu/scripts/dev-sync.mjs"
   },
   "keywords": [],
   "author": "",
