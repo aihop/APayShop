@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "category-slot-b1",
+  "title": "类目单槽 B1:商品行三列退役轨道,读者改读 categoryHints 渠道槽",
+  "problem": "账本§一首条(用户批 B1):商品行 category_id/type_id/name 是渠道无关单槽,WB 选类目覆盖 Ozon(违 multi-channel-mapping line 54/270);权威渠道槽(categoryHints.selectedOzonCategoryId 等/selectedWbSubjectId 等)已双写。另佣金重解析条:patch.category 分支 getCommissionMatcher('ozon') 与 binding channel 写死。",
+  "expectedOutcome": "写点停写三列(hints/context 双写早已存在);列表两查询附渠道槽子查询,投影层按商品主渠道(草稿归属序,resolveQualityChannel 同口径)解析,槽空回落旧列(退役期);ozon-catalog 三处改读 ozon 槽回落旧列;佣金重解析与学习事件按 channel 参数选槽/matcher/binding(顺路销佣金重解析账);列表 API 字段名不变前端零改;读者清零后删列另收尾。",
+  "constraints": [
+    "零批量数据迁移;WB matcher 现返回 null 天然跳过佣金解析(实现另案);API 形状不变",
+    "顺手修复:无主在途改动引入的 TS7006(orderId 类型标注一行,零逻辑变化;归属不明,交付时报告用户)",
+    "止血修复(用户报障授权):在途改动的 useLocaleCurrency 相对路径错一层致 vite-node SSR 崩(全站 500),改 ~/ 别名一行修复"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/queries.workspace.ts",
+        "server/listing/queries.products.ts",
+        "server/listing/helpers.ts",
+        "server/listing/ozon-catalog.ts",
+        "docs/tech-debt-map.md",
+        "components/QingpuSubscriptionPlans.vue",
+        "components/QingpuTrialEntry.vue",
+        "tests/tech-debt-ledger.test.ts",
+        "scripts/check-channel-default-whitelist.mjs"
+      ],
+      "claims": [
+        "server/listing/queries.workspace.ts",
+        "server/listing/queries.products.ts",
+        "server/listing/helpers.ts",
+        "server/listing/ozon-catalog.ts",
+        "docs/tech-debt-map.md",
+        "components/QingpuSubscriptionPlans.vue",
+        "components/QingpuTrialEntry.vue",
+        "tests/tech-debt-ledger.test.ts",
+        "scripts/check-channel-default-whitelist.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WB 选类目不再覆盖 Ozon 展示(槽隔离,真库 SQL 验证)",
+    "零写三列(grep 佐证)",
+    "主题守卫总闸通过",
+    "两账销记"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "server/listing/queries.workspace.ts"
+      ]
+    }
+  ]
+}
