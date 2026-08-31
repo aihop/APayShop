@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "compat-status-retirement",
+  "title": "compat 第三套状态词汇退役:执行判断迁事实谓词,布尔对与旧 status 停写",
+  "problem": "账本最大件:product.status 旧词汇(new/translated/images_ready/ready)+translationsDone/imagesDone 布尔对,与权威 preprocessStatus/DraftReadinessSnapshot 并存的第三套词汇。侦察实锤:布尔是派生缓存(翻译=收集无缺口,图片=图集有产物),status 是布尔汇总;云端 sync 零携带、theme 仅类型填充 false、derive 全走事实——退役无外部障碍。活触点:stations 收尾(唯一 status 执行判断,退役后整函数无副作用)、processing 收尾三行、editor 两处、翻译写点两处+option、review 透传、Lite 门控四处、presenter 图片徽章、defaults/types。",
+  "expectedOutcome": "engine 新增 hasProcessedProductImages 谓词(images done 或发布队列非 original 产物,与 Dash 未处理图判据族同源)并出口;Lite 门控改问 hasAnyTranslationNeed(有缺口才翻,语义更诚实);presenter 徽章改问新谓词;finalizeGenerateModeProducts 整体退役(调用点删,展示由 deriveListingPreprocessStatus 天然正确);processing 收尾删字段写保留 workspace 合并职责;翻译写点停写并退役 updateProductCompletion option;三字段 types 转 optional @deprecated、defaults 停填(存量数据留置,读侧零依赖由编译器兜底);check-deps 加 compat-status-retirement 守卫禁新增读写;账本销账。",
+  "constraints": [
+    "行为语义变化仅限:Lite 翻译门控由「翻过即跳」升级为「无缺口才跳」;其余展示/执行结果等价",
+    "存量 storage 数据不清洗"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/review-workflow.ts",
+        "src/app/workflows/image-processing-workflow.ts",
+        "src/app/workflows/image-editor-workflow.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/domain/products/types.ts",
+        "src/domain/products/defaults.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/automation-partial-failure.test.ts",
+        "tests/compat-status-retirement.test.ts",
+        "docs/tech-debt-map.md",
+        "src/app/workflows/dashboard-runtime-sync-workflow.ts",
+        "tests/dashboard-runtime-sync.test.ts",
+        "tests/product-text-translation-rounds.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/review-workflow.ts",
+        "src/app/workflows/image-processing-workflow.ts",
+        "src/app/workflows/image-editor-workflow.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/domain/products/types.ts",
+        "src/domain/products/defaults.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/automation-partial-failure.test.ts",
+        "tests/compat-status-retirement.test.ts",
+        "docs/tech-debt-map.md",
+        "src/app/workflows/dashboard-runtime-sync-workflow.ts",
+        "tests/dashboard-runtime-sync.test.ts",
+        "tests/product-text-translation-rounds.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "全仓零 translationsDone/imagesDone/status 旧词汇读写(types @deprecated 声明除外,守卫钉住)",
+    "typecheck+全量测试+构建通过(受影响断言随合同演进)",
+    "账本销账"
+  ],
+  "verification": [
+    {
+      "name": "engine 检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npm run check:deps && npm test && npm run build"
+    }
+  ]
+}
