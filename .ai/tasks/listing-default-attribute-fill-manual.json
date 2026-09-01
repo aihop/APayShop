@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-default-attribute-fill-manual",
+  "title": "将 AI 参数补齐（attributeFill）默认策略调整为不自动（manual）",
+  "problem": "用户希望工作流中的「AI 参数补齐」步骤默认不自动执行（需要手动确认触发），以避免导入商品后自动消耗大量属性补齐配额与时间。",
+  "expectedOutcome": "1. qingpu-ai 中 DEFAULT_LISTING_TASK_STRATEGY 与 normalizeListingTaskStrategy 将 attributeFill 默认值设为 'manual'；\n2. qingpu-ai 中 DEFAULT_AUTOMATION 与 normalizeAutomationConfig 将 attributeFill 设为 'manual'；\n3. 执行 npm run engine:release 发布新版本 engine vendor 到 theme；\n4. theme 中 settings.vue 默认策略对齐为 'manual'；\n5. 专项单元测试验证通过。",
+  "constraints": [
+    "保持用户显式配置的覆盖优先级高于默认值",
+    "严格执行跨仓 engine:release 流程同步三端口径",
+    "不破坏其他 4 个步骤的默认行为"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/domain/settings/automation.ts",
+        "src/shared/settings-normalize.ts",
+        "src/components/TaskStrategyModal.vue",
+        "entrypoints/dash/composables/useDashPublishFlow.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "src/domain/settings/automation.ts",
+        "src/shared/settings-normalize.ts",
+        "src/components/TaskStrategyModal.vue",
+        "entrypoints/dash/composables/useDashPublishFlow.ts",
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/settings.vue",
+        "server/vendor/qingpu-engine/**",
+        "tests/default-attribute-fill-manual.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/settings.vue",
+        "server/vendor/qingpu-engine/**",
+        "tests/default-attribute-fill-manual.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "normalizeListingTaskStrategy({}) 返回 attributeFill: 'manual'",
+    "DEFAULT_LISTING_TASK_STRATEGY.attributeFill 为 'manual'",
+    "engine vendor 成功发布并同步到 theme",
+    "所有测试通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 工作流策略测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-graph.test.ts"
+    },
+    {
+      "name": "theme 默认策略与 vendor 对齐专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/default-attribute-fill-manual.test.ts"
+    }
+  ]
+}

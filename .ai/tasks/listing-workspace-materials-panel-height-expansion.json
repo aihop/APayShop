@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-materials-panel-height-expansion",
+  "title": "Workspace 素材图面板高度大幅扩展与默认大图视图及无视频紧凑化",
+  "problem": "在 Admin 抽屉或工作台中，素材图面板仍然偏矮，且底部无视频时占据额外高度，3列默认排布使得单图过小，导致素材图可视区域依然受限。",
+  "expectedOutcome": "1. WorkspaceMaterialsPanel 卡片最小高度提升至 min-h-[640px] lg:min-h-[760px]，内部图片容器最小高度提升至 min-h-[500px] lg:min-h-[680px]，最大滚动高度提升至 lg:max-h-[1050px]；\n2. 默认采用 columnsMode = '2'（2列大图视图），让每张素材图更大更清晰；\n3. 当无货源视频时（sourceVideos 为空），不占据大块空占位空间，将全部垂直空间留给素材图；\n4. 专项测试通过。",
+  "constraints": [
+    "保持所有拖拽排序、参考图选择、生图、修图所有交互与状态徽标不变",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WorkspaceMaterialsPanel 卡片最小高度达到 min-h-[640px] lg:min-h-[760px]",
+    "素材图容器最小高度达到 min-h-[500px] lg:min-h-[680px]，滚动高度上限提升至 1050px",
+    "默认采用 2 列大图排布",
+    "无货源视频时避免空白占位",
+    "专项测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "素材图面板布局与视图切换专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-materials-panel-layout.test.ts"
+    }
+  ]
+}

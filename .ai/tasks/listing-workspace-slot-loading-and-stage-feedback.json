@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-slot-loading-and-stage-feedback",
+  "title": "优化工作台卡位生图动态 Loading 动画与实时 Stage 进度联动",
+  "problem": "工作台在执行蓝图生图时，markEmptySlotsGenerating 仅标记了空槽位，已有历史图的槽位重跑时继续显示静态旧图；轮询时反复重置 loading 态；且 stages 变量未消费后端的 stage/progress，导致卡位与顶部缺少生图动画和进度感知。",
+  "expectedOutcome": "1. 全量或槽位生图期间，所有正在生成的槽位均显示 Loading 动效（无图空槽显示脉冲加载框，已有图槽位显示半透明磨砂蒙层 + 居中 Spinner，避免卡位看起来卡死）；\n2. 轮询时保持活跃生成槽位状态，单图完成后即时解除该槽位 loading；\n3. 联动后端任务的 stage 与 progress 动态更新顶部阶段指示条（stages）；\n4. 补充相关单测并通过全部守卫。",
+  "constraints": [
+    "保持渠道中立性",
+    "不引入跨域 SQL 访问",
+    "所有测试与守卫全部通过"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts",
+        "pages/user/listing/components/workspace/WorkspaceResultsPanel.vue",
+        "tests/workspace-slot-loading-feedback.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts",
+        "pages/user/listing/components/workspace/WorkspaceResultsPanel.vue",
+        "tests/workspace-slot-loading-feedback.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "蓝图生图与单槽生图时卡位显示即时加载动画",
+    "已有图槽位重生成时显示半透明磨砂遮罩 Loading，新图入库后实时解除",
+    "顶部 stages 标签与任务 stage/progress 实时联动",
+    "单元测试与全仓守卫全部通过"
+  ],
+  "verification": [
+    {
+      "name": "卡位生图 Loading 与阶段联动单测",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-slot-loading-feedback.test.ts tests/workspace-auto-image-chain.test.ts tests/workspace-shell-lossless-split.test.ts"
+    }
+  ]
+}

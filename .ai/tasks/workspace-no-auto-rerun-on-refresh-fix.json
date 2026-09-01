@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "workspace-no-auto-rerun-on-refresh-fix",
+  "title": "修复工作台页面刷新或载入详情时重复自动执行已执行过或失败任务的问题",
+  "problem": "用户在工作台页面（/user/listing/workspaces/...）每次刷新页面时，handleDetailAppliedAutoTrigger 会自动重新触发已经执行过或失败的任务。按业务逻辑，已经执行过的任务（无论成功还是失败）绝不应该在页面刷新时重复自动执行，必须由用户显式手动点击触发。",
+  "expectedOutcome": "1. handleDetailAppliedAutoTrigger 增加严格的已执行历史门禁：只要工作流节点已有执行记录（executionStatus !== 'never_run' 或 attemptCount > 0），载入详情与页面刷新时坚决不自动触发执行；\n2. 失败与待补齐节点的重试严格保留在用户手动点击主按钮或步骤按钮；\n3. 专项单元测试与工程守卫全量通过。",
+  "constraints": [
+    "保持用户首次在类目选择器选定类目时的正常初次流水线推进",
+    "保持用户手动点击顶部主按钮或 Checklist 步骤时的执行功能",
+    "所有单测与守卫全绿"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "tests/workspace-no-auto-rerun-on-refresh.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "tests/workspace-no-auto-rerun-on-refresh.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "工作台页面刷新或载入详情时，已执行过或失败的节点不会自动触发任务",
+    "全新导入且从未执行过的节点在首次选定类目时仍可正常发起初次自动链",
+    "用户手动点击执行/重试按钮不受影响",
+    "相关单元测试与工程守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-theme 工作台自动流水线防重复执行测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-no-auto-rerun-on-refresh.test.ts tests/listing-attribute-readiness-non-blocking.test.ts"
+    }
+  ]
+}

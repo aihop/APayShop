@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-ozon-sku-required-aspects-and-dict-proof",
+  "title": "三端口径统一：完善 Ozon SKU 必填规格轴状态校验并修复字典证明类目资源命中",
+  "problem": "1. inspectOzonVariants 遗漏了 is_aspect 且 required 的必填规格属性（如商品颜色*）判定，导致必填属性为空时 SKU 状态仍误显为「正常」；\n2. proveOzonDraftDictionaryValuesForUser 未优先命中 resources.dictionaryValues 中已有的官方字典事实，且因中文 query 检索俄文字典失败导致原产国「中国」、连接器「USB Type-C」等合法字典值被误判阻断。",
+  "expectedOutcome": "1. qingpu-ai 引擎中 inspectOzonVariants 正确识别必填规格轴缺失，将状态置为 missing_aspect 并展示「缺必填属性」与缺失提示；\n2. 发布新版本 engine vendor，三端口径统一；\n3. qingpu-theme 中 proveOzonDraftDictionaryValuesForUser 优先比对类目官方字典库，合法字典值直接证明通过，消除误报；\n4. 补充相关单元测试，全仓测试与守卫全部通过。",
+  "constraints": [
+    "遵循三端口径统一原则，模型与检查逻辑定义在 qingpu-ai 经 engine 出口发布",
+    "不破坏存量数据兼容性",
+    "全仓守卫与测试全绿"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "tests/domain/channel-mappers/ozon-mapper.test.ts",
+        "tests/automation-quota.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "tests/domain/channel-mappers/ozon-mapper.test.ts",
+        "tests/automation-quota.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/ozon-catalog.ts",
+        "server/vendor/qingpu-engine/**",
+        "tests/ozon-draft-credential-fallback.test.ts",
+        "tests/ozon-sku-required-aspects-validation.test.ts"
+      ],
+      "claims": [
+        "server/listing/ozon-catalog.ts",
+        "server/vendor/qingpu-engine/**",
+        "tests/ozon-draft-credential-fallback.test.ts",
+        "tests/ozon-sku-required-aspects-validation.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "SKU 行存在未填写的必填规格属性时，状态准确显示「缺必填属性」/「待补充」，不再误显为「正常」",
+    "proveOzonDraftDictionaryValuesForUser 准确证明类目资源中已有的官方字典值，不再报未通过实时校验错误",
+    "engine:release 成功发布，三端口径一致",
+    "所有单测与守卫全部通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 单测与依赖检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "qingpu-theme 单测与守卫检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/ozon-draft-credential-fallback.test.ts tests/ozon-sku-required-aspects-validation.test.ts tests/workspace-slot-loading-feedback.test.ts"
+    }
+  ]
+}

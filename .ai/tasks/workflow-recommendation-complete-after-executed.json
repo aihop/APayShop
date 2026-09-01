@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "workflow-recommendation-complete-after-executed",
+  "title": "优化工作流下一步主操作推荐：已执行过的步骤不再在主按钮中拦截，直达最后一步进入待上架",
+  "problem": "当工作流中的各步骤已经执行过后（无论部分完成、成功还是失败），下一步主推荐按钮（recommendListingWorkflowAction）仍可能停留在已执行过的步骤（如 AI 补参数、生成文案等），导致用户流程卡壳，无法直接通过主按钮进入最后一步（校验并进入待上架）。",
+  "expectedOutcome": "1. recommendListingWorkflowAction 仅对从未执行过（never_run 且 attemptCount === 0）的步骤推荐执行；\n2. 一旦工作流所有步骤均已执行过，下一步主操作直接进入流程最后一步（complete -> 校验并进入待上架 / 保存渠道草稿）；\n3. 引擎跨仓发布至 qingpu-theme vendor，两端单测与守卫全量通过。",
+  "constraints": [
+    "保持初次导入时新步骤的正常依次推荐",
+    "保持用户通过列表/卡片单独重新生成的能力",
+    "三端共享引擎版本锚点一致，零回归"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**",
+        "tests/workflow-next-step-complete.test.ts"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**",
+        "tests/workflow-next-step-complete.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "已执行过的步骤不再在主推荐按钮中重复出现，全部执行后主按钮直接显示「校验并进入待上架」",
+    "初次未执行的新步骤仍按 DAG 顺序正常推荐",
+    "qingpu-ai 与 qingpu-theme 单测与守卫全量通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "qingpu-theme 单测与守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workflow-next-step-complete.test.ts tests/workspace-no-auto-rerun-on-refresh.test.ts"
+    }
+  ]
+}

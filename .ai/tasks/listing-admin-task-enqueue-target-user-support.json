@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-admin-task-enqueue-target-user-support",
+  "title": "支持 Admin 代编辑模式下执行 AI 补参数与工作流任务（targetUserId 鉴权与参数透传）",
+  "problem": "管理员在 /admin/extensions/channel-products 代编辑用户商品（如 ai-1688-964332037992）时，执行「AI 补参数」或推进工作流任务会报错，根因在于 /api/qingpu/listing/tasks/enqueue、/tasks 列表及工作台前端调用点未支持并透传 targetUserId，导致服务端默认使用管理员本身的 userId 查找商品并返回空导致 missing task outcome 报错。",
+  "expectedOutcome": "1. /api/qingpu/listing/tasks/enqueue 支持解析 body.targetUserId（经过 requireAdmin 校验后切换为目标用户 userId 取数与入队）；\n2. /api/qingpu/listing/tasks 及 workflow 支持 query.targetUserId；\n3. useWorkspaceDetailSkuTable 与 WorkspaceShell 在入队与轮询时透传 targetUserId；\n4. fetchListingTasksShared 支持 targetUserId 过滤与缓存区分；\n5. 补充专项单元测试并验证通过。",
+  "constraints": [
+    "严格经过 requireAdmin 校验 targetUserId，非管理员无法越权操作其他用户商品",
+    "保持正常用户模式下行为与签名完全兼容",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/tasks/enqueue.ts",
+        "api/listing/tasks/index.ts",
+        "api/listing/tasks/workflow.ts",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/listing-admin-task-enqueue.test.ts"
+      ],
+      "claims": [
+        "api/listing/tasks/enqueue.ts",
+        "api/listing/tasks/index.ts",
+        "api/listing/tasks/workflow.ts",
+        "pages/user/listing/components/listingTasksFeed.ts",
+        "pages/user/listing/components/workspace/useWorkspaceDetailSkuTable.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/listing-admin-task-enqueue.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "api/listing/tasks/enqueue.ts 支持 targetUserId 经 requireAdmin 鉴权后生效",
+    "api/listing/tasks/index.ts 与 workflow.ts 支持 query.targetUserId",
+    "前端 useWorkspaceDetailSkuTable 与 WorkspaceShell 透传 targetUserId",
+    "fetchListingTasksShared 支持带 targetUserId",
+    "专项测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "Admin 任务入队与 targetUserId 校验专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/listing-admin-task-enqueue.test.ts"
+    }
+  ]
+}

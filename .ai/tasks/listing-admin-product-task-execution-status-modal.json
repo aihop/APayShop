@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-admin-product-task-execution-status-modal",
+  "title": "将商品代编辑抽屉顶部的「新窗口打开」替换为「当前商品的任务执行情况」弹窗",
+  "problem": "管理员在 /admin/extensions/channel-products 抽屉中代编辑商品时，原「新窗口打开」按钮直接跳用户端工作台缺少 targetUserId 导致打开为空，且管理员需要直观掌握当前商品所有的任务执行情况（补参数、文案、生图、重试等）。",
+  "expectedOutcome": "1. 将 AdminChannelProductEditor 顶部的「新窗口打开」替换为「任务执行情况」按钮及状态徽标；\n2. 点击弹窗展示当前商品的所有任务记录（类型、状态、进展、失败原因、更新时间）；\n3. 支持刷新与针对失败任务的一键重试（api/listing/tasks/retry 支持 targetUserId）；\n4. 补充专项单元测试并验证通过。",
+  "constraints": [
+    "严格经过 requireAdmin 鉴权",
+    "保持代码简洁优雅，无侵入性",
+    "所有测试与守卫均通过"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "admin/components/AdminChannelProductEditor.vue",
+        "api/listing/tasks/retry.ts",
+        "tests/admin-channel-product-editor-tasks.test.ts"
+      ],
+      "claims": [
+        "admin/components/AdminChannelProductEditor.vue",
+        "api/listing/tasks/retry.ts",
+        "tests/admin-channel-product-editor-tasks.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AdminChannelProductEditor 顶部新窗口打开替换为任务执行情况按钮",
+    "弹窗可清晰查看当前商品各个任务状态并支持手动重试",
+    "api/listing/tasks/retry.ts 支持 targetUserId 鉴权",
+    "专项单元测试通过"
+  ],
+  "verification": [
+    {
+      "name": "Admin 商品任务执行情况弹窗与重试专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/admin-channel-product-editor-tasks.test.ts"
+    }
+  ]
+}

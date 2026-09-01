@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-shell-workflow-submitting-ref-fix",
+  "title": "修复 WorkspaceShell 顶层 workflowStepSubmitting 响应式引用定义顺序",
+  "problem": "useWorkspaceWorkflowProjection 传入了 computed(() => workflowStepSubmitting.value)，但在组件初始化期间 workflowStepSubmitting 变量尚未在下方的 useWorkspaceAutoWorkflow 声明，导致访问 undefined.value 抛出 TypeError。",
+  "expectedOutcome": "1. 将 workflowStepSubmitting 作为顶层 Ref 在 WorkspaceShell 顶部显式声明并传入各 composables；\n2. useWorkspaceAutoWorkflow 支持接收外部传入的 workflowStepSubmitting ref；\n3. 消除进入工作区页面时的 TypeError 报错并验证通过。",
+  "constraints": [
+    "保持渠道中立性守卫通过",
+    "消除所有运行时 TypeError"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "进入工作台不抛任何 TypeError",
+    "workflowStepSubmitting 正确联动入队状态与按钮 loading",
+    "单测与守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "工作台顶层引用与无损拆分测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-shell-lossless-split.test.ts tests/workspace-auto-image-chain.test.ts tests/workspace-auto-chain-trigger.test.ts"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-materials-panel-natural-adaptive-height",
+  "title": "Workspace 素材图面板完全根据图片内容自适应总体高度",
+  "problem": "素材图面板之前使用了 flex-1、min-h-0 以及固定 max-height 嵌套滚动容器，导致在部分 flex 布局和抽屉内计算基准高度异常，容易产生塌陷；且嵌套滚动限制了素材图的大图自然展示。",
+  "expectedOutcome": "1. 移除 UCard body 与内部 grid 的 flex-1 min-h-0 与固定 max-height 限制，使素材图面板完全跟随内部图片网格自适应撑开总体高度（h-auto natural flow）；\n2. 每一个图片卡片保持 block aspect-[3/4] w-full 与 h-full w-full object-cover，确保任何浏览器下卡片高度真实饱满；\n3. 更新专项测试并验证通过。",
+  "constraints": [
+    "保持所有拖拽、选择、生图、修图等交互与状态徽标完整可用",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "移除固定 max-h 嵌套限制，实现素材图自适应总体高度",
+    "button 保持 block aspect-[3/4] w-full，img 保持 h-full w-full object-cover",
+    "保留 2列/3列视图切换功能",
+    "专项测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "素材图面板布局与视图切换专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-materials-panel-layout.test.ts"
+    }
+  ]
+}

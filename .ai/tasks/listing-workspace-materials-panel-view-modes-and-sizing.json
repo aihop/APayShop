@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-materials-panel-view-modes-and-sizing",
+  "title": "Workspace 素材图面板最小高度与 2列/3列视图切换及长图比例优化",
+  "problem": "当商品素材图较多时，左侧面板固定 3 列、1:1 方形裁切及 680px 高度限制导致图片被严重压缩与裁剪，长图（如 3:4 模特图/详情图）上下被裁切，单图尺寸过小难以辨识细节，且与右侧高内容面板缺乏高度对齐与粘性停留。",
+  "expectedOutcome": "1. WorkspaceMaterialsPanel 增加最小高度（min-h-[560px]）与 lg:max-h-[820px] 视口高度提升，并支持大屏 sticky 粘性停留；\n2. 缩略图优化为电商标准 3:4 比例与灰底承托（aspect-[3/4] object-cover bg-gray-100/dark:bg-white/5），避免长图严重裁头裁尾；\n3. 头部增加「大图 (2列) / 紧凑 (3列)」视图切换按钮，支持根据需求自由选择；\n4. 补充专项测试并验证。",
+  "constraints": [
+    "保持所有拖拽排序、参考图选择、单图生成与修图事件契约不变",
+    "不修改数据表结构与持久化层",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WorkspaceMaterialsPanel 卡片包含 min-h 最小高度保障与 lg:sticky 粘性停留",
+    "素材图容器支持 2 列与 3 列视图切换响应式网格",
+    "缩略图采用 aspect-[3/4] 标准比例与优化底色",
+    "保留拖拽、选参考、生图、修图所有交互与状态徽标",
+    "专项测试通过"
+  ],
+  "verification": [
+    {
+      "name": "素材图面板布局与视图切换专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-materials-panel-layout.test.ts"
+    }
+  ]
+}

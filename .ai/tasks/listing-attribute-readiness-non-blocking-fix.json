@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-attribute-readiness-non-blocking-fix",
+  "title": "优化工作台 AI 参数补齐准备度提示：非必填属性不报阻塞并准确展示已填与剩余项数",
+  "problem": "工作台准备度横条在 AI 参数补齐（attributes）未填满全部选填属性或执行异常时，仍错误显示为「阻塞：AI 参数补齐」。实际上非必填属性绝不阻塞工作台推进与上架，应明确展示已补多少、还剩多少，消除阻塞误导。",
+  "expectedOutcome": "1. useWorkspaceWorkflowProjection 中将尽力而为（best-effort）的 attributes 节点排除在 hard blocker（readinessBlockers）之外，绝不输出「阻塞：AI 参数补齐」；\n2. WorkspaceReadinessSummary 准确呈现参数补齐进度（已填 X/共 Y 项，还剩 Z 项），明确提示非必填属性不阻断上架；\n3. 相关单测与工程守卫（check-listing-attribute-state 等）全量通过。",
+  "constraints": [
+    "保持尽力而为节点的编排放行语义一致",
+    "不影响真实阻塞项（如确认类目、主图缺失等）的正常告警",
+    "全仓守卫与测试全绿"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceWorkflowProjection.ts",
+        "pages/user/listing/components/workspace/WorkspaceReadinessSummary.vue",
+        "tests/listing-attribute-readiness-non-blocking.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceWorkflowProjection.ts",
+        "pages/user/listing/components/workspace/WorkspaceReadinessSummary.vue",
+        "tests/listing-attribute-readiness-non-blocking.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AI 参数补齐存在未填项或非必填缺口时，顶部横条不再提示「阻塞：AI 参数补齐」",
+    "顶部横条与状态标签准确展示「已填 X/总 Y · 未填 Z」，并提示非必填不阻断上架",
+    "check-listing-attribute-state 守卫与专项单测全部通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-theme 属性状态守卫与单测",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-attribute-state.mjs && npx vitest run tests/listing-attribute-readiness-non-blocking.test.ts"
+    }
+  ]
+}

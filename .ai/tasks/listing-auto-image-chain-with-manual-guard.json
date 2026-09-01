@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-auto-image-chain-with-manual-guard",
+  "title": "全自动流水线支持智能生图自动接力执行且严格遵守手动策略",
+  "problem": "当智能生图策略为 auto 时，文案链执行完毕后没有自动接力启动生图，需要用户手动点击；同时若策略设置为 manual 时必须严格遵守由用户手动执行，不得误自动触发。",
+  "expectedOutcome": "1. 当 executionMode 为 auto 且 imageGeneration 为 auto 时，文案链执行完毕或进入工作台就绪时自动启动全套蓝图生图；\n2. 当 executionMode 或 imageGeneration 为 manual 时，绝不自动触发生图，保持由用户手动点击执行；\n3. 编写单测并验证通过。",
+  "constraints": [
+    "严格遵守用户的 taskStrategy 配置（manual 模式绝不自动触发）",
+    "避免重复或并发触发生图任务"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workspace-auto-image-chain.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workspace-auto-image-chain.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "auto 模式下文案完成后自动接力生图",
+    "manual 模式下保持手动执行不自启",
+    "单测通过"
+  ],
+  "verification": [
+    {
+      "name": "生图自动接力与手动保护专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-auto-image-chain.test.ts"
+    }
+  ]
+}

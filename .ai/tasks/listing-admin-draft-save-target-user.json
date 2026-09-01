@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-admin-draft-save-target-user",
+  "title": "修复后台管理员代客保存渠道草稿及图片操作时的 targetUserId 透传与鉴权",
+  "problem": "在后台 /admin/extensions/channel-products 代客编辑商品并保存到渠道草稿时，/api/qingpu/listing/drafts 未支持 targetUserId 导致以管理员 userId 查库抛出 product not found (422) 错误。",
+  "expectedOutcome": "1. api/listing/drafts.ts 支持 targetUserId，在管理员权限校验通过后以目标用户身份构建并保存渠道草稿；\n2. useWorkspaceGalleryImageTasks.ts 在 submitDraft 等操作中附带 targetUserId；\n3. api/listing/images 相关接口对齐 targetUserId 管理员透传；\n4. 补充专项单元测试并通过契约验证。",
+  "constraints": [
+    "普通用户不能冒用他人 targetUserId（必须经 requireAdmin 鉴权）",
+    "保持保存渠道草稿的四层模型与就绪账本一致性"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "api/listing/drafts.ts",
+        "api/listing/images/generate.ts",
+        "api/listing/images/regenerate.ts",
+        "api/listing/images/assign.ts",
+        "api/listing/images/delete.ts",
+        "api/listing/images/restore.ts",
+        "api/listing/images/reorder.ts",
+        "api/listing/images/select-version.ts",
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts",
+        "tests/admin-draft-save-target-user.test.ts"
+      ],
+      "claims": [
+        "api/listing/drafts.ts",
+        "api/listing/images/generate.ts",
+        "api/listing/images/regenerate.ts",
+        "api/listing/images/assign.ts",
+        "api/listing/images/delete.ts",
+        "api/listing/images/restore.ts",
+        "api/listing/images/reorder.ts",
+        "api/listing/images/select-version.ts",
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts",
+        "tests/admin-draft-save-target-user.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "api/listing/drafts.ts 支持并在管理员模式下使用 targetUserId 保存草稿",
+    "useWorkspaceGalleryImageTasks.ts submitDraft 传递 targetUserId",
+    "测试用例全部通过"
+  ],
+  "verification": [
+    {
+      "name": "管理员保存草稿 targetUserId 专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/admin-draft-save-target-user.test.ts"
+    }
+  ]
+}

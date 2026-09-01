@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-materials-panel-button-aspect-ratio-fix",
+  "title": "修复 Workspace 素材图 button 元素高度塌陷为扁平条状的问题",
+  "problem": "在浏览器（如 Chrome/Blink）中，grid 内的 <button> 元素默认未声明 block 与 aspect-ratio，导致仅在内部 <img> 上设置 aspect-[3/4] 时被浏览器按钮格式化上下文压缩成仅 30px 高的扁平条状缝隙。",
+  "expectedOutcome": "1. 将 block aspect-[3/4] w-full 显式挂载在 <button> 容器本身，并保证 <img> 采用 h-full w-full object-cover 填满容器；\n2. 骨架屏容器同步显式设置 aspect-[3/4] w-full；\n3. 更新并运行专项测试验证。",
+  "constraints": [
+    "保持所有拖拽、选择、生图、修图等交互事件与徽章位置不变",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "button 元素显式包含 block aspect-[3/4] w-full 属性与类名",
+    "img 元素包含 h-full w-full object-cover",
+    "骨架屏包含 aspect-[3/4] w-full",
+    "专项测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "素材图面板布局与视图切换专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-materials-panel-layout.test.ts"
+    }
+  ]
+}

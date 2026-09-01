@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-shell-lossless-split",
+  "title": "WorkspaceShell.vue 共享编排无损拆分重构",
+  "problem": "WorkspaceShell.vue 单文件超过 1300 行，聚合了工作流推进、店铺教程、详情保存、视频引用与多个模态弹窗，需要无损拆分以提高可维护性。",
+  "expectedOutcome": "1. 抽离 useWorkspaceStoreTutorial、useWorkspaceAutoWorkflow、useWorkspaceProductDetailSave、useWorkspaceVideoReference 4 个 Composables；\n2. 抽离 WorkspaceStoreTutorialModal、WorkspacePricingSlideover 2 个轻量子组件；\n3. WorkspaceShell.vue 行数收敛至 400-500 行，保持 100% 响应式与中立守卫通过；\n4. 编写专项单测并验证全绿。",
+  "constraints": [
+    "保持渠道中立性守卫（check-workspace-shell-neutrality.mjs）通过",
+    "保持所有既有响应式数据流与双向绑定完全无损"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/useWorkspaceStoreTutorial.ts",
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "pages/user/listing/components/workspace/useWorkspaceProductDetailSave.ts",
+        "pages/user/listing/components/workspace/useWorkspaceVideoReference.ts",
+        "pages/user/listing/components/workspace/WorkspaceStoreTutorialModal.vue",
+        "pages/user/listing/components/workspace/WorkspacePricingSlideover.vue",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/useWorkspaceStoreTutorial.ts",
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "pages/user/listing/components/workspace/useWorkspaceProductDetailSave.ts",
+        "pages/user/listing/components/workspace/useWorkspaceVideoReference.ts",
+        "pages/user/listing/components/workspace/WorkspaceStoreTutorialModal.vue",
+        "pages/user/listing/components/workspace/WorkspacePricingSlideover.vue",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "WorkspaceShell.vue 精简并保持所有功能正常",
+    "check-workspace-shell-neutrality.mjs 通过",
+    "所有单测通过"
+  ],
+  "verification": [
+    {
+      "name": "WorkspaceShell 拆分专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-shell-lossless-split.test.ts"
+    }
+  ]
+}

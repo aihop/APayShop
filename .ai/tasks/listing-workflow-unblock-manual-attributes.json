@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workflow-unblock-manual-attributes",
+  "title": "解耦手动补参对自动工作流与顶部主按钮的阻塞",
+  "problem": "当 AI 补参数设为手动（manual）时，由于 DAG 依赖与主按钮推荐器将未执行的 manual 补参视为未满足的前置依赖与推荐步骤，导致自动链断流、主按钮卡在「执行 AI 补参数」无法直达文案与发布。",
+  "expectedOutcome": "1. listing-workflow-graph.ts 中 after_settled 依赖模式与自动链规划支持跳过未启用的 manual 补参节点，自动连贯执行 translate_facts -> translate -> copy；\n2. deriveListingWorkflowNodeState 对 after_settled 仅在依赖项处于 running/queued 时等待；\n3. recommendListingWorkflowAction 在 attributes 为 manual 时不阻断下游可自动执行节点和草稿提交动作；\n4. 跨仓发布 engine:release 并补充单元测试验证通过。",
+  "constraints": [
+    "保持用户显式手动单步执行 attributes 时的正常依赖检查",
+    "严格执行跨仓 engine:release 流程同步三端口径",
+    "不破坏其他节点的依赖与发布校验规则"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/listing-workflow-graph.ts",
+        "tests/listing-workflow-graph.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**",
+        "tests/listing-workflow-unblock-manual-attributes.test.ts"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**",
+        "tests/listing-workflow-unblock-manual-attributes.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "attributeFill 为 manual 时，content 意图规划出 [translate_facts, translate, copy]",
+    "attributeFill 为 manual 时，recommendListingWorkflowAction 不阻塞推荐文案或草稿提交",
+    "所有测试通过并完成契约验证"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 手动补参解耦测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-graph.test.ts"
+    },
+    {
+      "name": "qingpu-theme 工作流主按钮与自动链解耦测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/listing-workflow-unblock-manual-attributes.test.ts"
+    }
+  ]
+}

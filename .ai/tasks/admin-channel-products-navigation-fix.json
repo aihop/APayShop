@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-channel-products-navigation-fix",
+  "title": "修复管理员在待上架管理中协助用户提交上架后跳转到用户前台页面的问题",
+  "problem": "管理员在 /admin/extensions/channel-products 页面协助用户管理数据并提交上架草稿后，提示「前往待上架查看」点击后错误跳转到了普通用户的前台页面 /user/listing/channels，而不是管理员自身的 /admin/extensions/channel-products 页面。",
+  "expectedOutcome": "当处于管理员代编辑模式或管理员路由上下文时，提交草稿成功后的「前往待上架查看」动作正确跳转至管理员待上架管理页 /admin/extensions/channel-products 并带上对应商品筛选参数；普通用户访问时保持原有的 /user/listing/channels 跳转逻辑。",
+  "constraints": [
+    "保持用户端与管理员端路由判定清晰明确，不影响用户正常跳转",
+    "所有单测与守卫全部通过"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts",
+        "tests/admin-channel-products-navigation.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceGalleryImageTasks.ts",
+        "tests/admin-channel-products-navigation.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "管理员在 /admin/extensions/channel-products 提交渠道草稿后，「前往待上架查看」跳转到管理员待上架管理页",
+    "普通用户在 /user/listing/workspaces 提交渠道草稿后，「前往待上架查看」仍跳转到用户端待上架页",
+    "相关单元测试与工程守卫全部通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-theme 单测与守卫检查",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/admin-channel-products-navigation.test.ts tests/ozon-sku-required-aspects-validation.test.ts"
+    }
+  ]
+}

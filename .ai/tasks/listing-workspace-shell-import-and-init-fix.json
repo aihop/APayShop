@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-shell-import-and-init-fix",
+  "title": "修复 WorkspaceShell 浏览器切片导出与初始化 TDZ 错误",
+  "problem": "1. useWorkspaceAutoWorkflow.ts 错误从 browser.js 导入了未导出的 isListingWorkflowNodeKey 导致 SyntaxError；\n2. WorkspaceShell.vue 中 useWorkspaceGalleryImageTasks 传参时直接引用了下方定义的 handleChainSettled 导致 TDZ 初始化错误。",
+  "expectedOutcome": "1. useWorkspaceAutoWorkflow.ts 使用 browser.js 导出的 LISTING_WORKFLOW_NODE_KEYS 定义判断守卫；\n2. WorkspaceShell.vue 将回调包装为箭头函数闭包，消除 TDZ 初始化问题；\n3. 验证通过且无运行时错误。",
+  "constraints": [
+    "保持渠道中立性守卫通过",
+    "消除所有语法与运行时 TDZ 错误"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/useWorkspaceAutoWorkflow.ts",
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "browser.js 模块导入合法无 SyntaxError",
+    "handleChainSettled 闭包调用无 TDZ 初始化错误",
+    "单测与守卫全绿"
+  ],
+  "verification": [
+    {
+      "name": "WorkspaceShell 修复与无损拆分测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-shell-lossless-split.test.ts tests/workspace-auto-image-chain.test.ts tests/workspace-auto-chain-trigger.test.ts"
+    }
+  ]
+}

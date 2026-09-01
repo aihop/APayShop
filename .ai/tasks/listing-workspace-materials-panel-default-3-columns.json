@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-materials-panel-default-3-columns",
+  "title": "Workspace 素材图面板恢复默认一行 3 列（3列紧凑视图）",
+  "problem": "用户需求将素材图面板的默认排布调整回一行 3 个（3列视图），同时保留 2 列与 3 列手动切换能力以及自适应高度。",
+  "expectedOutcome": "1. WorkspaceMaterialsPanel.vue 中 columnsMode 默认值调整为 '3'（一行3个）；\n2. 保留 2 列大图与 3 列切换按钮和图片高度自适应撑开；\n3. 更新专项测试并验证通过。",
+  "constraints": [
+    "保留 2/3 列切换能力与自适应高度",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceMaterialsPanel.vue",
+        "tests/workspace-materials-panel-layout.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "columnsMode 默认值为 '3'",
+    "专项测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "素材图面板布局与视图切换专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-materials-panel-layout.test.ts"
+    }
+  ]
+}

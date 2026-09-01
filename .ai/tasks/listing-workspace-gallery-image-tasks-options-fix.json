@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-gallery-image-tasks-options-fix",
+  "title": "修复 WorkspaceShell 中 useWorkspaceGalleryImageTasks 传参字段名与缺少 selectedMaterialIds 导致的运行时 TypeError",
+  "problem": "WorkspaceShell.vue 在调用 useWorkspaceGalleryImageTasks 时遗漏了 selectedMaterialIds，且将 productRevision、onChainSettled、onChainTaskSettled、onTasksUpdated 错写为 pickedProductRevision、onTaskSettled 等，导致 slotAnchorUrl computed 计算时读取 undefined.value 抛出 TypeError。",
+  "expectedOutcome": "1. 纠正 useWorkspaceGalleryImageTasks 传入的所有选项字段名（productRevision、selectedMaterialIds、onChainSettled、onChainTaskSettled、onTasksUpdated）；\n2. 修复 WorkspaceStoreTutorialModal 的 channel-label 传参；\n3. 编写单测确保所有必填 ref 字段均被正确透传，页面打开正常无报错。",
+  "constraints": [
+    "保持渠道中立性守卫通过",
+    "消除所有运行时 TypeError"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "tests/workspace-shell-lossless-split.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useWorkspaceGalleryImageTasks 传参字段名 100% 正确匹配",
+    "进入工作台页面不再抛 TypeError: Cannot read properties of undefined (reading 'value')",
+    "所有单测与守卫全绿"
+  ],
+  "verification": [
+    {
+      "name": "工作台拆分与参数完整性测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-shell-lossless-split.test.ts tests/workspace-auto-image-chain.test.ts tests/workspace-auto-chain-trigger.test.ts"
+    }
+  ]
+}

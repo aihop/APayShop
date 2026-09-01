@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-workspace-auto-chain-trigger",
+  "title": "工作台全自动流水线支持类目确认与进入自动触发",
+  "problem": "当全自动流水线开启时，用户进入工作台需要多次手动点击选类目和启动流水线，缺乏连贯的自动化闭环体验。",
+  "expectedOutcome": "1. 当全自动开启且类目未选时，自动引导类目确认；\n2. 类目选定后（或已有类目且未执行任务）自动触发 enqueueAutoChain，依次执行事实翻译、文案与生图；\n3. 编写单测并验证通过。",
+  "constraints": [
+    "尊重用户的 taskStrategy 配置（manual 模式不自动触发）",
+    "避免重复或循环触发任务队列"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryBinding.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "tests/workspace-auto-chain-trigger.test.ts"
+      ],
+      "claims": [
+        "pages/user/listing/components/workspace/WorkspaceShell.vue",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryBinding.ts",
+        "pages/user/listing/components/workspace/useWorkspaceCategoryPicker.ts",
+        "tests/workspace-auto-chain-trigger.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "类目选定后支持自动触发流水线",
+    "单测通过"
+  ],
+  "verification": [
+    {
+      "name": "工作台全自动流水线专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/workspace-auto-chain-trigger.test.ts"
+    }
+  ]
+}

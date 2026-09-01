@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-admin-product-task-popover-and-product-filter",
+  "title": "使用 Popover 展示商品任务执行情况并支持按 productId 查询所有历史任务",
+  "problem": "用户希望在代编辑抽屉中直接通过 Popover 悬浮/弹出查看当前商品的任务执行情况，且后端需要支持按 productId 过滤以完整获取该商品以往执行的所有任务（避免被全局列表的前 50 条截断或遗漏历史记录）。",
+  "expectedOutcome": "1. server/tasks/queries.ts 的 listTasksByUser 与 countTasksByUser 支持 filters.productId 条件；\n2. api/listing/tasks/index.ts 支持 query.productId 参数并传递给 query 层；\n3. AdminChannelProductEditor 采用 UPopover 展示任务面板，并向接口传递 productId 与 targetUserId 拉取该商品全部历史任务；\n4. 补充专项单元测试并验证通过。",
+  "constraints": [
+    "保持与既有 listTasksByUser 接口向下兼容",
+    "严格经过 requireAdmin 校验 targetUserId",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/tasks/queries.ts",
+        "api/listing/tasks/index.ts",
+        "admin/components/AdminChannelProductEditor.vue",
+        "tests/admin-channel-product-editor-tasks.test.ts"
+      ],
+      "claims": [
+        "server/tasks/queries.ts",
+        "api/listing/tasks/index.ts",
+        "admin/components/AdminChannelProductEditor.vue",
+        "tests/admin-channel-product-editor-tasks.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/tasks/queries.ts 支持 productId 过滤",
+    "api/listing/tasks/index.ts 支持 query.productId",
+    "AdminChannelProductEditor.vue 使用 UPopover 呈现任务执行情况",
+    "测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "Admin 商品任务 Popover 与按 productId 查询专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/admin-channel-product-editor-tasks.test.ts"
+    }
+  ]
+}
