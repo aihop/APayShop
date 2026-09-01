@@ -11,7 +11,11 @@ const alreadyHeld = process.env.APAY_BUILD_LOCK_HELD === '1'
 const releaseBuildLock = alreadyHeld ? async () => {} : await acquireBuildLock()
 
 try {
-  const childEnvironment = { ...process.env, APAY_BUILD_LOCK_HELD: '1' }
+  const childEnvironment = {
+    ...process.env,
+    APAY_BUILD_LOCK_HELD: '1',
+    NODE_OPTIONS: process.env.NODE_OPTIONS || '--max-old-space-size=8192',
+  }
   const nuxtBuildEnvironment = {
     ...childEnvironment,
     APAY_NUXT_BUILD: '1',

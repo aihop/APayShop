@@ -565,3 +565,17 @@ export const promoCommissions = mysqlTable('promo_commissions', {
   // 本套 schema 现状本就无法在严格 MySQL 上 push——如启用 MySQL 部署,先把
   // id/order_id 迁到 varchar 再补同名唯一索引
 })
+
+export const promoApplications = mysqlTable('promo_applications', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull().references(() => users.id),
+  status: varchar('status', { length: 64 }).notNull().default('pending'),
+  channelInfo: text('channel_info'),
+  contact: text('contact'),
+  reason: text('reason'),
+  reviewNote: text('review_note'),
+  reviewedByAdminId: int('reviewed_by_admin_id'),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})

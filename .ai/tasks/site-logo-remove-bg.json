@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "site-logo-remove-bg",
+  "title": "移除网站 Logo 图标的蓝紫渐变方框背景",
+  "problem": "AppHeader、AdminHeader、AppMobileMenu、AdminMobileMenu 中的 Logo 容器带有生硬的蓝紫渐变方块背景，用户需要移除该背景以展示纯粹简洁的 Logo。",
+  "expectedOutcome": "移除 Logo 容器的 bg-gradient-to-br from-cyan-500 to-purple-600 背景及硬编码白字限制，保持纯净自然的 Logo 展示与轻量 hover 缩放动画。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/AppHeader.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AdminMobileMenu.vue"
+      ],
+      "claims": [
+        "app/components/AppHeader.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AdminMobileMenu.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AppHeader、AdminHeader、AppMobileMenu、AdminMobileMenu 中移除 Logo 图标的渐变方块背景",
+    "Logo 保持自然尺寸与自适应主题色",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/AppHeader.vue app/components/AdminHeader.vue app/components/AppMobileMenu.vue app/components/AdminMobileMenu.vue"
+    }
+  ]
+}

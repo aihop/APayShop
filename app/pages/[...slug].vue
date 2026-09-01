@@ -69,7 +69,7 @@
   </NuxtErrorBoundary>
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import * as themeBuild from '~/generated/theme-build'
 
@@ -156,16 +156,32 @@ const getFilePath = (segments: string[], theme: string) => {
 
 const targetFile = computed(() => getFilePath(pathSegments.value, activeTheme.value))
 
-// ✅ 2. 同步计算当前组件
+const asyncThemePageCache = new Map<string, any>()
+const resolvePageComponent = (modOrLoader: any, key: string) => {
+  if (!modOrLoader) return null
+  if (typeof modOrLoader === 'function') {
+    if (!asyncThemePageCache.has(key)) {
+      asyncThemePageCache.set(key, defineAsyncComponent(modOrLoader))
+    }
+    return asyncThemePageCache.get(key)
+  }
+  return modOrLoader.default || modOrLoader
+}
+
+// ✅ 2. 动态/异步计算当前组件
 const activeComponent = computed(() => {
   const file = targetFile.value
   // 有主题时先查主题
   if (activeTheme.value) {
     const themePath = `../themes/${activeTheme.value}/pages/${file}`
-    if (themeBuild.themePageModules[themePath]) return (themeBuild.themePageModules[themePath] as any).default
+    const mod = themeBuild.themePageModules[themePath]
+    if (mod) return resolvePageComponent(mod, themePath)
   }
   // fallback 到 core
-  return (themeBuild.corePageModules[`../core/pages/${file}`] as any)?.default || null
+  const corePath = `../core/pages/${file}`
+  const coreMod = themeBuild.corePageModules[corePath]
+  if (coreMod) return resolvePageComponent(coreMod, corePath)
+  return null
 })
 
 const activePageKey = computed(() => `${activeTheme.value || '_core_'}:${targetFile.value}:${route.path}`)
@@ -181,19 +197,26 @@ const activeDirectoryLayout = computed(() => {
       if (activeTheme.value) {
         const themePath = `../themes/${activeTheme.value}/pages/${layoutFile}`
         const themeLayout = themeBuild.themePageModules[themePath] as any
-        if (themeLayout?.default && themeLayout.persistentDirectoryLayout === true) {
-          return {
-            component: themeLayout.default,
-            key: `${activeTheme.value}:${layoutFile}`,
+        if (themeLayout) {
+          const comp = resolvePageComponent(themeLayout, themePath)
+          if (comp) {
+            return {
+              component: comp,
+              key: `${activeTheme.value}:${layoutFile}`,
+            }
           }
         }
       }
 
-      const coreLayout = themeBuild.corePageModules[`../core/pages/${layoutFile}`] as any
-      if (coreLayout?.default && coreLayout.persistentDirectoryLayout === true) {
-        return {
-          component: coreLayout.default,
-          key: `_core_:${layoutFile}`,
+      const corePath = `../core/pages/${layoutFile}`
+      const coreLayout = themeBuild.corePageModules[corePath] as any
+      if (coreLayout) {
+        const comp = resolvePageComponent(coreLayout, corePath)
+        if (comp) {
+          return {
+            component: comp,
+            key: `_core_:${layoutFile}`,
+          }
         }
       }
     }

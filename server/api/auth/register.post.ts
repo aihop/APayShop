@@ -148,7 +148,7 @@ export default defineEventHandler(async (event) => {
     expiresAt: new Date(verifyExpiresAt * 1000),
   })
 
-  const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
+  const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}&lang=${locale}`
   const siteName = await getLocalizedSettingValue('site_name', locale, 'APay')
 
   const emailPromise = sendEmail({

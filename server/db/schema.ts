@@ -71,5 +71,6 @@ export const {
   promoAgentRelations,
   promoAgentTiers,
   promoOrderAttributions,
-  promoCommissions
+  promoCommissions,
+  promoApplications
 } = activeSchema

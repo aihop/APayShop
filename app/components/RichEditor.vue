@@ -413,7 +413,14 @@
         v-show="currentMode === 'visual'"
         class="p-4 min-h-[360px] text-gray-900 dark:text-white flex-1 overflow-y-auto"
       >
-        <EditorContent :editor="editor" />
+        <component
+          :is="EditorContentComponent"
+          v-if="EditorContentComponent && editor"
+          :editor="editor"
+        />
+        <div v-else class="h-full flex items-center justify-center text-xs text-gray-400 py-12">
+          加载编辑器中...
+        </div>
       </div>
 
       <!-- 2. Markdown Editor (with optional Split Preview) -->
@@ -471,7 +478,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, shallowRef, nextTick } from 'vue'
-import { EditorContent } from '@tiptap/vue-3'
 import { markdownToHtml, htmlToMarkdown, isMarkdownContent } from '~/utils/markdown'
 
 const props = defineProps<{
@@ -494,6 +500,7 @@ const rawMarkdown = ref(htmlToMarkdown(props.modelValue || ''))
 const compiledMarkdownHtml = computed(() => markdownToHtml(rawMarkdown.value))
 
 const editor = shallowRef<any>(null)
+const EditorContentComponent = shallowRef<any>(null)
 const markdownTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isUploadingImage = ref(false)
@@ -501,6 +508,7 @@ const isUploadingImage = ref(false)
 onMounted(async () => {
   // Dynamically import all Tiptap dependencies to keep initial bundle light
   const [
+    { EditorContent },
     { Editor, Node, textblockTypeInputRule, nodeInputRule },
     { default: Document },
     { default: Paragraph },
@@ -517,6 +525,7 @@ onMounted(async () => {
     { default: Link },
     { default: Code },
   ] = await Promise.all([
+    import('@tiptap/vue-3'),
     import('@tiptap/core'),
     import('@tiptap/extension-document'),
     import('@tiptap/extension-paragraph'),
@@ -533,6 +542,8 @@ onMounted(async () => {
     import('@tiptap/extension-link'),
     import('@tiptap/extension-code'),
   ])
+
+  EditorContentComponent.value = EditorContent
 
   // Custom CodeBlock Node with markdown input rules (```lang)
   const CodeBlock = Node.create({

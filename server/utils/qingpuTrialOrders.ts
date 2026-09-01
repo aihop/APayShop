@@ -388,22 +388,22 @@ export function formatTrialErrorMessage(error: unknown): string {
   const statusCode = (error as any)?.statusCode || (error as any)?.status
 
   if (/insufficient/i.test(message) || /余额不足/i.test(message) || /资金不足/i.test(message) || /not enough balance/i.test(message) || /quota exceeded/i.test(message)) {
-    return 'AINode 租户资金不足，无法抵扣发放试用金币（请先在 AINode 为租户充值）'
+    return '系统算力额度发放失败，请联系客服处理'
   }
   if (statusCode === 403 || /Forbidden/i.test(message) || /User unavailable/i.test(message)) {
-    return 'AINode 账户未就绪或未同步（请检查 AINode 用户及租户令牌）'
+    return '算力账户未就绪，请联系客服处理'
   }
-  if (statusCode === 409 || /Active subscription already exists/i.test(message) || /已有/i.test(message)) {
-    return '该用户已有生效套餐或余额，无法重复领取试用'
+  if (/Active subscription already exists/i.test(message)) {
+    return '该用户已有生效套餐，无法重复申请试用'
   }
   if (statusCode === 502 || /ECONNREFUSED/i.test(message) || /fetch failed/i.test(message)) {
-    return 'AINode 网关连接失败，请检查服务运行状态'
+    return '算力服务暂时不可用，请稍后重试'
   }
   if (/tenant/i.test(message) && (/not found/i.test(message) || /invalid/i.test(message) || /unauthorized/i.test(message))) {
-    return 'AINode 租户令牌无效（请检查 AI 设置中的租户 Token）'
+    return '系统算力配置异常，请联系客服处理'
   }
   if (/webhook/i.test(message) && /not configured/i.test(message)) {
-    return '系统未配置 AINode 充值/赠送 Webhook'
+    return '系统算力发放未配置，请联系客服处理'
   }
   if (/missing/i.test(message) && /expiration/i.test(message)) {
     return '试用政策快照缺失到期时间'

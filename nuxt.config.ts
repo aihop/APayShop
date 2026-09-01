@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { resolveAvailableThemes, resolveDevThemeEnv, resolveManifestFile, resolveSelectedThemes } from './scripts/theme-shared.mjs'
 import { normalizePublicProtocol, parseDomainLocales } from './shared/domainLocales'
 
@@ -61,12 +62,11 @@ const resolveNitroApiThemes = () => {
 // SEO),不影响前台 URL 前缀——要让单语言站不带 /zh 这类后缀,得在这里收窄语言表:
 //   APAY_LOCALES=zh ./build.sh <repo> <theme>        → 只有 zh,且无前缀
 //   APAY_LOCALES=zh,en APAY_DEFAULT_LOCALE=zh    → zh 无前缀,en 走 /en
-// 不设则启用 Shoply 线上既有四语言与俄语，默认 en。
 const I18N_ALL_LOCALES = [
-  { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
-  { code: 'zh', iso: 'zh-CN', file: 'zh.json', name: '简体中文' },
-  { code: 'zh-HK', iso: 'zh-HK', file: 'zh-HK.json', name: '香港繁體' },
-  { code: 'ru', iso: 'ru-RU', file: 'ru.json', name: 'Русский' },
+  { code: 'en', iso: 'en-US', files: ['en/common.json', 'en/site.json'], name: 'English' },
+  { code: 'zh', iso: 'zh-CN', files: ['zh/common.json', 'zh/site.json'], name: '简体中文' },
+  { code: 'zh-HK', iso: 'zh-HK', files: ['zh-HK/common.json', 'zh-HK/site.json'], name: '香港繁體' },
+  { code: 'ru', iso: 'ru-RU', files: ['ru/common.json', 'ru/site.json'], name: 'Русский' },
 ]
 
 const resolveI18n = () => {
@@ -179,6 +179,8 @@ export default defineNuxtConfig({
       // x.hasOwnProperty(...)，在 app config 深拷贝时会崩。统一切到更稳的 full 版本。
       klona: path.resolve(__dirname, 'node_modules/klona/full/index.mjs'),
       '#geoip-local': path.resolve(__dirname, 'server/runtime/geoipLocal.node.ts'),
+      // 客户端排除 sqlite-wasm 大二进制，所有 SQLite / D1 统一由 Nitro 服务端运行
+      '@sqlite.org/sqlite-wasm': path.resolve(__dirname, 'app/client-mocks/sqlite-wasm.ts'),
     }
     if (fs.existsSync(themesDir)) {
       resolveBuildThemes().forEach(theme => {
@@ -345,6 +347,55 @@ export default defineNuxtConfig({
             })
           })
       })
+    },
+    'vite:extendConfig'(config, { isClient }) {
+      if (isClient) {
+        if (process.env.ANALYZE === 'true' || process.env.APAY_ANALYZE === 'true') {
+          config.plugins = config.plugins || []
+          config.plugins.push(
+            visualizer({
+              filename: path.resolve(__dirname, 'stats.html'),
+              title: 'APay Client Bundle Analysis',
+              open: false,
+              gzipSize: true,
+              brotliSize: true,
+              template: 'treemap',
+            })
+          )
+        }
+
+        config.build = config.build || {}
+        config.build.rollupOptions = config.build.rollupOptions || {}
+        const prevOutput = config.build.rollupOptions.output || {}
+        const output = Array.isArray(prevOutput) ? prevOutput[0] : prevOutput
+
+        output.manualChunks = (id: string) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('prosemirror') || id.includes('tiptap') || id.includes('@tiptap')) {
+              return 'editor-vendor'
+            }
+            if (id.includes('vuedraggable') || id.includes('sortablejs')) {
+              return 'dnd-vendor'
+            }
+            if (id.includes('@tanstack/table-core')) {
+              return 'table-vendor'
+            }
+            if (id.includes('@vueuse/motion') || id.includes('motion-dom')) {
+              return 'motion-vendor'
+            }
+            if (id.includes('@iconify')) {
+              return 'icons-vendor'
+            }
+            if (id.includes('shiki') || id.includes('@shikijs')) {
+              return 'highlighter-vendor'
+            }
+            if (id.includes('zod')) {
+              return 'zod-vendor'
+            }
+          }
+        }
+        config.build.rollupOptions.output = output
+      }
     }
   },
   compatibilityDate: '2024-11-01',
@@ -401,6 +452,7 @@ export default defineNuxtConfig({
     pages: {
       'admin': false,
       'admin/index': false,
+      'admin/dashboard': false,
       'admin/login': false,
       'admin/orders': false,
       'admin/products': false,
@@ -479,11 +531,23 @@ export default defineNuxtConfig({
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('prosemirror') || id.includes('tiptap')) {
+            if (id.includes('prosemirror') || id.includes('tiptap') || id.includes('@tiptap')) {
               return 'editor-vendor'
             }
             if (id.includes('@vueuse/motion')) {
               return 'animation-vendor'
+            }
+            if (id.includes('shiki') || id.includes('@shikijs') || id.includes('mdc')) {
+              return 'highlighter-vendor'
+            }
+            if (id.includes('@iconify') || id.includes('iconify')) {
+              return 'icons-vendor'
+            }
+            if (id.includes('sortablejs') || id.includes('vuedraggable')) {
+              return 'dnd-vendor'
+            }
+            if (id.includes('node_modules/zod/')) {
+              return 'zod-vendor'
             }
           }
         }

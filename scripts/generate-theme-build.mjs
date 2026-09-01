@@ -88,9 +88,9 @@ export const corePageModules = import.meta.glob('../core/pages/**/*.vue', {
   eager: true,
 }) as Record<string, { default: unknown }>
 
-export const themePageModules = ${buildGlobObject(pagePatterns, { eager: true })} as Record<
+export const themePageModules = ${buildGlobObject(pagePatterns, {})} as Record<
   string,
-  { default: unknown }
+  () => Promise<{ default: unknown }>
 >
 
 export const themeAdminManifestModules = ${buildGlobObject(adminManifestPatterns, {
@@ -98,10 +98,10 @@ export const themeAdminManifestModules = ${buildGlobObject(adminManifestPatterns
   import: 'default',
 })} as Record<string, Record<string, unknown>>
 
-export const themeAdminPageModules = ${buildGlobObject(adminPagePatterns, {
-  eager: true,
-  import: 'default',
-})} as Record<string, unknown>
+export const themeAdminPageModules = ${buildGlobObject(adminPagePatterns, {})} as Record<
+  string,
+  () => Promise<{ default: unknown }>
+>
 
 export const themeAdminLocaleEnModules = ${buildGlobObject(adminLocaleEnPatterns, {
   eager: true,

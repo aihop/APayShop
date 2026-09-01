@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "ensure-settings-save-locale",
+  "title": "补全并强化 admin.settings.page.save 及设置保存相关词条",
+  "problem": "确保 admin.settings.page.save、admin.settings.save 等设置保存各层级词条在四种语言中完备，并在设置页面模板中增加健壮兜底。",
+  "expectedOutcome": "admin.settings.page.save 与 admin.settings.save 在 zh、en、ru、zh-HK 四种语言中 100% 对齐完备，check-locales-structure.mjs 校验通过。",
+  "constraints": [
+    "保持所有现有语言词条路径 100% 兼容",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "locales/zh/admin.json",
+        "locales/en/admin.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/admin.json",
+        "app/pages/admin/settings/index.vue",
+        "scripts/check-locales-structure.mjs"
+      ],
+      "claims": [
+        "locales/zh/admin.json",
+        "locales/en/admin.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/admin.json",
+        "app/pages/admin/settings/index.vue",
+        "scripts/check-locales-structure.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "admin.settings.page.save 与 admin.settings.save 在所有语言包中均完备",
+    "zh、en、ru、zh-HK 100% 键对齐",
+    "check-locales-structure.mjs 校验通过"
+  ],
+  "verification": [
+    {
+      "name": "语言包结构与 100% 对齐校验",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-locales-structure.mjs"
+    },
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- locales/zh/admin.json locales/en/admin.json locales/ru/admin.json locales/zh-HK/admin.json app/pages/admin/settings/index.vue scripts/check-locales-structure.mjs"
+    }
+  ]
+}

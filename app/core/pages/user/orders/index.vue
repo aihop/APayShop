@@ -226,7 +226,7 @@ useHead({
 })
 
 const { user } = useCustomerAuth()
-const { page, pageSize, onPageChange } = usePagination(15)
+const { page, pageSize, onPageChange, clampPage } = usePagination(15)
 
 const {
   data: ordersData,
@@ -248,6 +248,12 @@ const {
 const orders = computed(() => ordersData.value?.data || [])
 const totalItems = computed(() => ordersData.value?.total || 0)
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value))
+
+watch(ordersData, (val) => {
+  const currentTotal = Number(val?.total ?? 0)
+  const currentCount = (val?.data || []).length
+  clampPage(currentTotal, currentCount)
+})
 
 watch(page, () => {
   if (typeof window !== 'undefined') {

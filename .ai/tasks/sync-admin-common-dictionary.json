@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "sync-admin-common-dictionary",
+  "title": "同步全量通用词条至 admin.common",
+  "problem": "admin.json 中的 admin.common 命名空间缺少 info、warning、days、confirm、retry、copy 等全量通用词条，导致 $t('admin.common.info') 等调用缺失。",
+  "expectedOutcome": "将 common.json 中的全量通用词条（包含 info、warning、confirm、retry 等 60+ 词条）完全同步并补充至 admin.common，保持 4 种语言（zh、en、ru、zh-HK）100% 键对齐并通过测试验证。",
+  "constraints": [
+    "保持所有现有 $t('admin.*') 与 $t('common.*') 路径兼容",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "locales/zh/admin.json",
+        "locales/en/admin.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/admin.json",
+        "scripts/check-locales-structure.mjs"
+      ],
+      "claims": [
+        "locales/zh/admin.json",
+        "locales/en/admin.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/admin.json",
+        "scripts/check-locales-structure.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "admin.common 包含 info、warning 等全部 common 通用词条",
+    "zh、en、ru、zh-HK 四语言在 admin.json 中 100% 键对齐",
+    "check-locales-structure.mjs 校验通过"
+  ],
+  "verification": [
+    {
+      "name": "语言包结构与 100% 对齐校验",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-locales-structure.mjs"
+    },
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- locales/zh/admin.json locales/en/admin.json locales/ru/admin.json locales/zh-HK/admin.json scripts/check-locales-structure.mjs"
+    }
+  ]
+}

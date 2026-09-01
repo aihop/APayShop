@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-email-tab-null-safety",
+  "title": "修复 EmailTab.vue 中 selectedLog 为空时的属性访问报错",
+  "problem": "EmailTab.vue 中 FullScreenModal 的 :title 直接访问 selectedLog.subject，在 selectedLog 初始为 null 时引发 TypeError: Cannot read properties of null (reading 'subject')。",
+  "expectedOutcome": "使用可选链 selectedLog?.subject || $t('admin.settings.email.log_preview_modal_title') 进行空安全保护，消除页面加载和渲染报错。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/admin/settings/EmailTab.vue"
+      ],
+      "claims": [
+        "app/components/admin/settings/EmailTab.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "EmailTab.vue 中 FullScreenModal 的 title 属性使用可选链安全访问",
+    "selectedLog 初始为 null 时不报任何 TypeError",
+    "差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/admin/settings/EmailTab.vue"
+    }
+  ]
+}

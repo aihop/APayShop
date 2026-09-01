@@ -556,3 +556,17 @@ export const promoCommissions = sqliteTable('promo_commissions', {
   // 同一订单同一佣金类型只允许入账一次(并发结算防重复,见 schema.pg.ts 同名索引)
   orderTypeIdx: uniqueIndex('promo_commissions_order_type_idx').on(table.orderId, table.type),
 }))
+
+export const promoApplications = sqliteTable('promo_applications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  channelInfo: text('channel_info'),
+  contact: text('contact'),
+  reason: text('reason'),
+  reviewNote: text('review_note'),
+  reviewedByAdminId: integer('reviewed_by_admin_id'),
+  reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+})

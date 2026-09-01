@@ -16,7 +16,7 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
     label: 'Dashboard',
     labelZh: '仪表盘',
     apiPrefixes: ['dashboard'],
-    routes: ['/admin'],
+    routes: ['/admin/dashboard', '/admin'],
     editable: false,
   },
   {

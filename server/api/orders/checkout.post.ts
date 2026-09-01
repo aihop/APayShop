@@ -20,7 +20,10 @@ import {
   mergeMinimalCheckoutMeta,
   prepareOrderMetaForInsert,
   fulfillMinimalCheckoutRelay,
+  readMinimalCheckoutBridgeMeta,
+  isMinimalCheckoutRelayOrder,
 } from '../../utils/checkoutBridge'
+import { fulfillOrder } from '../../utils/fulfillment'
 import { emitEvent } from '../../utils/eventActions'
 import { ensureTopupRecordForOrder, settlePaidTopup } from '../../utils/topupLedger'
 import { requireTrustedRequestOrigin } from '../../utils/domainLocale'
@@ -358,7 +361,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const fulfillFreeRelayOrder = async (targetOrderId: string) => {
-      const fulfilled = await fulfillMinimalCheckoutRelay(targetOrderId)
+      const isMinimalRelay = isMinimalCheckoutRelayOrder({ source: MINIMAL_CHECKOUT_SOURCE, metaData: relayOrderMeta })
+      const fulfilled = isMinimalRelay
+        ? await fulfillMinimalCheckoutRelay(targetOrderId)
+        : await fulfillOrder(targetOrderId)
       if (!fulfilled) return
       await emitEvent('order.paid', fulfilled)
     }

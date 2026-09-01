@@ -527,6 +527,15 @@ export const readMinimalCheckoutBridgeMeta = (value: unknown): MinimalCheckoutBr
   return bridge as MinimalCheckoutBridgeMeta
 }
 
+export const isMinimalCheckoutRelayOrder = (order?: { source?: string | null; metaData?: unknown } | null): boolean => {
+  if (!order || order.source !== MINIMAL_CHECKOUT_SOURCE) return false
+  const bridge = readMinimalCheckoutBridgeMeta(order.metaData)
+  if (!bridge) return false
+  if (bridge.attach?.channel === 'storefront') return false
+  if (bridge.attach?.businessType === 'subscription') return false
+  return true
+}
+
 export const findMinimalCheckoutOrderByExternalId = async (externalOrderId: string) => {
   const normalizedExternalOrderId = String(externalOrderId || '').trim()
   if (!normalizedExternalOrderId) return null

@@ -21,7 +21,7 @@ import * as themeBuild from '~/generated/theme-build'
 const route = useRoute()
 const isBareLayout = computed(() => {
   const path = route.path || ''
-  return path.startsWith('/payment/mini') || route.meta?.layout === false
+  return path.startsWith('/payment/mini') || path.startsWith('/callback/mini') || route.meta?.layout === false
 })
 
 // 主题解析与页面分发器(app/pages/[...slug].vue)共用 useActiveTheme:

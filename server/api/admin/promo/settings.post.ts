@@ -5,7 +5,10 @@ import { db } from '../../../db/runtime'
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const payload = {
-    promo_invite_reward_amount: String(body?.promo_invite_reward_amount || '0'),
+    promo_default_commission_rate: String(body?.promo_default_commission_rate ?? '15'),
+    promo_invite_reward_amount: String(body?.promo_invite_reward_amount ?? '0'),
+    promo_access_mode: String(body?.promo_access_mode || 'paid_active'),
+    promo_min_spend_amount: String(body?.promo_min_spend_amount || '49'),
   }
 
   for (const [key, value] of Object.entries(payload)) {

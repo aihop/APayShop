@@ -11,7 +11,6 @@ import { getSiteLocaleConfig, resolveRequestLocale } from '../../../utils/paymen
 import { requireTrustedRequestOrigin } from '../../../utils/domainLocale'
 import { fulfillOrder } from '../../../utils/fulfillment'
 import { emitEvent } from '../../../utils/eventActions'
-import { dispatchEvent } from '../../../utils/eventBus'
 import { createOrderAttribution, settlePromoCommission, ensurePromoMember } from '../../../promo/service'
 import {
   buildMinimalCheckoutBridgeMeta,
@@ -20,6 +19,7 @@ import {
   prepareOrderMetaForInsert,
   readMinimalCheckoutBridgeMeta,
   fulfillMinimalCheckoutRelay,
+  isMinimalCheckoutRelayOrder,
 } from '../../../utils/checkoutBridge'
 import { ensureTopupRecordForOrder, settlePaidTopup } from '../../../utils/topupLedger'
 import { sendEmail } from '../../../utils/email'
@@ -374,7 +374,7 @@ export default defineEventHandler(async (event) => {
       }
 
       if (body.autoFulfill) {
-        const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(createdOrder?.metaData))
+        const isMinimalRelay = isMinimalCheckoutRelayOrder(createdOrder)
         const fulfilledOrder = isMinimalRelay
           ? await fulfillMinimalCheckoutRelay(orderId)
           : await fulfillOrder(orderId)

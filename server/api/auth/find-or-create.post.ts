@@ -2,6 +2,7 @@ import { users } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { getRequestLocale } from "../../utils/requestLocale"
+import { emitEvent } from "../../utils/eventActions"
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -63,6 +64,20 @@ export default defineEventHandler(async (event) => {
       console.warn(`[find-or-create] concurrent insert for ${email}, resolved to existing user #${racedUsers[0].id}`)
       user = racedUsers[0]
       created = false
+    }
+  }
+
+  if (created && user) {
+    try {
+      await emitEvent('user.registered', {
+        id: user.id,
+        userId: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        source: 'find_or_create',
+      })
+    } catch (eventErr) {
+      console.error(`[find-or-create] user.registered event failed for #${user.id}:`, eventErr)
     }
   }
 

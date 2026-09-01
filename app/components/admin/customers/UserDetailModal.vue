@@ -326,41 +326,43 @@
     >{{ loadErrorLabel }}</div>
 
     <!-- Email Content Snapshot Modal -->
-    <UModal v-model:open="isEmailPreviewOpen">
-      <template #content>
-        <div v-if="previewingLog" class="p-6 space-y-4 max-w-2xl w-full">
-          <div class="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ isZh ? '邮件快照预览' : 'Email Preview' }}</h3>
-              <p class="text-xs text-gray-500 mt-1">To: <span class="font-mono text-gray-700 dark:text-gray-300">{{ previewingLog.to }}</span> · {{ formatDateTime(previewingLog.createdAt) }}</p>
-            </div>
-            <UBadge :color="previewingLog.status === 'success' ? 'success' : 'error'" variant="subtle">
-              {{ previewingLog.status === 'success' ? (isZh ? '成功' : 'Success') : (isZh ? '失败' : 'Failed') }}
-            </UBadge>
+    <FullScreenModal
+      v-model="isEmailPreviewOpen"
+      :title="isZh ? '邮件快照预览' : 'Email Preview'"
+      :default-fullscreen="false"
+      max-width="sm:max-w-2xl"
+    >
+      <div v-if="previewingLog" class="space-y-4">
+        <div class="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+          <div>
+            <p class="text-xs text-gray-500">To: <span class="font-mono text-gray-700 dark:text-gray-300">{{ previewingLog.to }}</span> · {{ formatDateTime(previewingLog.createdAt) }}</p>
           </div>
+          <UBadge :color="previewingLog.status === 'success' ? 'success' : 'error'" variant="subtle">
+            {{ previewingLog.status === 'success' ? (isZh ? '成功' : 'Success') : (isZh ? '失败' : 'Failed') }}
+          </UBadge>
+        </div>
 
-          <div class="space-y-1.5">
-            <div class="text-xs font-medium text-gray-500">{{ isZh ? '邮件主题：' : 'Subject:' }}</div>
-            <div class="text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-black/30 p-2.5 rounded-lg border border-gray-200 dark:border-gray-800">
-              {{ previewingLog.subject }}
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <div class="text-xs font-medium text-gray-500">{{ isZh ? 'HTML 内容快照：' : 'HTML Content:' }}</div>
-            <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-zinc-900 max-h-80 overflow-auto text-xs font-mono select-all">
-              <div v-html="previewingLog.html" class="prose dark:prose-invert max-w-none"></div>
-            </div>
-          </div>
-
-          <div class="flex justify-end pt-2">
-            <UButton color="neutral" variant="soft" @click="isEmailPreviewOpen = false">
-              {{ isZh ? '关闭' : 'Close' }}
-            </UButton>
+        <div class="space-y-1.5">
+          <div class="text-xs font-medium text-gray-500">{{ isZh ? '邮件主题：' : 'Subject:' }}</div>
+          <div class="text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-black/30 p-2.5 rounded-lg border border-gray-200 dark:border-gray-800">
+            {{ previewingLog.subject }}
           </div>
         </div>
+
+        <div class="space-y-1.5">
+          <div class="text-xs font-medium text-gray-500">{{ isZh ? 'HTML 内容快照：' : 'HTML Content:' }}</div>
+          <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-zinc-900 max-h-96 overflow-auto text-xs font-mono select-all">
+            <div v-html="previewingLog.html" class="prose dark:prose-invert max-w-none"></div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="soft" @click="isEmailPreviewOpen = false">
+          {{ isZh ? '关闭' : 'Close' }}
+        </UButton>
       </template>
-    </UModal>
+    </FullScreenModal>
   </FullScreenModal>
 </template>
 
@@ -390,7 +392,7 @@ const isOpen = computed({
   set: (val) => emit('update:modelValue', val),
 })
 
-const isZh = computed(() => locale.value.startsWith('zh'))
+const isZh = computed(() => (locale.value || '').startsWith('zh'))
 
 const activeLabel = computed(() => (isZh.value ? '正常' : 'Active'))
 const activeLabelShort = computed(() => (isZh.value ? '有效' : 'active'))
@@ -556,7 +558,7 @@ const handleAdminResendVerify = async () => {
     })
     // 刷新详情以加载最新邮件日志
     if (props.userId) {
-      await fetchDetail(props.userId)
+      await load()
     }
   } catch (err: any) {
     toast.add({

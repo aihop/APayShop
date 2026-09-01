@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "site-brand-logo-breathing-style",
+  "title": "升级网站品牌标题为白金微光呼吸感样式",
+  "problem": "前台与后台顶栏及移动端菜单中的网站品牌标题样式较为生硬（粗笨高饱和渐变与生硬阴影），缺乏高级感与暗光呼吸感。",
+  "expectedOutcome": "将 AppHeader、AdminHeader、AppMobileMenu、AdminMobileMenu 中的品牌标题升级为 Linear/Apple 级白金微光与环境光呼吸感样式，自适应浅色黑曜石质感与深色白金流光。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/AppHeader.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AdminMobileMenu.vue"
+      ],
+      "claims": [
+        "app/components/AppHeader.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AdminMobileMenu.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AppHeader、AdminHeader、AppMobileMenu、AdminMobileMenu 均接入白金微光呼吸感品牌标题样式",
+    "浅色模式与深色模式下视觉清晰精致、光影自适应",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/AppHeader.vue app/components/AdminHeader.vue app/components/AppMobileMenu.vue app/components/AdminMobileMenu.vue"
+    }
+  ]
+}

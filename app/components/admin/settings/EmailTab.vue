@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-8 max-w-3xl">
+  <div class="space-y-8">
     <!-- Email Verification Policy Section -->
     <div class="bg-white dark:bg-[#121214] border border-gray-200 dark:border-gray-800/60 shadow-xl rounded-2xl overflow-hidden">
       <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800/60 bg-gray-100 dark:bg-gray-900/20 flex items-center gap-3">
@@ -137,7 +137,7 @@
             :rows="6"
             size="md"
             class="font-mono text-sm w-full"
-            placeholder='{"apiKey": "re_xxx", "from": "noreply@yourdomain.com"}'
+            :placeholder="configJsonPlaceholder"
             :ui="{ base: 'bg-gray-50 dark:bg-[#09090b]' }"
           />
         </UFormField>
@@ -405,41 +405,43 @@
     </div>
 
     <!-- Log Content Preview Modal -->
-    <UModal v-model:open="isPreviewModalOpen">
-      <template #content>
-        <div v-if="selectedLog" class="p-6 space-y-4 max-w-2xl w-full">
-          <div class="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t('admin.settings.email.log_preview_modal_title') }}</h3>
-              <p class="text-xs text-gray-500 mt-1">To: <span class="font-mono text-gray-700 dark:text-gray-300">{{ selectedLog.to }}</span> · {{ formatDateTime(selectedLog.createdAt) }}</p>
-            </div>
-            <UBadge :color="selectedLog.status === 'success' ? 'success' : 'error'" variant="subtle">
-              {{ selectedLog.status === 'success' ? '成功' : '失败' }}
-            </UBadge>
+    <FullScreenModal
+      v-model="isPreviewModalOpen"
+      :title="selectedLog?.subject || $t('admin.settings.email.log_preview_modal_title')"
+      :default-fullscreen="false"
+      max-width="sm:max-w-2xl"
+    >
+      <div v-if="selectedLog" class="space-y-4">
+        <div class="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+          <div>
+            <p class="text-xs text-gray-500">To: <span class="font-mono text-gray-700 dark:text-gray-300">{{ selectedLog.to }}</span> · {{ formatDateTime(selectedLog.createdAt) }}</p>
           </div>
+          <UBadge :color="selectedLog.status === 'success' ? 'success' : 'error'" variant="subtle">
+            {{ selectedLog.status === 'success' ? '成功' : '失败' }}
+          </UBadge>
+        </div>
 
-          <div class="space-y-1.5">
-            <div class="text-xs font-medium text-gray-500">邮件主题：</div>
-            <div class="text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-black/30 p-2.5 rounded-lg border border-gray-200 dark:border-gray-800">
-              {{ selectedLog.subject }}
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <div class="text-xs font-medium text-gray-500">HTML 原文快照：</div>
-            <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-zinc-900 max-h-80 overflow-auto text-xs font-mono select-all">
-              <div v-html="selectedLog.html" class="prose dark:prose-invert max-w-none"></div>
-            </div>
-          </div>
-
-          <div class="flex justify-end pt-2">
-            <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
-              {{ $t('admin.settings.email.cancel') }}
-            </UButton>
+        <div class="space-y-1.5">
+          <div class="text-xs font-medium text-gray-500">邮件主题：</div>
+          <div class="text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-black/30 p-2.5 rounded-lg border border-gray-200 dark:border-gray-800">
+            {{ selectedLog.subject }}
           </div>
         </div>
+
+        <div class="space-y-1.5">
+          <div class="text-xs font-medium text-gray-500">HTML 原文快照：</div>
+          <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-white dark:bg-zinc-900 max-h-96 overflow-auto text-xs font-mono select-all">
+            <div v-html="selectedLog.html" class="prose dark:prose-invert max-w-none"></div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
+          {{ $t('admin.settings.email.cancel') }}
+        </UButton>
       </template>
-    </UModal>
+    </FullScreenModal>
 
     <!-- Template Edit Modal -->
     <EmailTemplateModal
@@ -456,6 +458,7 @@
 </template>
 
 <script setup lang="ts">
+import EmailTemplateModal from './email/EmailTemplateModal.vue'
 import { DEFAULT_RESEND_SCRIPT } from './email/shared'
 
 const toast = useToast()
@@ -494,6 +497,57 @@ const providerForm = reactive({
 
 const defaultResendScript = DEFAULT_RESEND_SCRIPT
 
+const configJsonPlaceholder = computed(() => {
+  switch (providerForm.code) {
+    case 'bird':
+      return '{\n  "apiKey": "your_access_key",\n  "workspaceId": "your_workspace_id",\n  "channelId": "your_channel_id",\n  "fromName": "Support Team"\n}'
+    case 'resend':
+      return '{\n  "apiKey": "re_xxx",\n  "from": "noreply@yourdomain.com"\n}'
+    case 'sendgrid':
+      return '{\n  "apiKey": "SG.xxx",\n  "from": "noreply@yourdomain.com"\n}'
+    case 'mailgun':
+      return '{\n  "apiKey": "key-xxx",\n  "domain": "mg.yourdomain.com",\n  "from": "noreply@yourdomain.com"\n}'
+    case 'postmark':
+      return '{\n  "serverToken": "xxx",\n  "from": "noreply@yourdomain.com"\n}'
+    case 'ses':
+      return '{\n  "region": "us-east-1",\n  "accessKeyId": "AKIA...",\n  "secretAccessKey": "...",\n  "from": "noreply@yourdomain.com"\n}'
+    case 'smtp':
+      return '{\n  "host": "mail.smtp2go.com",\n  "port": 587,\n  "username": "...",\n  "password": "...",\n  "from": "noreply@yourdomain.com"\n}'
+    default:
+      return '{\n  "apiKey": "re_xxx",\n  "from": "noreply@yourdomain.com"\n}'
+  }
+})
+
+const savedProviders = ref<any[]>([])
+
+const fetchProviders = async () => {
+  try {
+    const res: any = await $fetch('/api/admin/email/providers')
+    if (Array.isArray(res)) {
+      savedProviders.value = res
+      const currentCode = providerForm.code || props.form.email_provider_code || 'resend'
+      const matched = res.find(p => p.isActive) || res.find(p => p.code === currentCode)
+      if (matched) {
+        if (!providerForm.configJson && matched.configJson) {
+          providerForm.configJson = matched.configJson
+        }
+        if (!providerForm.sendScript && matched.sendScript) {
+          providerForm.sendScript = matched.sendScript
+        }
+        if (matched.name && !props.form.email_provider_name) {
+          providerForm.name = matched.name
+        }
+        if (matched.code && !props.form.email_provider_code) {
+          providerForm.code = matched.code
+        }
+        syncProviderToForm()
+      }
+    }
+  } catch (err) {
+    console.error('[EmailTab] Failed to fetch email providers:', err)
+  }
+}
+
 // Load existing provider from settings form into providerForm
 watchEffect(() => {
   const f = props.form
@@ -507,11 +561,17 @@ watchEffect(() => {
   providerForm.defaultTemplateCode = f.email_default_template || '__none__'
 })
 
-// Clear sendScript when switching to a built-in provider (local files handle it)
+// Clear sendScript when switching to a built-in provider; auto-fill config if already saved
 watch(() => providerForm.code, (newCode) => {
   if (newCode !== '__custom__') {
     providerForm.sendScript = ''
   }
+  const matched = savedProviders.value.find(p => p.code === newCode)
+  if (matched) {
+    if (matched.configJson) providerForm.configJson = matched.configJson
+    if (matched.name) providerForm.name = matched.name
+  }
+  syncProviderToForm()
 })
 
 // Sync providerForm values back to props.form so the main "Save Changes" has them too
@@ -560,8 +620,11 @@ async function saveProvider() {
         email_provider_config_json: providerForm.configJson,
         email_provider_send_script: providerForm.sendScript,
         email_default_template: providerForm.defaultTemplateCode,
+        email_verify_policy: props.form.email_verify_policy,
       },
     })
+
+    await fetchProviders()
 
     toast.add({
       title: t('admin.common.success'),
@@ -668,6 +731,7 @@ const openLogPreview = (log: EmailLogItem) => {
 }
 
 onMounted(() => {
+  fetchProviders()
   fetchEmailLogs()
 })
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-5xl pb-12">
+  <div class="mx-auto pb-12">
     <div class="mb-8">
       <h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
         <UIcon name="ph:puzzle-piece-fill" class="h-8 w-8 text-purple-500" />

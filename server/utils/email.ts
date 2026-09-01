@@ -240,8 +240,8 @@ export async function sendEmail(options: {
       subject = subject.replaceAll(`{{${key}}}`, value)
     }
 
-    // 3. Find active email provider
-    const providers = await db
+    // 3. Find active email provider or fallback
+    const activeProviders = await db
       .select()
       .from(emailProviders)
       .where(eq(emailProviders.isActive, true))
@@ -249,58 +249,140 @@ export async function sendEmail(options: {
 
     let sendScript = ''
     let configJson: any = {}
+    let providerCode = ''
 
-    if (providers.length > 0 && providers[0].sendScript?.trim()) {
-      sendScript = providers[0].sendScript
-      providerName = providers[0].code || 'custom'
-      configJson = providers[0].configJson ? JSON.parse(providers[0].configJson) : {}
+    if (activeProviders.length > 0) {
+      const active = activeProviders[0]
+      providerCode = active.code || 'resend'
+      providerName = active.name || providerCode
+      sendScript = active.sendScript?.trim() || ''
+      if (active.configJson) {
+        try {
+          configJson = JSON.parse(active.configJson)
+        } catch {
+          configJson = {}
+        }
+      }
     } else {
-      // Fallback to local directory
-      let providerCode = providers.length > 0 ? providers[0].code : 'resend'
+      // If no active provider in DB, check settings
+      const [codeSetting, activeSetting] = await Promise.all([
+        db.select().from(settings).where(eq(settings.key, 'email_provider_code')).limit(1),
+        db.select().from(settings).where(eq(settings.key, 'email_provider_is_active')).limit(1),
+      ])
 
-      // If no provider in DB yet, try reading provider code from settings
-      if (providers.length === 0) {
-        const codeSetting = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, 'email_provider_code'))
-          .limit(1)
-        if (codeSetting.length > 0 && codeSetting[0].value) {
-          providerCode = codeSetting[0].value
+      if (codeSetting.length > 0 && codeSetting[0].value) {
+        providerCode = codeSetting[0].value
+      } else {
+        // Fallback: check any provider in DB
+        const anyProvider = await db.select().from(emailProviders).limit(1)
+        if (anyProvider.length > 0) {
+          providerCode = anyProvider[0].code
+          if (anyProvider[0].configJson) {
+            try { configJson = JSON.parse(anyProvider[0].configJson) } catch {}
+          }
+          if (anyProvider[0].sendScript?.trim()) {
+            sendScript = anyProvider[0].sendScript.trim()
+          }
         }
       }
 
-      providerName = providerCode
+      providerName = providerCode || 'bird'
+    }
 
+    // If configJson is empty, try loading from settings table
+    if (!configJson || Object.keys(configJson).length === 0) {
+      const configSetting = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.key, 'email_provider_config_json'))
+        .limit(1)
+      if (configSetting.length > 0 && configSetting[0].value) {
+        try {
+          configJson = JSON.parse(configSetting[0].value)
+        } catch {
+          configJson = {}
+        }
+      }
+    }
+
+    // Built-in email scripts map (guaranteed fallback across all runtimes)
+    const BUILTIN_SCRIPTS: Record<string, string> = {
+      bird: `const url = 'https://api.bird.com/workspaces/' + config.workspaceId + '/channels/' + config.channelId + '/messages';
+const payload = {
+  receiver: { contacts: [{ identifierKey: 'emailaddress', identifierValue: to }] },
+  body: { type: 'html', html: { html: html, text: subject, metadata: { subject: subject } } }
+};
+if (config.fromName) { payload.body.html.metadata.emailFrom = { displayName: config.fromName }; }
+const res = await fetch(url, {
+  method: 'POST',
+  headers: { 'Authorization': 'AccessKey ' + config.apiKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
+if (res.ok) { const data = await res.json(); return { ok: true, messageId: data.id }; }
+const errText = await res.text();
+console.error('Bird API error:', errText);
+return { ok: false, error: errText };`,
+      resend: `const res = await fetch('https://api.resend.com/emails', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer ' + config.apiKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ from: config.from || 'noreply@yourdomain.com', to: [to], subject: subject, html: html })
+});
+if (res.ok) { const data = await res.json(); return { ok: true, messageId: data.id }; }
+const errText = await res.text();
+console.error('Resend API error:', errText);
+return { ok: false, error: errText };`,
+      sendgrid: `const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer ' + config.apiKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ personalizations: [{ to: [{ email: to }] }], from: { email: config.from || 'noreply@yourdomain.com', name: config.fromName || '' }, subject: subject, content: [{ type: 'text/html', value: html }] })
+});
+if (res.status === 202) { return { ok: true, messageId: res.headers.get('x-message-id') || 'sent' }; }
+const errText = await res.text();
+console.error('SendGrid API error:', errText);
+return { ok: false, error: errText };`,
+      mailgun: `const formData = new URLSearchParams();
+formData.append('from', config.from || 'noreply@yourdomain.com');
+formData.append('to', to);
+formData.append('subject', subject);
+formData.append('html', html);
+const res = await fetch('https://api.mailgun.net/v3/' + config.domain + '/messages', {
+  method: 'POST',
+  headers: { 'Authorization': 'Basic ' + btoa('api:' + config.apiKey), 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: formData.toString()
+});
+if (res.ok) { const data = await res.json(); return { ok: true, messageId: data.id || 'sent' }; }
+const errText = await res.text();
+console.error('Mailgun API error:', errText);
+return { ok: false, error: errText };`,
+      postmark: `const res = await fetch('https://api.postmarkapp.com/email', {
+  method: 'POST',
+  headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Postmark-Server-Token': config.serverToken },
+  body: JSON.stringify({ From: config.from || 'noreply@yourdomain.com', To: to, Subject: subject, HtmlBody: html, MessageStream: config.messageStream || 'outbound' })
+});
+if (res.ok) { const data = await res.json(); return { ok: true, messageId: data.MessageID }; }
+const errText = await res.text();
+console.error('Postmark API error:', errText);
+return { ok: false, error: errText };`,
+      smtp: `const res = await fetch('https://api.smtp2go.com/v3/email/send', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-Smtp2go-Api-Key': config.apiKey },
+  body: JSON.stringify({ sender: config.from || 'noreply@yourdomain.com', to: [to], subject: subject, html_body: html })
+});
+if (res.ok) { const data = await res.json(); return { ok: true, messageId: data.data?.email_id || 'sent' }; }
+const errText = await res.text();
+console.error('SMTP2GO API error:', errText);
+return { ok: false, error: errText };`,
+    }
+
+    if (!sendScript && providerCode && BUILTIN_SCRIPTS[providerCode]) {
+      sendScript = BUILTIN_SCRIPTS[providerCode]
+    }
+
+    // Fallback to local files if any custom provider on disk
+    if (!sendScript && providerCode) {
       const localScriptPath = path.join(process.cwd(), 'emails', providerCode, 'send.js')
-      const localConfigPath = path.join(process.cwd(), 'emails', providerCode, 'config.json')
-
       if (fs.existsSync(localScriptPath)) {
         sendScript = fs.readFileSync(localScriptPath, 'utf-8')
-      }
-      if (fs.existsSync(localConfigPath)) {
-        configJson = JSON.parse(fs.readFileSync(localConfigPath, 'utf-8'))
-      }
-
-      // If provider exists in DB but has no script, use local file but DB config
-      if (providers.length > 0 && providers[0].configJson) {
-        try {
-          configJson = JSON.parse(providers[0].configJson)
-        } catch { /* keep local fallback */ }
-      }
-
-      // Load user's saved configJson from settings if no provider DB record exists
-      if (providers.length === 0) {
-        const configSetting = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, 'email_provider_config_json'))
-          .limit(1)
-        if (configSetting.length > 0 && configSetting[0].value) {
-          try {
-            configJson = JSON.parse(configSetting[0].value)
-          } catch { /* keep local fallback config */ }
-        }
       }
     }
 

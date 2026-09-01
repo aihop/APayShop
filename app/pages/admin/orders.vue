@@ -1,142 +1,181 @@
 <template>
-  <div class="h-[calc(100vh-10rem)] flex flex-col">
+  <div class="h-[calc(100vh-7rem)] flex flex-col">
     <!-- Header Section -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6 shrink-0">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-4 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.orders.title') }}</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1.5 text-sm">{{ $t('admin.orders.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ activeTab === 'topups' ? $t('admin.topups.title', '充值记录') : $t('admin.orders.title', '订单管理') }}</h1>
       </div>
-      <div class="flex items-center gap-2.5 shrink-0">
-        <UButton
-          color="neutral"
-          variant="outline"
-          icon="ph:arrows-clockwise"
-          :loading="pending"
-          class="hover:bg-gray-50 dark:hover:bg-gray-800"
-          @click="() => refresh()"
-        />
-        <UButton
-          v-if="hasAdminPerm('orders:edit')"
-          color="primary"
-          icon="ph:plus-bold"
-          class="shadow-xs font-medium"
-          @click="isManualOrderOpen = true"
+
+      <!-- 顶层分段 Tabs -->
+      <div class="flex items-center gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-xl shrink-0">
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+          :class="activeTab === 'orders'
+            ? 'bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white shadow-xs'
+            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+          @click="switchTab('orders')"
         >
-          {{ $t('admin.orders.createOrder') }}
-        </UButton>
+          <UIcon name="ph:shopping-cart-bold" class="h-3.5 w-3.5" />
+          <span>{{ $t('admin.orders.tab_orders', '商品订单') }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+          :class="activeTab === 'topups'
+            ? 'bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white shadow-xs'
+            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+          @click="switchTab('topups')"
+        >
+          <UIcon name="ph:wallet-bold" class="h-3.5 w-3.5" />
+          <span>{{ $t('admin.orders.tab_topups', '充值记录') }}</span>
+        </button>
       </div>
     </div>
 
-    <!-- Filter & Toolbar Bar -->
-    <div class="mb-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shrink-0">
-      <!-- Payment Status Pills & Trash -->
-      <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 lg:pb-0">
-        <button
-          v-for="pill in payStatusPills"
-          :key="pill.value"
-          type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer select-none"
-          :class="activePayStatus === pill.value
-            ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 ring-1 ring-primary-500/30 font-semibold shadow-xs'
-            : 'bg-white dark:bg-[#121214] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200/70 dark:border-gray-800/70 hover:border-gray-300 dark:hover:border-gray-700'"
-          @click="selectPayStatus(pill.value)"
-        >
-          <span
-            v-if="pill.dotColor"
-            class="w-1.5 h-1.5 rounded-full shrink-0"
-            :class="pill.dotColor"
-          />
-          <span>{{ pill.label }}</span>
-          <span
-            v-if="pill.count !== undefined"
-            class="px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none"
+    <!-- 充值记录视图 -->
+    <template v-if="activeTab === 'topups'">
+      <AdminTopupRecordsPanel />
+    </template>
+
+    <!-- 商品订单视图 -->
+    <template v-else>
+      <!-- 第一行：状态胶囊 + 右侧操作 -->
+      <div class="mb-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+        <!-- 支付状态胶囊与回收站 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+          <button
+            v-for="pill in payStatusPills"
+            :key="pill.value"
+            type="button"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer select-none"
             :class="activePayStatus === pill.value
-              ? 'bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300 font-bold'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'"
+              ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 ring-1 ring-primary-500/30 font-semibold shadow-xs'
+              : 'bg-white dark:bg-[#121214] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200/70 dark:border-gray-800/70 hover:border-gray-300 dark:hover:border-gray-700'"
+            @click="selectPayStatus(pill.value)"
           >
-            {{ pill.count }}
-          </span>
-        </button>
-
-        <!-- Subtle Divider -->
-        <div class="h-4 w-px bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
-
-        <!-- Dedicated Deleted Orders Tab -->
-        <button
-          type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer select-none"
-          :class="activePayStatus === 'deleted'
-            ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 ring-1 ring-red-500/30 font-semibold shadow-xs'
-            : 'bg-white dark:bg-[#121214] text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-200/70 dark:border-gray-800/70 hover:border-gray-300 dark:hover:border-gray-700'"
-          @click="selectPayStatus('deleted')"
-        >
-          <UIcon
-            name="ph:trash"
-            class="w-3.5 h-3.5 shrink-0"
-            :class="activePayStatus === 'deleted' ? 'text-red-500' : 'text-gray-400'"
-          />
-          <span>{{ $t('admin.orders.pay_status_deleted') }}</span>
-          <span
-            class="px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none"
-            :class="activePayStatus === 'deleted'
-              ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'"
-          >
-            {{ stats.deleted }}
-          </span>
-        </button>
-      </div>
-
-      <!-- Right Toolbar Controls -->
-      <div class="flex items-center gap-2.5">
-        <!-- Fulfillment Select Filter -->
-        <USelect
-          v-model="activeFulfillmentStatus"
-          :items="fulfillmentFilterOptions"
-          class="w-36 text-xs shrink-0"
-          size="sm"
-          @update:model-value="() => { page = 1 }"
-        />
-
-        <!-- Keyword Search Input -->
-        <div class="relative flex-1 sm:w-64">
-          <UInput
-            v-model="searchInput"
-            icon="ph:magnifying-glass"
-            :placeholder="$t('admin.orders.search_placeholder') || $t('admin.orders.search')"
-            size="sm"
-            class="w-full text-xs"
-          >
-            <template
-              v-if="searchInput"
-              #trailing
+            <span
+              v-if="pill.dotColor"
+              class="w-1.5 h-1.5 rounded-full shrink-0"
+              :class="pill.dotColor"
+            />
+            <span>{{ pill.label }}</span>
+            <span
+              v-if="pill.count !== undefined"
+              class="px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none"
+              :class="activePayStatus === pill.value
+                ? 'bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300 font-bold'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'"
             >
-              <button
-                type="button"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
-                @click="searchInput = ''"
-              >
-                <UIcon
-                  name="ph:x-circle-fill"
-                  class="w-3.5 h-3.5"
-                />
-              </button>
-            </template>
-          </UInput>
+              {{ pill.count }}
+            </span>
+          </button>
+
+          <!-- Subtle Divider -->
+          <div class="h-4 w-px bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
+
+          <!-- Dedicated Deleted Orders Tab -->
+          <button
+            type="button"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer select-none"
+            :class="activePayStatus === 'deleted'
+              ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 ring-1 ring-red-500/30 font-semibold shadow-xs'
+              : 'bg-white dark:bg-[#121214] text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-200/70 dark:border-gray-800/70 hover:border-gray-300 dark:hover:border-gray-700'"
+            @click="selectPayStatus('deleted')"
+          >
+            <UIcon
+              name="ph:trash"
+              class="w-3.5 h-3.5 shrink-0"
+              :class="activePayStatus === 'deleted' ? 'text-red-500' : 'text-gray-400'"
+            />
+            <span>{{ $t('admin.orders.pay_status_deleted') }}</span>
+            <span
+              class="px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none"
+              :class="activePayStatus === 'deleted'
+                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'"
+            >
+              {{ stats.deleted }}
+            </span>
+          </button>
         </div>
 
-        <!-- Reset Button -->
-        <UButton
-          v-if="isFiltered"
-          color="neutral"
-          variant="ghost"
-          size="sm"
-          icon="ph:arrow-counter-clockwise"
-          :title="$t('admin.orders.reset_filters')"
-          @click="resetFilters"
-        />
+        <!-- 刷新与手工建单 -->
+        <div class="flex items-center gap-2 shrink-0">
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="ph:arrows-clockwise"
+            size="sm"
+            :loading="pending"
+            class="hover:bg-gray-50 dark:hover:bg-gray-800"
+            @click="() => refresh()"
+          />
+          <UButton
+            v-if="hasAdminPerm('orders:edit')"
+            color="primary"
+            icon="ph:plus-bold"
+            size="sm"
+            class="shadow-xs font-medium"
+            @click="isManualOrderOpen = true"
+          >
+            {{ $t('admin.orders.createOrder') }}
+          </UButton>
+        </div>
       </div>
-    </div>
+
+      <!-- 第二行：履约筛选 + 精简搜索框 + 订单统计 -->
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <!-- Fulfillment Select Filter -->
+          <USelect
+            v-model="activeFulfillmentStatus"
+            :items="fulfillmentFilterOptions"
+            class="w-36 text-xs shrink-0"
+            size="sm"
+            @update:model-value="() => { page = 1 }"
+          />
+
+          <!-- Keyword Search Input -->
+          <div class="relative w-64">
+            <UInput
+              v-model="searchInput"
+              icon="ph:magnifying-glass"
+              :placeholder="$t('admin.orders.search', '搜索单号、邮箱、商品...')"
+              size="sm"
+              class="w-full text-xs"
+            >
+              <template
+                v-if="searchInput"
+                #trailing
+              >
+                <button
+                  type="button"
+                  class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                  @click="searchInput = ''"
+                >
+                  <UIcon
+                    name="ph:x-circle-fill"
+                    class="w-3.5 h-3.5"
+                  />
+                </button>
+              </template>
+            </UInput>
+          </div>
+
+          <!-- Reset Button -->
+          <UButton
+            v-if="isFiltered"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            icon="ph:arrow-counter-clockwise"
+            :title="$t('admin.orders.reset_filters')"
+            @click="resetFilters"
+          />
+        </div>
+      </div>
 
     <!-- Main Table Container -->
     <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-xs overflow-hidden flex flex-col flex-1 min-h-0">
@@ -521,13 +560,15 @@
       v-model="isManualOrderOpen"
       @success="handleManualOrderSuccess"
     />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { definePageMeta, useToast, useFetch, useRouter, useI18n, useRequestURL } from '#imports'
+import { definePageMeta, useToast, useFetch, useRoute, useRouter, useI18n, useRequestURL } from '#imports'
 import AdminOrdersManualOrderModal from '~/components/admin/orders/ManualOrderModal.vue'
+import AdminTopupRecordsPanel from '~/components/AdminTopupRecordsPanel.vue'
 
 const { t, te } = useI18n()
 const { formatDateTime } = useFormatTime()
@@ -535,9 +576,22 @@ const { formatCurrencyAmount } = useCurrencyFormat()
 
 definePageMeta({ title: 'Orders Management', layout: 'admin' })
 
+const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const requestUrl = useRequestURL()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
+
+const activeTab = ref<'orders' | 'topups'>(route.query.tab === 'topups' ? 'topups' : 'orders')
+
+const switchTab = (tab: 'orders' | 'topups') => {
+  activeTab.value = tab
+  void router.replace({ query: { ...route.query, tab: tab === 'orders' ? undefined : tab } })
+}
+
+watch(() => route.query.tab, (val) => {
+  activeTab.value = val === 'topups' ? 'topups' : 'orders'
+})
 
 interface AdminOrderRow {
   id: string

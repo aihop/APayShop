@@ -561,3 +561,17 @@ export const promoCommissions = pgTable('promo_commissions', {
   // 数据库级约束兜底防重复佣金(应用层冲突时忽略即可)
   orderTypeIdx: uniqueIndex('promo_commissions_order_type_idx').on(table.orderId, table.type),
 }))
+
+export const promoApplications = pgTable('promo_applications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  channelInfo: text('channel_info'),
+  contact: text('contact'),
+  reason: text('reason'),
+  reviewNote: text('review_note'),
+  reviewedByAdminId: integer('reviewed_by_admin_id'),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})

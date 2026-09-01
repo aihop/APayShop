@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-5xl mx-auto pb-12">
+  <div class="mx-auto pb-12">
     <div class="mb-8 flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
@@ -161,26 +161,7 @@
                   class="w-6 h-6"
                 />
               </template>
-              <span class="font-medium text-lg">{{ $t('admin.settings.page.save') }}</span>
-            </UButton>
-          </div>
-
-          <!-- Desktop Save Button (Fallback) -->
-          <div class="hidden lg:flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800">
-            <UButton
-              color="primary"
-              class="bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)] px-8 py-2.5"
-              type="submit"
-              size="lg"
-              :loading="isSaving"
-            >
-              <template #leading>
-                <UIcon
-                  name="ph:floppy-disk-fill"
-                  class="w-5 h-5"
-                />
-              </template>
-              {{ $t('admin.settings.page.save_all') }}
+              <span class="font-medium text-lg">{{ $t('admin.settings.page.save', $t('admin.common.save', '保存')) }}</span>
             </UButton>
           </div>
         </form>
@@ -211,7 +192,26 @@ const activeTab = ref(isSettingsTabId(route.query.tab) ? route.query.tab : 'gene
 
 const refresh = async () => { await fetchSettings(true) }
 
-onMounted(() => { if (!settingsStore.value) void fetchSettings(false) })
+const loadAdminSettings = async () => {
+  try {
+    const res: any = await $fetch('/api/admin/settings')
+    if (Array.isArray(res)) {
+      const kv = res.reduce((acc: any, item: any) => {
+        acc[item.key] = item.value
+        return acc
+      }, {})
+      dynamicForm.value = buildFormFromStore(kv)
+      isInitialized.value = true
+    }
+  } catch (err) {
+    console.error('Failed to load admin settings:', err)
+  }
+}
+
+onMounted(async () => {
+  await loadAdminSettings()
+  if (!settingsStore.value) void fetchSettings(false)
+})
 
 const DEFAULT_FORM: Record<string, any> = {
   site_title: '',
@@ -257,14 +257,13 @@ const isSaving = ref(false)
 const isUploadingFavicon = ref(false)
 const faviconInput = ref<HTMLInputElement | null>(null)
 
-const isInitialized = ref(!!settingsStore.value)
+const isInitialized = ref(false)
 
 watch(
   () => settingsStore.value,
   (store) => {
     if (!store || isInitialized.value) return
     dynamicForm.value = buildFormFromStore(store)
-    isInitialized.value = true
   },
   { once: true, flush: 'post' },
 )
@@ -282,7 +281,7 @@ const saveSettings = async () => {
       color: 'success',
     })
     await refresh()
-    await fetchSettings()
+    await loadAdminSettings()
   } catch (e: any) {
     toast.add({
       title: t('admin.settings.general.toast_error'),

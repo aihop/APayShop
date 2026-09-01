@@ -3,6 +3,9 @@ import { eq, and } from "drizzle-orm"
 import { db } from '../db/runtime'
 import { H3Event } from 'h3'
 import { ensureVisitorId, trackVisitorEvent } from "./visitorAnalytics"
+import { emitEvent } from "./eventActions"
+import { sendLocalizedRedirect } from './localizedRouting'
+import { getRequestLocale } from './requestLocale'
 import {
   createWebSessionId,
   issueWebSession,
@@ -79,7 +82,7 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
       // (all orders, balance, subscription) — see the note on
       // OAuthProfile.emailVerified above for the concrete GitHub exploit.
       if (!profile.emailVerified) {
-        return sendRedirect(event, '/auth/login?error=oauth_email_unverified')
+        return sendLocalizedRedirect(event, '/auth/login?error=oauth_email_unverified')
       }
 
       // Link this OAuth account to the existing user
@@ -121,6 +124,20 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
     avatarUrl: finalUserAvatar,
   }, 'oauth')
 
+  if (isNewRegistration) {
+    try {
+      await emitEvent('user.registered', {
+        id: finalUserId,
+        userId: finalUserId,
+        email: finalUserEmail,
+        nickname: finalUserNickname,
+        source: `oauth_${providerName}`,
+      })
+    } catch (eventErr) {
+      console.error(`[OAuth] user.registered event dispatch failed for #${finalUserId}:`, eventErr)
+    }
+  }
+
   // Track login/register event for visitor stats
   trackVisitorEvent(event, {
     visitorId: ensureVisitorId(event),
@@ -130,5 +147,5 @@ export async function handleOAuthLogin(event: H3Event, providerName: string, pro
   }).catch(() => {})
 
   // Redirect to home page or dashboard after successful login
-  return sendRedirect(event, '/')
+  return sendLocalizedRedirect(event, '/')
 }

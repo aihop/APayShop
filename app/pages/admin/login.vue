@@ -161,9 +161,9 @@ const { settings, fetchSettings, getSetting } = useSettings()
 // redirect silently never ran. useAdminSession is the i18n-free half, which is
 // all the login page needs.
 const { admin, loadAdmin } = useAdminSession()
-const { extensionPermissionDefs } = useAdminExtensions()
-// 同理:useI18n() 也只能在这里取,handleLogin/switchLocale 里 await 之后就没实例了。
 const { t, locale, locales, setLocale } = useI18n()
+const { loadAdminLocale } = useAdminLocale()
+await useAsyncData('admin-login-locale', () => loadAdminLocale())
 
 definePageMeta({
   layout: false, // Use no layout to take full screen control

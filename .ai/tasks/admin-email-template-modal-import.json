@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-email-template-modal-import",
+  "title": "显式引入 EmailTemplateModal 组件解决模板找不到问题",
+  "problem": "EmailTab.vue 中使用的 EmailTemplateModal 组件位于 ./email/EmailTemplateModal.vue 子目录，因 Nuxt 嵌套路径前缀规则未被局部解析为 EmailTemplateModal 标签，导致组件无法找到。",
+  "expectedOutcome": "在 EmailTab.vue 中显式 import EmailTemplateModal from './email/EmailTemplateModal.vue'，确保邮件模板编辑弹窗正常打开和渲染。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/admin/settings/EmailTab.vue"
+      ],
+      "claims": [
+        "app/components/admin/settings/EmailTab.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "EmailTab.vue 显式导入 ./email/EmailTemplateModal.vue",
+    "邮件模板新建与编辑弹窗正常弹出与交互",
+    "差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/admin/settings/EmailTab.vue"
+    }
+  ]
+}

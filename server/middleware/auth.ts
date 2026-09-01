@@ -321,8 +321,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 7. 严格模式下的前台用户邮箱验证闸门
-  if (session.user?.id && !isAdminPath && pathname.startsWith('/api/')) {
+  // 7. 严格模式下的前台用户邮箱验证闸门（管理端后台接口不属于普通前台用户链路，豁免校验）
+  const isAnyAdminPath = isAdminPath || pathname.includes('/admin/')
+  if (session.user?.id && !isAnyAdminPath && pathname.startsWith('/api/')) {
     const isVerified = Boolean(session.user.emailVerifiedAt)
     if (!isVerified) {
       const policy = await getEmailVerifyPolicy().catch(() => 'banner')

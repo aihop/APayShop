@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-email-log-preview-modal",
+  "title": "邮件日志预览弹窗接入系统 FullScreenModal",
+  "problem": "后台邮件设置中的邮件日志内容预览弹窗仍使用原生 UModal，缺乏全屏切换与系统统一弹窗样式。",
+  "expectedOutcome": "将 EmailTab.vue 中的日志预览弹窗替换为系统封装的 FullScreenModal 组件，保持视觉风格统一并支持全屏查看邮件 HTML 原文。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/admin/settings/EmailTab.vue"
+      ],
+      "claims": [
+        "app/components/admin/settings/EmailTab.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "EmailTab.vue 中日志预览弹窗使用系统封装的 FullScreenModal 组件",
+    "支持全屏切换与常规弹窗模式",
+    "邮件收件人、时间、发送状态、主题及 HTML 原文快照展示完整清晰",
+    "差异格式检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/admin/settings/EmailTab.vue"
+    }
+  ]
+}

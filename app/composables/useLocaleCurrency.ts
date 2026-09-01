@@ -64,13 +64,16 @@ export const useLocaleCurrency = () => {
 
   const formatAmount = (baseAmount: unknown) => {
     const amount = convertAmount(baseAmount)
+    const isInteger = amount % 1 === 0
     try {
       return new Intl.NumberFormat(locale.value, {
         style: 'currency',
         currency: currency.value,
+        minimumFractionDigits: isInteger ? 0 : 2,
+        maximumFractionDigits: isInteger ? 0 : 2,
       }).format(amount)
     } catch {
-      return `${currency.value} ${amount.toFixed(2)}`
+      return `${currency.value} ${isInteger ? amount.toString() : amount.toFixed(2)}`
     }
   }
 

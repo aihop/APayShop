@@ -1,6 +1,6 @@
 <template>
   <!-- 设置族成员页:套 settings 同款外壳与共享左栏导航,自身保留独立路由 -->
-  <div class="max-w-5xl mx-auto pb-12">
+  <div class="mx-auto pb-12">
     <div class="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">

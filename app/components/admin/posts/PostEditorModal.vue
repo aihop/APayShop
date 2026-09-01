@@ -236,7 +236,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, defineAsyncComponent } from 'vue'
+
+const RichEditor = defineAsyncComponent(() => import('~/components/RichEditor.vue'))
 
 const props = defineProps<{
   modelValue: boolean

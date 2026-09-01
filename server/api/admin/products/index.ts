@@ -1,6 +1,6 @@
 import { products } from "../../../db/schema"
 import { db } from '../../../db/runtime'
-import { count, desc } from "drizzle-orm"
+import { and, count, desc, like, or, sql } from "drizzle-orm"
 import { getRequestLocale } from '../../../utils/requestLocale'
 
 const normalizeImageUrls = (value: unknown) => {
@@ -43,17 +43,44 @@ export default defineEventHandler(async (event) => {
     const query = getQuery(event)
     const page = parseInt(query.page as string) || 1
     const pageSize = parseInt(query.pageSize as string) || 15
+    const search = String(query.search || '').trim()
+    const type = String(query.type || '').trim()
     const offset = (page - 1) * pageSize
 
-    // Get total count
-    const totalResult = await db.select({ value: count() }).from(products)
+    const conditions = []
+    if (search) {
+      conditions.push(or(
+        like(products.name, `%${search}%`),
+        like(products.description, `%${search}%`),
+        like(products.slug, `%${search}%`),
+      ))
+    }
+    if (type && type !== 'all') {
+      conditions.push(sql`${products.type} = ${type}`)
+    }
+
+    const whereClause = conditions.length === 1
+      ? conditions[0]
+      : conditions.length > 1
+        ? and(...conditions)
+        : undefined
+
+    let countQuery = db.select({ value: count() }).from(products)
+    if (whereClause) {
+      countQuery = countQuery.where(whereClause) as any
+    }
+    const totalResult = await countQuery
     const total = totalResult[0]?.value || 0
 
-    const result = await db.select()
+    let selectQuery = db.select()
       .from(products)
       .orderBy(products.sortOrder, desc(products.id))
       .limit(pageSize)
       .offset(offset)
+    if (whereClause) {
+      selectQuery = selectQuery.where(whereClause) as any
+    }
+    const result = await selectQuery
 
     return {
       data: result,

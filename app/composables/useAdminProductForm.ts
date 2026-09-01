@@ -328,7 +328,7 @@ export const useAdminProductForm = (emit: any) => {
       if (form.type === 'subscription') {
         if (!form.metaData.interval) form.metaData.interval = 'month'
         if (!form.metaData.interval_count) form.metaData.interval_count = 1
-        
+
         // 解析 plan_ids
         planIdsList.value = []
         if (form.metaData.plan_ids && typeof form.metaData.plan_ids === 'object') {

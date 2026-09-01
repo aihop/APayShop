@@ -141,7 +141,6 @@ export async function executeCallbackScript(
     const wrapper = `
       return (async function(process, globalThis, global, require, module, exports, __dirname, __filename, Function, AsyncFunction) {
         const { payload, config, crypto, URLSearchParams, fetch, console } = sandboxEnv;
-        const { body, query, headers } = payload;
 
         ${scriptCode}
 

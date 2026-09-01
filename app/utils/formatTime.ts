@@ -10,18 +10,25 @@ export function formatRelativeTime(dateInput: string | number | Date, t: any, tz
     return date.toLocaleDateString()
   }
 
+  const resolve = (key: string, fallbackKey: string) => {
+    const res = typeof t === 'function' ? t(key) : ''
+    if (res && res !== key) return res
+    const fb = typeof t === 'function' ? t(fallbackKey) : ''
+    return fb || res || key
+  }
+
   if (diffInSeconds < 60) {
-    return t('admin.common.justNow')
+    return resolve('common.justNow', 'admin.common.justNow')
   }
   
   const diffInMinutes = Math.floor(diffInSeconds / 60)
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${t('admin.common.minutes')}`
+    return `${diffInMinutes} ${resolve('common.minutes', 'admin.common.minutes')}`
   }
   
   const diffInHours = Math.floor(diffInMinutes / 60)
   if (diffInHours < 24) {
-    return `${diffInHours} ${t('admin.common.hours')}`
+    return `${diffInHours} ${resolve('common.hours', 'admin.common.hours')}`
   }
   
   // >24h: 按配置时区格式化日期

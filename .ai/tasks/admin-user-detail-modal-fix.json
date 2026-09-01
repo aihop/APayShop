@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-user-detail-modal-fix",
+  "title": "修复 UserDetailModal 运行时未定义函数调用与防空问题并接入 FullScreenModal",
+  "problem": "app/components/admin/customers/UserDetailModal.vue 中存在 fetchDetail 未定义函数调用、locale.value 缺乏空保护以及内层邮件快照预览弹窗未接入系统统一 FullScreenModal 的问题。",
+  "expectedOutcome": "修复 UserDetailModal.vue 中的 fetchDetail 错误为 load()，补全 locale.value 空保护，并将内层邮件预览弹窗接入系统的 FullScreenModal，确保后台用户详情弹窗稳定运行无报错。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/admin/customers/UserDetailModal.vue"
+      ],
+      "claims": [
+        "app/components/admin/customers/UserDetailModal.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "UserDetailModal.vue 中 fetchDetail 错误修复为 load()",
+    "isZh 计算属性增加 (locale.value || '') 空安全保护",
+    "内层邮件快照预览弹窗统一使用 FullScreenModal",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/admin/customers/UserDetailModal.vue"
+    }
+  ]
+}

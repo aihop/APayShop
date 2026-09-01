@@ -8,7 +8,7 @@ import { fulfillOrder } from './fulfillment'
 import { emitEvent } from './eventActions'
 import { trackVisitorEvent } from './visitorAnalytics'
 import { createOrderAttribution, settlePromoCommission } from '../promo/service'
-import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta } from './checkoutBridge'
+import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta, isMinimalCheckoutRelayOrder } from './checkoutBridge'
 import { settlePaidTopup } from './topupLedger'
 import { recoverCreditedApayTopup } from './apayTopupFulfillment'
 
@@ -117,7 +117,7 @@ export const markOrderPaid = async (input: MarkOrderPaidInput): Promise<MarkOrde
 
   const orderMeta = typeof order.metaData === 'string' ? JSON.parse(order.metaData) : order.metaData
   await settlePaidTopup(orderId)
-  const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(orderMeta))
+  const isMinimalRelay = isMinimalCheckoutRelayOrder(order)
   const isApayTopup = readMinimalCheckoutBridgeMeta(orderMeta)?.attach?.walletOwner === 'apay'
   if (isApayTopup) {
     const recovered = await recoverCreditedApayTopup(orderId)

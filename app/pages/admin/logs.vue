@@ -1,5 +1,5 @@
 <template>
-  <div class="h-[calc(100vh-10rem)] flex flex-col">
+  <div class="h-[calc(100vh-7rem)] flex flex-col">
     <div class="flex justify-between items-end mb-8 shrink-0">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ headerTitle }}</h1>

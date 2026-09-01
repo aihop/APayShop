@@ -1,5 +1,6 @@
 import { handleOAuthLogin } from "../../utils/auth"
 import { logger } from "../../utils/logger"
+import { sendLocalizedRedirect } from "../../utils/localizedRouting"
 
 export default defineOAuthGoogleEventHandler({
   async onSuccess(event, { user }) {
@@ -18,6 +19,6 @@ export default defineOAuthGoogleEventHandler({
         source: 'google_oauth', 
         details: { error } 
       })
-    return sendRedirect(event, '/auth/login?error=google_auth_failed')
+    return sendLocalizedRedirect(event, '/auth/login?error=google_auth_failed')
   }
 })

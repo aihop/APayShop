@@ -41,6 +41,24 @@ export const themeEventManifests: Record<string, ThemeEventRuleMeta[]> = {
       "mode": "async",
       "theme": "qingpu",
       "handler": "server/events.ts"
+    },
+    {
+      "key": "qingpu:fulfill_subscription",
+      "event": "order.paid",
+      "label": "轻铺：订阅订单履约与赠送算力发放",
+      "description": "当用户完成轻铺订阅套餐支付后，自动为用户发放该套餐附赠的周期算力金币",
+      "mode": "async",
+      "theme": "qingpu",
+      "handler": "server/events.ts"
+    },
+    {
+      "key": "qingpu:fulfill_topup",
+      "event": "order.paid",
+      "label": "轻铺：充值订单自动同步 AINode 余额",
+      "description": "当用户在轻铺完成充值支付后，自动为用户在 AINode 网关入账对应的金币余额",
+      "mode": "async",
+      "theme": "qingpu",
+      "handler": "server/events.ts"
     }
   ]
 }

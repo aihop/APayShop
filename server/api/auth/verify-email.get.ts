@@ -2,29 +2,17 @@ import { users, userTokens } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { db } from '../../db/runtime'
 import { EMAIL_VERIFY_TOKEN_NAME } from "../../utils/auth"
+import { normalizeSupportedLocale, sendLocalizedRedirect } from "../../utils/localizedRouting"
 import { getRequestLocale } from "../../utils/requestLocale"
 
 export default defineEventHandler(async (event) => {
-  const locale = getRequestLocale(event)
-  const messages = locale === 'zh'
-    ? {
-        missingToken: '缺少验证令牌',
-        invalidToken: '验证令牌无效或已过期',
-        expiredToken: '验证链接已过期，请重新申请验证邮件。',
-      }
-    : {
-        missingToken: 'Missing verification token',
-        invalidToken: 'Invalid or expired verification token',
-        expiredToken: 'Verification token has expired. Please request a new verification email.',
-      }
   const query = getQuery(event)
   const token = query.token as string
+  const rawLang = query.lang || query.locale || getRequestLocale(event)
+  const lang = normalizeSupportedLocale(rawLang)
 
   if (!token) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: messages.missingToken,
-    })
+    return sendLocalizedRedirect(event, '/auth/login?verified=missing', lang)
   }
 
   // user_tokens.token 有唯一约束（自带索引），按 token 查是 O(1)
@@ -36,24 +24,18 @@ export default defineEventHandler(async (event) => {
 
   const tokenRecord = tokenRows[0]
   if (!tokenRecord || tokenRecord.name !== EMAIL_VERIFY_TOKEN_NAME) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: messages.invalidToken,
-    })
+    return sendLocalizedRedirect(event, '/auth/login?verified=invalid', lang)
   }
 
   const userList = await db.select().from(users).where(eq(users.id, tokenRecord.userId)).limit(1)
   const user = userList[0]
   if (!user) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: messages.invalidToken,
-    })
+    return sendLocalizedRedirect(event, '/auth/login?verified=invalid', lang)
   }
 
   // Check if already verified
   if (user.emailVerifiedAt) {
-    return sendRedirect(event, '/user/dashboard?verified=already')
+    return sendLocalizedRedirect(event, '/auth/login?verified=already', lang)
   }
 
   // Check revoked / expiry
@@ -62,10 +44,7 @@ export default defineEventHandler(async (event) => {
   const isExpired = tokenRecord.expiresAt && new Date(tokenRecord.expiresAt) < now
 
   if (isRevoked || isExpired) {
-    throw createError({
-      statusCode: 410,
-      statusMessage: messages.expiredToken,
-    })
+    return sendLocalizedRedirect(event, '/auth/login?verified=expired', lang)
   }
 
   // Mark email as verified, revoke the token so it can't be replayed
@@ -77,6 +56,19 @@ export default defineEventHandler(async (event) => {
     .set({ revoked: true, lastUsedAt: now })
     .where(eq(userTokens.id, tokenRecord.id))
 
-  // Redirect to dashboard with success
-  return sendRedirect(event, '/user/dashboard?verified=success')
+  // 若当前浏览器已登录该用户，即时更新 Session Cookie 中的验证状态
+  const session = await getUserSession(event).catch(() => null)
+  if (session?.user && Number((session.user as any).id) === user.id) {
+    await setUserSession(event, {
+      ...session,
+      user: {
+        ...session.user,
+        emailVerified: true,
+        emailVerifiedAt: now,
+      },
+    })
+  }
+
+  // Redirect to login with success
+  return sendLocalizedRedirect(event, '/auth/login?verified=success', lang)
 })

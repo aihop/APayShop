@@ -18,66 +18,143 @@
             class="mb-2 border-t border-gray-200/80 dark:border-white/5"
           ></div>
           <nav class="space-y-1">
-            <UTooltip
-              v-for="entry in section.entries"
-              :key="entry.to"
-              :text="entry.label"
-              :disabled="!collapsed"
-              :content="{ side: 'right' }"
-            >
-              <NuxtLink
-                :to="entry.to"
-                class="group flex items-center gap-2.5 rounded-lg py-2.5 text-sm transition-colors"
-                :class="[
-                  collapsed ? 'justify-center px-0' : 'px-3',
-                  isActive(entry)
-                    ? 'bg-gray-100 text-gray-900 dark:bg-[#1a1a1e] dark:text-white'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-white/60 dark:hover:bg-white/[0.04] dark:hover:text-white',
-                ]"
+            <template v-for="item in section.items" :key="item.type === 'link' ? item.to : item.key">
+              <!-- 单个普通菜单项 -->
+              <UTooltip
+                v-if="item.type === 'link'"
+                :text="item.label"
+                :disabled="!collapsed"
+                :content="{ side: 'right' }"
               >
-                <UIcon
-                  :name="entry.icon"
-                  class="h-4 w-4 shrink-0"
-                  :class="isActive(entry) ? 'text-purple-500 dark:text-purple-400' : ''"
-                />
-                <span
-                  v-if="!collapsed"
-                  class="truncate"
-                >{{ entry.label }}</span>
-              </NuxtLink>
-            </UTooltip>
+                <NuxtLink
+                  :to="item.to"
+                  class="group flex items-center gap-2.5 rounded-lg py-2.5 text-sm transition-colors"
+                  :class="[
+                    collapsed ? 'justify-center px-0' : 'px-3',
+                    isActive(item)
+                      ? 'bg-gray-100 font-medium text-gray-900 dark:bg-[#1a1a1e] dark:text-white'
+                      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-white/60 dark:hover:bg-white/[0.04] dark:hover:text-white',
+                  ]"
+                >
+                  <UIcon
+                    :name="item.icon"
+                    class="h-4 w-4 shrink-0"
+                    :class="isActive(item) ? 'text-purple-500 dark:text-purple-400' : ''"
+                  />
+                  <span
+                    v-if="!collapsed"
+                    class="truncate"
+                  >{{ item.label }}</span>
+                </NuxtLink>
+              </UTooltip>
+
+              <!-- 折叠分组子菜单 -->
+              <div v-else class="space-y-0.5">
+                <!-- 宽栏展开模式 -->
+                <template v-if="!collapsed">
+                  <button
+                    type="button"
+                    class="group flex w-full items-center justify-between gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                    :class="isGroupActive(item)
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-white/70 dark:hover:bg-white/[0.04] dark:hover:text-white'"
+                    @click="toggleGroup(item.key)"
+                  >
+                    <div class="flex items-center gap-2.5 min-w-0 truncate">
+                      <UIcon
+                        :name="item.icon"
+                        class="h-4 w-4 shrink-0"
+                        :class="isGroupActive(item) ? 'text-purple-500 dark:text-purple-400' : 'text-gray-400'"
+                      />
+                      <span class="truncate">{{ item.title }}</span>
+                    </div>
+                    <UIcon
+                      name="ph:caret-down-bold"
+                      class="h-3.5 w-3.5 shrink-0 transition-transform duration-200 opacity-60 group-hover:opacity-100"
+                      :class="isGroupExpanded(item.key) ? 'rotate-0' : '-rotate-90'"
+                    />
+                  </button>
+
+                  <!-- 子项列表 -->
+                  <div
+                    v-show="isGroupExpanded(item.key)"
+                    class="ml-5 pl-2.5 space-y-0.5 border-l border-gray-200 dark:border-gray-800"
+                  >
+                    <NuxtLink
+                      v-for="child in item.children"
+                      :key="child.to"
+                      :to="child.to"
+                      class="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors"
+                      :class="isActive(child)
+                        ? 'bg-purple-50 font-semibold text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-white/60 dark:hover:bg-white/[0.04] dark:hover:text-white'"
+                    >
+                      <UIcon
+                        :name="child.icon"
+                        class="h-3.5 w-3.5 shrink-0"
+                        :class="isActive(child) ? 'text-purple-600 dark:text-purple-400' : 'opacity-70'"
+                      />
+                      <span class="truncate">{{ child.label }}</span>
+                    </NuxtLink>
+                  </div>
+                </template>
+
+                <!-- 窄栏收起图标模式 -->
+                <template v-else>
+                  <UTooltip
+                    :text="`${item.title} (${item.children.map(c => c.label).join(' · ')})`"
+                    :content="{ side: 'right' }"
+                  >
+                    <button
+                      type="button"
+                      class="group flex w-full items-center justify-center rounded-lg py-2.5 text-sm transition-colors cursor-pointer"
+                      :class="isGroupActive(item)
+                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-white/60 dark:hover:bg-white/[0.04] dark:hover:text-white'"
+                      @click="collapsed = false; openGroup(item.key)"
+                    >
+                      <UIcon
+                        :name="item.icon"
+                        class="h-4 w-4 shrink-0"
+                        :class="isGroupActive(item) ? 'text-purple-500 dark:text-purple-400' : ''"
+                      />
+                    </button>
+                  </UTooltip>
+                </template>
+              </div>
+            </template>
           </nav>
         </div>
       </div>
     </div>
 
-    <!-- 折叠开关:置底常驻,状态由 layouts/admin.vue 经 v-model 持有(cookie 持久化) -->
-    <div class="border-t border-gray-200/80 p-3 dark:border-white/5">
-      <button
-        type="button"
-        class="flex w-full items-center gap-2.5 rounded-lg py-2 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-white/40 dark:hover:bg-white/[0.04] dark:hover:text-white"
-        :class="collapsed ? 'justify-center px-0' : 'px-3'"
-        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        @click="collapsed = !collapsed"
+    <!-- 折叠开关:极简纯图标,极致省位 -->
+    <div
+      class="flex items-center border-t border-gray-200/80 p-2 dark:border-white/5"
+      :class="collapsed ? 'justify-center' : 'justify-end px-3'"
+    >
+      <UTooltip
+        :text="collapsed ? $t('admin.nav.expand', '展开侧边栏') : $t('admin.nav.collapse', '收起侧边栏')"
+        :content="{ side: collapsed ? 'right' : 'top' }"
       >
-        <UIcon
-          :name="collapsed ? 'ph:caret-double-right-bold' : 'ph:caret-double-left-bold'"
-          class="h-4 w-4 shrink-0"
-        />
-        <span v-if="!collapsed">{{ $t('admin.nav.collapse') }}</span>
-      </button>
+        <button
+          type="button"
+          class="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
+          :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          @click="collapsed = !collapsed"
+        >
+          <UIcon
+            :name="collapsed ? 'ph:sidebar-simple-bold' : 'ph:sidebar-simple-bold'"
+            class="h-4 w-4 shrink-0"
+          />
+        </button>
+      </UTooltip>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-// 后台侧边导航:2026-07 参照 qingpu 用户中心改为 fixed 贴边全高,
-// 支持折叠成 64px 图标栏(tooltip 显示条目名)。此前是居中容器内的
-// sticky 内嵌栏,与内容粘连、大屏留白浪费。
-// 三段导航(商店/主题扩展/配置)归一成 sections 统一渲染,active 判定
-// 用路径前缀(admin 路由无 i18n 前缀,直接比较即可),不再依赖
-// NuxtLink active-class——图标颜色需要与链接同步高亮,类选择器做不到。
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 
@@ -86,22 +163,69 @@ const { extensionSections } = useAdminExtensions()
 const { storeSection, configSection, resolveLabel, resolveSectionTitle, loadProductTypes, hasPermissionFor } = useAdminNav()
 const { adminSectionTitleClass } = useAdminNavStyle()
 
-interface NavEntry {
+interface NavSingleEntry {
+  type: 'link'
   to: string
   icon: string
   label: string
   exact?: boolean
+  order?: number
 }
 
+interface NavGroupEntry {
+  type: 'group'
+  key: string
+  title: string
+  icon: string
+  order: number
+  children: NavSingleEntry[]
+}
+
+type NavItem = NavSingleEntry | NavGroupEntry
+
+// 分组展开/折叠状态映射，默认所有分组均展开（未显式折叠即为展开）
+const expandedGroups = ref<Record<string, boolean>>({})
+
 const sections = computed(() => {
-  const list: { key: string; title: string; entries: NavEntry[] }[] = [
+  const list: { key: string; title: string; items: NavItem[] }[] = [
     {
       key: 'store',
-      // storeSection/configSection 是 useAdminNav 返回的普通对象(非 ref),不解 .value
       title: resolveSectionTitle(storeSection),
-      entries: storeSection.items
+      items: storeSection.items
         .filter(item => !item.conditional || item.conditional())
-        .map(item => ({ to: item.to, icon: item.icon, label: resolveLabel(item), exact: item.exact })),
+        .map((item) => {
+          if (item.children && item.children.length) {
+            const validChildren = item.children
+              .filter(child => !child.conditional || child.conditional())
+              .map(child => ({
+                type: 'link' as const,
+                to: child.to,
+                icon: child.icon,
+                label: resolveLabel(child),
+                exact: child.exact,
+              }))
+
+            // 如果有多个有效子项（如包含全部商品、卡密、订阅等），渲染为折叠组
+            if (validChildren.length > 1) {
+              return {
+                type: 'group' as const,
+                key: `store-${item.to}`,
+                title: resolveLabel(item),
+                icon: item.icon,
+                order: 0,
+                children: validChildren,
+              }
+            }
+          }
+
+          return {
+            type: 'link' as const,
+            to: item.to,
+            icon: item.icon,
+            label: resolveLabel(item),
+            exact: item.exact,
+          }
+        }),
     },
   ]
 
@@ -110,28 +234,110 @@ const sections = computed(() => {
       hasPermissionFor(page.permissionCode || themeExtensionPermissionCode(page.extensionKey, page.key))
     )
     if (!allowedExtensionPages.length) return
+
+    // 检查是否有分组配置
+    const groupsMap = new Map<string, { title: string; icon: string; order: number; children: NavSingleEntry[] }>()
+    const directItems: NavSingleEntry[] = []
+
+    allowedExtensionPages.forEach((page) => {
+      const entry: NavSingleEntry = {
+        type: 'link',
+        to: page.route,
+        icon: page.icon,
+        label: page.title,
+        exact: true,
+        order: page.order ?? 99,
+      }
+
+      if (page.group) {
+        const groupKey = `group-${page.group}`
+        const existing = groupsMap.get(groupKey) || {
+          title: page.group,
+          icon: page.groupIcon || 'ph:folder-bold',
+          order: page.groupOrder ?? 99,
+          children: [],
+        }
+        existing.children.push(entry)
+        groupsMap.set(groupKey, existing)
+      } else {
+        directItems.push(entry)
+      }
+    })
+
+    const sectionItems: NavItem[] = [...directItems]
+    for (const [key, group] of groupsMap.entries()) {
+      sectionItems.push({
+        type: 'group',
+        key,
+        title: group.title,
+        icon: group.icon,
+        order: group.order,
+        children: group.children,
+      })
+    }
+
+    // 排序：按 order 从小到大排
+    sectionItems.sort((a, b) => {
+      const orderA = a.order ?? 0
+      const orderB = b.order ?? 0
+      return orderA - orderB
+    })
+
     list.push({
       key: `extensions-${section.key}`,
       title: section.title,
-      entries: allowedExtensionPages.map(page => ({ to: page.route, icon: page.icon, label: page.title, exact: true })),
+      items: sectionItems,
     })
   })
 
   list.push({
     key: 'config',
     title: resolveSectionTitle(configSection),
-    entries: configSection.items
+    items: configSection.items
       .filter(item => !item.conditional || item.conditional())
-      .map(item => ({ to: item.to, icon: item.icon, label: resolveLabel(item), exact: item.exact })),
+      .map(item => ({
+        type: 'link' as const,
+        to: item.to,
+        icon: item.icon,
+        label: resolveLabel(item),
+        exact: item.exact,
+      })),
   })
 
   return list
 })
 
-const isActive = (entry: NavEntry) => {
+const isActive = (entry: NavSingleEntry) => {
   if (entry.exact) return route.path === entry.to
   return route.path === entry.to || route.path.startsWith(`${entry.to}/`)
 }
+
+const isGroupActive = (group: NavGroupEntry) => {
+  return group.children.some(child => isActive(child))
+}
+
+const isGroupExpanded = (groupKey: string) => {
+  return expandedGroups.value[groupKey] !== false
+}
+
+const toggleGroup = (groupKey: string) => {
+  expandedGroups.value[groupKey] = !isGroupExpanded(groupKey)
+}
+
+const openGroup = (groupKey: string) => {
+  expandedGroups.value[groupKey] = true
+}
+
+// 当路由切换到某个子项时，自动展开其所在的分组
+watch(() => route.path, (currentPath) => {
+  for (const section of sections.value) {
+    for (const item of section.items) {
+      if (item.type === 'group' && item.children.some(c => c.to === currentPath || currentPath.startsWith(`${c.to}/`))) {
+        expandedGroups.value[item.key] = true
+      }
+    }
+  }
+}, { immediate: true })
 
 onMounted(async () => {
   await loadProductTypes()

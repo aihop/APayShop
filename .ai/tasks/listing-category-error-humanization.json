@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "listing-category-error-humanization",
+  "title": "Listing 类目属性与店铺凭证异常提示人性化及多语言错误归一",
+  "problem": "当 Ozon API 因 Invalid Api-Key、凭证失效、未配置店铺或接口限流失败时，后端直接向上抛出包含 URL、状态码和堆栈的原始英文报错，未进行凭证轮换重试，前端也直接显示原始报错信息，缺少人性化和多语言友好的提示引导。",
+  "expectedOutcome": "1. shouldTryNextCredential 识别 Invalid Api-Key / code=3 等凭证错误并自动尝试下一个店铺凭证；\n2. 抛出的店铺凭证与类目加载错误统一归一化为结构化错误（附带错误码 STORE_CREDENTIAL_INVALID / STORE_CREDENTIAL_MISSING / STORE_RATE_LIMITED 及人性化引导信息）；\n3. /api/qingpu/listing/categories/attributes 接口捕获并返回归一化后的友好错误；\n4. 补充专项测试。",
+  "constraints": [
+    "不修改 Product 四层模型与持久化协议",
+    "保持 engine 渠道口径与凭证重试安全边界",
+    "不覆盖工作区其他并行改动",
+    "只修改本次声明的文件并跑通专项验证"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/stores/credentials.ts",
+        "server/listing/ozon-catalog.ts",
+        "api/listing/categories/attributes.ts",
+        "tests/category-error-humanization.test.ts"
+      ],
+      "claims": [
+        "server/stores/credentials.ts",
+        "server/listing/ozon-catalog.ts",
+        "api/listing/categories/attributes.ts",
+        "tests/category-error-humanization.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "shouldTryNextCredential 识别 Invalid Api-Key (code=3) 为凭证类错误",
+    "loadUsableOzonCredentials 在无可用店铺时抛出友好提示与 STORE_CREDENTIAL_MISSING 错误码",
+    "humanizeOzonCatalogError 将 Ozon 凭证、限流与缺失错误归一为清晰可操作的中文提示及状态码",
+    "api/listing/categories/attributes 经 humanizeOzonCatalogError 转换后再向客户端抛出",
+    "专项测试通过"
+  ],
+  "verification": [
+    {
+      "name": "类目与凭证错误人性化归一专项测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/category-error-humanization.test.ts"
+    }
+  ]
+}

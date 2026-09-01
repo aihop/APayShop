@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../db/runtime'
-import { orders, promoAgentRelations, promoCommissions, promoInviteRelations, promoMembers, promoOrderAttributions, users } from '../db/schema'
+import { orders, promoAgentRelations, promoApplications, promoCommissions, promoInviteRelations, promoMembers, promoOrderAttributions, settings, subscriptions, users } from '../db/schema'
 import { PROMO_COMMISSION_STATUS, PROMO_ROLE } from './utils'
 import { ensurePromoMember } from './members'
 import { resolveOrderCurrencyAmounts } from '../utils/orderCurrency'
@@ -92,28 +92,103 @@ export async function listPromoAgentRelations(limit = 100) {
     .limit(limit)
 }
 
+export async function checkUserPromoAccess(userId: number) {
+  // 1. 读取系统配置
+  const settingRows = await db.select().from(settings).where(inArray(settings.key, [
+    'promo_access_mode',
+    'promo_min_spend_amount',
+  ]))
+  const settingMap: Record<string, string> = {
+    promo_access_mode: 'paid_active',
+    promo_min_spend_amount: '49',
+  }
+  for (const row of settingRows) {
+    settingMap[row.key] = row.value
+  }
+
+  const mode = (settingMap.promo_access_mode || 'paid_active') as 'open' | 'paid_active' | 'apply_audit' | 'paid_and_audit'
+  const minSpendAmount = Math.max(0, Number(settingMap.promo_min_spend_amount) || 0)
+
+  // 2. 检查是否有现有 member 且是 agent / master_agent
+  const existingMember = await db.select().from(promoMembers).where(eq(promoMembers.userId, userId)).limit(1)
+  const member = existingMember[0] || null
+  const isPrivilegedRole = member?.role === PROMO_ROLE.AGENT || member?.role === PROMO_ROLE.MASTER_AGENT
+
+  // 3. 检查用户累计消费金额 (USD)
+  const paidOrders = await db.select({ total: sql<number>`coalesce(sum(${orders.amount}), 0)` })
+    .from(orders)
+    .where(and(
+      eq(orders.userId, userId),
+      eq(orders.status, 'paid'),
+    ))
+  const totalSpend = Number(paidOrders[0]?.total || 0)
+
+  // 4. 检查申请记录
+  const apps = await db.select()
+    .from(promoApplications)
+    .where(eq(promoApplications.userId, userId))
+    .orderBy(desc(promoApplications.createdAt))
+    .limit(1)
+  const application = apps[0] || null
+
+  const isSpendQualified = minSpendAmount > 0 ? totalSpend >= minSpendAmount : true
+  const isAuditApproved = application?.status === 'approved'
+
+  let allowed = false
+  if (isPrivilegedRole) {
+    allowed = true
+  } else if (mode === 'open') {
+    allowed = true
+  } else if (mode === 'paid_active') {
+    allowed = isSpendQualified || isAuditApproved
+  } else if (mode === 'apply_audit') {
+    allowed = isAuditApproved
+  } else if (mode === 'paid_and_audit') {
+    allowed = isSpendQualified && isAuditApproved
+  }
+
+  return {
+    allowed,
+    mode,
+    totalSpend,
+    minSpendAmount,
+    application,
+    member,
+  }
+}
+
 export async function getUserPromoOverview(userId: number) {
-  const member = await ensurePromoMember(userId, PROMO_ROLE.MEMBER)
-  const inviteRelationRows = await db.select({ value: sql<number>`count(*)` })
+  const access = await checkUserPromoAccess(userId)
+  let member = access.member
+
+  if (!member) {
+    member = await ensurePromoMember(userId, PROMO_ROLE.MEMBER)
+  }
+
+  const inviteRelationRows = member ? await db.select({ value: sql<number>`count(*)` })
     .from(promoInviteRelations)
-    .where(eq(promoInviteRelations.inviterUserId, userId))
-  const agentChildrenRows = await db.select({ value: sql<number>`count(*)` })
+    .where(eq(promoInviteRelations.inviterUserId, userId)) : [{ value: 0 }]
+  const agentChildrenRows = member ? await db.select({ value: sql<number>`count(*)` })
     .from(promoAgentRelations)
     .where(and(
       eq(promoAgentRelations.masterAgentUserId, userId),
       eq(promoAgentRelations.status, 'active'),
-    ))
-  const pendingAgentRows = await db.select({ value: sql<number>`count(*)` })
+    )) : [{ value: 0 }]
+  const pendingAgentRows = member ? await db.select({ value: sql<number>`count(*)` })
     .from(promoAgentRelations)
     .where(and(
       eq(promoAgentRelations.masterAgentUserId, userId),
       eq(promoAgentRelations.status, 'pending'),
-    ))
-  const commissionRows = await db.select({
+    )) : [{ value: 0 }]
+  const commissionRows = member ? await db.select({
     amount: sql<number>`coalesce(sum(${promoCommissions.amount}), 0)`,
-  }).from(promoCommissions).where(eq(promoCommissions.ownerUserId, userId))
+  }).from(promoCommissions).where(eq(promoCommissions.ownerUserId, userId)) : [{ amount: 0 }]
 
   return {
+    access: {
+      ...access,
+      allowed: true,
+    },
     member,
     role: member?.role || PROMO_ROLE.MEMBER,
     isAgent: member?.role === PROMO_ROLE.AGENT || member?.role === PROMO_ROLE.MASTER_AGENT,

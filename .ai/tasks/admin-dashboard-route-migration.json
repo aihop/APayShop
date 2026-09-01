@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-dashboard-route-migration",
+  "title": "将 /admin 仪表盘路由迁移至 /admin/dashboard",
+  "problem": "/admin 根路径与具体仪表盘业务路由耦合，需要将后台仪表盘页面路由规范化为 /admin/dashboard，并将 /admin 访问自动重定向到 /admin/dashboard。",
+  "expectedOutcome": "后台仪表盘页面调整为 /admin/dashboard，/admin 自动重定向至 /admin/dashboard，导航、权限映射、路由搜索及各关联链接同步更新。",
+  "constraints": [
+    "保持 /admin 请求平滑 301/302 重定向到 /admin/dashboard",
+    "不破坏管理端权限与全局鉴权拦截",
+    "保留工作区既有未提交改动，严格限制在 claims 范围内"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/pages/admin/dashboard.vue",
+        "app/pages/admin/index.vue",
+        "app/composables/useAdminNavConfig.ts",
+        "app/components/RouteSearch.vue",
+        "app/composables/useAdminPermissions.ts",
+        "app/pages/admin/extensions/[...slug].vue"
+      ],
+      "claims": [
+        "app/pages/admin/dashboard.vue",
+        "app/pages/admin/index.vue",
+        "app/composables/useAdminNavConfig.ts",
+        "app/components/RouteSearch.vue",
+        "app/composables/useAdminPermissions.ts",
+        "app/pages/admin/extensions/[...slug].vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "访问 /admin/dashboard 正常展示仪表盘页面且使用 admin layout",
+    "访问 /admin 自动重定向到 /admin/dashboard",
+    "后台侧栏导航、快捷搜索 RouteSearch 与权限系统同步更新",
+    "验证测试通过"
+  ],
+  "verification": [
+    {
+      "name": "多语言结构校验",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-locales-structure.mjs"
+    },
+    {
+      "name": "域名语言契约校验",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-domain-locales.mjs"
+    },
+    {
+      "name": "契约范围格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/composables/useAdminNavConfig.ts app/components/RouteSearch.vue app/composables/useAdminPermissions.ts app/pages/admin/extensions/[...slug].vue app/pages/admin/dashboard.vue app/pages/admin/index.vue"
+    }
+  ]
+}

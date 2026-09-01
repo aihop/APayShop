@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-5xl mx-auto pb-12">
+  <div class="mx-auto pb-12">
     <div class="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
@@ -76,7 +76,7 @@
             </UTable>
           </div>
 
-          <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
+          <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
             <div class="text-sm text-gray-500 dark:text-gray-400">
               <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
             </div>

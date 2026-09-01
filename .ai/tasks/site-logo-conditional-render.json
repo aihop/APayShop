@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "site-logo-conditional-render",
+  "title": "根据是否配置 site_logo 条件渲染 Logo 图标",
+  "problem": "当网站未配置 site_logo 时，顶栏仍会渲染默认图标的占位容器，用户期望在没有 icon 时完全不渲染该区域，仅展示网站名称。",
+  "expectedOutcome": "在 AppHeader、AdminHeader、AppMobileMenu、AdminMobileMenu 中为 Logo 容器添加 v-if=\"getSetting('site_logo')\"，未配置时完全不渲染 icon 容器。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/AppHeader.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AdminMobileMenu.vue"
+      ],
+      "claims": [
+        "app/components/AppHeader.vue",
+        "app/components/AdminHeader.vue",
+        "app/components/AppMobileMenu.vue",
+        "app/components/AdminMobileMenu.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "未配置 site_logo 时不渲染 Logo 图标与容器",
+    "配置了 site_logo 时正常渲染 Logo",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/AppHeader.vue app/components/AdminHeader.vue app/components/AppMobileMenu.vue app/components/AdminMobileMenu.vue"
+    }
+  ]
+}

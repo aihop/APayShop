@@ -22,5 +22,47 @@ export const seoRouteRegistry = {
     ],
     "redirect": []
   },
-  "themes": {}
+  "themes": {
+    "qingpu": {
+      "public": [
+        "/",
+        "/affiliates",
+        "/blog",
+        "/changelog",
+        "/contact-support",
+        "/docs",
+        "/downloads",
+        "/ecommerce-image",
+        "/features",
+        "/image-bg-remove",
+        "/image-enhancer",
+        "/image-to-image",
+        "/image-to-video",
+        "/pricing",
+        "/privacy",
+        "/products",
+        "/reference-to-video",
+        "/refund-policy",
+        "/terms",
+        "/text-to-image",
+        "/text-to-video"
+      ],
+      "dynamic": [
+        {
+          "pattern": "/blog/:slug",
+          "source": "posts"
+        },
+        {
+          "pattern": "/products/:slug",
+          "source": "products"
+        }
+      ],
+      "private": [
+        "/auth/**",
+        "/callback/**",
+        "/user/**"
+      ],
+      "redirect": []
+    }
+  }
 }

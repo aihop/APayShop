@@ -1,6 +1,6 @@
 import * as themeBuild from '~/generated/theme-build'
 
-type AdminExtensionManifestPage = {
+export type AdminExtensionManifestPage = {
   key: string
   title: string
   description?: string
@@ -9,6 +9,9 @@ type AdminExtensionManifestPage = {
   icon?: string
   order?: number
   permissionCode?: string
+  group?: string
+  groupIcon?: string
+  groupOrder?: number
 }
 
 type AdminExtensionManifest = {
@@ -78,6 +81,9 @@ export const useAdminExtensions = () => {
           componentPath,
           icon: page.icon || 'ph:puzzle-piece',
           order: page.order ?? 999,
+          group: page.group,
+          groupIcon: page.groupIcon,
+          groupOrder: page.groupOrder,
           extensionKey: activeTheme.value,
           sectionTitle: themeSectionTitle.value,
         }
@@ -88,6 +94,9 @@ export const useAdminExtensions = () => {
           componentPath: string
           icon: string
           order: number
+          group?: string
+          groupIcon?: string
+          groupOrder?: number
           extensionKey: string
           sectionTitle: string
         }
@@ -113,15 +122,28 @@ export const useAdminExtensions = () => {
   const findExtensionPage = (path: string) =>
     extensionPages.value.find(page => page.route === path) || null
 
+  const asyncAdminComponentCache = new Map<string, any>()
   const resolveExtensionComponent = (path: string) => {
     const page = findExtensionPage(path)
     if (!page) {
       return null
     }
 
-    return 'component' in page && typeof page.component !== 'string'
-      ? page.component
-      : themeBuild.themeAdminPageModules[page.componentPath] || null
+    if ('component' in page && typeof page.component !== 'string') {
+      return page.component
+    }
+
+    const loaderOrComp = (themeBuild.themeAdminPageModules as Record<string, any>)[page.componentPath]
+    if (!loaderOrComp) return null
+
+    if (typeof loaderOrComp === 'function') {
+      if (!asyncAdminComponentCache.has(page.componentPath)) {
+        asyncAdminComponentCache.set(page.componentPath, defineAsyncComponent(loaderOrComp))
+      }
+      return asyncAdminComponentCache.get(page.componentPath)
+    }
+
+    return loaderOrComp.default || loaderOrComp
   }
 
   // One permission per extension page, namespaced to the active theme so a

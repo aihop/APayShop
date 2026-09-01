@@ -76,7 +76,7 @@ const routes = computed(() => {
   // as ADMIN_PERMISSIONS/useAdminNavConfig, so results here always match
   // what's actually reachable, not just what's visible in the sidebar.
   const adminRoutes = [
-    { id: 'admin-dashboard', label: t('admin.nav.dashboard'), icon: 'ph:squares-four', to: '/admin', permission: 'dashboard' },
+    { id: 'admin-dashboard', label: t('admin.nav.dashboard'), icon: 'ph:squares-four', to: '/admin/dashboard', permission: 'dashboard' },
     { id: 'admin-orders', label: t('admin.nav.orders'), icon: 'ph:shopping-cart', to: '/admin/orders', permission: 'orders' },
     { id: 'admin-topups', label: t('admin.nav.topups'), icon: 'ph:wallet', to: '/admin/topups', permission: 'orders' },
     { id: 'admin-stats', label: t('admin.nav.stats'), icon: 'ph:chart-bar', to: '/admin/stats', permission: 'stats' },

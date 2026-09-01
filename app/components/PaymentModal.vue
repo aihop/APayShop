@@ -21,7 +21,7 @@
         :quantity="quantity"
         closable
         @close="closeCheckoutModal"
-        @success="closeCheckoutModal"
+        @success="handlePaymentSuccess"
       />
     </template>
   </UModal>
@@ -59,6 +59,13 @@ const handleOpen = () => {
     openCheckoutModal(props.productId, props.quantity, props.metaData)
   } else if (props.orderId) {
     continuePayment(props.orderId)
+  }
+}
+
+const handlePaymentSuccess = () => {
+  closeCheckoutModal()
+  if (typeof window !== 'undefined') {
+    window.location.reload()
   }
 }
 

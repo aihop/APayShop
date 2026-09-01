@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "locales-alignment-and-common-consolidation",
+  "title": "多语言包全量对齐与 Common 通用词条收拢",
+  "problem": "多语言包之间键结构未完全对齐（zh-HK 为空、ru 缺失 160 个后台词条、zh/en 存在微小差异），且通用按钮、状态、分页等词条分散在各处，缺乏统一的 common 池与自动化对齐守卫。",
+  "expectedOutcome": "完成 zh、en、ru、zh-HK 四种语言在 common.json、site.json、admin.json 上的 100% 键对齐与高质量翻译；通用按钮与操作全面收拢到 common.json 并保持向后兼容；check-locales-structure.mjs 守卫升级并校验通过。",
+  "constraints": [
+    "不修改 APay 核心数据库 Schema 与服务端 API 契约",
+    "保持所有现有 $t('admin.*')、$t('site.*')、$t('common.*') 路径 100% 兼容",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "locales/zh/common.json",
+        "locales/zh/site.json",
+        "locales/zh/admin.json",
+        "locales/en/common.json",
+        "locales/en/site.json",
+        "locales/en/admin.json",
+        "locales/ru/common.json",
+        "locales/ru/site.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/common.json",
+        "locales/zh-HK/site.json",
+        "locales/zh-HK/admin.json",
+        "scripts/check-locales-structure.mjs"
+      ],
+      "claims": [
+        "locales/zh/common.json",
+        "locales/zh/site.json",
+        "locales/zh/admin.json",
+        "locales/en/common.json",
+        "locales/en/site.json",
+        "locales/en/admin.json",
+        "locales/ru/common.json",
+        "locales/ru/site.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/common.json",
+        "locales/zh-HK/site.json",
+        "locales/zh-HK/admin.json",
+        "scripts/check-locales-structure.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "zh、en、ru、zh-HK 四种语言在 common.json、site.json、admin.json 中 100% 键对齐",
+    "zh-HK 补齐高质量香港繁体中文",
+    "ru 补齐全部缺失的后台管理词条与通用词条",
+    "common.json 收拢完整的常用按钮与通用操作、状态、分页与时间",
+    "check-locales-structure.mjs 校验通过",
+    "check-domain-locales.mjs 与 check:seo 验证通过"
+  ],
+  "verification": [
+    {
+      "name": "语言包结构与 100% 对齐校验",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-locales-structure.mjs"
+    },
+    {
+      "name": "域名语言契约校验",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-domain-locales.mjs"
+    },
+    {
+      "name": "国际化 SEO 校验",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:seo"
+    },
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- scripts/check-locales-structure.mjs"
+    }
+  ]
+}

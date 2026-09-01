@@ -1,19 +1,15 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '../db/runtime'
 import { eventRules } from '../db/schema'
-import { dispatchEvent, sendHttpWebhook } from './eventBus'
+import { sendHttpWebhook } from './eventBus'
 import { getWebhookSubscriptionUrl, getIntegrationToken } from './externalProxy'
 import { logger } from './logger'
 
 /**
- * 事件自动化:把"事件 → 动作(带参数)"做成后台可配置的规则。
- *
- * - `dispatchEvent`(eventBus):把事件转发给外部 webhook 订阅者(保留)。
- * - `runEventActions`(本文件):执行后台配置的"内部动作"(如发奖励、外发 Webhook)。
- * - `emitEvent` = 两者合一,业务侧统一调用它。
- *
- * 发奖励复用 ainode 的 `transaction.credit` 入账,幂等 eventId = reward:<event>:<ruleId>:<userId>,
- * ainode 按 event_id 去重 → 同一用户同一规则永不重复发(防重复注册/重试)。
+ * 事件自动化系统:
+ * - 方式一: 主题内置事件规则 (Theme Events), 支持同步门禁拦截与异步处理
+ * - 方式二: 后台配置事件规则 (Event Rules), 发放积分奖励/精准外发 Webhook/自定义动作
+ * - 统一入口: emitEvent
  */
 
 interface EventPayload {
@@ -283,12 +279,6 @@ export async function emitEvent(event: string, payload: EventPayload) {
 
   // 2. 异步非阻塞阶段
   const asyncTask = async () => {
-    try {
-      await dispatchEvent(event, payload)
-    } catch (e) {
-      console.error(`[EventActions] dispatchEvent ${event} failed:`, e)
-    }
-
     // 执行主题注册的异步内置动作
     const asyncThemeRules = themeRules.filter(r => r.event === event && r.mode !== 'sync')
     for (const rule of asyncThemeRules) {

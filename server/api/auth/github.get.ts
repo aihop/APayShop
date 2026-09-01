@@ -1,5 +1,6 @@
 import { handleOAuthLogin } from "../../utils/auth"
 import { logger } from "../../utils/logger"
+import { sendLocalizedRedirect } from "../../utils/localizedRouting"
 
 export default defineOAuthGitHubEventHandler({
   config: {
@@ -47,6 +48,6 @@ export default defineOAuthGitHubEventHandler({
         source: 'github_oauth', 
         details: { error } 
       })
-    return sendRedirect(event, '/auth/login?error=github_auth_failed')
+    return sendLocalizedRedirect(event, '/auth/login?error=github_auth_failed')
   }
 })

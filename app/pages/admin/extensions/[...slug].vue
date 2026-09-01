@@ -21,7 +21,7 @@
           variant="outline"
         >Theme Center</UButton>
         <UButton
-          to="/admin"
+          to="/admin/dashboard"
           color="primary"
           class="bg-purple-600 hover:bg-purple-500 text-white"
         >Back to Dashboard</UButton>

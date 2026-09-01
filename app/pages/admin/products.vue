@@ -1,21 +1,120 @@
 <template>
-  <div class="h-[calc(100vh-10rem)] flex flex-col">
+  <div class="h-[calc(100vh-7rem)] flex flex-col">
 
-    <div class="flex justify-between items-end mb-8 shrink-0">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-4 shrink-0">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ $t('admin.products.title') }}</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">{{ $t('admin.products.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+          {{ activeTab === 'cards' ? $t('admin.cards.title', '卡密库存') : activeTab === 'subscriptions' ? $t('admin.subscriptions.title', '订阅管理') : $t('admin.products.title', '产品管理') }}
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1.5 text-sm">
+          {{ activeTab === 'cards' ? $t('admin.cards.subtitle', '管理卡密型商品的批量导入与使用状态') : activeTab === 'subscriptions' ? $t('admin.subscriptions.subtitle', '查看与管理客户周期性订阅计划') : $t('admin.products.subtitle', '管理商城所有实物、数字、卡密及订阅商品') }}
+        </p>
       </div>
-      <UButton
-        v-if="hasAdminPerm('products:edit')"
-        color="primary"
-        class="bg-purple-600 hover:bg-purple-500 text-white"
-        icon="ph:plus-bold"
-        @click="openModal()"
-      >{{ $t('admin.products.add') }}</UButton>
+
+      <!-- 顶层分段 Tabs -->
+      <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-white/5 p-1 rounded-xl shrink-0">
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+          :class="activeTab === 'products'
+            ? 'bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white shadow-xs'
+            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+          @click="switchTab('products')"
+        >
+          <UIcon name="ph:package-bold" class="h-3.5 w-3.5" />
+          <span>{{ $t('admin.products.tab_all', '全部商品') }}</span>
+          <span class="opacity-70 text-[10px] font-mono">({{ total }})</span>
+        </button>
+
+        <button
+          v-if="hasKeyProducts"
+          type="button"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+          :class="activeTab === 'cards'
+            ? 'bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white shadow-xs'
+            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+          @click="switchTab('cards')"
+        >
+          <UIcon name="ph:barcode-bold" class="h-3.5 w-3.5" />
+          <span>{{ $t('admin.cards.title', '卡密库存') }}</span>
+          <span class="rounded-full bg-purple-100 dark:bg-purple-900/50 px-1.5 py-0.2 text-[10px] font-bold text-purple-700 dark:text-purple-300">
+            {{ keyCount }}
+          </span>
+        </button>
+
+        <button
+          v-if="hasSubscriptionProducts"
+          type="button"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+          :class="activeTab === 'subscriptions'
+            ? 'bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white shadow-xs'
+            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+          @click="switchTab('subscriptions')"
+        >
+          <UIcon name="ph:calendar-check-bold" class="h-3.5 w-3.5" />
+          <span>{{ $t('admin.subscriptions.title', '订阅管理') }}</span>
+          <span class="rounded-full bg-purple-100 dark:bg-purple-900/50 px-1.5 py-0.2 text-[10px] font-bold text-purple-700 dark:text-purple-300">
+            {{ subCount }}
+          </span>
+        </button>
+      </div>
     </div>
 
-    <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+    <!-- 卡密库存视图 -->
+    <template v-if="activeTab === 'cards'">
+      <AdminCardsPanel />
+    </template>
+
+    <!-- 订阅管理视图 -->
+    <template v-else-if="activeTab === 'subscriptions'">
+      <AdminSubscriptionsPanel />
+    </template>
+
+    <!-- 全部商品视图 -->
+    <template v-else>
+      <!-- 搜索与工具栏 -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <UInput
+            v-model="searchQuery"
+            icon="ph:magnifying-glass"
+            :placeholder="$t('admin.products.searchPlaceholder', '搜索商品名称、标识或描述...')"
+            class="w-72"
+            size="sm"
+          />
+
+          <USelect
+            v-model="selectedType"
+            :items="typeFilterOptions"
+            class="w-36 text-xs shrink-0"
+            size="sm"
+          />
+
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="ph:arrows-clockwise"
+            size="sm"
+            :loading="pending"
+            class="hover:bg-gray-50 dark:hover:bg-gray-800"
+            @click="() => refresh()"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="hasAdminPerm('products:edit')"
+            color="primary"
+            class="bg-purple-600 hover:bg-purple-500 text-white font-medium"
+            size="sm"
+            icon="ph:plus-bold"
+            @click="openModal()"
+          >{{ $t('admin.products.add') }}</UButton>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-[#121214] border border-gray-200/60 dark:border-gray-800/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
       <div class="flex-1 overflow-auto">
         <UTable
           :data="paginatedProducts"
@@ -162,7 +261,7 @@
       </div>
 
       <!-- Pagination -->
-      <div class="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
+      <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-800/50 flex justify-between items-center shrink-0 bg-white dark:bg-[#121214]">
         <div class="text-sm text-gray-500 dark:text-gray-400">
           <span class="text-gray-900 dark:text-white">{{ totalItems }}</span> {{ $t('admin.common.results') }}
         </div>
@@ -181,15 +280,21 @@
       :product="editingProduct"
       @saved="refresh"
     />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSortable } from '@vueuse/integrations/useSortable'
+import { useRoute, useRouter } from '#imports'
+import AdminCardsPanel from '~/components/AdminCardsPanel.vue'
+import AdminSubscriptionsPanel from '~/components/AdminSubscriptionsPanel.vue'
 
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 definePageMeta({ title: 'Products Management', layout: 'admin' })
 
@@ -201,6 +306,19 @@ const { getSetting, fetchSettings } = useSettings()
 
 await fetchSettings()
 const baseCurrency = computed(() => getSetting('currency', 'USD'))
+
+const activeTab = ref<'products' | 'cards' | 'subscriptions'>(
+  route.query.tab === 'cards' ? 'cards' : route.query.tab === 'subscriptions' ? 'subscriptions' : 'products'
+)
+
+const switchTab = (tab: 'products' | 'cards' | 'subscriptions') => {
+  activeTab.value = tab
+  void router.replace({ query: { ...route.query, tab: tab === 'products' ? undefined : tab } })
+}
+
+watch(() => route.query.tab, (val) => {
+  activeTab.value = val === 'cards' ? 'cards' : val === 'subscriptions' ? 'subscriptions' : 'products'
+})
 
 const getProductStatusColor = (product: any) => {
   const status = product?.status || (product?.isActive === false ? 'inactive' : 'active')
@@ -239,16 +357,29 @@ const columns = computed(() => [
 
 const { page, pageSize: pageCount, onPageChange } = usePagination(15)
 
+const searchQuery = ref('')
+const selectedType = ref('all')
+
+const { data: allTypesData } = await useFetch<any>('/api/products/types')
+const availableTypes = computed(() => allTypesData.value?.data || [])
+
+const typeFilterOptions = computed(() => [
+  { label: '全部类型', value: 'all' },
+  ...availableTypes.value.map((t: string) => ({ label: t.toUpperCase(), value: t })),
+])
+
 const {
   data: productsData,
   pending,
   refresh,
 } = await useFetch<any>('/api/admin/products', {
-  query: {
-    page,
-    pageSize: pageCount,
-  },
-  watch: [page],
+  query: computed(() => ({
+    page: page.value,
+    pageSize: pageCount.value,
+    search: searchQuery.value || undefined,
+    type: selectedType.value !== 'all' ? selectedType.value : undefined,
+  })),
+  watch: [page, searchQuery, selectedType],
   onResponseError({ response }: any) {
     if (response.status === 401) {
       useRouter().push('/admin/login')
@@ -256,8 +387,18 @@ const {
   },
 })
 
+watch([searchQuery, selectedType], () => {
+  page.value = 1
+})
+
 const paginatedProducts = computed(() => productsData.value?.data || [])
 const totalItems = computed(() => productsData.value?.total || 0)
+const total = computed(() => totalItems.value)
+
+const hasKeyProducts = computed(() => availableTypes.value.includes('key') || paginatedProducts.value.some((p: any) => p.type === 'key'))
+const hasSubscriptionProducts = computed(() => availableTypes.value.includes('subscription') || paginatedProducts.value.some((p: any) => p.type === 'subscription'))
+const keyCount = computed(() => paginatedProducts.value.filter((p: any) => p.type === 'key').length)
+const subCount = computed(() => paginatedProducts.value.filter((p: any) => p.type === 'subscription').length)
 
 type ProductRow = {
   id?: number | string

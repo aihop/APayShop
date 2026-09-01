@@ -14,6 +14,13 @@ import {
   toJsonValue,
 } from './utils'
 
+async function getDefaultCommissionRate() {
+  const rows = await db.select().from(settings).where(eq(settings.key, 'promo_default_commission_rate')).limit(1)
+  const raw = Number(rows[0]?.value)
+  if (isNaN(raw) || raw < 0) return 0.15 // 默认 15%
+  return raw > 1 ? raw / 100 : raw
+}
+
 async function getInviteRewardAmount() {
   const rows = await db.select().from(settings).where(eq(settings.key, 'promo_invite_reward_amount')).limit(1)
   return Number(rows[0]?.value || 0)
@@ -56,9 +63,14 @@ export async function settlePromoCommission(orderId: string) {
   const existing = await db.select().from(promoCommissions).where(eq(promoCommissions.orderId, orderId))
   const created: any[] = []
 
+  // 1. 普通邀请人返佣（按百分比分成，若同时有固定奖励也一并兼容）
   if (attribution.inviteUserId && !existing.find((item: any) => item.type === PROMO_COMMISSION_TYPE.INVITE_REWARD)) {
-    const inviteReward = await getInviteRewardAmount()
-    if (inviteReward > 0) {
+    const defaultRate = await getDefaultCommissionRate()
+    const inviteRewardFixed = await getInviteRewardAmount()
+    const percentageAmount = defaultRate > 0 ? Number((currencyAmounts.accountingAmount * defaultRate).toFixed(4)) : 0
+    const finalAmount = percentageAmount > 0 ? percentageAmount : inviteRewardFixed
+
+    if (finalAmount > 0) {
       const ownerMember = await ensurePromoMember(attribution.inviteUserId, PROMO_ROLE.MEMBER)
       const inserted = await insertCommissionIgnoreDuplicate({
         orderId,
@@ -66,13 +78,14 @@ export async function settlePromoCommission(orderId: string) {
         ownerPromoMemberId: ownerMember.id,
         type: PROMO_COMMISSION_TYPE.INVITE_REWARD,
         sourceType: PROMO_SOURCE_TYPE.INVITE,
-        amount: inviteReward,
-        rate: null,
+        amount: finalAmount,
+        rate: defaultRate > 0 ? defaultRate : null,
         status: PROMO_COMMISSION_STATUS.AVAILABLE,
-        remark: '邀请推荐奖励',
+        remark: defaultRate > 0 ? `邀请推荐返利 (${(defaultRate * 100).toFixed(0)}%)` : '邀请推荐奖励',
         metaData: toJsonValue({
           buyerUserId: attribution.buyerUserId,
           currency: currencyAmounts.accountingCurrency,
+          rate: defaultRate > 0 ? defaultRate : undefined,
         }),
         createdAt: new Date(),
         updatedAt: new Date(),

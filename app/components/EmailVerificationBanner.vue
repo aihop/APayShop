@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 const { user, loggedIn, ready, fetch, clear } = useUserSession()
 const { getSetting } = useSettings()
@@ -253,6 +253,48 @@ const refreshVerificationStatus = async () => {
     isRefreshing.value = false
   }
 }
+
+// 静默自动检测验证状态（页面加载、刷新、或用户切回当前标签页时自动同步）
+const checkSilentVerification = async (showToastOnSuccess = false) => {
+  if (!loggedIn.value || !user.value || isVerified.value || isRefreshing.value) return
+  try {
+    const res: any = await $fetch('/api/auth/me')
+    const verified = Boolean(res?.user?.emailVerified || res?.user?.emailVerifiedAt)
+    if (verified) {
+      await fetch()
+      if (showToastOnSuccess) {
+        toast.add({
+          title: t('site.auth.email_verification.verified_success'),
+          color: 'success',
+        })
+      }
+    }
+  } catch {
+    // 静默失败，不打扰用户
+  }
+}
+
+onMounted(() => {
+  // 1. 页面加载/刷新时自动同步一次最新验证状态
+  if (loggedIn.value && !isVerified.value) {
+    checkSilentVerification(false)
+  }
+
+  // 2. 当用户在外部邮箱点击链接后切回本页面标签时，自动感知并解锁
+  const handleVisibilityOrFocus = () => {
+    if (document.visibilityState === 'visible' && loggedIn.value && !isVerified.value) {
+      checkSilentVerification(true)
+    }
+  }
+
+  window.addEventListener('focus', handleVisibilityOrFocus)
+  document.addEventListener('visibilitychange', handleVisibilityOrFocus)
+
+  onUnmounted(() => {
+    window.removeEventListener('focus', handleVisibilityOrFocus)
+    document.removeEventListener('visibilitychange', handleVisibilityOrFocus)
+  })
+})
 
 // 退出登录
 const handleLogout = async () => {

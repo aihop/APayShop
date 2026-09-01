@@ -11,7 +11,7 @@
       class="transition-[padding-left] duration-200"
       :class="sidebarCollapsed ? 'md:pl-16' : 'md:pl-60'"
     >
-      <div class="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 lg:py-10">
+      <div class="mx-auto w-full max-w-7xl px-4 pt-6 md:px-8 lg:pt-8">
         <slot />
       </div>
     </main>
@@ -40,9 +40,11 @@ const sidebarCollapsed = useCookie<boolean>('admin_sidebar_collapsed', {
 // 用 useAsyncData 而非裸 onMounted,让 SSR 首屏就能拿到正确的按钮可见性,
 // 不会先渲染出"全部隐藏"再水合后才显示。
 const { loadAdmin } = useAdminPermissions()
+const { loadAdminLocale } = useAdminLocale()
 // Explicit await (not fire-and-forget) so this is a real async setup()
 // Vue/Nuxt must wait on via Suspense — without it, nothing guarantees the
 // admin state is loaded before the page component's template (and its
 // hasAdminPerm() button checks) renders on the server.
 await useAsyncData('admin-permissions-bootstrap', () => loadAdmin())
+await useAsyncData('admin-locale-bootstrap', () => loadAdminLocale())
 </script>

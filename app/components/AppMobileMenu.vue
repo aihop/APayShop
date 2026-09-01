@@ -6,16 +6,21 @@
     <template #content>
       <div class="flex h-full flex-col bg-white p-6 text-gray-900 dark:bg-[#09090b] dark:text-gray-100">
         <div class="flex items-center justify-between mb-8">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center p-1.5">
+          <div class="flex items-center gap-2.5">
+            <div
+              v-if="getSetting('site_logo')"
+              class="w-8 h-8 flex items-center justify-center"
+            >
               <SiteLogo
                 :logo-data="getSetting('site_logo')"
                 :alt="getLocalizedSetting('site_name')"
-                icon-color="white"
               />
             </div>
-            <span class="font-extrabold tracking-wide text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
-              {{ getLocalizedSetting('site_name') }}
+            <span class="relative inline-flex items-center font-bold tracking-tight text-lg sm:text-xl">
+              <span class="absolute -inset-x-1.5 -inset-y-0.5 rounded-lg bg-gradient-to-r from-purple-500/15 via-indigo-500/20 to-cyan-500/15 blur-sm dark:opacity-40 dark:animate-pulse pointer-events-none"></span>
+              <span class="relative bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-200 dark:to-indigo-200/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.05)] dark:drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]">
+                {{ getLocalizedSetting('site_name') }}
+              </span>
             </span>
           </div>
           <UButton

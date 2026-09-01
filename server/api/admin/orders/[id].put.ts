@@ -5,7 +5,7 @@ import { fulfillOrder } from '../../../utils/fulfillment'
 import { emitEvent } from '../../../utils/eventActions'
 import { ORDER_PAY_STATUS } from '../../../utils/constants'
 import { createOrderAttribution, settlePromoCommission } from '../../../promo/service'
-import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta } from '../../../utils/checkoutBridge'
+import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta, isMinimalCheckoutRelayOrder } from '../../../utils/checkoutBridge'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { setAuditMeta } from '../../../utils/auditLog'
 import { refundTopup, settlePaidTopup } from '../../../utils/topupLedger'
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
   const wasAlreadyPaid = existing.length > 0 && existing[0].payStatus === ORDER_PAY_STATUS.PAID
   if (body.payStatus === ORDER_PAY_STATUS.PAID) {
     const updatedOrder = result[0]
-    const isMinimalRelay = Boolean(readMinimalCheckoutBridgeMeta(updatedOrder?.metaData))
+    const isMinimalRelay = isMinimalCheckoutRelayOrder(updatedOrder)
     const isApayTopup = readMinimalCheckoutBridgeMeta(updatedOrder?.metaData)?.attach?.walletOwner === 'apay'
     if (!wasAlreadyPaid) {
       await createOrderAttribution({

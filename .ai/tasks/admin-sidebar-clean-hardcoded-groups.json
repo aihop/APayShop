@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-sidebar-clean-hardcoded-groups",
+  "title": "清理 AdminSidebar 和 AdminMobileMenu 中硬编码的分组默认展开污染",
+  "problem": "AdminSidebar.vue 和 AdminMobileMenu.vue 中存在写死的主题模块词汇和硬编码中文（如 group-上品管理、group-客户运营），违反了 APay 核心与主题的边界隔离规范。",
+  "expectedOutcome": "将 expandedGroups 初始值重构为纯净空对象，依赖 isGroupExpanded 自身的默认展开判定逻辑，彻底消除核心组件中的主题私有词汇与硬编码中文污染。",
+  "constraints": [
+    "不修改核心 Schema 与 API 接口",
+    "保留工作区既有无关文件与并行任务改动，只修改 claims 声明的文件",
+    "不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/AdminSidebar.vue",
+        "app/components/AdminMobileMenu.vue"
+      ],
+      "claims": [
+        "app/components/AdminSidebar.vue",
+        "app/components/AdminMobileMenu.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "AdminSidebar.vue 和 AdminMobileMenu.vue 移除硬编码的 group-上品管理 等污染项",
+    "导航栏分组默认全部保持展开状态",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/components/AdminSidebar.vue app/components/AdminMobileMenu.vue"
+    }
+  ]
+}

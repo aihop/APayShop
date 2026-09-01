@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
     createdAt: new Date(),
   })
 
-  const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
+  const verifyLink = `${siteUrl}/api/auth/verify-email?token=${verifyToken}&lang=${locale}`
   const siteName = await getLocalizedSettingValue('site_name', locale, 'APay')
 
   // 6. 发送验证邮件

@@ -6,6 +6,7 @@ export interface AdminNavItem {
   exact?: boolean
   conditional?: () => boolean
   permission?: string
+  children?: AdminNavItem[]
 }
 
 export interface AdminNavSection {
@@ -54,27 +55,29 @@ export const useAdminNav = () => {
 
   const makeItem = (item: AdminNavItem): AdminNavItem => {
     const existing = item.conditional
+    const children = item.children ? item.children.map(makeItem) : undefined
     if (item.permission) {
       return {
         ...item,
+        children,
         conditional: () => hasPermissionFor(item.permission!) && (!existing || existing()),
       }
     }
-    return item
+    return {
+      ...item,
+      children,
+    }
   }
 
   const storeSectionBase: AdminNavSection = {
     titleKey: 'admin.nav.store',
     items: [
-      { to: '/admin', icon: 'ph:squares-four', labelKey: 'admin.nav.dashboard', exact: true, permission: 'dashboard' },
+      { to: '/admin/dashboard', icon: 'ph:squares-four', labelKey: 'admin.nav.dashboard', exact: true, permission: 'dashboard' },
       { to: '/admin/stats', icon: 'ph:chart-bar', labelKey: 'admin.nav.stats', permission: 'stats' },
       { to: '/admin/orders', icon: 'ph:shopping-cart', labelKey: 'admin.nav.orders', permission: 'orders' },
-      { to: '/admin/topups', icon: 'ph:wallet', labelKey: 'admin.nav.topups', permission: 'orders' },
       { to: '/admin/products', icon: 'ph:package', labelKey: 'admin.nav.products', permission: 'products' },
       { to: '/admin/customers', icon: 'ph:users', labelKey: 'admin.nav.customers', permission: 'customers' },
       { to: '/admin/posts', icon: 'ph:newspaper-duotone', labelKey: 'admin.nav.blogs', permission: 'posts' },
-      { to: '/admin/cards', icon: 'ph:barcode', labelFallback: 'Cards', permission: 'cards', conditional: () => hasKeyProducts.value },
-      { to: '/admin/subscriptions', icon: 'ph:calendar-check', labelKey: 'admin.nav.subscriptions', permission: 'subscriptions', conditional: () => hasSubscriptionProducts.value },
     ],
   }
 
