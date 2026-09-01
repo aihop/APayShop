@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "guard-unified-listing-workflow-sync",
+  "title": "同步工作台统一工作流守卫脚本与组合式拆分后的代码契约",
+  "problem": "工作台重构将动作编排抽到 useWorkspaceAutoWorkflow.ts 并优化了准备度与入队判定后，check-unified-listing-workflow.mjs 守卫中的断言文件列表和文本匹配条件仍指向拆分前的旧字面量，导致守卫检查报错失败。",
+  "expectedOutcome": "1. check-unified-listing-workflow.mjs 将 useWorkspaceAutoWorkflow.ts 纳入扫描源；\n2. 同步更新断言字符串以匹配当前最新的组合式实现；\n3. check-unified-listing-workflow.mjs 守卫执行通过。",
+  "constraints": [
+    "保持守卫对核心不变式的强约束力（单步重试、入队结果消费、三端投影一致等）",
+    "所有单测与守卫全绿"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "scripts/check-unified-listing-workflow.mjs"
+      ],
+      "claims": [
+        "scripts/check-unified-listing-workflow.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "node app/themes/qingpu/scripts/check-unified-listing-workflow.mjs 执行通过",
+    "全仓守卫与测试全量通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-theme 统一工作流守卫验证",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-unified-listing-workflow.mjs"
+    }
+  ]
+}
