@@ -46,5 +46,9 @@ const { loadAdminLocale } = useAdminLocale()
 // admin state is loaded before the page component's template (and its
 // hasAdminPerm() button checks) renders on the server.
 await useAsyncData('admin-permissions-bootstrap', () => loadAdmin())
-await useAsyncData('admin-locale-bootstrap', () => loadAdminLocale())
+if (import.meta.server) {
+  await loadAdminLocale()
+} else {
+  void loadAdminLocale()
+}
 </script>

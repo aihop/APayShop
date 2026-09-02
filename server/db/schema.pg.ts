@@ -447,7 +447,7 @@ export const notifications = pgTable('notifications', {
 // 余额变更流水（充值到账、后台直充/赠送、消费扣减…）。
 // 与 user_wallets 各余额池同口径：金额放大 10^8 存储。
 //
-// 与 ainode 同名表的两点差异：
+// 与 AINode 同名表的两点差异：
 //  1. 去掉 transaction_id 外键——apay 没有 transactions 表，溯源改用 sourceType/sourceId
 //     （如 order/<orderId>），语义更直接。
 //  2. 增加 eventId 唯一键做幂等。支付回调会重试、用户也可能重复触发，没有这道锁就会重复入账。

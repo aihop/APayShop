@@ -46,12 +46,12 @@ async function grantReward(rule: any, payload: EventPayload): Promise<ActionResu
 
   const [webhookUrl, token] = await Promise.all([getWebhookSubscriptionUrl(), getIntegrationToken()])
   if (!webhookUrl || !token) {
-    const msg = 'ainode webhook URL / integration token not configured'
+    const msg = 'AINode webhook URL / integration token not configured'
     console.error('[EventActions] grant_reward:', msg)
     return { ok: !isSync, errorMessage: msg }
   }
 
-  // 幂等键:同一规则 + 同一用户 唯一。ainode 按 event_id 去重。
+  // 幂等键:同一规则 + 同一用户 AINode 按 event_id 去重。
   const eventId = `reward:${rule.event}:${rule.id}:${userId}`
 
   const res = await sendHttpWebhook(
@@ -64,7 +64,7 @@ async function grantReward(rule: any, payload: EventPayload): Promise<ActionResu
         eventId,
         userId,
         type: String(config?.type || 'reward'),
-        // points 时 amount = 积分数;cash/grant 时 amount = 金额(元)。ainode 按 balanceType 换算。
+        // points 时 amount = 积分数;cash/grant 时 amount = 金额(元)。AINode 按 balanceType 换算。
         balanceType,
         direction: 'credit',
         amount,

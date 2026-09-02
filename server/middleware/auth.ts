@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
   const pathname = url.pathname
 
-  // ainode 终态回调使用独立 HMAC 签名，不依赖用户/管理员 Session。
+  // AINode 终态回调使用独立 HMAC 签名，不依赖用户/管理员 Session。
   // 这里只跳过全局 Session 鉴权；handler 仍会严格校验时间戳、事件 ID 与原始 body 签名。
   if (pathname === '/api/qingpu/internal/ainode-task-callback') return
 

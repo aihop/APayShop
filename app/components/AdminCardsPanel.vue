@@ -242,14 +242,14 @@ const keyProductOptions = computed(() =>
     .map((p: any) => ({ label: p.name, value: String(p.id) }))
 )
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'product', header: t('admin.cards.product', '关联商品') },
   { accessorKey: 'cardCode', header: t('admin.cards.cardCode', '卡密内容') },
   { accessorKey: 'status', header: t('admin.cards.status', '使用状态') },
   { accessorKey: 'orderId', header: t('admin.cards.orderId', '关联订单') },
   { accessorKey: 'createdAt', header: t('admin.cards.createdAt', '导入时间') },
   { accessorKey: 'actions', header: t('admin.common.actions', '操作') },
-]
+])
 
 const getProductName = (productId: number) => {
   const product = products.value.find((p: any) => p.id === productId)

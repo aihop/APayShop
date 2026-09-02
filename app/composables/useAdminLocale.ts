@@ -1,4 +1,4 @@
-import { unref } from 'vue'
+import { unref, isRef, watch } from 'vue'
 
 const adminLocaleModules: Record<string, () => Promise<{ default: Record<string, any> }>> = {
   zh: () => import('~~/locales/zh/admin.json'),
@@ -32,6 +32,16 @@ export const useAdminLocale = () => {
       }
     } catch (e) {
       console.warn(`[useAdminLocale] Failed to load admin locale for ${active}:`, e)
+    }
+  }
+
+  if (import.meta.client && i18n) {
+    const current = unref(i18n.locale) || 'zh'
+    void loadAdminLocale(current)
+    if (isRef(i18n.locale)) {
+      watch(i18n.locale, (next) => {
+        if (next) void loadAdminLocale(next)
+      })
     }
   }
 

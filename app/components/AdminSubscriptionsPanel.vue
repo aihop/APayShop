@@ -169,7 +169,7 @@ const paginatedSubscriptions = computed(() => {
   return filteredSubscriptions.value.slice(start, end)
 })
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'orderId', header: t('admin.subscriptions.orderId', '订阅单号') },
   { accessorKey: 'productName', header: t('admin.subscriptions.product', '订阅商品') },
   { accessorKey: 'customer', header: t('admin.subscriptions.customer', '客户') },
@@ -177,7 +177,7 @@ const columns = [
   { accessorKey: 'amount', header: t('admin.subscriptions.amount', '周期金额') },
   { accessorKey: 'interval', header: t('admin.subscriptions.interval', '计费周期') },
   { accessorKey: 'dates', header: t('admin.subscriptions.period', '有效期') },
-]
+])
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'

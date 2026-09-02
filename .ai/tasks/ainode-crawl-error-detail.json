@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "ainode-crawl-error-detail",
+  "title": "修复:采集失败提示被 String(对象) 吃成 [object Object]",
+  "problem": "网页导入 1688 商品失败时,页面只显示 `ainode [object Object]`,真实错误内容完全丢失。根因:server/listing/ainode-crawl.ts:116 的 cleanText 实现为 `String(value ?? '')`,而 ainode 网关的错误体是对象 {message,type,code};取详情的 || 链首项 cleanText(data?.error) 得到 truthy 字符串 '[object Object]',直接短路,后面专门用于取 .message 的兜底与 `http ${status}` 永远不执行。运行时复现实证:POST https://api.ainode.run/ai/crawl 返回 401 {\"error\":{\"message\":\"Invalid API Key\",\"type\":\"invalid_request_error\",\"code\":\"invalid_api_key\"}},String(该对象) === '[object Object]'。与 ozon-normal-publish-unblocked 同一 bug 类:本该表示「无值」的东西是 truthy 垃圾,短路掉兜底链。此外 transport/timeout/empty data 三个分支的提示同样过薄,不含 err.message、超时时长或响应结构线索。",
+  "expectedOutcome": "cleanText 只接受字符串(非字符串返回空),使 || 兜底链恢复生效;HTTP 失败提示合并 `http <status>`、错误码(code/type)与人类可读 message,形如 `ainode http 401 invalid_api_key Invalid API Key`;传输失败带 err.message、超时带时长、空数据带实际返回的顶层键名;新增测试钉住「对象错误体不再被 String 吃掉」。",
+  "constraints": [
+    "只改 ainode-crawl.ts 一个文件加其测试,不动 publish.aggregate.ts 的同名实现(另账,需单独评估其调用点是否依赖 String 语义)",
+    "不改变成功路径的返回结构与既有 error 字符串前缀 'ainode '(调用方可能按前缀识别)",
+    "不记录或回显 api key 等凭据到错误信息里"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/ainode-crawl.ts",
+        "tests/ainode-crawl-error-detail.test.ts"
+      ],
+      "claims": [
+        "server/listing/ainode-crawl.ts",
+        "tests/ainode-crawl-error-detail.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "cleanText 对对象/数组/数字等非字符串输入返回空字符串,不再产出 '[object Object]'",
+    "HTTP 失败提示同时包含状态码、错误码与 message 三段(可用时)",
+    "传输错误含 err.message,超时含超时毫秒数,空数据含返回体顶层键名",
+    "新增测试以真实源码求值方式钉住对象错误体的提取结果,并做负向探针",
+    "主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "新增测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/ainode-crawl-error-detail.test.ts",
+      "covers": ["server/listing/ainode-crawl.ts", "tests/ainode-crawl-error-detail.test.ts"]
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/ainode-crawl.ts"]
+    }
+  ]
+}

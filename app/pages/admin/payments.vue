@@ -423,11 +423,11 @@ const tabItems = computed(() => [
 
 // ---- Methods Tab ----
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'name', header: t('admin.payments.table.name') },
   { accessorKey: 'isActive', header: t('admin.payments.table.status') },
   { accessorKey: 'actions', header: t('admin.payments.table.actions') },
-]
+])
 
 const {
   data: methods,

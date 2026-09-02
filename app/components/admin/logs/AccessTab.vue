@@ -94,7 +94,7 @@ const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
 const { getMethodColor, getStatusCodeClass, shortId } = useLogFormatters()
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'id', header: 'ID' },
   { accessorKey: 'path', header: t('admin.accessLogs.table.path') },
   { accessorKey: 'method', header: t('admin.accessLogs.table.method') },
@@ -103,7 +103,7 @@ const columns = [
   { accessorKey: 'ip', header: 'IP' },
   { accessorKey: 'visitorId', header: t('admin.accessLogs.table.visitor') },
   { accessorKey: 'createdAt', header: t('admin.accessLogs.table.time') },
-]
+])
 
 const { page, pageSize, onPageChange } = usePagination(50)
 

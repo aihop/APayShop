@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const { t } = useI18n()
 const { formatDateTime } = useFormatTime()
@@ -133,7 +133,7 @@ const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const toast = useToast()
 const { confirm } = useConfirm()
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'id', header: t('admin.logs.table.id') },
   { accessorKey: 'level', header: t('admin.logs.table.level') },
   { accessorKey: 'source', header: t('admin.logs.table.source') },
@@ -149,7 +149,7 @@ const columns = [
       },
     },
   },
-]
+])
 
 const { page, pageSize, onPageChange } = usePagination(15)
 const isClearing = ref(false)

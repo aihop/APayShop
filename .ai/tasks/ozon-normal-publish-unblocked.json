@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-normal-publish-unblocked",
+  "title": "修复:同步拦截误伤 Ozon 正常上架(truthy 判断吃掉首次发布)",
+  "problem": "自 40bc9a9(2026-08-30 15:48)引入同步拦截后,网页端所有 Ozon 上架(含全新商品首次上架)被错误阻断,报「Ozon 渠道的同步更新尚未支持」。根因是两处代码组合:api/listing/publish.ts:29-31 对不带 syncAction 的普通上架请求填默认值字符串 'publish';server/listing/publish.run.ts:930 的拦截条件写作 `options?.syncAction && channel !== 'wb'`,'publish' 为 truthy 字符串,Ozon 恒 !== 'wb',条件恒真。运行时探针实证:普通上架 body 归一化得 'publish',代入拦截条件求值为 true。数据佐证:user 7 最后一条成功 Ozon 发布记录 updated_at 2026-08-30 13:19,拦截 15:48 引入,其后数据库零条新发布记录。2cabfd4(2026-09-02 10:15)只把同步意图路由改读 effectiveSyncAction,未触及第 930 行仍读原始 options.syncAction 的拦截条件,故未修复本问题。次生影响:拦截位于第 933 行而 claimPublishRecords 在第 785 行,先占位后拦截,每次失败留下占位发布记录,重试被去重守卫挡为「已有提交中记录」。",
+  "expectedOutcome": "拦截条件改判归一化后的 effectiveSyncAction 并显式放行 'publish',Ozon 正常上架恢复;Ozon 的同步意图仍在第 821 行细粒度通道处理并返回,不会落到拦截;WB 行为逐字节不变;新增回归测试钉住「普通上架不被同步拦截拦下」。",
+  "constraints": [
+    "最小改动:只改拦截条件一行,不删除拦截块(保留未接入细粒度通道的新渠道的保险丝)",
+    "不改 api/listing/publish.ts 的 'publish' 默认值——它是显式动作词汇,改默认值会波及其他读者",
+    "不调整 claim 与拦截的先后顺序:属另一问题,本契约不扩围",
+    "不碰 engine vendor,不触发 engine:release",
+    "新测试文件的 vitest TS2307 与既有 63 个测试文件同类,按既有惯例登记基线;只加这一条,不得整体重写基线(多会话工作区会顺带吸收他人新错误)"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.run.ts",
+        "tests/publish-normal-publish-not-blocked.test.ts",
+        "scripts/theme-typecheck-baseline.json"
+      ],
+      "claims": [
+        "server/listing/publish.run.ts",
+        "tests/publish-normal-publish-not-blocked.test.ts",
+        "scripts/theme-typecheck-baseline.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "普通上架(body 不带 syncAction → 归一化为 'publish')在 channel=ozon 时不命中拦截条件",
+    "Ozon 携带 sync/sync_data/sync_images 时 effectiveSyncAction 归一化为 'sync',在细粒度同步通道处理,不落到拦截",
+    "WB 渠道在所有动作下的拦截命中结果与修复前一致(恒不命中)",
+    "新增测试以真实源码表达式求值方式钉住上述三条,防止回归",
+    "主题守卫总闸通过",
+    "主题守卫总闸通过,且 typecheck 基线只新增本测试文件一条 vitest TS2307,其余条目逐字节不变"
+  ],
+  "verification": [
+    {
+      "name": "新增回归测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/publish-normal-publish-not-blocked.test.ts tests/publish-channel-parameterization.test.ts",
+      "covers": [
+        "server/listing/publish.run.ts",
+        "tests/publish-normal-publish-not-blocked.test.ts"
+      ]
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "server/listing/publish.run.ts"
+      ]
+    }
+  ]
+}

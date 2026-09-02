@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
       created = true
     } catch (err) {
       // 上面的"查不到就插入"不是原子的：本端点专门给服务器对服务器的身份解析用
-      // （Qingpu 发 ainode key、webhook 按邮箱补人），同一邮箱并发进来两次时，
+      // （Qingpu 发 AINode key、webhook 按邮箱补人），同一邮箱并发进来两次时，
       // 两边都会查空、都去插，后到的那次撞 users.email 唯一约束直接 500——
       // 调用方看到的就是"注册后拿不到 AI 密钥"。冲突恰恰说明另一次已经把人建好了，
       // 回查一次即可收敛到同一个用户。

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "engine-release-ozon-weight-caliber",
+  "title": "发布 engine:携带 Ozon 属性重量/尺寸单一口径修复的 vendor 版本",
+  "problem": "qingpu-ai 提交 5636840 已把「商品重量,克」「尺寸,毫米」两条属性规则收敛到 resolveEffectiveProductPackaging 单一口径,但网页 Listing 工作台消费的是主题 vendor 里的 engine 产物(当前 0.7.258,锚点 658b5385),不含该修复,用户在 /zh/user/listing/workspaces 仍看到重量属性为空。qingpu-ai 主工作区 src/ 下另有 20 个其他会话的 image-editor 在途改动,release 脚本的未提交改动门禁(release-engine.mjs:137)会因此拒绝发布。",
+  "expectedOutcome": "在从 5636840 拉出的干净 git worktree 中执行 npm run engine:release(QINGPU_THEME_DIR 指向真实主题目录),产出锚点严格等于 5636840 的新 vendor 版本(自动递增补丁号),主题 vendor 合同守卫与主题 vitest 全量通过,网页侧从而获得重量/尺寸的正确口径。",
+  "constraints": [
+    "vendor 目录只允许 npm run engine:release 写入,不得手改产物、版本号或 version.json 锚点",
+    "必须在干净 worktree 中发布:产物只能来自已提交的 5636840,不得携带主工作区任何未提交改动",
+    "不得提交、stash 或以任何方式改动其他会话的 image-editor 在途文件",
+    "不指定 --version,由脚本按主题可达历史自动递增补丁号",
+    "worktree 与其构建产物用完即清理,不留在仓库内",
+    "主题侧 publish.run.ts 的他人在途改动保持原样,提交 vendor 时不得混入"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/vendor/qingpu-engine/**"
+      ],
+      "claims": [
+        "server/vendor/qingpu-engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "vendor version.json 的 sourceCommit 等于 qingpu-ai 提交 5636840,version 高于 0.7.258",
+    "vendor 产物中的重量规则包含 resolveEffectiveProductPackaging 口径(而非旧自拼取值链)",
+    "主题守卫总闸(含 vendor 合同守卫与主题 vitest 全量)通过",
+    "qingpu-ai 与主题工作区均无本任务之外的新增改动"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/vendor/qingpu-engine/**"]
+    }
+  ]
+}

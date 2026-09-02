@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-attribute-weight-dimension-caliber",
+  "title": "Ozon 属性重量/尺寸回归有效包装单一口径,消灭自拼取值链导致的空格子",
+  "problem": "实证(2026-09-02,代码走读+真实商品 ai-1688-1039370771503):universal.ts:132 的「商品重量,克」规则自拼取值链 pricing.packageWeightG || packaging.weightGrams || packaging.weightG || packaging.grossWeightG || manualOverrides.skuPricing 首条,与三端发布/核价/SKU 表格共用的单一口径 resolveEffectiveProductPackaging(workspace-overrides.ts:306)不一致。漏掉三个来源:variant.packageWeightG(1688 采集毛重的主要落点)、manualOverrides.channelSkuPricing[channel](网页 SKU 表格行内改包装的写入处,见 workspace-overrides.ts:311 注释)、product.packageWeight(canonical.extra.packageWeightG 的 compat 落点,见 apay publish.aggregate.ts:189)。另有两个死分支:packaging.weightG 与 packaging.grossWeightG 两个 key 在 ListingWorkspacePackaging(types.ts:277) 上根本不存在。而 pricing.packageWeightG 只是有效包装的镜像(usePricingSidebar.ts:695 单向带入、:383 手改回写 packaging.weightGrams),不是独立事实源。结果:重量在 SKU 行与商品级都可见、发布校验也读得到,唯独属性格子始终为空。universal.ts:159 的「尺寸,毫米」分支是同一表达式的同一缺陷。",
+  "expectedOutcome": "重量与尺寸这两条属于结构化事实映射(数据已在结构化字段,只需搬运,有唯一正确答案)的规则改为复用 resolveEffectiveProductPackaging 单一口径并按 ozon 渠道调用,与发布载荷、核价、SKU 表格同源;两个不存在的 packaging key 死分支删除;pricing.packageWeightG 仅保留为存量数据的最后兜底,不再排在事实源之前。属性名匹配、字典候选匹配、单位换算与既有覆盖保护语义均不变。",
+  "constraints": [
+    "只改取值来源,不改属性名匹配正则、字典候选匹配与毫米换算既有语义",
+    "resolveEffectiveProductPackaging 按 ozon 渠道口径调用,与该渠道发布载荷同源",
+    "人工值(origin=manual)与显式清空的属性保护语义不得改变",
+    "不得删除或改写 domains/*.ts 品类规则,品类层退役属后续契约",
+    "engine vendor 不在本契约范围:改动需另行授权 npm run engine:release 才在网页生效",
+    "qingpu-ai 工作区存在其他会话的 image-editor 在途改动,一律保留不动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/defaults/universal.ts",
+        "tests/ozon-defaults.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/defaults/universal.ts",
+        "tests/ozon-defaults.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "重量只存在于 variant.packageWeightG 时,「Вес товара, г」被自动填为该克数",
+    "重量只存在于 manualOverrides.channelSkuPricing.ozon 行内覆盖时属性同样被填,且行内覆盖优先于商品级包装",
+    "重量只存在于 compat product.packageWeight 时属性同样被填",
+    "「Размеры, мм」在同样三个来源下按有效包装换算为毫米填入",
+    "已有人工值(origin=manual)的属性不被覆盖,显式清空的属性仍不回填",
+    "qingpu-ai typecheck 与 ozon-defaults 测试全绿"
+  ],
+  "verification": [
+    {
+      "name": "扩展侧类型检查与 Ozon 默认值测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-defaults.test.ts",
+      "covers": ["src/domain/channel-mappers/ozon/defaults/universal.ts", "tests/ozon-defaults.test.ts"]
+    }
+  ]
+}

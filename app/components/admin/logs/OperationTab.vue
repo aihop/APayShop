@@ -207,7 +207,7 @@ const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const toast = useToast()
 const { confirm } = useConfirm()
 
-const columns = [
+const columns = computed(() => [
   { accessorKey: 'actorName', header: t('admin.operationLogs.table.actor') },
   { accessorKey: 'action', header: t('admin.operationLogs.table.action') },
   { accessorKey: 'resource', header: t('admin.operationLogs.table.resource') },
@@ -216,7 +216,7 @@ const columns = [
   { accessorKey: 'ip', header: t('admin.operationLogs.table.ip') },
   { accessorKey: 'createdAt', header: t('admin.operationLogs.table.time') },
   { accessorKey: 'opActions', header: t('admin.operationLogs.table.actions') },
-]
+])
 
 const { page, pageSize, onPageChange } = usePagination(50)
 
