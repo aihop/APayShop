@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-metrics-baseline",
+  "title": "Ozon 填参基线度量脚本:按 14 类合同口径统计属性层填充率(蓝图开工前置)",
+  "problem": "Ozon 填参蓝图要求在拍板与 S0 之前「跑一次 report-ozon-fill-metrics.mjs 取属性层口径基线」,该脚本不存在;诊断书的 1106 格/48.2% 等数字来自一次性 agent 统计,不可复现,后续每一步(止血、删承诺型默认、店铺策略、类目记忆)都没有可比对的度量。2026-09-03 实测(user 7):33 个有 Ozon 定义的工作区、1470 条定义、453 格已填(449 ai / 4 manual),覆盖条目仅 {value, origin},无 provenance。",
+  "expectedOutcome": "新增只读脚本 scripts/report-ozon-fill-metrics.mjs:从 DATABASE_URL 读 qingpu_listing_workspaces,用 vendor engine classifyOzonAttribute 把每条定义归入 14 类,输出:属性层口径(剔除 system/copy/media)总格数、已填数与填充率、必填填充率、按类统计、按 origin 统计、按 (category_id,type_id) 明细,可选 --user <id>、--json;聚合逻辑抽为零依赖纯模块 scripts/lib/ozon-fill-metrics.mjs(分类器注入)并以夹具测试钉住口径;engine 的「已填」判定与 isOzonAttributeOccupied 一致(value 非空)。",
+  "constraints": [
+    "只读:不写库、不改工作区",
+    "凭据只从环境/.env 读取,脚本内不得出现连接串",
+    "文件名不以 check- 开头,避免被主题守卫总闸自动发现执行",
+    "新测试文件 vitest TS2307 用就地 @ts-expect-error 抑制"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["scripts/report-ozon-fill-metrics.mjs", "scripts/lib/ozon-fill-metrics.mjs", "tests/ozon-fill-metrics.test.ts"],
+      "claims": ["scripts/report-ozon-fill-metrics.mjs", "scripts/lib/ozon-fill-metrics.mjs", "tests/ozon-fill-metrics.test.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "纯模块对夹具给出确定的属性层口径:system/copy/media 不计入分母,aspect 单列,必填率按 required 定义",
+    "脚本对真实库可运行并打印基线;--json 输出可被后续步骤比对",
+    "主题守卫总闸通过(脚本不被总闸执行);主题测试通过"
+  ],
+  "verification": [
+    {
+      "name": "纯模块测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/ozon-fill-metrics.test.ts",
+      "covers": ["scripts/lib/ozon-fill-metrics.mjs", "tests/ozon-fill-metrics.test.ts"]
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["scripts/report-ozon-fill-metrics.mjs"]
+    }
+  ]
+}
