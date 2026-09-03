@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s0b2-wanted-refetch",
+  "title": "Ozon 填参 S0b-2a(主题):wanted 补拉助手模块(兄弟并集优先、Ozon 兜底),接线另立契约",
+  "problem": "S0a 起 runOzonAttributeFill 会把「事实 strict 命中但候选未加载」的字典型属性放进 report.wanted(蓝图:strict 命中 73 格里 28 格今天没候选)。主题类目应用调用点(queries.workspace.ts → runCategoryApplyFill)目前只跑一次,wanted 无人消费,这些格子仍然空着。engine 0.7.264 已提供 wanted。",
+  "expectedOutcome": "新增 server/listing/dictionary-refetch.ts:ensureWantedDictionaryCandidates(userId, productId, identity, definitions, wanted, currentPools) 先用 listSiblingWorkspaceDictionaryValues 并集同身份兄弟候选,仍缺的按 withOzonStoreCredentials + searchAttributeDictionaryValues(空查询整表)向 Ozon 补拉,按 id 去重合入 channelContext.ozon.attributeDictionaryValues 并标记 loadedAttributeDictionaryIds;类目应用调用点在首轮 report.wanted 非空时补拉后重跑 runCategoryApplyFill 一次(最多一次,避免循环);补拉失败不阻断类目应用(记 warn);纯合并/决策逻辑抽为可测函数并以夹具测试钉住。",
+  "constraints": [
+    "最多补拉重跑一次;Ozon 调用只针对 wanted 且兄弟并集后仍空的属性",
+    "凭证类错误不阻断类目应用(try/catch + warn),与既有 runCategoryApplyFill 的容错口径一致",
+    "不动 engine、不动 category-apply-fill.ts 的穷尽表形态;不新增消息协议",
+    "新测试文件 vitest TS2307 用就地 @ts-expect-error 抑制",
+    "本契约只建助手模块与测试;queries.workspace.ts 的接线待 S1b 租约释放后另立契约(S0b-2b)"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/dictionary-refetch.ts",
+        "tests/ozon-dictionary-refetch.test.ts"
+      ],
+      "claims": [
+        "server/listing/dictionary-refetch.ts",
+        "tests/ozon-dictionary-refetch.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "planWantedRefetch 纯函数:wanted 里已在当前候选池的剔除;兄弟并集覆盖的标 sibling、其余标 ozon;上限约束",
+    "主题测试通过;守卫总闸失败清单不含本契约文件"
+  ],
+  "verification": [
+    {
+      "name": "主题测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/ozon-dictionary-refetch.test.ts",
+      "covers": [
+        "server/listing/dictionary-refetch.ts",
+        "tests/ozon-dictionary-refetch.test.ts"
+      ]
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": [
+        "server/listing/dictionary-refetch.ts"
+      ]
+    }
+  ]
+}
