@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s0b-theme-candidates",
+  "title": "Ozon 填参 S0b-1(主题):类目资源表双重编码修复 + 同身份兄弟工作区候选并集",
+  "problem": "蓝图 S0 主题部分之一。(1) qingpu_ozon_category_resources 三行 jsonb_typeof(attributes)='string':writeCache 用 `${JSON.stringify(x)}::jsonb` 把字符串参数存成 jsonb 字符串标量,readCache 的 Array.isArray 永远为 false → 类目级缓存从未命中,每个工作区都重拉 Ozon;qingpu_wb_subject_characteristics 同一写法同病。(2) 补拉字典只认本工作区快照与 Ozon,同身份(category_id,type_id)兄弟工作区里已有的候选不复用——诊断样本缺的 6 个属性候选全在兄弟工作区里,本可零 Ozon 调用。",
+  "expectedOutcome": "writeCache 改用 qingpuSql.json 写真 jsonb;readCache 容忍存量字符串行(JSON.parse 后再判数组),Ozon 与 WB 两处同修;新增 listSiblingWorkspaceDictionaryValues(userId, categoryId, typeId, attributeId, excludeProductId) 只读同用户同身份兄弟工作区的候选并按 id 去重;fetchAndCacheAttributeValues 在打 Ozon 之前先并集兄弟候选(有则合入本工作区快照并返回,零 Ozon 调用);纯合并逻辑抽为可测函数并以夹具测试钉住(字符串行解码、并集去重、上限)。",
+  "constraints": [
+    "只读兄弟工作区:不改写它们;并集限同一 user_id(跨用户共享按拍板 #5 另立)",
+    "不动 category-apply-fill / queries.workspace(按 report.wanted 补拉属 S0b-2,依赖新 vendor)",
+    "不新增消息协议;不触发 engine:release",
+    "新测试文件 vitest TS2307 用就地 @ts-expect-error 抑制"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/listing/category-resources.repository.ts", "server/listing/ozon-catalog.ts", "server/listing/dictionary-candidates.ts", "tests/ozon-dictionary-candidates.test.ts"],
+      "claims": ["server/listing/category-resources.repository.ts", "server/listing/ozon-catalog.ts", "server/listing/dictionary-candidates.ts", "tests/ozon-dictionary-candidates.test.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "decodeLegacyJsonb 对字符串行解码、对对象行透传、对坏字符串返回 null;mergeCandidatePools 按 id 去重并保序、受上限约束",
+    "源码级:writeCache 不再含 JSON.stringify(...)::jsonb 写法(Ozon/WB 两处),readCache 经 decodeLegacyJsonb;fetchAndCacheAttributeValues 在 Ozon 调用前调用兄弟并集",
+    "主题测试通过;守卫总闸通过(或仅被他人在途文件阻断且清单不含本契约文件)"
+  ],
+  "verification": [
+    { "name": "主题测试", "repository": "qingpu-theme", "always": true, "command": "npx vitest run tests/ozon-dictionary-candidates.test.ts", "covers": ["server/listing/dictionary-candidates.ts", "server/listing/category-resources.repository.ts", "server/listing/ozon-catalog.ts", "tests/ozon-dictionary-candidates.test.ts"] },
+    { "name": "主题守卫总闸", "repository": "qingpu-theme", "always": true, "command": "npm --prefix ../../.. run check:qingpu-all", "covers": ["server/listing/category-resources.repository.ts", "server/listing/ozon-catalog.ts", "server/listing/dictionary-candidates.ts"] }
+  ]
+}

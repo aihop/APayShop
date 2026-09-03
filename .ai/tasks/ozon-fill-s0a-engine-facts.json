@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s0a-engine-facts",
+  "title": "Ozon 填参 S0a(engine):事实层单点读取器 + FACT_VALUE_MAP 13 键 + 字典保障 + 预取白名单 + 巡检先查表 + 编排器事实阶段",
+  "problem": "蓝图 S0「事实层与候选保障」的 engine 部分(拍板 1/3/4 已定案 2026-09-03)。现状:(1) attribute-values.ts extractAttributeValue 只读 compat product.attributes,网页端 46/46 商品该字段为空,1688 事实映射整层失效;defaults/shared.ts 与 default-rules.ts 各自读 canonical,三处口径不一;(2) 1688 事实→Ozon 属性的对应关系散落在 electronics.ts 的正则里(:19-51/69-74/93-98/117-123/146-202),靠俄语正则找候选而字典按 ZH_HANS 拉取,命中靠运气;(3) 事实命中但候选未加载时静默不写,没有「缺什么候选」的报告;(4) 预取白名单不含事实映射目标属性,strict 命中 73 格里 28 格今天没候选;(5) 巡检(attribute-inspection.ts:141)不查表,直接按别名组推断。物理事实源已由 5636840b 收口到 resolveEffectiveProductPackaging,本契约不动。",
+  "expectedOutcome": "新增 source-facts.ts:readSourceFactEntries(product) 以 canonical.attributes 为准、compat 兜底、按归一化键去重,三处站点切换到它;新增 fact-value-map.ts:FACT_VALUE_MAP 首批 13 键(strict/confirm 分档,含 electronics 正则覆盖的铜/硅胶/TPE/PVC/QC 等词汇一一对应项)与 resolveFactValueProposals(entries, definitions, candidates) → { proposals(strict,带 dictionaryValueId 或非字典直值), pendingConfirmations(confirm 档,不写), wanted(strict 命中但无候选的 attributeId) };新增 dictionary-assurance.ts:collectWantedDictionaryAttributes 与按 ZH/RU 文本匹配候选的单点;dictionary-prefetch 白名单加入映射目标属性;attribute-inspection 在别名组推断前先查表;runOzonAttributeFill 在类目记忆后、平台确定性前接入事实阶段,报告新增 wanted 与 pendingConfirmations;electronics.ts 删除被表覆盖的事实型正则分支(导体/外壳材质/快充/结构特点/接口版本/铺设/公母头),保留非事实型规则;brand/model 组加 exactKeys 止误伤;engine 出口导出新口径并同步 caliber-redefine 守卫;canonical-only 夹具测试钉住「网页端事实层复活」。",
+  "constraints": [
+    "所有写入仍经 commitOzonAttributeFill;事实阶段 source='fact',evidence='fact:<1688键>';physical_fact/brand 类不由事实阶段写(SOURCE_ORDER 决定)",
+    "confirm 档只进报告 pendingConfirmations,本契约不写库、不做 UI(S6)",
+    "不新增消息协议(OZON_ATTRIBUTE_VALUES_SEARCH 另立契约、需用户确认);不触发 engine:release(完成后单独授权)",
+    "不动 universal.ts 与 apparel/lifestyle/smartwatch 域;不动主题",
+    "FACT_VALUE_MAP 只收录蓝图列出的 13 键与 electronics 被删分支的一一对应词汇,不新增猜测映射"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/source-facts.ts",
+        "src/domain/channel-mappers/ozon/fact-value-map.ts",
+        "src/domain/channel-mappers/ozon/dictionary-assurance.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/attribute-aliases.ts",
+        "src/domain/channel-mappers/ozon/defaults/shared.ts",
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/domain/channel-mappers/ozon/dictionary-prefetch.ts",
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "src/domain/channel-mappers/ozon/defaults/index.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/electronics.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/ozon-source-facts.test.ts",
+        "tests/ozon-fact-value-map.test.ts",
+        "tests/ozon-defaults.test.ts",
+        "tests/ozon-attribute-inspection-fact-map.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/source-facts.ts",
+        "src/domain/channel-mappers/ozon/fact-value-map.ts",
+        "src/domain/channel-mappers/ozon/dictionary-assurance.ts",
+        "src/domain/channel-mappers/ozon/attribute-values.ts",
+        "src/domain/channel-mappers/ozon/attribute-aliases.ts",
+        "src/domain/channel-mappers/ozon/defaults/shared.ts",
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/domain/channel-mappers/ozon/dictionary-prefetch.ts",
+        "src/domain/channel-mappers/ozon/attribute-inspection.ts",
+        "src/domain/channel-mappers/ozon/defaults/index.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/electronics.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/ozon-source-facts.test.ts",
+        "tests/ozon-fact-value-map.test.ts",
+        "tests/ozon-defaults.test.ts",
+        "tests/ozon-attribute-inspection-fact-map.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "canonical-only 商品(compat attributes 为空)经 runOzonAttributeFill 能按 FACT_VALUE_MAP strict 命中写入带 dictionaryValueId 的值;同一商品无候选时该属性进 report.wanted 且不写",
+    "confirm 档命中进 report.pendingConfirmations,不写入;重量无单位不写、带单位按属性单位换算",
+    "extractAttributeValue / getProductSourceFactsText / listSourceAttributes 三处读同一 readSourceFactEntries;brand 组不再吃「有可授权的自有品牌」",
+    "shouldPrefetchOzonAttributeDictionary 对映射目标属性返回 true",
+    "巡检对无覆盖的映射目标属性先查表,命中给 mapped_dictionary 并带 id",
+    "electronics.ts 被覆盖分支删除后,既有 ozon-defaults 用例与新增用例全绿;typecheck、check:deps(caliber 符号已登记)、engine:build 守卫通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/分层守卫/引擎包守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-source-facts.test.ts tests/ozon-fact-value-map.test.ts tests/ozon-defaults.test.ts tests/ozon-attribute-inspection-fact-map.test.ts tests/ozon-attribute-values-pagination.test.ts tests/ozon-publish.test.ts && npm run check:deps && npm run engine:build",
+      "covers": ["src/domain/channel-mappers/ozon/source-facts.ts", "src/domain/channel-mappers/ozon/fact-value-map.ts", "src/domain/channel-mappers/ozon/dictionary-assurance.ts", "src/domain/channel-mappers/ozon/attribute-values.ts", "src/domain/channel-mappers/ozon/attribute-aliases.ts", "src/domain/channel-mappers/ozon/defaults/shared.ts", "src/domain/channel-mappers/ozon/default-rules.ts", "src/domain/channel-mappers/ozon/dictionary-prefetch.ts", "src/domain/channel-mappers/ozon/attribute-inspection.ts", "src/domain/channel-mappers/ozon/defaults/index.ts", "src/domain/channel-mappers/ozon/defaults/domains/electronics.ts", "src/engine/index.ts", "scripts/check-deps.mjs", "tests/ozon-source-facts.test.ts", "tests/ozon-fact-value-map.test.ts", "tests/ozon-defaults.test.ts", "tests/ozon-attribute-inspection-fact-map.test.ts"]
+    }
+  ]
+}
