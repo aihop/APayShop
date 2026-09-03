@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "theme-untrack-ds-store",
+  "title": "主题仓停止跟踪两个 .DS_Store(Finder 缓存),契约闭环不再被它挡住",
+  "problem": ".gitignore 早已忽略 .DS_Store,但 pages/user/.DS_Store 与 server/vendor/.DS_Store 在忽略规则之前就被提交进仓库。Finder 每次打开 vendor 目录都会改写后者,使工作树出现 M,AI 契约验证器判为「范围外改动」拒绝闭环(2026-09-03 三端契约就被它挡过)。",
+  "expectedOutcome": "两文件 git rm --cached(工作树保留,git 停止跟踪);.gitignore 不变。",
+  "constraints": ["只做 rm --cached,不删本地文件,不改 .gitignore"],
+  "repositories": [{ "name": "qingpu-theme", "path": "app/themes/qingpu", "allowedPaths": ["pages/user/.DS_Store", "server/vendor/.DS_Store"], "claims": ["pages/user/.DS_Store", "server/vendor/.DS_Store"] }],
+  "acceptanceCriteria": ["git ls-files 不再包含任何 .DS_Store"],
+  "verification": [{ "name": "不再跟踪", "repository": "qingpu-theme", "always": true, "command": "test \"$(git ls-files | grep -c '\\.DS_Store$')\" = 0", "covers": ["pages/user/.DS_Store", "server/vendor/.DS_Store"] }]
+}
