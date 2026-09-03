@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "gold-rule-pollution-stop",
+  "title": "堵住黄金规则污染源:物理事实不入库,服装域不再误填非服装类目",
+  "problem": "实证(2026-09-02,真实库 qingpu_category_attribute_gold_rules 全表 35 条 + 商品 ai-1688-1039370771503):(1) publish.run.ts 在 Ozon 发布被接受后,把商品 manualOverrides.ozonAttributes 全部条目以 matchPattern='*'、isVerified=true 无条件 upsert 成跨用户共享的类目规则(该表查询不带 user_id)。于是这条数据线自己的包装重量 85g(规则 id 17)与尺寸 170x80x20mm(id 16)被固化成整个「移动设备电缆」类目的通用值,任何同类目新商品打开即被填成 85g;且 gold rules 是属性默认值的第 0 层,优先级高于 universal,会直接覆盖刚修复的 resolveEffectiveProductPackaging 事实映射(提交 5636840)。(2) apparel.ts:388 的 ТН ВЭД 规则无品类门禁,对任意商品运行,正则命中中文属性名「欧亚经济联盟的HS编码」后按鞋类前缀 6404|6402|6403 匹配、兜底硬编码 6404110000(纺织面料鞋靴编码),给数据线填了鞋类海关编码并已沉淀入库(规则 id 11)。同一属性 electronics.ts:205 有正确的 8544429007(电线电缆)规则,但因 gold rules 层先落值而永远被 skip——错知识不仅污染,还挡住了正确规则。",
+  "expectedOutcome": "(1) 沉淀候选构造抽为零 DB 依赖的纯函数,并排除「结构化事实映射」类属性(商品重量/尺寸/包装尺寸):这类值是 per-product 物理事实,由 universal 的有效包装口径负责,不属于类目知识,不得进入共享知识库。(2) 服装鞋类域整体加品类门禁(与 smartwatch 同款判据:类目名或来源事实),非服装鞋类商品不再运行该域规则,数据线不再被填鞋类 HS 编码。两项均不改表结构、不写迁移、不改 upsert 冲突语义与 is_verified 既有含义;阈值/否证/仲裁机制留待后续契约。",
+  "constraints": [
+    "不改 qingpu_category_attribute_gold_rules 表结构与索引,不写数据库迁移",
+    "不改 upsertCategoryAttributeGoldRules 的 upsert 冲突语义与 isVerified 含义",
+    "沉淀排除只针对物理事实属性,不按 origin 过滤(用户已确认不走人工填参路线,origin 全为 ai)",
+    "apparel 门禁只做准入判定,不改其内部任何规则的取值逻辑",
+    "不得删除或改写 electronics/lifestyle/smartwatch 域,domains 整体退役属后续契约",
+    "publish.run.ts 的测试必须真实 import 纯函数,不得使用读源码文本 eval 的形状断言",
+    "主题工作区存在其他会话在途改动与 3 个存量守卫失败,一律保留不动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/defaults/domains/apparel.ts",
+        "tests/ozon-defaults.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/defaults/domains/apparel.ts",
+        "tests/ozon-defaults.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/gold-rule-learning.ts",
+        "server/listing/publish.run.ts",
+        "tests/gold-rule-learning.test.ts"
+      ],
+      "claims": [
+        "server/listing/gold-rule-learning.ts",
+        "server/listing/publish.run.ts",
+        "tests/gold-rule-learning.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "商品重量/尺寸/包装尺寸类属性不再产生 gold rule 沉淀候选,其余属性照常沉淀",
+    "沉淀候选纯函数被测试真实 import 调用,不依赖数据库",
+    "非服装鞋类商品(电缆类目)不再命中 apparel 域任何规则,HS 编码不再被填 6404110000",
+    "服装鞋类商品仍正常命中 apparel 域规则(门禁不误伤)",
+    "qingpu-ai typecheck 与 ozon-defaults 测试全绿",
+    "主题守卫总闸相对当前 3 个存量失败无新增失败"
+  ],
+  "verification": [
+    {
+      "name": "扩展侧类型检查与 Ozon 默认值测试",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-defaults.test.ts",
+      "covers": ["src/domain/channel-mappers/ozon/defaults/domains/apparel.ts", "tests/ozon-defaults.test.ts"]
+    },
+    {
+      "name": "沉淀纯函数测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../node_modules/.bin/vitest run --root . tests/gold-rule-learning.test.ts",
+      "covers": ["server/listing/gold-rule-learning.ts", "server/listing/publish.run.ts", "tests/gold-rule-learning.test.ts"]
+    }
+  ]
+}

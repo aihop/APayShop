@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s1-engine-gate",
+  "title": "Ozon 填参 S1(engine):合同分类器 + 单一写入门 + 止血 + 三端调用点",
+  "problem": "蓝图(claude.ai/code/artifact/c5002de7)与诊断书已实证:网页端 applyOzonAttributeDefaults 四层规则按属性名正则写硬编码俄语串,字典按 ZH_HANS 拉、规则用俄语正则找候选永远失配 → 回落 found?.value||'硬编码' 分支写无 id 裸串(universal 13 处、electronics 18 处、apparel/lifestyle/smartwatch 同型),是 235 个字典解析失败里 177 个与线上 4 条 warning_attribute_values_out_of_range 的来源;universal.ts:69-73 的 CJK 纠偏分支把 AI 选对的中文候选打回俄语裸串;承诺型规则(保修/寿命/配套/序列号/受众/输出口数)替卖家做承诺;defaults/index.ts:33 一次性取 overrides 快照、setOzonAttributeOverride 展开替换对象导致同趟后写者赢;aspects.ts:42-48 计数轴无条件写 1、:120-134 匹配即覆盖手填规格值;扩展/Lite 从不跑这四层、三端三套口径;AI 工作流每轮重复调 applyDeterministicDefaults。",
+  "expectedOutcome": "engine 内落地:(1) attribute-contract.ts 分类器 classifyOzonAttribute 按合同字段+稳定 id 白名单把属性分 14 类并给出 allowedSources/memoryScope,OZON_FILL_SOURCES 唯一来源词汇;(2) fill-gate.ts 单一写入门 commitOzonAttributeFill:类禁写、来源白名单、manual/cleared/occupied 跳过、字典型必须带 dictionaryValueId 且候选可证(brand 豁免)、数值纯数字、文本无中文,写入时同步 cacheOzonDictionaryEntryForPublish;(3) universal 只保留品牌/原产国/件数/重量/尺寸并经写入门,原产国吸收进口证据判定、件数吸收多件信号判定,删除 CJK 纠偏与六条承诺型规则;(4) 四域全部写点改经写入门,删除全部硬编码兜底;(5) 占位判定改为写入门内实时读覆盖表,消灭快照失明;(6) aspects 计数轴按多件信号判定且只填空,匹配写入只填空;(7) defaults/index.ts 导出 runOzonAttributeFill(product,{mode,extraDictionaries}) 返回结构化报告,applyOzonAttributeDefaults 保留薄壳;(8) 调用点:ai-listing-fill-workflow 在 refresh 后轮循环前调一次 runOzonAttributeFill(mode:'fill_start'),轮内 applyDeterministicDefaults 删除;ozon-category-workflow 的 applyCategorySelectionToProductDraft 与 refreshOzonCategoryAttributes.applyResources 内调 runOzonAttributeFill(mode:'category_apply');(9) engine 出口新增符号并登记 caliber-redefine;check-deps 新增 ozon-defaults-write-gate 守卫(defaults/ 目录禁止 import setOzonAttributeOverride);(10) tests/ozon-defaults.test.ts 重写为合同断言(无候选不写、策略类不写、系统类不写、只填空、manual/cleared 尊重、多件信号不写 1),新增 tests/ozon-attribute-contract.test.ts。不改 storage 形状、不加 provenance 旁字段(S3)、不动 apay(S1b 另立契约)、不发布 engine(另立契约)。",
+  "constraints": [
+    "不改 AttributeOverrideEntry 形状,不加 provenance 旁字段;origin 保持 'manual'|'ai'",
+    "写入门 S1 版 occupied 判定按 truthy(已有非空值即跳过),不做按 source 分级",
+    "brand 类属性允许无 dictionaryValueId 写 Нет бренда(发布口径 attribute-values.ts:213,233 豁免品牌),其余字典型必须带 id 且候选可证",
+    "不删除 domains 文件、不做域规则数据化、不加 domain-registry(S4);只把写点改经写入门并删硬编码兜底",
+    "gold-rules.ts 保持可用(测试引用)但改经写入门,不再直接改 ctx.overrides",
+    "applyOzonAttributeDefaults 与 applyOzonDeterministicDefaults 保留导出(vendor/apay 消费方编译),前者薄壳调 runOzonAttributeFill,后者改经写入门",
+    "不动 apay 任何文件;不执行 engine:release",
+    "工作区存在其他会话在途改动(image-editor 等),一律保留不动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/attribute-contract.ts",
+        "src/domain/channel-mappers/ozon/fill-gate.ts",
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/domain/channel-mappers/ozon/defaults/index.ts",
+        "src/domain/channel-mappers/ozon/defaults/universal.ts",
+        "src/domain/channel-mappers/ozon/defaults/aspects.ts",
+        "src/domain/channel-mappers/ozon/defaults/gold-rules.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/electronics.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/apparel.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/lifestyle.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/smartwatch.ts",
+        "src/app/workflows/ai-listing-fill-workflow.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/ozon-category-workflow.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/ozon-defaults.test.ts",
+        "tests/ozon-attribute-contract.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/attribute-contract.ts",
+        "src/domain/channel-mappers/ozon/fill-gate.ts",
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/domain/channel-mappers/ozon/defaults/index.ts",
+        "src/domain/channel-mappers/ozon/defaults/universal.ts",
+        "src/domain/channel-mappers/ozon/defaults/aspects.ts",
+        "src/domain/channel-mappers/ozon/defaults/gold-rules.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/electronics.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/apparel.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/lifestyle.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/smartwatch.ts",
+        "src/app/workflows/ai-listing-fill-workflow.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/ozon-category-workflow.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/ozon-defaults.test.ts",
+        "tests/ozon-attribute-contract.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "字典型属性无候选或候选无 id 时任何自动层都不写值;有候选时写候选原文并同步落候选",
+    "策略类(保修/配套/寿命/序列号/组合/包装形式/交货/18+)与系统/文案/媒体类属性,任何自动层都不写",
+    "同趟内两个域命中同一属性时只有先到者写入,后到者 skipped occupied(快照失明消失)",
+    "AI 来源含中文且能解析出字典 id 的值不再被规则重写",
+    "计数规格轴在变体值或标题含多件信号时不写 1;已有规格值不被覆盖",
+    "manual 与 cleared 属性在所有层都不被写",
+    "runOzonAttributeFill 返回 committed/skipped/rejected 报告,applyOzonAttributeDefaults 行为等价于报告 committed 非空",
+    "aiFill 工作流只在起点调一次填充,轮内不再调 applyDeterministicDefaults",
+    "check-deps 新守卫通过且基线不增;caliber-redefine 登记新符号",
+    "npm run typecheck、npx vitest run tests/ozon-defaults.test.ts tests/ozon-attribute-contract.test.ts tests/ai-attribute-fill.test.ts tests/ozon-attribute-mapping.test.ts tests/ozon-packaging-attribute.test.ts tests/ozon-explicit-attribute-clear.test.ts 全绿;npm run check:deps 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型检查 + 属性填充相关测试 + 分层守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-defaults.test.ts tests/ozon-attribute-contract.test.ts tests/ai-attribute-fill.test.ts tests/ozon-attribute-mapping.test.ts tests/ozon-packaging-attribute.test.ts tests/ozon-explicit-attribute-clear.test.ts && npm run check:deps",
+      "covers": [
+        "src/domain/channel-mappers/ozon/attribute-contract.ts",
+        "src/domain/channel-mappers/ozon/fill-gate.ts",
+        "src/domain/channel-mappers/ozon/default-rules.ts",
+        "src/domain/channel-mappers/ozon/defaults/index.ts",
+        "src/domain/channel-mappers/ozon/defaults/universal.ts",
+        "src/domain/channel-mappers/ozon/defaults/aspects.ts",
+        "src/domain/channel-mappers/ozon/defaults/gold-rules.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/electronics.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/apparel.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/lifestyle.ts",
+        "src/domain/channel-mappers/ozon/defaults/domains/smartwatch.ts",
+        "src/app/workflows/ai-listing-fill-workflow.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "src/app/workflows/ozon-category-workflow.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/ozon-defaults.test.ts",
+        "tests/ozon-attribute-contract.test.ts"
+      ]
+    }
+  ]
+}

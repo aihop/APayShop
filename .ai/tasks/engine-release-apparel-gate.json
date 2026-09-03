@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "engine-release-apparel-gate",
+  "title": "发布 engine:携带服装鞋类域品类门禁的 vendor 版本",
+  "problem": "qingpu-ai 提交 a29dc2b8 给 apparel 域加了品类门禁,阻止服装鞋类规则对非服装商品运行(线上实证:鞋类海关编码 6404110000 被填给数据线,并沉淀成跨用户共享的类目黄金规则、把 electronics 正确的 8544 规则永久挡住)。但网页 Listing 消费的是主题 vendor 的 engine 产物,当前 0.7.259 锚点 5636840b 只含重量口径修复,不含该门禁。qingpu-ai 主工作区 src/ 下有其他会话的 image-editor 在途改动,release 脚本的未提交改动门禁(release-engine.mjs:137)会拒绝直接发布。",
+  "expectedOutcome": "在从 a29dc2b8 拉出的干净 git worktree 中执行 npm run engine:release(QINGPU_THEME_DIR 指向真实主题目录),产出锚点严格等于 a29dc2b8 的新 vendor 版本(自动递增补丁号),主题守卫总闸通过,网页侧从而获得服装域品类门禁。",
+  "constraints": [
+    "vendor 目录只允许 npm run engine:release 写入,不得手改产物、版本号或 version.json 锚点",
+    "必须在干净 worktree 中发布:产物只能来自已提交的 a29dc2b8,不得携带主工作区任何未提交改动",
+    "不得提交、stash 或以任何方式改动其他会话的 image-editor 在途文件",
+    "不指定 --version,由脚本按主题可达历史自动递增补丁号",
+    "worktree 与其构建产物用完即清理"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": ["server/vendor/qingpu-engine/**"],
+      "claims": ["server/vendor/qingpu-engine/**"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "vendor version.json 的 sourceCommit 等于 qingpu-ai 提交 a29dc2b8,version 高于 0.7.259",
+    "vendor 产物包含 apparel 品类门禁(APPAREL_CATEGORY_PATTERN 判据)",
+    "主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/vendor/qingpu-engine/**"]
+    }
+  ]
+}
