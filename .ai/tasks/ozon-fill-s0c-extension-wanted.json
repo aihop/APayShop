@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s0c-extension-wanted",
+  "title": "Ozon 填参 S0c(扩展):四个填参调用点按 report.wanted 补拉后重跑一次 + 新协议 OZON_ATTRIBUTE_VALUES_SEARCH(后端)",
+  "problem": "engine 0.7.264 起 runOzonAttributeFill 报告 wanted(事实 strict 命中但候选未加载),扩展/Dash/Lite 的四个调用点(ozon-category-workflow 类目应用与属性刷新、ai-listing-fill 起点、ai-attribute-fill 起点)只跑一次,wanted 无人消费。扩展端已有带 TTL 缓存与限额的 fetchMissingAttributeDictionaries,但它按自身优先级挑目标、不能按指定 id 补拉;runOzonAttributeFill 已支持 extraDictionaries。另,Dash/Lite 页面只能整表拉字典(OZON_ATTRIBUTE_VALUES),大字典 500 截断,缺按值搜索的后台动作。",
+  "expectedOutcome": "fetchMissingAttributeDictionaries 增 onlyIds 选项(只补拉指定 id,仍受限额与缓存);新增 src/app/workflows/ozon-wanted-refetch.ts:runOzonAttributeFillWithRefetch(product, mode, deps) 首轮 → wanted 非空则按 onlyIds 补拉 → 带 extraDictionaries 重跑一次(最多一次,失败不抛),四个调用点切换到它(updateProductWithin 的同步 mutator 路径用「先算 extra 再在 mutator 内带 extra 重跑」);request-actions 登记 OZON_ATTRIBUTE_VALUES_SEARCH(payload: 凭证覆盖 + categoryId/attributeId/typeId/query,response result: OzonAttributeValue[]),handlers/ozon.ts 镜像 OZON_ATTRIBUTE_VALUES 实现,页面接入不在本契约。",
+  "constraints": [
+    "最多补拉重跑一次;补拉只针对 wanted;沿用既有 TTL 缓存与 MISSING_DICTIONARY_FETCH_LIMIT",
+    "新协议只登记 + 处理器,不改任何页面;payload 可序列化",
+    "不改 engine 出口;不触发 engine:release",
+    "补拉失败不阻断类目应用/AI 填参主流程(warn)"
+  ],
+  "repositories": [{ "name": "qingpu-ai", "path": "../qingpu-ai", "allowedPaths": ["src/app/workflows/ai-attribute-fill-workflow.ts", "src/app/workflows/ai-listing-fill-workflow.ts", "src/app/workflows/ozon-category-workflow.ts", "src/app/workflows/ozon-wanted-refetch.ts", "src/shared/request-actions.ts", "src/app/handlers/ozon.ts", "tests/ozon-wanted-refetch.test.ts", "tests/ai-attribute-fill-dictionaries.test.ts"], "claims": ["src/app/workflows/ai-attribute-fill-workflow.ts", "src/app/workflows/ai-listing-fill-workflow.ts", "src/app/workflows/ozon-category-workflow.ts", "src/app/workflows/ozon-wanted-refetch.ts", "src/shared/request-actions.ts", "src/app/handlers/ozon.ts", "tests/ozon-wanted-refetch.test.ts", "tests/ai-attribute-fill-dictionaries.test.ts"] }],
+  "acceptanceCriteria": [
+    "runOzonAttributeFillWithRefetch:首轮 wanted 为空不补拉;wanted 非空补拉后重跑且第二轮报告合并;补拉抛错时返回首轮报告不抛",
+    "fetchMissingAttributeDictionaries({ onlyIds }) 只补拉指定且候选为空的字典型属性",
+    "OZON_ATTRIBUTE_VALUES_SEARCH 在协议表登记且处理器可分发(缺 categoryId/attributeId/query 时明确报错)",
+    "typecheck、相关 vitest、check:deps、build 通过"
+  ],
+  "verification": [{ "name": "类型/测试/守卫/构建", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npx vitest run tests/ozon-wanted-refetch.test.ts tests/ai-attribute-fill-dictionaries.test.ts tests/ai-attribute-fill.test.ts tests/ai-listing-fill.test.ts tests/ozon-category-workflow-commission.test.ts && npm run check:deps && npm run build", "covers": ["src/app/workflows/ai-attribute-fill-workflow.ts", "src/app/workflows/ai-listing-fill-workflow.ts", "src/app/workflows/ozon-category-workflow.ts", "src/app/workflows/ozon-wanted-refetch.ts", "src/shared/request-actions.ts", "src/app/handlers/ozon.ts", "tests/ozon-wanted-refetch.test.ts", "tests/ai-attribute-fill-dictionaries.test.ts"] }]
+}
