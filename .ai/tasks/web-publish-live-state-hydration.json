@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "web-publish-live-state-hydration",
+  "title": "网页行构建按店铺水合已上线状态,使 engine 防整卡重导/重复建卡守卫覆盖网页发布的商品",
+  "problem": "2026-09-03 三端回归:engine ozon-driver/wb-driver 已按 channelPublishStates[channel].state==='succeeded' 拒绝对在售商品整卡重导/重复建卡(28386e61 与 wb-live-republish-guard)。但网页发布的商品只有 qingpu_publish_records.platform_product_id(数据库列),getPublishAggregatesForUser 构建行时 compat 恒为 {},rebuildProductAggregate 得到的 Product 没有 channelPublishStates,守卫对网页发布的商品不生效;网页 channels 页可多选含已上线商品批量点「上架」,服务端全量发布仍会 /v3/product/import 整卡重导触发重审。网页自身的判据(channels.vue: cd.platformProductId)与守卫谓词之间缺一座桥。",
+  "expectedOutcome": "新增纯函数模块 server/listing/publish-live-state.ts(零 vendor 运行时依赖):按 (productId, channel) 的平台商品 id 链接构造 channelPublishStates 片段(state='succeeded', productId=platformProductId, storeKey);getPublishAggregatesForUser 拉取 listLatestPublishedPlatformProductRecords 并按传入 storeKey 作用域水合进 row.compat.channelPublishStates(未传 storeKey 时任一店铺已上线即视为上线,与 preprocessStatus==='published' 口径一致);listLatestPublishedPlatformProductRecords 返回值补 storeKey 字段(加性,不破坏既有调用方)。网页全量发布含已上线商品时,engine 守卫生效,该商品进 skipped 且其 claim 记录按既有逻辑标 failed(不留 submitting 僵尸)。",
+  "constraints": [
+    "不改 publish.run.ts、queries.workspace.ts、publish.aggregate.ts(其他会话在途/被租约占用),水合只在行构建器",
+    "listLatestPublishedPlatformProductRecords 只做加性变更(返回 storeKey),签名与既有调用方行为不变",
+    "水合只在 compat 尚无 channelPublishStates 时写入(扩展同步上来的状态为权威)",
+    "新测试文件 vitest TS2307 用就地 @ts-expect-error 抑制,不动 typecheck 基线"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/queries.publish.ts",
+        "server/publish-records/queries.ts",
+        "server/listing/publish-live-state.ts",
+        "tests/publish-live-state.test.ts"
+      ],
+      "claims": [
+        "server/listing/queries.publish.ts",
+        "server/publish-records/queries.ts",
+        "server/listing/publish-live-state.ts",
+        "tests/publish-live-state.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "buildChannelPublishStatesFromLinks:有平台 id 的 (商品,渠道) 产出 state='succeeded' 且 productId=平台 id;传 storeKey 时只认该店铺记录;无记录产出空对象",
+    "getPublishAggregatesForUser 的 row.compat.channelPublishStates 在有平台 id 时非空(源码级断言 + 纯函数行为测试)",
+    "listLatestPublishedPlatformProductRecords 返回项含 storeKey",
+    "主题守卫总闸通过;主题全量测试通过"
+  ],
+  "verification": [
+    {
+      "name": "主题测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/publish-live-state.test.ts",
+      "covers": ["server/listing/publish-live-state.ts", "server/listing/queries.publish.ts", "server/publish-records/queries.ts", "tests/publish-live-state.test.ts"]
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/queries.publish.ts", "server/publish-records/queries.ts", "server/listing/publish-live-state.ts"]
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "three-end-caliber-regression-fixes",
+  "title": "三端回归修复:已上线商品防整卡重导、网页规格派生回归 engine、守卫补形态探针",
+  "problem": "2026-09-02 三端回归审计(顺着当日两个网页 bug 追三端)实锤两处漂移:(1) 扩展端 OZON_REPUBLISH_PRODUCT 直接进标准发布链,ozon-driver.publishProducts 在 /v3/product/import 整卡重导前没有任何「已上线则跳过」判断(SubmissionGuard 只是 5 分钟时间窗防 SW 被杀重发),Dash/Lite 对在售商品点重新发布会把卡打回 Ozon 重审——网页端专门防住的风险在扩展端是敞开的;(2) 网页 server/listing/publish.aggregate.ts 内 cleanText/cleanUrl/parseAinodeSpecCombination/deriveSkuDimensionsFromAinodeRaw 是 engine parseSkuOptionValues/toPublicUrl/deriveSkuDimensionsFromAinodeCrawl1688Raw 的逐行手抄(改了名),rebuildProductAggregate 据此重建商品并被 readiness/workspace-quality/publish/support 四处消费;vendor 0.7.261 已导出 deriveSkuDimensionsFromAinodeCrawl1688Raw 与 AinodeCrawl1688RawItem,网页却未用;(3) 主题 check-caliber-drift 只按 vendor d.ts 符号「同名再定义」检测,改名手抄天然漏网,债务地图亦未登记。同批审计发现的 engine ainode-crawl-1688.ts cleanText String(value ?? '') 隐患因该文件有其他会话在途裸改,本契约不含,另立契约。",
+  "expectedOutcome": "ozon-driver 在验证循环前按 getChannelPublishState(product,'ozon').state==='succeeded' 跳过已上线商品并给出「已上线,请走同步」原因,不进 buildPublishPayload/不打 Ozon;全部被守卫跳过时错误文案如实说明而非「均未就绪」;新增 isChannelPublishLive 单点谓词。网页 publish.aggregate.ts 删除本地四个手抄,ainode 分支改调 vendor deriveSkuDimensionsFromAinodeCrawl1688Raw。check-caliber-drift 新增形态探针(SHAPE_PROBES)按逻辑形态检测 1688 规格组合拆解等 engine 专属逻辑的本地再实现,并做负向探针。",
+  "constraints": [
+    "守卫只加在 ozon-driver(Ozon 重审是 Ozon 特有风险),WB 驱动不动;谓词放 src/domain/channels/publish-state.ts 与既有 hasPendingChannelPublishTask 同处,不新增 engine 出口(避免牵动 caliber-redefine 守卫与 vendor 发布)",
+    "网页只用 vendor 0.7.261 已有导出,本任务不触发 engine:release",
+    "publish.aggregate.ts 的 asRecord 保留(其它站点仍用);onebound 分支已用 engine 出口,不动",
+    "新测试文件的 vitest TS2307 用就地 @ts-expect-error 抑制,不动 typecheck 基线",
+    "不改 SubmissionGuard 语义;不调整发布记录 claim 顺序",
+    "不碰 src/domain/source-adapters/ainode-crawl-1688.ts(其他会话在途)"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channels/publish-state.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "tests/ozon-live-republish-guard.test.ts"
+      ],
+      "claims": [
+        "src/domain/channels/publish-state.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "tests/ozon-live-republish-guard.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/listing/publish.aggregate.ts",
+        "scripts/check-caliber-drift.mjs",
+        "tests/publish-aggregate-engine-derivation.test.ts"
+      ],
+      "claims": [
+        "server/listing/publish.aggregate.ts",
+        "scripts/check-caliber-drift.mjs",
+        "tests/publish-aggregate-engine-derivation.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "已上线(state=succeeded)的商品被 ozon-driver 跳过,skipped 含明确原因,ozonRequest 零调用;全部跳过时 error 文案说明「已上线」而非「未就绪」",
+    "未上线(idle/failed)商品不受该守卫影响,仍按原验证路径处理",
+    "publish.aggregate.ts 不再含 parseAinodeSpecCombination/deriveSkuDimensionsFromAinodeRaw/cleanUrl/cleanText 定义,ainode 分支 import 自 vendor",
+    "check-caliber-drift 在主题源码植入 spec_combination 拆解形态时变红(负向探针),移除后转绿",
+    "qingpu-ai typecheck + 相关 vitest + check:deps 通过;主题守卫总闸通过"
+  ],
+  "verification": [
+    {
+      "name": "engine 侧类型/测试/分层守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-live-republish-guard.test.ts tests/ozon-driver-submission.test.ts tests/ozon-publish.test.ts && npm run check:deps",
+      "covers": ["src/domain/channels/publish-state.ts", "src/domain/publish-drivers/ozon-driver.ts", "tests/ozon-live-republish-guard.test.ts"]
+    },
+    {
+      "name": "主题测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/publish-aggregate-engine-derivation.test.ts",
+      "covers": ["server/listing/publish.aggregate.ts", "tests/publish-aggregate-engine-derivation.test.ts"]
+    },
+    {
+      "name": "主题守卫总闸",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npm --prefix ../../.. run check:qingpu-all",
+      "covers": ["server/listing/publish.aggregate.ts", "scripts/check-caliber-drift.mjs"]
+    }
+  ]
+}

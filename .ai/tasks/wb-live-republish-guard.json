@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "wb-live-republish-guard",
+  "title": "WB 驱动已上线商品防重复建卡:与 Ozon 同款 isChannelPublishLive 守卫",
+  "problem": "2026-09-03 三端回归审计后续:扩展端 WB 驱动 publishProducts 只会 cards/upload(建卡),验证循环前没有任何「已上线则跳过」判断,src/app 与驱动都不查已有卡(findWbCardByVendorCode/pairWbCardsForUpdate 零调用)。WB 跟踪器已把回执 published 映射为渠道状态 succeeded,在售商品再点发布会对同一 vendorCode 重复 cards/upload——重复建卡或被 WB 拒绝。当前 wbPublishDryRun 缺省干跑,风险潜伏但守卫缺位;Ozon 侧同款守卫已于 28386e61 入库。",
+  "expectedOutcome": "wb-driver 在验证循环前按 isChannelPublishLive(product,'wb') 跳过已上线商品,原因写明「已在 WB 上线,禁止重复建卡;请在网页工作台用同步资料更新」,不进 buildPublishPayload、不申领条码、不 cards/upload(干跑与正式均如此);全部被守卫跳过时错误文案说明「已上线」而非「未就绪」;新增测试并做负向探针。",
+  "constraints": [
+    "复用 src/domain/channels/publish-state.ts 的 isChannelPublishLive,不新增谓词、不新增 engine 出口",
+    "不改 WB 干跑开关语义与条码申领时机(tests/wb-driver-safety.test.ts 既有用例逐字节不变)",
+    "只改 wb-driver.ts 与新测试文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/domain/publish-drivers/wb-driver.ts", "tests/wb-live-republish-guard.test.ts"],
+      "claims": ["src/domain/publish-drivers/wb-driver.ts", "tests/wb-live-republish-guard.test.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "state=succeeded 的商品被跳过,uploadWbCards/generateWbBarcodes 零调用,skipped 含「已在 WB 上线」,全部跳过时 error 含「均已在 WB 上线」",
+    "failed/submitted/idle 商品不受影响",
+    "负向探针:守卫短路时新用例变红",
+    "既有 wb-driver-safety 用例、typecheck、check:deps 通过"
+  ],
+  "verification": [
+    {
+      "name": "WB 驱动测试 + 类型 + 分层守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/wb-live-republish-guard.test.ts tests/wb-driver-safety.test.ts && npm run typecheck && npm run check:deps",
+      "covers": ["src/domain/publish-drivers/wb-driver.ts", "tests/wb-live-republish-guard.test.ts"]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "engine-cleantext-scalar-aware",
+  "title": "engine ainode 适配器 cleanText 标量感知:对象字段不再被 String() 吃成 [object Object]",
+  "problem": "2026-09-02 三端回归审计:src/domain/source-adapters/ainode-crawl-1688.ts:111 的 cleanText 为 String(value ?? ''),与网页 ainode-crawl.ts 当日修掉的同款反模式。该函数用于 title/vendor/spec_name/规格值/origin_id/sku_id 等字段,上游哪天把字段给成对象,三端会一起把 '[object Object]' 当标题/维度名存入 CollectedProductData。此前因该文件有其他会话在途裸改而从 three-end-caliber-regression-fixes 契约中摘出,现该改动已随 28386e61 提交,文件干净。",
+  "expectedOutcome": "cleanText 改为标量感知:字符串清洗;数字/布尔转字符串(origin_id、sku_id 上游可能给数字,不得丢);对象/数组/空一律空串。既有 6 个适配器用例逐字节不变;新增用例钉住对象字段不产出 [object Object]、数字 id 保留;负向探针验证。",
+  "constraints": [
+    "只改 cleanText 实现,不改任何调用站点",
+    "不动 onebound.ts(无同款实现)",
+    "不新增 engine 出口,不触发 engine:release(vendor 同步随下次发布)"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["src/domain/source-adapters/ainode-crawl-1688.ts", "tests/ainode-crawl-1688-adapter.test.ts"],
+      "claims": ["src/domain/source-adapters/ainode-crawl-1688.ts", "tests/ainode-crawl-1688-adapter.test.ts"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "对象/数组输入的 title、spec_name 不产出 [object Object]",
+    "数字型 origin_id / sku_id 归一后为等值字符串",
+    "既有 6 个用例全部通过;负向探针(还原 String(value ?? ''))时新用例变红",
+    "typecheck 与 check:deps 通过"
+  ],
+  "verification": [
+    {
+      "name": "适配器测试 + 类型 + 分层守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/ainode-crawl-1688-adapter.test.ts && npm run typecheck && npm run check:deps",
+      "covers": ["src/domain/source-adapters/ainode-crawl-1688.ts", "tests/ainode-crawl-1688-adapter.test.ts"]
+    }
+  ]
+}
