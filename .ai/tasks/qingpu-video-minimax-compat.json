@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-video-minimax-compat",
+  "title": "轻铺视频工具对齐 MiniMax 渠道能力:时长改 6/10,带素材的模式不再退化成纯文生",
+  "problem": "实证(2026-09-03,ainode 提交 f90cf6d 之前):轻铺视频工具走 qp-video-1 别名落到 minimax-video 渠道,两个模式都失败。(1) VideoGenerationStudio 的时长档位是 5s/10s,而 MiniMax Hailuo 系列只接受 6 或 10 秒(ainode internal/provider/minimaxvideo/protocol.go validateModelOptions);5 秒的请求在提交阶段被上游适配器拒绝,且拒绝文案 'supports only 6 or 10 seconds' 匹配不上 video-generate.ts 的 isCapabilityMismatch 任何一条模式,梯度不会重试,直接整单失败。(2) 提交梯度里 image-to-video 的最后一档和 video-to-video 的最后一档都是 { inputs: [] },即丢掉参考图/参考视频退化成纯文生。一旦退化成功,产出的视频与用户提供的素材完全无关,却仍被判成成功、写入资产并计费,前端没有任何提示——这是把用户的需求换掉了,不是降级。video-to-video 的中间档还会在只有参考视频、没有首帧图时把 inputs 过滤成空数组,产生同样的静默退化。",
+  "expectedOutcome": "(1) 视频工具时长档位改为 6s/10s,创建接口白名单同步改为 [6, 10],与 MiniMax Hailuo 的合法取值一致。(2) 提交梯度抽成零 I/O 的纯函数 buildVideoSubmitAttempts 并加真实 import 的回归测试;带素材的模式(image-to-video / video-to-video)不再产生任何 inputs 为空的档位,素材全部不可用时明确报错而不是静默退化成文生。text-to-video 的梯度维持原样。不改渠道路由、不改计费、不改 ainode。",
+  "constraints": [
+    "不改 runStandaloneVideoGeneration 的对外签名与返回结构,不改 StandaloneVideoGenerationInput 字段",
+    "不改 text-to-video 的梯度档位(6 秒 / 10 秒两档),它本来就没有素材可丢",
+    "不改 isCapabilityMismatch 的匹配模式:靠客户端匹配服务端错误散文本身是脆弱耦合,不在本次加深",
+    "不改 api/listing/videos/generate.ts(duration 10 + size auto 对 MiniMax 合法,不在本次范围)",
+    "不改 ainode:MiniMax 适配器侧改动已在 ainode 分支 fix/minimax-video-image-to-video 提交",
+    "存量任务里已存的 duration=5 由重试路径按上游报错失败,不做数据迁移",
+    "主题工作区若有其他会话在途改动一律保留不动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "components/VideoGenerationStudio.vue",
+        "api/tools/video/generate.ts",
+        "server/assets/video-generate.ts",
+        "tests/video-submit-attempts.test.ts"
+      ],
+      "claims": [
+        "components/VideoGenerationStudio.vue",
+        "api/tools/video/generate.ts",
+        "server/assets/video-generate.ts",
+        "tests/video-submit-attempts.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "视频工具时长档位为 6s/10s,默认 6s;创建接口只接受 6 与 10",
+    "image-to-video 的梯度不含任何 inputs 为空的档位,首帧图在每一档都在",
+    "video-to-video 的梯度不含任何 inputs 为空的档位;只有参考视频没有首帧图时不产生空档位",
+    "带素材的模式在素材全部不可用时抛错,不退化成纯文生",
+    "text-to-video 的梯度仍为 6 秒与 10 秒两档",
+    "梯度构造是零 I/O 纯函数,测试真实 import 调用,不读源码文本"
+  ],
+  "verification": [
+    {
+      "name": "主题测试全量(含提交梯度纯函数回归)",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-tests.mjs",
+      "covers": [
+        "server/assets/video-generate.ts",
+        "tests/video-submit-attempts.test.ts",
+        "components/VideoGenerationStudio.vue",
+        "api/tools/video/generate.ts"
+      ]
+    }
+  ]
+}
