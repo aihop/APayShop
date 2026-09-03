@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s0c-gateway-search",
+  "title": "Ozon 填参 S0c-2(扩展):宿主目录网关实现 searchAttributeValues,接 OZON_ATTRIBUTE_VALUES_SEARCH",
+  "problem": "扩展宿主网关(src/shared/host-gateways-chrome.ts installChromeHostGateways)只实现 fetchCategoryAttributes / fetchAttributeValues,searchAttributeValues 为空;fetchMissingAttributeDictionaries 的「按俄语事实搜索字典」路径在 Dash/Lite 从来走不通,只能整表拉取(大字典 500 截断)。主题服务端网关已实现搜索。S0c 已登记协议 OZON_ATTRIBUTE_VALUES_SEARCH 并实现处理器,只差宿主网关接线。",
+  "expectedOutcome": "installChromeHostGateways 的 Ozon 网关增加 searchAttributeValues:凭证解析与 fetchAttributeValues 同口径(payload 显式凭证优先,否则当前店铺),经 sendRequest('OZON_ATTRIBUTE_VALUES_SEARCH', { categoryId, attributeId, typeId, query, clientId, apiKey });新增测试以 mock 的 sendRequest 钉住动作名与载荷。",
+  "constraints": ["只改宿主网关与新测试;不改协议/处理器/页面", "不触发 engine:release"],
+  "repositories": [{ "name": "qingpu-ai", "path": "../qingpu-ai", "allowedPaths": ["src/shared/host-gateways-chrome.ts", "tests/host-gateways-chrome-search.test.ts"], "claims": ["src/shared/host-gateways-chrome.ts", "tests/host-gateways-chrome-search.test.ts"] }],
+  "acceptanceCriteria": ["getOzonCatalogGateway().searchAttributeValues 存在且调用 sendRequest('OZON_ATTRIBUTE_VALUES_SEARCH', …) 带 query 与凭证", "typecheck、测试、check:deps、build 通过"],
+  "verification": [{ "name": "类型/测试/守卫/构建", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npx vitest run tests/host-gateways-chrome-search.test.ts tests/ai-attribute-fill-dictionaries.test.ts && npm run check:deps && npm run build", "covers": ["src/shared/host-gateways-chrome.ts", "tests/host-gateways-chrome-search.test.ts"] }]
+}
