@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "concurrency-import-fixes-batch3",
+  "title": "并发与导入修复第三批:网页占用不覆盖本地、任务心跳阈值容忍后台节流、采集入库串行化与选中 SKU 键按归一化地址查找、SKU 归一化保留删除标记与包装字段、OneBound 图片去重",
+  "problem": "2026-09-04 核心链路审查确认的并发与导入侧问题:(1) runCloudListingWorkflowForProducts 把 skippedStaleIds(云端较新)与 skippedEditingIds(网页正在编辑)一律当「云端更新」拉云端覆盖本地——网页占用时本地改动被云端半成品覆盖,字段注释本身写的是「网页占用(稍后重试)」;(2) task-ledger 心跳 10s/判死 30s,Chrome 对后台标签页的定时器节流到每分钟一次,后台仍在跑的任务被另一处 recoverAbandonedJobs 判死标「已中断」,用户点续跑即重复花钱;(3) saveCollectedProducts 先 getAllProducts 快照再逐条判存在,同一 SW 内并发的两条采集消息互相看不见对方的新建,同一 sourceUrl 落两条商品;且 selectedSkuKeysBySourceUrl 由 Lite 按原始地址建键,处理器把 item.sourceUrl 归一化后再查该表,键不命中导致用户勾选的 SKU 范围失效、全部新规格合入;(4) normalizeSku 只保留 attrs/attrsRu/price/stock/image,storage 每次读取都丢掉 SKU 的 _deleted 与四个包装字段,行级删除复活、行级包装丢失;(5) OneBound 归一化对同一图片 URL 在 item_imgs/prop_imgs/desc_img 重复出现时重复 push,imageMeta 按 URL 消费时后写者赢,主图角色/稳定 id 被变体图条目顶掉,图集出现重复图。",
+  "expectedOutcome": "listing-workflow-client 只把 skippedStaleIds 当云端更新拉取覆盖,skippedEditingIds 抛出独立错误且不拉云端;task-ledger HEARTBEAT_STALE_MS 提高到 3 分钟并同步文档;saveCollectedProducts 经模块级串行队列执行,选中 SKU 键先按归一化地址再按原始地址查找;normalizeSku 保留 _deleted 与 packageDepthCm/packageWidthCm/packageHeightCm/packageWeightG;OneBound push 同一公开 URL 只收一次(首次出现的角色与 id 为准)。",
+  "constraints": [
+    "不改消息协议与存储键;不改合并算法本身",
+    "不触发 engine:release,不改 apay 主题;不动其他会话的未提交文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/shared/task-ledger.ts",
+        "docs/task-system.md",
+        "src/app/handlers/context.ts",
+        "src/domain/products/normalize.ts",
+        "src/domain/source-adapters/onebound.ts",
+        "tests/cloud-content-preparation.test.ts",
+        "tests/normalize-product.test.ts",
+        "tests/onebound-adapter.test.ts",
+        "tests/save-collected-products.test.ts"
+      ],
+      "claims": [
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/shared/task-ledger.ts",
+        "docs/task-system.md",
+        "src/app/handlers/context.ts",
+        "src/domain/products/normalize.ts",
+        "src/domain/source-adapters/onebound.ts",
+        "tests/cloud-content-preparation.test.ts",
+        "tests/normalize-product.test.ts",
+        "tests/onebound-adapter.test.ts",
+        "tests/save-collected-products.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "skippedEditingIds 非空:抛出含「网页端编辑」语义的错误,pullCloudProductsOverwriteLocal 不被调用;skippedStaleIds 非空仍拉取覆盖并抛「云端商品已更新」",
+    "HEARTBEAT_STALE_MS 为 180000,isJobAbandoned/markAbandonedJobs 既有测试通过",
+    "两条同 sourceUrl 的采集消息并发调用 saveCollectedProducts:只落 1 条商品,第二条走合并;selectedSkuKeysBySourceUrl 以原始地址(带 spm)建键时合并层仍只合入勾选的新规格",
+    "normalizeProduct 后 skus[i]._deleted 与包装四字段保留",
+    "同一 URL 在 item_imgs 与 prop_imgs 重复:images 不重复,imageMeta 首条角色 main、id img-0 不被顶掉",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/cloud-content-preparation.test.ts tests/task-ledger.test.ts tests/save-collected-products.test.ts tests/normalize-product.test.ts tests/product-shape-normalize.test.ts tests/onebound-adapter.test.ts tests/merge-collected-variants.test.ts tests/sku-variant-images.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/shared/task-ledger.ts",
+        "docs/task-system.md",
+        "src/app/handlers/context.ts",
+        "src/domain/products/normalize.ts",
+        "src/domain/source-adapters/onebound.ts",
+        "tests/cloud-content-preparation.test.ts",
+        "tests/normalize-product.test.ts",
+        "tests/onebound-adapter.test.ts",
+        "tests/save-collected-products.test.ts"
+      ]
+    }
+  ]
+}
