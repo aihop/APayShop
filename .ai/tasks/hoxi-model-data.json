@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "hoxi-model-data",
+  "title": "建立 hoxi 模型数据层:类型、种子数据、派生指标与数据守卫",
+  "problem": "P1 之后主题只有视觉骨架,首页两个列表区块显示的是占位说明。榜单、详情页、省钱指南三个核心页面都要读同一份模型数据,如果不先把数据形状、价格口径和可信度规则定死,后面三个页面会各自解释字段,价格单位和评分口径很快就会互相矛盾。此外模型评分与价格是本站唯一的差异化内容,一旦混入没有来源的臆测数字,站点的可信度就没有了。",
+  "expectedOutcome": "主题内有一份人工维护的静态模型数据(types/model.ts 定义形状,data/models.ts 存数据,data/vendors.ts 与 data/rates.ts 存厂商与汇率),每条数据的价格与评分都带可核实来源与核对日期;composables/useHoxiModels.ts 提供统一的派生指标(混合价、性价比指数)、格式化与筛选排序工具,口径写成常量并可在页面上解释;scripts/check-model-data.mjs 在构建期拦截缺来源、缺日期、越界评分、非法 slug 与未知厂商的数据。",
+  "constraints": [
+    "价格与评分必须来自可核实的公开来源,每条记录都要带 sources(含 url 与核对日期);无法核实的字段一律留空,禁止用记忆或推断补齐",
+    "价格统一换算为每百万 tokens;原始币种保留在数据里,汇率作为可调常量放 data/rates.ts,不在数据文件里预先算死人民币价",
+    "评分统一 0-100 区间",
+    "数据文件是纯数据,不含展示逻辑;派生与格式化全部放 composable",
+    "混合价与性价比的计算口径写成带注释的常量,页面要能把口径展示给读者",
+    "不新建数据库表,不引入新依赖,不改动 apay 核心仓库",
+    "本阶段不改动任何页面"
+  ],
+  "repositories": [
+    {
+      "name": "apay-hoxi",
+      "path": "app/themes/hoxi",
+      "allowedPaths": [
+        "types/**",
+        "data/**",
+        "composables/**",
+        "scripts/**"
+      ],
+      "claims": [
+        "types/**",
+        "data/**",
+        "composables/**",
+        "scripts/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "types/model.ts 定义 HoxiModel,价格区分币种,评分与性能字段可缺省",
+    "data/models.ts 的每条记录都带 sources(至少一条含合法 url 与 checkedAt)与 updatedAt",
+    "data/vendors.ts 覆盖数据中出现的全部厂商;data/rates.ts 的汇率带注释说明用途",
+    "composables/useHoxiModels.ts 导出混合价、性价比指数、格式化与筛选排序工具,且混合价权重是具名常量",
+    "scripts/check-model-data.mjs 能拦截:slug 重复或非 kebab-case、价格非正数、评分越界、缺 sources 或 checkedAt、厂商不存在",
+    "对守卫脚本做过反向验证:注入违规数据会失败,还原后通过",
+    "主题脚手架自检仍通过,未改动页面与组件"
+  ],
+  "verification": [
+    {
+      "name": "模型数据守卫",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    },
+    {
+      "name": "主题脚手架与硬约束自检",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    }
+  ]
+}

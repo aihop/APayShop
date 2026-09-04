@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "affiliates-default-commission-rate-alignment",
+  "title": "对齐 /affiliates 落地页分佣比为后台默认推广返佣比例",
+  "problem": "/affiliates 推广页展示的分佣比存在脱节与口径错误：主标题使用了代理等级最高折扣 maxRate 并硬编码 20% 兜底；指标卡与信号徽标显示为区间；FAQ 和卡片中存在硬编码 20% 以及数据处理逻辑缺陷，未能正确调用后台设置的默认推广返佣比例。",
+  "expectedOutcome": "/affiliates 页面的主标题、指标卡片、信号徽标、各产品返佣计划与常见问题统一调用后台设置的默认推广返佣比例（promo_default_commission_rate），同时后端 /api/promo/public-config 精确解析数字。",
+  "constraints": [
+    "保持推广管理 API 与已有业务规则兼容",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/promo/public-config.get.ts",
+        "app/themes/qingpu/pages/affiliates.vue",
+        "app/themes/qingpu/locales/zh.ts",
+        "app/themes/qingpu/locales/en.ts",
+        "app/themes/qingpu/locales/ru.ts"
+      ],
+      "claims": [
+        "server/api/promo/public-config.get.ts",
+        "app/themes/qingpu/pages/affiliates.vue",
+        "app/themes/qingpu/locales/zh.ts",
+        "app/themes/qingpu/locales/en.ts",
+        "app/themes/qingpu/locales/ru.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/api/promo/public-config.get.ts 正确且安全地解析 promo_default_commission_rate",
+    "/affiliates 主标题、指标卡、信号标签、Coverage 及 FAQ 统一展示 defaultRate（默认推广返佣比例）",
+    "类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/promo/public-config.get.ts app/themes/qingpu/pages/affiliates.vue app/themes/qingpu/locales/zh.ts app/themes/qingpu/locales/en.ts app/themes/qingpu/locales/ru.ts"
+    }
+  ]
+}

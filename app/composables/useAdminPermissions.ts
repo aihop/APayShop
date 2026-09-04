@@ -116,6 +116,14 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
     editable: true,
   },
   {
+    code: 'tickets',
+    label: 'Tickets Support System',
+    labelZh: '工单管理',
+    apiPrefixes: ['tickets'],
+    routes: ['/admin/tickets'],
+    editable: true,
+  },
+  {
     code: 'system',
     label: 'System Operations (Rebuild, Upload, Scheduler)',
     labelZh: '系统操作（重建、上传、调度）',

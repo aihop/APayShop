@@ -31,6 +31,7 @@
     "add": "添加",
     "create": "创建",
     "confirm": "确认",
+    "done": "完成",
     "submit": "提交",
     "reset": "重置",
     "search": "搜索",
@@ -69,6 +70,7 @@
     "delete": "删除",
     "edit": "编辑",
     "confirm": "确认",
+    "done": "完成",
     "create": "创建",
     "cancel": "取消",
     "search": "搜索",
@@ -90,13 +92,13 @@
   },
   "routeFallback": {
     "notFoundTitle": "404 - 页面不存在",
-    "notFoundDescription": "您访问的页面在当前模板中不存在。",
+    "notFoundDescription": "您访问的页面在当前模板中不存在",
     "returnHome": "返回首页",
     "errorTitle": "页面加载出错了",
-    "errorDescription": "页面加载时发生了一个意外错误，我们已经记录了这次异常。",
+    "errorDescription": "页面加载时发生了一个意外错误，我们已经记录了这次异常",
     "tryAgain": "重试"
   },
   "extensions": {
-    "notFound": "扩展页面不存在或已停用。"
+    "notFound": "扩展页面不存在或已停用"
   }
 }

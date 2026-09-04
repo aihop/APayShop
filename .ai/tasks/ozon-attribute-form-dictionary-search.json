@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-attribute-form-dictionary-search",
+  "title": "Dash 属性抽屉按值搜索字典(经渠道适配器注册中心,接 OZON_ATTRIBUTE_VALUES_SEARCH)",
+  "problem": "Dash 属性抽屉的字典下拉只有「点开整表拉取」(ensureDictionary),Ozon 大字典整表 500 截断时用户找不到值只能裸输入。S0c 已打通后台动作 OZON_ATTRIBUTE_VALUES_SEARCH 与宿主网关 searchAttributeValues,但页面没有按输入搜索的交互。Lite 无同类抽屉,不涉及。",
+  "expectedOutcome": "AttributeFormChannelAdapter 增可选 searchDictionary(product, attributeId, query);Ozon 适配器实现为 searchOzonAttributeDictionary(ozon-category-workflow.ts,与 ensureOzonAttributeDictionary 同一落库口径:网关 searchAttributeValues → 按 id 并入现有候选池 → 锁内子树重放持久化,网关无搜索能力则返回 false);抽屉 NSelect 在适配器具备 searchDictionary 时开 remote,本地先按输入过滤,输入≥1 字且本地命中不足时 300ms 防抖调用搜索并 revision++ 重建模型;无搜索能力的渠道(WB)交互不变。",
+  "constraints": ["渠道差异只经适配器可选能力,抽屉不写渠道 if", "搜索结果按 id 并入现有候选(不覆盖整表),上限沿用 500", "不改协议/处理器/网关;不触发 engine:release"],
+  "repositories": [{ "name": "qingpu-ai", "path": "../qingpu-ai", "allowedPaths": ["src/components/channel-attribute-forms/types.ts", "src/components/channel-attribute-forms/ozon.ts", "src/app/workflows/ozon-category-workflow.ts", "entrypoints/dash/AttributeFormDrawer.vue", "tests/ozon-attribute-dictionary-search.test.ts"], "claims": ["src/components/channel-attribute-forms/types.ts", "src/components/channel-attribute-forms/ozon.ts", "src/app/workflows/ozon-category-workflow.ts", "entrypoints/dash/AttributeFormDrawer.vue", "tests/ozon-attribute-dictionary-search.test.ts"] }],
+  "acceptanceCriteria": ["searchOzonAttributeDictionary:网关返回结果 → 并入候选池并持久化返回 true;网关无搜索方法或空结果 → false 且不写", "Ozon 适配器暴露 searchDictionary;WB 适配器不变(既有 wb-attribute-form 测试通过)", "抽屉源码:remote 绑定到适配器能力,@search 经防抖调用 searchDictionary", "typecheck、测试、check:deps、build 通过"],
+  "verification": [{ "name": "类型/测试/守卫/构建", "repository": "qingpu-ai", "always": true, "command": "npm run typecheck && npx vitest run tests/ozon-attribute-dictionary-search.test.ts tests/wb-attribute-form.test.ts tests/ozon-category-workflow-commission.test.ts && npm run check:deps && npm run build", "covers": ["src/components/channel-attribute-forms/types.ts", "src/components/channel-attribute-forms/ozon.ts", "src/app/workflows/ozon-category-workflow.ts", "entrypoints/dash/AttributeFormDrawer.vue", "tests/ozon-attribute-dictionary-search.test.ts"] }]
+}

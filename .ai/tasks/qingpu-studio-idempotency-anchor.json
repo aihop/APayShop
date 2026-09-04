@@ -57,7 +57,7 @@
       "name": "文档无跨仓绝对路径",
       "repository": "qingpu-theme",
       "always": true,
-      "command": "git diff --check -- pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/aihop' pages/user/studio/AGENTS.md"
+      "command": "git diff --check -- pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/hoxi' pages/user/studio/AGENTS.md"
     }
   ]
 }

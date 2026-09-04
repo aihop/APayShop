@@ -6,14 +6,14 @@ import { fulfillOrder } from "../../utils/fulfillment"
 import { markOrderPaid } from "../../utils/orderPayment"
 import { logger } from "../../utils/logger"
 import { trackVisitorEvent } from "../../utils/visitorAnalytics"
-import { createOrderAttribution, settlePromoCommission } from "../../promo/service"
+import { createOrderAttribution, settlePromoCommission, cancelPromoCommission } from "../../promo/service"
 import fs from 'fs'
 import path from 'path'
 import { db } from '../../db/runtime'
 import { ORDER_PAY_STATUS,ORDER_STATUS } from '../../utils/constants'
 import { readRawBody, readBody } from 'h3'
 import { getRequestLocale } from '../../utils/requestLocale'
-import { markTopupPaymentFailed } from '../../utils/topupLedger'
+import { markTopupPaymentFailed, refundTopup } from '../../utils/topupLedger'
 
 // 写日志时对回调 payload 脱敏:授权/签名类头域打码,rawBody 只留长度(防签名
 // 与 PII 落库)。query/urlOrderId 保留供排查
@@ -224,6 +224,24 @@ export default defineEventHandler(async (event) => {
             .where(and(eq(orders.id, result.orderId), ne(orders.payStatus, ORDER_PAY_STATUS.PAID)))
           if (getAffectedRows(failedUpdate) > 0) {
             await markTopupPaymentFailed(order.id, `支付网关 ${realMethodCode} 返回失败`)
+          }
+        } else if (result.status === 'refunded' || result.status === 'cancelled') {
+          await logger.warn(`Order ${order.id} ${result.status} via ${realMethodCode}`, {
+            source: 'webhook',
+            details: { tradeNo: result.tradeNo, amount: result.amount }
+          })
+          const targetPayStatus = result.status === 'refunded' ? ORDER_PAY_STATUS.REFUNDED : ORDER_PAY_STATUS.CANCELLED
+          const updateData: any = {
+            payStatus: targetPayStatus,
+            status: ORDER_STATUS.FAILED,
+            payMethod: realMethodCode
+          }
+          if (result.tradeNo) updateData.tradeNo = result.tradeNo
+
+          await db.update(orders).set(updateData).where(eq(orders.id, result.orderId))
+          await cancelPromoCommission(result.orderId, `webhook_${result.status}`)
+          if (result.status === 'refunded' && order.userId) {
+            await refundTopup(result.orderId).catch(err => console.error('[Webhook] refundTopup failed:', err))
           }
         }
       } else {

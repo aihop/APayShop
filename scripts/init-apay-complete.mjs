@@ -4,9 +4,9 @@ import path from 'node:path'
 import { Hash } from '@adonisjs/hash'
 import { Scrypt } from '@adonisjs/hash/drivers/scrypt'
 import postgres from 'postgres'
-import { aihopModels } from '../app/themes/aihop/data/models.ts'
-import { aihopGateways } from '../app/themes/aihop/data/gateways.ts'
-import { aihopPlans } from '../app/themes/aihop/data/plans.ts'
+import { hoxiModels } from '../app/themes/hoxi/data/models.ts'
+import { hoxiGateways } from '../app/themes/hoxi/data/gateways.ts'
+import { hoxiPlans } from '../app/themes/hoxi/data/plans.ts'
 
 const root = process.cwd()
 
@@ -30,7 +30,7 @@ if (!connectionString) {
 }
 
 console.log(`\n======================================================`)
-console.log(`[APay & AIHop] 正在连接数据库: ${connectionString.replace(/:[^:@]+@/, ':****@')}`)
+console.log(`[APay & Hoxi] 正在连接数据库: ${connectionString.replace(/:[^:@]+@/, ':****@')}`)
 console.log(`======================================================\n`)
 
 const sql = postgres(connectionString, { prepare: false })
@@ -401,10 +401,10 @@ async function main() {
   console.log('✓ APay 核心表创建完成！')
 
   // ==========================================================
-  console.log('\n[2/4] 创建 AIHop 专属独立数据表...')
+  console.log('\n[2/4] 创建 Hoxi 专属独立数据表...')
 
-  const aihopDdl = `
-    CREATE TABLE IF NOT EXISTS aihop_models (
+  const hoxiDdl = `
+    CREATE TABLE IF NOT EXISTS hoxi_models (
       id SERIAL PRIMARY KEY,
       slug VARCHAR(128) NOT NULL UNIQUE,
       name VARCHAR(255) NOT NULL,
@@ -430,7 +430,7 @@ async function main() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE IF NOT EXISTS aihop_gateways (
+    CREATE TABLE IF NOT EXISTS hoxi_gateways (
       id VARCHAR(128) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       domain VARCHAR(255) NOT NULL,
@@ -454,7 +454,7 @@ async function main() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE IF NOT EXISTS aihop_coding_plans (
+    CREATE TABLE IF NOT EXISTS hoxi_coding_plans (
       slug VARCHAR(128) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       vendor VARCHAR(64) NOT NULL,
@@ -481,8 +481,8 @@ async function main() {
     );
   `
 
-  await sql.unsafe(aihopDdl)
-  console.log('✓ AIHop 数据表创建完成！')
+  await sql.unsafe(hoxiDdl)
+  console.log('✓ Hoxi 数据表创建完成！')
 
   // ==========================================================
   console.log('\n[3/4] 写入 APay 系统默认初始化数据...')
@@ -504,14 +504,14 @@ async function main() {
 
   // 2. 初始化核心系统设置 Settings
   const defaultSettings = [
-    { key: 'site_title', value: 'AIHop - 中文 AI 模型排行与选型降费指南', desc: '站点标题' },
-    { key: 'site_name', value: 'AIHop', desc: '站点名称' },
+    { key: 'site_title', value: 'Hoxi - 中文 AI 模型排行与选型降费指南', desc: '站点标题' },
+    { key: 'site_name', value: 'Hoxi', desc: '站点名称' },
     { key: 'site_description', value: '中文 AI 模型排行与选型站，回答用什么模型与哪个便宜，提供模型性价比对比与中转专线配置。', desc: '站点描述' },
     { key: 'default_locale', value: 'zh', desc: '默认语言' },
     { key: 'supported_locales', value: 'zh,en', desc: '支持语言' },
     { key: 'currency', value: 'CNY', desc: '默认货币' },
     { key: 'allow_guest_checkout', value: 'true', desc: '允许游客直接访问与选型' },
-    { key: 'aihop_home_scene', value: 'chat', desc: '首页推荐场景' },
+    { key: 'hoxi_home_scene', value: 'chat', desc: '首页推荐场景' },
   ]
 
   for (const s of defaultSettings) {
@@ -538,11 +538,11 @@ async function main() {
   }
 
   // ==========================================================
-  console.log('\n[4/4] 写入 AIHop 种子数据 (模型/中转站/套餐)...')
+  console.log('\n[4/4] 写入 Hoxi 种子数据 (模型/中转站/套餐)...')
 
-  for (const m of aihopModels) {
+  for (const m of hoxiModels) {
     await sql`
-      INSERT INTO aihop_models (
+      INSERT INTO hoxi_models (
         slug, name, vendor, currency, price_input, price_output,
         price_cache_read, price_cache_write, context_window, max_output_tokens,
         scores, badges, scenes, reasoning, open_weights, is_free, hidden,
@@ -579,10 +579,10 @@ async function main() {
   console.log(`  ✓ 20 个 AI 模型数据写入完成`)
 
   let gwOrder = 0
-  for (const gw of aihopGateways) {
+  for (const gw of hoxiGateways) {
     gwOrder += 10
     await sql`
-      INSERT INTO aihop_gateways (
+      INSERT INTO hoxi_gateways (
         id, name, domain, url, models, primary_model_key, latency_ms, uptime,
         price_per_m, price_label, official_price_cny, savings_percent,
         is_self_operated, badge, badge_tone, base_url, features, caveat, hidden, sort_order
@@ -617,10 +617,10 @@ async function main() {
   console.log(`  ✓ 7 条 AI 中转专线数据写入完成`)
 
   let planOrder = 0
-  for (const p of aihopPlans) {
+  for (const p of hoxiPlans) {
     planOrder += 10
     await sql`
-      INSERT INTO aihop_coding_plans (
+      INSERT INTO hoxi_coding_plans (
         slug, name, vendor, vendor_label, vendor_color, region, type,
         price_label, price_monthly_cny, payment_methods, network_requirement,
         period, quota_note, models, tools, highlights, caveats, status,
@@ -660,7 +660,7 @@ async function main() {
   console.log(`  ✓ 10 个 AI 编程订阅套餐数据写入完成`)
 
   console.log(`\n======================================================`)
-  console.log(`🎉 APay 整个项目与 AIHop 数据库初始化全部成功！`)
+  console.log(`🎉 APay 整个项目与 Hoxi 数据库初始化全部成功！`)
   console.log(`======================================================\n`)
 
   await sql.end()

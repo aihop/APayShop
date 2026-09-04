@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "hoxi-home-scene-wiring",
+  "title": "首页推荐场景接入覆盖层",
+  "problem": "上一个任务在后台加了「首页推荐场景」下拉并把选择存进了覆盖层,但首页仍然把场景 slug 写死为 chat,下拉改了没有任何效果。半截功能比没有这个功能更糟:管理员会以为改生效了。上一个任务的租约没有覆盖 pages/,因此需要独立契约完成接线。",
+  "expectedOutcome": "首页优先使用覆盖层里的 homeScene,该场景不存在或未设置时回落到默认场景,不会因为一个错误的 slug 导致首页推荐区块空掉。",
+  "constraints": [
+    "覆盖层里的 homeScene 指向不存在的场景时必须回落默认场景,不得渲染空区块",
+    "不改动首页其余部分的行为",
+    "遵守主题硬约束"
+  ],
+  "repositories": [
+    {
+      "name": "apay-hoxi",
+      "path": "app/themes/hoxi",
+      "allowedPaths": ["pages/index.vue"],
+      "claims": ["pages/index.vue"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "首页读取覆盖层的 homeScene 并展示对应场景的三档推荐",
+    "homeScene 为空、或指向不存在的场景时回落默认场景",
+    "五个守卫仍通过"
+  ],
+  "verification": [
+    {
+      "name": "SFC 编译守卫",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-sfc.mjs"
+    },
+    {
+      "name": "i18n 键覆盖守卫",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-i18n-keys.mjs"
+    },
+    {
+      "name": "主题脚手架自检",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    }
+  ]
+}

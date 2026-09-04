@@ -43,7 +43,7 @@ We provide a foolproof deployment script for fresh Linux servers (Ubuntu/Debian/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/aihop/apay.git
+git clone https://github.com/hoxiai/apay.git
 cd apay
 
 # 2. Make the script executable

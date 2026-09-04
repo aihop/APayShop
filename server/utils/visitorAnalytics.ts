@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import { getCookie, getHeader, getRequestURL, setCookie } from 'h3'
 import { eq } from 'drizzle-orm'
 import { db } from '../db/runtime'
-import { visitorEvents, visitorProfiles } from '../db/schema'
+import { users, visitorEvents, visitorProfiles } from '../db/schema'
 import { resolveRequestGeo } from './requestGeo'
 
 type TrackVisitorEventInput = {
@@ -186,10 +186,22 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
   const browser = normalizeValue(input.browser) || (userAgent ? parseBrowser(userAgent) : null)
   const os = normalizeValue(input.os) || (userAgent ? parseOs(userAgent) : null)
 
+  let validUserId: number | null = null
+  if (typeof input.userId === 'number' && input.userId > 0) {
+    try {
+      const userRows = await db.select({ id: users.id }).from(users).where(eq(users.id, input.userId)).limit(1)
+      if (userRows.length > 0) {
+        validUserId = input.userId
+      }
+    } catch {
+      validUserId = null
+    }
+  }
+
   await db.insert(visitorEvents).values({
     visitorId,
     ip,
-    userId: input.userId || null,
+    userId: validUserId,
     orderId: input.orderId || null,
     productId: input.productId || null,
     eventName: input.eventName,
@@ -217,43 +229,47 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
   const profile = existingProfiles[0] as any
 
   if (!profile) {
-    await db.insert(visitorProfiles).values({
-      visitorId,
-      userId: input.userId || null,
-      ip,
-      firstSeenAt: createdAt,
-      lastSeenAt: createdAt,
-      landingPath: path,
-      firstPath: path,
-      lastPath: path,
-      firstReferrer: referrer,
-      lastReferrer: referrer,
-      firstSourceType: attribution.sourceType,
-      lastSourceType: attribution.sourceType,
-      firstSource: attribution.source,
-      lastSource: attribution.source,
-      firstMedium: attribution.medium,
-      lastMedium: attribution.medium,
-      firstCampaign: attribution.campaign,
-      lastCampaign: attribution.campaign,
-      firstContent: attribution.content,
-      lastContent: attribution.content,
-      firstTerm: attribution.term,
-      lastTerm: attribution.term,
-      country,
-      region,
-      city,
-      locale,
-      currency,
-      deviceType,
-      browser,
-      os,
-      userAgent,
-      createdAt,
-      updatedAt: createdAt,
-    } as any)
+    try {
+      await db.insert(visitorProfiles).values({
+        visitorId,
+        userId: validUserId,
+        ip,
+        firstSeenAt: createdAt,
+        lastSeenAt: createdAt,
+        landingPath: path,
+        firstPath: path,
+        lastPath: path,
+        firstReferrer: referrer,
+        lastReferrer: referrer,
+        firstSourceType: attribution.sourceType,
+        lastSourceType: attribution.sourceType,
+        firstSource: attribution.source,
+        lastSource: attribution.source,
+        firstMedium: attribution.medium,
+        lastMedium: attribution.medium,
+        firstCampaign: attribution.campaign,
+        lastCampaign: attribution.campaign,
+        firstContent: attribution.content,
+        lastContent: attribution.content,
+        firstTerm: attribution.term,
+        lastTerm: attribution.term,
+        country,
+        region,
+        city,
+        locale,
+        currency,
+        deviceType,
+        browser,
+        os,
+        userAgent,
+        createdAt,
+        updatedAt: createdAt,
+      } as any)
 
-    return
+      return
+    } catch {
+      // 并发竞争：若已有并行请求率先插入了该 visitorId，则平滑回退走下方的更新逻辑
+    }
   }
 
   const updates: Record<string, any> = {
@@ -279,8 +295,8 @@ export const trackVisitorEvent = async (event: any, input: TrackVisitorEventInpu
     updatedAt: createdAt,
   }
 
-  if (input.userId && !profile.userId) {
-    updates.userId = input.userId
+  if (validUserId && !profile.userId) {
+    updates.userId = validUserId
   }
 
   await db.update(visitorProfiles).set(updates as any).where(eq(visitorProfiles.visitorId, visitorId))

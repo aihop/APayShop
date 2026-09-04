@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "captcha-slider-dark-mode",
+  "title": "CaptchaSlider 弹窗暗黑与亮色模式双向兼容适配",
+  "problem": "CaptchaSlider 弹窗组件当前全硬编码深色样式，导致在亮色模式页面下呈现不协调的纯黑硬块，且遮罩在默认配置下视觉体验欠佳；需做完整的明暗双模响应式视觉适配。",
+  "expectedOutcome": "CaptchaSlider 弹窗卡片、标题、图标、按钮、滑轨、滑块手柄及遮罩均支持 dark: 响应式适配，在亮色与暗色模式下均保持高质感与清晰对比度。",
+  "constraints": [
+    "保持拼图切片拖拽位移逻辑与尺寸（52x52模型，最大滑动距278px）不改变",
+    "不修改契约外文件",
+    "必须通过 prebuild 与安全守卫测试"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/CaptchaSlider.vue"
+      ],
+      "claims": [
+        "app/components/CaptchaSlider.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "UModal 弹窗容器支持 bg-white dark:bg-[#121214] 及双模边框",
+    "遮罩层支持统一的半透明模糊遮罩 bg-black/50 dark:bg-black/70",
+    "标题、图标、提示文案、滑轨与滑块均实现双模高对比度配色",
+    "通过自动化安全测试与全量 prebuild 门禁"
+  ],
+  "verification": [
+    {
+      "name": "登录安全测试",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-user-login-security.mjs"
+    },
+    {
+      "name": "构建前检查",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run prebuild"
+    }
+  ]
+}

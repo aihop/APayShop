@@ -28,9 +28,7 @@
         "server/utils/seoSitemap.ts",
         "app/composables/useAdminProductForm.ts",
         "app/components/admin/ProductFormModal.vue",
-        "app/pages/admin/products.vue",
-        "locales/en.json",
-        "locales/zh.json"
+        "app/pages/admin/products.vue"
       ],
       "claims": [
         "server/db/schema.sqlite.ts",
@@ -45,9 +43,7 @@
         "server/utils/seoSitemap.ts",
         "app/composables/useAdminProductForm.ts",
         "app/components/admin/ProductFormModal.vue",
-        "app/pages/admin/products.vue",
-        "locales/en.json",
-        "locales/zh.json"
+        "app/pages/admin/products.vue"
       ]
     }
   ],
@@ -64,7 +60,7 @@
       "name": "契约范围差异格式检查",
       "repository": "apay",
       "always": true,
-      "command": "git diff --check -- server/db/schema.sqlite.ts server/db/schema.pg.ts server/db/schema.mysql.ts server/api/products/index.get.ts server/api/products/types.get.ts 'server/api/products/[slug].get.ts' server/api/admin/products/index.ts 'server/api/admin/products/[id].ts' server/api/orders/checkout.post.ts server/utils/seoSitemap.ts app/composables/useAdminProductForm.ts app/components/admin/ProductFormModal.vue app/pages/admin/products.vue locales/en.json locales/zh.json"
+      "command": "git diff --check -- server/db/schema.sqlite.ts server/db/schema.pg.ts server/db/schema.mysql.ts server/api/products/index.get.ts server/api/products/types.get.ts 'server/api/products/[slug].get.ts' server/api/admin/products/index.ts 'server/api/admin/products/[id].ts' server/api/orders/checkout.post.ts server/utils/seoSitemap.ts app/composables/useAdminProductForm.ts app/components/admin/ProductFormModal.vue app/pages/admin/products.vue"
     }
   ]
 }

@@ -28,8 +28,13 @@ export default defineEventHandler(async () => {
     .where(eq(promoAgentTiers.isActive, true))
     .orderBy(desc(promoAgentTiers.roleScope), desc(promoAgentTiers.level))
 
+  const parsedDefaultRate = Number(settingMap.promo_default_commission_rate)
+  const defaultCommissionRate = Number.isFinite(parsedDefaultRate) && parsedDefaultRate >= 0
+    ? parsedDefaultRate
+    : 15
+
   return {
-    defaultCommissionRate: Number(settingMap.promo_default_commission_rate) || 15,
+    defaultCommissionRate,
     accessMode: (settingMap.promo_access_mode || 'paid_active') as 'open' | 'paid_active' | 'apply_audit' | 'paid_and_audit',
     minSpendAmount: Number(settingMap.promo_min_spend_amount) || 0,
     inviteRewardAmount: Number(settingMap.promo_invite_reward_amount) || 0,

@@ -180,7 +180,7 @@
             <div class="w-16 h-11 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex items-center justify-center shrink-0 shadow-2xs group relative">
               <img
                 v-if="row.original.imageUrl"
-                :src="String(row.original.imageUrl)"
+                :src="buildImageProxyUrl(String(row.original.imageUrl))"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 :alt="String(row.original.title)"
               />
@@ -424,6 +424,7 @@ const { formatDate } = useFormatTime()
 const { confirm } = useConfirm()
 const { localePath } = useLocaleRouter()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
+const { buildImageProxyUrl } = useImageProxy()
 
 interface AdminPostRow {
   id: number

@@ -145,6 +145,12 @@
         {{ $t('admin.login.footer') }} &copy; {{ new Date().getFullYear() }}
       </div>
     </div>
+
+    <!-- 内置自包含滑块验证码组件 -->
+    <CaptchaSlider
+      ref="captchaSliderRef"
+      @success="onCaptchaSuccess"
+    />
   </div>
 </template>
 
@@ -181,6 +187,14 @@ const form = reactive({
 const isLoading = ref(false)
 const errorMsg = ref('')
 const showPassword = ref(false)
+const captchaSliderRef = ref<any>(null)
+const captchaTicket = ref('')
+const needCaptcha = ref(false)
+
+const onCaptchaSuccess = (ticket: string) => {
+  captchaTicket.value = ticket
+  handleLogin()
+}
 
 // Computed properties for customization
 const welcomeText = computed(() => {
@@ -219,7 +233,10 @@ const handleLogin = async () => {
   try {
     await $fetch('/api/admin/login', {
       method: 'POST',
-      body: form,
+      body: {
+        ...form,
+        captchaTicket: captchaTicket.value || undefined,
+      },
       // 服务端的报错文案走 getRequestLocale(),它只看 accept-language。不带这个头
       // 就是浏览器语言说了算:页面明明切成中文,「管理员不存在」却回英文。
       headers: { 'accept-language': locale.value },
@@ -228,8 +245,18 @@ const handleLogin = async () => {
     // Only a genuine credential rejection reaches here now.
     errorMsg.value = e.data?.message || e.data?.statusMessage || t('admin.login.invalidCredentials')
     isLoading.value = false
+
+    // 当连续失败达到阈值时，自动唤起自包含滑块
+    if (e.data?.data?.needCaptcha || e.statusCode === 403) {
+      needCaptcha.value = true
+      captchaTicket.value = ''
+      captchaSliderRef.value?.show()
+    }
     return
   }
+
+  captchaTicket.value = ''
+  needCaptcha.value = false
 
   // Credentials were accepted. Nothing below may block the redirect — working
   // out the *best* landing page is a nice-to-have, being stranded on the login

@@ -48,13 +48,13 @@
       "name": "Studio 局部开发提示词检查",
       "repository": "qingpu-theme",
       "always": true,
-      "command": "git diff --check -- pages/user/studio/AGENTS.md && test -s pages/user/studio/AGENTS.md && rg -q 'Registry.*Factory|Factory.*Registry' pages/user/studio/AGENTS.md && rg -q 'CreativeBrief.*StrategyPlan.*AssetPlan.*QAReview.*PerformanceInsight' pages/user/studio/AGENTS.md && rg -q '/studio/create' pages/user/studio/AGENTS.md && ! rg -q '/Users/hugh/code/aihop/qingpu-ai|qingpu-ai/AGENTS.md' pages/user/studio/AGENTS.md"
+      "command": "git diff --check -- pages/user/studio/AGENTS.md && test -s pages/user/studio/AGENTS.md && rg -q 'Registry.*Factory|Factory.*Registry' pages/user/studio/AGENTS.md && rg -q 'CreativeBrief.*StrategyPlan.*AssetPlan.*QAReview.*PerformanceInsight' pages/user/studio/AGENTS.md && rg -q '/studio/create' pages/user/studio/AGENTS.md && ! rg -q '/Users/hugh/code/hoxi/qingpu-ai|qingpu-ai/AGENTS.md' pages/user/studio/AGENTS.md"
     },
     {
       "name": "Qingpu AI 能力中心入口检查",
       "repository": "qingpu-ai",
       "always": true,
-      "command": "git diff --check -- AGENTS.md && rg -q '能力中心' AGENTS.md && rg -q 'CreativeBrief.*StrategyPlan.*AssetPlan.*QAReview.*PerformanceInsight' AGENTS.md && rg -q 'Registry.*Factory|Factory.*Registry' AGENTS.md && ! rg -q '/Users/hugh/code/aihop/apay/app/themes/qingpu/pages/user/studio|pages/user/studio/AGENTS.md' AGENTS.md"
+      "command": "git diff --check -- AGENTS.md && rg -q '能力中心' AGENTS.md && rg -q 'CreativeBrief.*StrategyPlan.*AssetPlan.*QAReview.*PerformanceInsight' AGENTS.md && rg -q 'Registry.*Factory|Factory.*Registry' AGENTS.md && ! rg -q '/Users/hugh/code/hoxi/apay/app/themes/qingpu/pages/user/studio|pages/user/studio/AGENTS.md' AGENTS.md"
     }
   ]
 }

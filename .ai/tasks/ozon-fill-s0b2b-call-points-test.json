@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "ozon-fill-s0b2b-call-points-test",
+  "title": "修复:S0b-2b 改调用点后 S1b 调用点测试的源码断言失效",
+  "problem": "6025b91 把 queries.workspace.ts 类目分支的 runCategoryApplyFill(channel, fillShell) 换成 await runCategoryApplyFillWithRefetch(channel, fillShell, {...})。tests/ozon-fill-call-points.test.ts:132-133 钉住的是旧子串 'runCategoryApplyFill(',新调用不含该子串,check-theme-tests 因此多出一条失败。语义未变:类目应用仍在 nextWorkspace 组装前跑规则层填充,只是入口换成带 wanted 补拉的版本。",
+  "expectedOutcome": "断言改为 'runCategoryApplyFillWithRefetch(',顺序断言同步;该测试文件全绿,S0b-2b 行为测试全绿。",
+  "constraints": ["只改这一个测试文件的两行断言,不改实现", "不碰 engine vendor"],
+  "repositories": [{ "name": "qingpu-theme", "path": "app/themes/qingpu", "allowedPaths": ["tests/ozon-fill-call-points.test.ts"], "claims": ["tests/ozon-fill-call-points.test.ts"] }],
+  "acceptanceCriteria": ["tests/ozon-fill-call-points.test.ts 通过", "tests/ozon-category-apply-wanted.test.ts 通过"],
+  "verification": [{ "name": "调用点测试", "repository": "qingpu-theme", "always": true, "command": "npx vitest run tests/ozon-fill-call-points.test.ts tests/ozon-category-apply-wanted.test.ts", "covers": ["tests/ozon-fill-call-points.test.ts"] }]
+}

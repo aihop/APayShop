@@ -69,7 +69,7 @@
   </NuxtErrorBoundary>
 </template>
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import * as themeBuild from '~/generated/theme-build'
 
@@ -156,77 +156,103 @@ const getFilePath = (segments: string[], theme: string) => {
 
 const targetFile = computed(() => getFilePath(pathSegments.value, activeTheme.value))
 
-const asyncThemePageCache = new Map<string, any>()
-const resolvePageComponent = (modOrLoader: any, key: string) => {
+const loadedComponentCache = new Map<string, Promise<any>>()
+
+const loadComponentModule = async (modOrLoader: any, key: string) => {
   if (!modOrLoader) return null
   if (typeof modOrLoader === 'function') {
-    if (!asyncThemePageCache.has(key)) {
-      asyncThemePageCache.set(key, defineAsyncComponent(modOrLoader))
+    if (!loadedComponentCache.has(key)) {
+      const loadPromise = (async () => {
+        try {
+          const loaded = await modOrLoader()
+          return loaded?.default || loaded
+        } catch (err) {
+          loadedComponentCache.delete(key)
+          throw err
+        }
+      })()
+      loadedComponentCache.set(key, loadPromise)
     }
-    return asyncThemePageCache.get(key)
+    return await loadedComponentCache.get(key)
   }
-  return modOrLoader.default || modOrLoader
+  return modOrLoader?.default || modOrLoader
 }
 
-// ✅ 2. 动态/异步计算当前组件
-const activeComponent = computed(() => {
-  const file = targetFile.value
-  // 有主题时先查主题
-  if (activeTheme.value) {
-    const themePath = `../themes/${activeTheme.value}/pages/${file}`
+const resolvePageModule = (file: string, theme: string) => {
+  if (theme) {
+    const themePath = `../themes/${theme}/pages/${file}`
     const mod = themeBuild.themePageModules[themePath]
-    if (mod) return resolvePageComponent(mod, themePath)
+    if (mod) return { mod, key: themePath }
   }
-  // fallback 到 core
   const corePath = `../core/pages/${file}`
   const coreMod = themeBuild.corePageModules[corePath]
-  if (coreMod) return resolvePageComponent(coreMod, corePath)
+  if (coreMod) return { mod: coreMod, key: corePath }
   return null
-})
+}
 
-const activePageKey = computed(() => `${activeTheme.value || '_core_'}:${targetFile.value}:${route.path}`)
-
-const activeDirectoryLayout = computed(() => {
-  const file = targetFile.value
+const resolveDirectoryLayoutModule = (file: string, theme: string) => {
   const segments = file.split('/')
   segments.pop()
 
   while (segments.length > 0) {
     const layoutFile = `${segments.join('/')}/layout.vue`
     if (layoutFile !== file) {
-      if (activeTheme.value) {
-        const themePath = `../themes/${activeTheme.value}/pages/${layoutFile}`
+      if (theme) {
+        const themePath = `../themes/${theme}/pages/${layoutFile}`
         const themeLayout = themeBuild.themePageModules[themePath] as any
         if (themeLayout) {
-          const comp = resolvePageComponent(themeLayout, themePath)
-          if (comp) {
-            return {
-              component: comp,
-              key: `${activeTheme.value}:${layoutFile}`,
-            }
-          }
+          return { mod: themeLayout, key: `${theme}:${layoutFile}` }
         }
       }
 
       const corePath = `../core/pages/${layoutFile}`
       const coreLayout = themeBuild.corePageModules[corePath] as any
       if (coreLayout) {
-        const comp = resolvePageComponent(coreLayout, corePath)
-        if (comp) {
-          return {
-            component: comp,
-            key: `_core_:${layoutFile}`,
-          }
-        }
+        return { mod: coreLayout, key: `_core_:${layoutFile}` }
       }
     }
     segments.pop()
   }
 
   return null
-})
-
-if (!activeComponent.value) {
-  setResponseStatus(404)
 }
+
+const activeComponent = shallowRef<any>(null)
+const activeDirectoryLayout = shallowRef<{ component: any, key: string } | null>(null)
+
+const activePageKey = computed(() => `${activeTheme.value || '_core_'}:${targetFile.value}:${route.path}`)
+
+const updateActiveComponents = async () => {
+  const file = targetFile.value
+  const theme = activeTheme.value
+
+  const pageInfo = resolvePageModule(file, theme)
+  const dirLayoutInfo = resolveDirectoryLayoutModule(file, theme)
+
+  try {
+    const [pageComp, dirComp] = await Promise.all([
+      pageInfo ? loadComponentModule(pageInfo.mod, pageInfo.key) : Promise.resolve(null),
+      dirLayoutInfo ? loadComponentModule(dirLayoutInfo.mod, dirLayoutInfo.key) : Promise.resolve(null),
+    ])
+
+    activeComponent.value = pageComp
+    activeDirectoryLayout.value = dirComp ? { component: dirComp, key: dirLayoutInfo!.key } : null
+  } catch (err) {
+    console.error('Failed to load page component:', err)
+    activeComponent.value = null
+    activeDirectoryLayout.value = null
+  }
+
+  if (!activeComponent.value) {
+    setResponseStatus(404)
+  }
+}
+
+// 顶层 await：让 SSR 服务端渲染与客户端路由 Suspense 真正等待组件加载完成
+await updateActiveComponents()
+
+// 当路由在客户端复用 [...slug].vue 实例时，动态切换目标组件
+watch([() => route.path, activeTheme], async () => {
+  await updateActiveComponents()
+})
 </script>

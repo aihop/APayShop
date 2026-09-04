@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "hoxi-static-guards",
+  "title": "把 SFC 编译与 i18n 键覆盖检查固化成主题守卫",
+  "problem": "P3 到 P7 五个页面因共享 dev server 被占用,一次浏览器验证都没做过,期间靠两个临时脚本兜底:一个把全部 .vue 走 Vue 编译器编译以捕获模板语法错误,一个核对模板里引用的 i18n 键在中英文文案里是否都存在(键写错在界面上表现为直接显示原始键名,正是浏览器验证本该抓到的那类问题)。这两个脚本目前只存在于会话临时目录,跑完即失,既不进版本库也不进契约验证——下一个改动就可能悄悄引入同类问题而无人发现。",
+  "expectedOutcome": "两项检查成为主题自带的守卫脚本,可独立运行并进入后续契约的 verification 列表;i18n 守卫同时覆盖模板字面量键与代码中显式声明的动态键取值;两个守卫都做过反向验证,注入对应缺陷会失败。",
+  "constraints": [
+    "守卫脚本以主题目录为 cwd 运行,不依赖 apay 根目录的 npm 脚本",
+    "不引入新依赖:SFC 编译复用仓库既有的 vue/compiler-sfc",
+    "i18n 守卫必须跳过注释,并且对无法静态解析的动态键给出提示而不是误报失败",
+    "守卫失败时打印具体文件与键名,而不是只给一个退出码",
+    "不改动页面与组件的既有行为"
+  ],
+  "repositories": [
+    {
+      "name": "apay-hoxi",
+      "path": "app/themes/hoxi",
+      "allowedPaths": [
+        "scripts/**",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "scripts/**",
+        "AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "node scripts/check-sfc.mjs 编译全部 .vue 并在语法错误时失败",
+    "node scripts/check-i18n-keys.mjs 校验模板静态键在 zh 与 en 中均存在,并校验代码中声明的动态键取值",
+    "两个守卫均做过反向验证:注入模板语法错误、注入不存在的 i18n 键都会失败,还原后通过",
+    "AGENTS.md 的命令清单补上这两个守卫",
+    "既有守卫 check-theme-scaffold 与 check-model-data 仍通过"
+  ],
+  "verification": [
+    {
+      "name": "SFC 编译守卫",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-sfc.mjs"
+    },
+    {
+      "name": "i18n 键覆盖守卫",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-i18n-keys.mjs"
+    },
+    {
+      "name": "主题脚手架自检",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    }
+  ]
+}

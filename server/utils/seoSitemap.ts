@@ -23,10 +23,10 @@ async function loadThemeDynamicSeoSource(source: string): Promise<SitemapEntry[]
     }
   }
 
-  if (source === 'aihop-models') {
+  if (source === 'hoxi-models') {
     try {
-      const { aihopModels } = await import('../../app/themes/aihop/data/models')
-      return aihopModels.map((model: any) => ({
+      const { hoxiModels } = await import('../../app/themes/hoxi/data/models')
+      return hoxiModels.map((model: any) => ({
         path: `/models/${model.slug}`,
         lastmod: normalizeIsoDate(model.updatedAt),
       }))
@@ -54,6 +54,7 @@ export async function collectSitemapEntries(core: SeoRouteManifest, theme?: SeoR
     const rows = await db.select({ slug: products.slug, createdAt: products.createdAt })
       .from(products)
       .where(and(
+        eq(products.status, 'active'),
         eq(products.isActive, true),
         isNotNull(products.slug)
       ))
@@ -74,8 +75,8 @@ export async function collectSitemapEntries(core: SeoRouteManifest, theme?: SeoR
   if (sources.has('shoply-themes')) {
     dynamicEntries.push(...await loadThemeDynamicSeoSource('shoply-themes'))
   }
-  if (sources.has('aihop-models')) {
-    dynamicEntries.push(...await loadThemeDynamicSeoSource('aihop-models'))
+  if (sources.has('hoxi-models')) {
+    dynamicEntries.push(...await loadThemeDynamicSeoSource('hoxi-models'))
   }
 
   return uniqueEntries([...staticEntries, ...dynamicEntries])

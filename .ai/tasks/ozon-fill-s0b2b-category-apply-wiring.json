@@ -1,64 +1,11 @@
 {
   "schemaVersion": 1,
   "id": "ozon-fill-s0b2b-category-apply-wiring",
-  "title": "Ozon 填参 S0b-2b(主题):类目应用填充器改异步,首轮 → wanted 补拉(兄弟并集优先、Ozon 兜底)→ 重跑一次",
-  "problem": "S0b-2a 已提供 ensureWantedDictionaryCandidates(依赖注入),但类目应用调用点(queries.workspace.ts → runCategoryApplyFill)仍只跑一次,report.wanted 无人消费;网页端的候选池只有类目应用时的白名单预取,事实 strict 命中而候选未加载的格子在网页端仍然空着。",
-  "expectedOutcome": "保留同步的 runCategoryApplyFill(既有测试同步调用);新增 runCategoryApplyFillWithRefetch:经 dictionary-refetch.ts 的纯编排 runWithWantedRefetch(首轮 run → wanted 非空且补拉拿到候选 → 再 run 一次并合并结果;补拉失败沿用首轮),渠道差异收口在穷尽 Record CATEGORY_APPLY_REFETCHERS(ozon: ensureWantedDictionaryCandidates 合入 channelContext.ozon 候选池与 loadedAttributeDictionaryIds;wb: 不补拉)。queries.workspace.ts 调用点改 await runCategoryApplyFillWithRefetch 并注入 listSiblingWorkspaceDictionaryValues + withOzonStoreCredentials/searchAttributeDictionaryValues。",
-  "constraints": [
-    "不动 engine;不新增消息协议",
-    "新测试文件 vitest TS2307 用就地 @ts-expect-error 抑制",
-    "渠道差异只在穷尽 Record 内;runCategoryApplyFill 保持同步签名不变(ozon-fill-call-points.test 同步调用)",
-    "最多重跑一次;凭证错误只 warn"
-  ],
-  "repositories": [
-    {
-      "name": "qingpu-theme",
-      "path": "app/themes/qingpu",
-      "allowedPaths": [
-        "server/listing/category-apply-fill.ts",
-        "server/listing/queries.workspace.ts",
-        "tests/ozon-category-apply-wanted.test.ts",
-        "server/listing/dictionary-refetch.ts",
-        "tests/ozon-dictionary-refetch.test.ts"
-      ],
-      "claims": [
-        "server/listing/category-apply-fill.ts",
-        "server/listing/queries.workspace.ts",
-        "tests/ozon-category-apply-wanted.test.ts",
-        "server/listing/dictionary-refetch.ts",
-        "tests/ozon-dictionary-refetch.test.ts"
-      ]
-    }
-  ],
-  "acceptanceCriteria": [
-    "runWithWantedRefetch(纯函数,夹具测试):wanted 空不补拉;补拉返回 true 才重跑并合并;补拉抛错沿用首轮",
-    "源码级:category-apply-fill.ts 含 CATEGORY_APPLY_REFETCHERS 穷尽表与 runCategoryApplyFillWithRefetch;queries.workspace.ts 调用点 await runCategoryApplyFillWithRefetch 并注入两原语;runCategoryApplyFill 仍为同步导出",
-    "主题测试通过;守卫总闸失败清单不含本契约文件"
-  ],
-  "verification": [
-    {
-      "name": "主题测试",
-      "repository": "qingpu-theme",
-      "always": true,
-      "command": "npx vitest run tests/ozon-category-apply-wanted.test.ts tests/ozon-dictionary-refetch.test.ts",
-      "covers": [
-        "server/listing/category-apply-fill.ts",
-        "server/listing/queries.workspace.ts",
-        "tests/ozon-category-apply-wanted.test.ts",
-        "server/listing/dictionary-refetch.ts",
-        "tests/ozon-dictionary-refetch.test.ts"
-      ]
-    },
-    {
-      "name": "主题守卫总闸",
-      "repository": "qingpu-theme",
-      "always": true,
-      "command": "npm --prefix ../../.. run check:qingpu-all",
-      "covers": [
-        "server/listing/category-apply-fill.ts",
-        "server/listing/queries.workspace.ts",
-        "server/listing/dictionary-refetch.ts"
-      ]
-    }
-  ]
+  "title": "Ozon 填参 S0b-2b:网页类目应用接 wanted 补拉(首轮 → 按 id 补候选 → 重跑一次)",
+  "problem": "S0a 让填充报告带出 wanted(字典型属性想填但候选池里没有值),S0b-1/S0b-2a 提供了兄弟工作区候选并集与补拉助手 ensureWantedDictionaryCandidates,但网页类目应用(queries.workspace.ts)仍只跑一轮 runCategoryApplyFill,wanted 从未被消费,补拉能力空转。扩展侧 S0c 已经接线,网页侧缺同等口径。",
+  "expectedOutcome": "category-apply-fill.ts 新增 runCategoryApplyFillWithRefetch(channel, product, { refetch }):首轮 → wanted 非空且注入了补拉依赖 → 按渠道穷尽 Record 补拉(ozon:兄弟并集优先、Ozon 整表兜底,候选合入 channelContext.ozon 随类目应用落库;wb:无字典不补拉)→ 拿到新候选才重跑一次并合并 committed;补拉失败只 warn 沿用首轮。同步入口 runCategoryApplyFill 保持不变。queries.workspace.ts 类目应用调用点改 await 该入口并注入 listSiblingWorkspaceDictionaryValues 与店铺凭证下的 searchAttributeDictionaryValues。编排内联在唯一消费方,不改 S0b-2a 租约中的 dictionary-refetch.ts。",
+  "constraints": ["不修改 dictionary-refetch.ts 与 tests/ozon-dictionary-refetch.test.ts(S0b-2a 活动租约),只 import", "渠道差异只经穷尽 Record,禁止 channel if/switch", "最多重跑一次,补拉异常不阻断类目应用", "不碰 engine vendor,不触发 engine:release"],
+  "repositories": [{ "name": "qingpu-theme", "path": "app/themes/qingpu", "allowedPaths": ["server/listing/category-apply-fill.ts", "server/listing/queries.workspace.ts", "tests/ozon-category-apply-wanted.test.ts"], "claims": ["server/listing/category-apply-fill.ts", "server/listing/queries.workspace.ts", "tests/ozon-category-apply-wanted.test.ts"] }],
+  "acceptanceCriteria": ["行为测试:wanted 非空且兄弟候选命中 → 候选合入 workspace、不打 Ozon、填充跑两次、committed 合并;wanted 为空或补拉无新候选 → 只跑一次;补拉抛错 → 沿用首轮不抛;未注入依赖 → 只跑一次", "源码断言:调用点 await runCategoryApplyFillWithRefetch 并注入两原语,且在 nextWorkspace 组装之前", "改动文件零类型诊断;守卫总闸失败项全部为已知他人文件"],
+  "verification": [{ "name": "行为与接线测试", "repository": "qingpu-theme", "always": true, "command": "npx vitest run tests/ozon-category-apply-wanted.test.ts tests/ozon-dictionary-refetch.test.ts", "covers": ["server/listing/category-apply-fill.ts", "server/listing/queries.workspace.ts", "tests/ozon-category-apply-wanted.test.ts"] }, { "name": "主题守卫总闸", "repository": "qingpu-theme", "always": true, "command": "npm --prefix ../../.. run check:qingpu-all", "covers": ["server/listing/category-apply-fill.ts", "server/listing/queries.workspace.ts"] }]
 }

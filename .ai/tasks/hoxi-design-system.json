@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "hoxi-visual-restraint-upgrade",
+  "title": "克制升级:厂商识别色 + emerald 语义色全面激活",
+  "problem": "全站色彩审计:179 处 slate 灰阶、36 处 blue、emerald 只出现 1 次。色彩没有承担任何语义——9 家厂商在榜单/对比/替代页里长得一模一样,扫描效率低;model.badges(性价比之王、免费等人工标注的推荐标记)写了 9 条数据,但全站没有任何页面渲染它,是一处纯粹的数据浪费。这不是「不够素」,是色彩没有用在刀刃上:留白与克制应该保留,但唯一的语义色(emerald=价格优势)几乎不存在感,厂商之间没有视觉锚点。",
+  "expectedOutcome": "9 家厂商各有一个低饱和度识别色(小圆点标记,不是背景色块),出现在模型名旁边的一切位置;emerald 语义色激活为「正面信号」统一语言,覆盖 isFree 与 model.badges 的渲染(现在完全没有出口);AGENTS.md 补充新的色彩语义章节,防止下次改动因约束描述过时而绕开或误用。",
+  "constraints": [
+    "厂商识别色只能是小圆点/色块标记,不得做成大面积背景色,90%留白10%色彩的比例不能被打破",
+    "厂商识别色必须避开三个保留色相:blue(交互)、emerald(正面信号)、red(错误),避免语义冲突",
+    "厂商识别色写成字面量 Tailwind 类(如 'bg-orange-500'),不得运行时拼接,否则 Tailwind v4 静态扫描不到",
+    "emerald 只用于价格优势/性价比/免费这类正面信号,不得用于其他装饰目的,避免语义被稀释",
+    "HoxiTag 的 tone 属性要保持向后兼容:不传时行为与现在完全一致",
+    "遵守既有硬约束:不使用 primary-*、不写 dark: 变体、不使用 @nuxt/ui 组件"
+  ],
+  "repositories": [
+    {
+      "name": "apay-hoxi",
+      "path": "app/themes/hoxi",
+      "allowedPaths": [
+        "types/**",
+        "data/vendors.ts",
+        "components/**",
+        "pages/**",
+        "scripts/**",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "types/**",
+        "data/vendors.ts",
+        "components/**",
+        "pages/**",
+        "scripts/**",
+        "AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "9 家厂商每家有唯一的 colorDot/colorText,且不与保留色相冲突,守卫校验通过",
+    "HoxiVendorDot 组件在模型表格、对比页、替代页、详情页、首页/省钱指南的推荐卡片中一致出现",
+    "model.badges 与 isFree 在模型详情页、替代页当前模型卡片、HoxiModelMini 中以 emerald 语气渲染",
+    "AGENTS.md 新增章节说明厂商识别色系统与 emerald 语义边界",
+    "七个既有守卫仍通过"
+  ],
+  "verification": [
+    { "name": "主题脚手架自检", "repository": "apay-hoxi", "always": true, "command": "node scripts/check-theme-scaffold.mjs" },
+    { "name": "SFC 编译守卫", "repository": "apay-hoxi", "always": true, "command": "node scripts/check-sfc.mjs" },
+    { "name": "i18n 键覆盖守卫", "repository": "apay-hoxi", "always": true, "command": "node scripts/check-i18n-keys.mjs" },
+    { "name": "模型数据守卫", "repository": "apay-hoxi", "always": true, "command": "node scripts/check-model-data.mjs" }
+  ]
+}

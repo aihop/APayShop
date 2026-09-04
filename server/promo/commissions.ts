@@ -168,3 +168,35 @@ export async function settlePromoCommission(orderId: string) {
 
   return created
 }
+
+export async function cancelPromoCommission(orderId: string, reason = 'order_refunded') {
+  const existing = await db.select().from(promoCommissions).where(eq(promoCommissions.orderId, orderId))
+  if (!existing.length) return []
+
+  const cancelled: any[] = []
+  for (const commission of existing) {
+    if (commission.status === PROMO_COMMISSION_STATUS.CANCELED) continue
+
+    const currentMeta = normalizeJson<Record<string, any>>(commission.metaData, {})
+    const updatedMeta = {
+      ...currentMeta,
+      cancelledAt: new Date().toISOString(),
+      cancelReason: reason,
+    }
+
+    const updated = await db.update(promoCommissions)
+      .set({
+        status: PROMO_COMMISSION_STATUS.CANCELED,
+        metaData: toJsonValue(updatedMeta),
+        updatedAt: new Date(),
+      })
+      .where(eq(promoCommissions.id, commission.id))
+      .returning()
+
+    if (updated.length) {
+      cancelled.push(updated[0])
+    }
+  }
+
+  return cancelled
+}

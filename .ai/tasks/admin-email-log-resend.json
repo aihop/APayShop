@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-email-log-resend",
+  "title": "后台邮件日志支持一键重新发送与重试机制",
+  "problem": "当邮件发送因网络超时、网关配额或临时错误失败后，管理员在后台无法一键重试发送，需要手动让用户重新触发，体验和可靠性不足。",
+  "expectedOutcome": "新增 /api/admin/email/resend 接口并在 EmailTab.vue 的日志列表及详情弹窗中提供一键重发按钮，支持快速重发并刷新日志。",
+  "constraints": [
+    "保留原日志记录，重发产生新的发送尝试与日志",
+    "支持四种语言国际化（zh, en, ru, zh-HK）",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/api/admin/email/resend.post.ts",
+        "app/components/admin/settings/EmailTab.vue",
+        "locales/zh/admin.json",
+        "locales/en/admin.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/admin.json"
+      ],
+      "claims": [
+        "server/api/admin/email/resend.post.ts",
+        "app/components/admin/settings/EmailTab.vue",
+        "locales/zh/admin.json",
+        "locales/en/admin.json",
+        "locales/ru/admin.json",
+        "locales/zh-HK/admin.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "提供 /api/admin/email/resend 接口，支持根据 logId 提取原邮件收件人、主题和 HTML 重新投递",
+    "EmailTab.vue 在日志预览弹窗与列表行中提供「重新发送 / 一键重试」按钮与加载状态",
+    "多语言文件同步支持对应词条并保持四语对齐",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/api/admin/email/resend.post.ts app/components/admin/settings/EmailTab.vue locales/zh/admin.json locales/en/admin.json locales/ru/admin.json locales/zh-HK/admin.json"
+    }
+  ]
+}

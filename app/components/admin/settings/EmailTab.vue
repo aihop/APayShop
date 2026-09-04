@@ -385,7 +385,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3 shrink-0">
+          <div class="flex items-center gap-2 shrink-0">
             <span class="text-xs text-gray-400">
               {{ formatDateTime(log.createdAt) }}
             </span>
@@ -399,6 +399,16 @@
             >
               {{ $t('admin.settings.email.log_preview') }}
             </UButton>
+            <UButton
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              icon="ph:arrow-clockwise"
+              class="rounded-lg"
+              :title="$t('admin.settings.email.log_resend')"
+              :loading="resendingId === log.id"
+              @click="resendEmailLog(log)"
+            />
           </div>
         </div>
       </div>
@@ -437,9 +447,20 @@
       </div>
 
       <template #footer>
-        <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
-          {{ $t('admin.settings.email.cancel') }}
-        </UButton>
+        <div class="flex items-center justify-between w-full">
+          <UButton
+            v-if="selectedLog"
+            color="primary"
+            icon="ph:paper-plane-tilt"
+            :loading="resendingId === selectedLog.id"
+            @click="resendEmailLog(selectedLog)"
+          >
+            {{ $t('admin.settings.email.log_resend') }}
+          </UButton>
+          <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
+            {{ $t('admin.settings.email.cancel') }}
+          </UButton>
+        </div>
       </template>
     </FullScreenModal>
 
@@ -722,6 +743,35 @@ const fetchEmailLogs = async () => {
     console.error('[EmailTab] Failed to fetch email logs:', err)
   } finally {
     logsLoading.value = false
+  }
+}
+
+const resendingId = ref<number | null>(null)
+
+const resendEmailLog = async (log: EmailLogItem) => {
+  if (!log?.id || resendingId.value) return
+  resendingId.value = log.id
+  try {
+    await $fetch('/api/admin/email/resend', {
+      method: 'POST',
+      body: { logId: log.id },
+    })
+    toast.add({
+      title: t('admin.settings.email.log_resend_success'),
+      color: 'success',
+    })
+    await fetchEmailLogs()
+    if (isPreviewModalOpen.value && selectedLog.value?.id === log.id) {
+      isPreviewModalOpen.value = false
+    }
+  } catch (err: any) {
+    toast.add({
+      title: t('admin.settings.email.log_resend_failed'),
+      description: err?.data?.message || err?.message,
+      color: 'error',
+    })
+  } finally {
+    resendingId.value = null
   }
 }
 

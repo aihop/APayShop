@@ -22,15 +22,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await trackVisitorEvent(event, {
-    eventName,
-    eventAction: typeof body?.eventAction === 'string' ? body.eventAction : null,
-    productId: typeof body?.productId === 'number' ? body.productId : null,
-    orderId: typeof body?.orderId === 'string' ? body.orderId : null,
-    path: typeof body?.path === 'string' ? body.path : null,
-    referrer: typeof body?.referrer === 'string' ? body.referrer : null,
-    userId: (session as any)?.user?.id || null,
-  })
+  try {
+    await trackVisitorEvent(event, {
+      eventName,
+      eventAction: typeof body?.eventAction === 'string' ? body.eventAction : null,
+      productId: typeof body?.productId === 'number' ? body.productId : null,
+      orderId: typeof body?.orderId === 'string' ? body.orderId : null,
+      path: typeof body?.path === 'string' ? body.path : null,
+      referrer: typeof body?.referrer === 'string' ? body.referrer : null,
+      userId: (session as any)?.user?.id || null,
+    })
+  } catch (err: any) {
+    console.warn('[analytics] Track event background warning:', err?.message || err)
+  }
 
   return { success: true }
 })

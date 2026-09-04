@@ -4,7 +4,7 @@ import { db } from '../../../db/runtime'
 import { fulfillOrder } from '../../../utils/fulfillment'
 import { emitEvent } from '../../../utils/eventActions'
 import { ORDER_PAY_STATUS } from '../../../utils/constants'
-import { createOrderAttribution, settlePromoCommission } from '../../../promo/service'
+import { createOrderAttribution, settlePromoCommission, cancelPromoCommission } from '../../../promo/service'
 import { fulfillMinimalCheckoutRelay, readMinimalCheckoutBridgeMeta, isMinimalCheckoutRelayOrder } from '../../../utils/checkoutBridge'
 import { getRequestLocale } from '../../../utils/requestLocale'
 import { setAuditMeta } from '../../../utils/auditLog'
@@ -70,13 +70,12 @@ export default defineEventHandler(async (event) => {
     }
   }
     
-  // 3. If payStatus changed to 'refunded', claw back the credited balance.
-  //    退款只退了钱,余额里那份还在——不回收等于白送。只处理确实入过账的充值单
-  //    (clawbackTopup 会核对 topup 流水存在与否),幂等键 refund:<orderId>,
-  //    重复标记退款不会重复扣。
-  if (body.payStatus === ORDER_PAY_STATUS.REFUNDED) {
+  // 3. If payStatus changed to 'refunded' or 'cancelled', cancel promo commissions & claw back credited balance.
+  //    退款只退了钱,佣金与余额里那份如果不回收等于白送。
+  if (body.payStatus === ORDER_PAY_STATUS.REFUNDED || body.payStatus === ORDER_PAY_STATUS.CANCELLED) {
     const refundedOrder = result[0]
-    if (refundedOrder?.userId) {
+    await cancelPromoCommission(id, `admin_${body.payStatus}`)
+    if (body.payStatus === ORDER_PAY_STATUS.REFUNDED && refundedOrder?.userId) {
       try {
         const clawback = await refundTopup(id)
         if (clawback.shortfall > 0) {

@@ -11,7 +11,7 @@
     "租户 code 在前端提示并校验为小写字母、数字、下划线或连字符，且不得使用 default；服务端最终规则仍以 ainode 为准",
     "创建接口成功后 integrationToken 只在当前结果弹窗展示，不写入日志、本地存储、Cookie 或 APay 数据库",
     "创建请求响应丢失时不自动重试，避免把非幂等创建误判为安全重试；管理员应先刷新列表，再通过 ainode 的 Token 轮换能力人工恢复",
-    "不修改 /Users/hugh/code/aihop/ainode 当前工作区，也不触碰 APay 现有并行改动"
+    "不修改 /Users/hugh/code/hoxi/ainode 当前工作区，也不触碰 APay 现有并行改动"
   ],
   "repositories": [
     {

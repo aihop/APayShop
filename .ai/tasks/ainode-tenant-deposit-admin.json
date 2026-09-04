@@ -15,7 +15,7 @@
     "创建成功后的 integrationToken 只在当前结果弹窗内存展示，不写日志、本地存储、Cookie 或数据库",
     "流水只展示上游实际暴露字段；AINode 数据库虽保存 operator_admin_id 和 metadata，但当前 API 未返回，页面与文档明确该缺口",
     "AINode 流水接口没有 total、服务端筛选或导出，前端用 limit/offset 加载更多，不伪造总数或完整筛选能力",
-    "不修改 /Users/hugh/code/aihop/ainode 当前工作区，不修改数据库、新增依赖或触碰现有并行任务文件"
+    "不修改 /Users/hugh/code/hoxi/ainode 当前工作区，不修改数据库、新增依赖或触碰现有并行任务文件"
   ],
   "repositories": [
     {

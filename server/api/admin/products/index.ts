@@ -118,11 +118,10 @@ export default defineEventHandler(async (event) => {
 
     if (insertData.status) {
       insertData.isActive = insertData.status !== 'inactive'
-      delete insertData.status
     } else if (insertData.isActive !== undefined) {
-      delete insertData.status
+      insertData.status = insertData.isActive ? 'active' : 'inactive'
     } else {
-      delete insertData.status
+      insertData.status = 'active'
       insertData.isActive = true
     }
 

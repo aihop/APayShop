@@ -186,12 +186,13 @@
 import { computed, ref, watch } from 'vue'
 
 const { t } = useI18n()
+const ALL = 'all'
 const { formatDateTime } = useFormatTime()
 const toast = useToast()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
 
 const isModalOpen = ref(false)
-const selectedProduct = ref('')
+const selectedProduct = ref(ALL)
 const importProductId = ref('')
 const importContent = ref('')
 const isImporting = ref(false)
@@ -208,7 +209,7 @@ const {
 const { data: productsData } = await useFetch<any>('/api/admin/products')
 const { data: cardsData, pending, refresh } = await useFetch<any>('/api/admin/cards', {
   query: computed(() => ({
-    productId: selectedProduct.value || undefined,
+    productId: (selectedProduct.value && selectedProduct.value !== ALL) ? selectedProduct.value : undefined,
   })),
 })
 
@@ -230,7 +231,7 @@ const paginatedCards = computed(() => {
 })
 
 const productOptions = computed(() => [
-  { label: t('admin.cards.allProducts', '全部卡密商品'), value: '' },
+  { label: t('admin.cards.allProducts', '全部卡密商品'), value: ALL },
   ...products.value
     .filter((p: any) => p.type === 'key')
     .map((p: any) => ({ label: p.name, value: String(p.id) })),
@@ -248,7 +249,7 @@ const columns = computed(() => [
   { accessorKey: 'status', header: t('admin.cards.status', '使用状态') },
   { accessorKey: 'orderId', header: t('admin.cards.orderId', '关联订单') },
   { accessorKey: 'createdAt', header: t('admin.cards.createdAt', '导入时间') },
-  { accessorKey: 'actions', header: t('admin.common.actions', '操作') },
+  { id: 'actions', header: t('admin.common.actions', '操作') },
 ])
 
 const getProductName = (productId: number) => {
@@ -257,7 +258,7 @@ const getProductName = (productId: number) => {
 }
 
 const openModal = () => {
-  importProductId.value = selectedProduct.value || (keyProductOptions.value[0]?.value || '')
+  importProductId.value = (selectedProduct.value && selectedProduct.value !== ALL ? selectedProduct.value : '') || (keyProductOptions.value[0]?.value || '')
   importContent.value = ''
   isModalOpen.value = true
 }

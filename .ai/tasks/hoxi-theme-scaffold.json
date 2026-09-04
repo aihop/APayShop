@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "hoxi-theme-scaffold",
+  "title": "创建 hoxi 主题脚手架并完成注册",
+  "problem": "app/themes/hoxi 目录已存在但为空。构建链路（scripts/generate-theme-build.mjs）会扫描 app/themes/ 下每个目录并要求 seo.routes.json 与 layouts/default.vue，因此当前 npm run dev、npm install（postinstall）与 npm run build 都会以 Missing SEO route manifest 失败。同时 scripts/check-seo.mjs 的 themeNames 与后台主题卡片的 DEFAULT_THEME_META 都是硬编码列表，新主题不登记就既无法通过 SEO 守卫，也无法在后台被正确展示。",
+  "expectedOutcome": "hoxi 主题具备可构建的最小骨架（seo.routes.json、theme.json、layouts/default.vue、pages/index.vue、locales/{zh,en}.ts、AGENTS.md），构建链路恢复正常；主题在 check-seo 守卫与后台主题设置页中均已登记；以 APAY_DEV_THEME=hoxi 启动 dev 时前台渲染 Matters Blue 风格首页，中文不带 URL 前缀。",
+  "constraints": [
+    "不得修改 nuxt.config.ts、app/app.config.ts、app/assets/css/main.css：主题不得注册自己的 CSS 入口或覆盖全局品牌色",
+    "主题样式只能使用 Tailwind 原生 blue-*/slate-* 工具类，禁止使用 primary-* 以免污染其他主题",
+    "Tailwind 类名必须可静态扫描，禁止运行时拼接类名字符串",
+    "主题组件全局注册且无前缀，新增组件必须以 Hoxi 开头（本次不新增组件）",
+    "不得手改 app/generated/** 与 shared/generated/**，这些由 generate-theme-build.mjs 生成",
+    "不得改动其他主题的任何文件，也不得改变 check-seo.mjs 既有校验语义",
+    "不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "scripts/check-seo.mjs",
+        "app/pages/admin/settings/themes.vue"
+      ],
+      "claims": [
+        "scripts/check-seo.mjs",
+        "app/pages/admin/settings/themes.vue"
+      ]
+    },
+    {
+      "name": "apay-hoxi",
+      "path": "app/themes/hoxi",
+      "allowedPaths": [
+        "seo.routes.json",
+        "theme.json",
+        "AGENTS.md",
+        "layouts/**",
+        "locales/**",
+        "pages/**",
+        "scripts/**"
+      ],
+      "claims": [
+        "seo.routes.json",
+        "theme.json",
+        "AGENTS.md",
+        "layouts/**",
+        "locales/**",
+        "pages/**",
+        "scripts/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "node scripts/generate-theme-build.mjs --all 不再抛 Missing SEO route manifest，且生成的 publishedOptionalThemes 包含 hoxi",
+    "npm run check:seo 通过，themeNames 已包含 hoxi",
+    "后台 /admin/settings/themes 能看到 hoxi 主题卡片并显示中文名称与说明",
+    "APAY_DEV_THEME=hoxi npm run dev 启动后首页可访问，URL 不含 /zh 前缀",
+    "主题脚手架守卫脚本校验必需文件齐全且 seo.routes.json 结构合法",
+    "未改动其他主题文件，未改动 nuxt.config.ts / app.config.ts / main.css"
+  ],
+  "verification": [
+    {
+      "name": "主题脚手架自检",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "主题构建索引生成",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/generate-theme-build.mjs --all"
+    },
+    {
+      "name": "SEO 路由清单校验",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:seo"
+    }
+  ]
+}

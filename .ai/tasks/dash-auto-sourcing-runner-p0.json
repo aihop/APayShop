@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "dash-auto-sourcing-runner-p0",
+  "title": "Dash 自动选品 Runner P0：目标数驱动的 1688 选品循环",
+  "problem": "qingpu-ai 现有采集只能『翻 N 页』或『勾选后批量导入』，无法表达『按条件采够 N 件合格商品』。列表嗅探、隐藏标签页翻页、限速退避、任务控制、账本恢复、入库自动加工链、利润模型这些零件都已存在，缺的是把它们串成目标数驱动长循环的编排层，以及一套可复用、可测试的选品筛选口径。设计分析见 qingpu-ai docs/future-plans/auto-sourcing-runner.md（附录 A 为本任务的实施方案）。",
+  "expectedOutcome": "1. 新增 src/domain/sourcing/ 纯逻辑模块：类型、关键词分层匹配、列表级/详情级筛选、列表价毛利估算（从 useDashCollection 下沉，行为不变）；\n2. 新增 src/app/workflows/sourcing-runner.ts：目标数驱动循环，复用现有 PREVIEW_COLLECT_PAGE_BY_URL / SAVE_COLLECTED_PRODUCTS / EXTRACT_LIST_URLS_VIA_TAB，接 TaskControl 检查点与任务账本，阶梯随机延迟，连续详情失败自动暂停；\n3. 新增消息 action SNIFF_LIST_ITEMS_BY_URL（薄壳，委托已有 sniffListItemsViaTab），使列表页可按 URL 逐页取富卡片；\n4. TaskJobKind 追加 'sourcing' 并在 task-recovery 增加中断分支（附加值，向后兼容）；\n5. Dash 新增 entrypoints/dash/sourcing/ 自动选品弹窗（类目/店铺两个入口、价格区间、目标数、一件起批、关键词标签、销量与毛利下限、扫描日志、暂停/停止）；\n6. useDashCollection 的毛利预估改为调用下沉后的纯函数，现有关键词预览行为逐字段不变；\n7. 补 4 个 vitest 用例文件；typecheck / check:deps / build / 相关单测通过。",
+  "constraints": [
+    "避让活跃租约：src/engine/index.ts 与 scripts/check-deps.mjs 由 channel-prompt-extension-wiring 持有，本任务不碰；选品纯逻辑本期只供 Dash 消费，engine 出口与 caliber-redefine 守卫登记留待该租约释放后单独立项",
+    "避让活跃租约：src/collector/platforms/1688.ts、src/content/panel.ts、entrypoints/content.ts、src/shared/extension-context.ts、src/shared/request-pacing.ts 由 runtime-resilience-context-and-pacing 持有，本任务不碰（限速直接复用其已落地的 createPacer）",
+    "不新增 storage 根键：P0 不做会话草稿，『选品记录』入口本期不实现",
+    "不猜外部字段：1688 运费口径未取得真实样本，运费区间本期不实现",
+    "不做自动发布：入库后交给现有 autoRunOnImport 任务链，发布仍走人工确认",
+    "遵守 AGENTS §4.0：四层归属（候选只是列表卡片事实，过筛后才落 CollectedProductData）、显式消息协议、禁止 any 与静默吞错",
+    "只修改契约 claims 内的文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/sourcing/types.ts",
+        "src/domain/sourcing/keyword-match.ts",
+        "src/domain/sourcing/margin-estimate.ts",
+        "src/domain/sourcing/filters.ts",
+        "src/app/workflows/sourcing-runner.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/app/handlers/collect.ts",
+        "src/shared/request-actions.ts",
+        "src/shared/task-ledger.ts",
+        "entrypoints/dash/sourcing/AutoSourcingModal.vue",
+        "entrypoints/dash/sourcing/useAutoSourcing.ts",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/composables/useDashCollection.ts",
+        "tests/sourcing-keyword-match.test.ts",
+        "tests/sourcing-filters.test.ts",
+        "tests/sourcing-margin-estimate.test.ts",
+        "tests/sourcing-runner.test.ts",
+        "docs/future-plans/auto-sourcing-runner.md"
+      ],
+      "claims": [
+        "src/domain/sourcing/types.ts",
+        "src/domain/sourcing/keyword-match.ts",
+        "src/domain/sourcing/margin-estimate.ts",
+        "src/domain/sourcing/filters.ts",
+        "src/app/workflows/sourcing-runner.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/app/handlers/collect.ts",
+        "src/shared/request-actions.ts",
+        "src/shared/task-ledger.ts",
+        "entrypoints/dash/sourcing/AutoSourcingModal.vue",
+        "entrypoints/dash/sourcing/useAutoSourcing.ts",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/composables/useDashCollection.ts",
+        "tests/sourcing-keyword-match.test.ts",
+        "tests/sourcing-filters.test.ts",
+        "tests/sourcing-margin-estimate.test.ts",
+        "tests/sourcing-runner.test.ts",
+        "docs/future-plans/auto-sourcing-runner.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "自动选品弹窗可发起任务：类目/关键词与店铺两种入口，采够目标数即停",
+    "列表级筛选零成本先行：标题黑名单、关键词 OR 匹配、价格区间、销量下限、毛利下限、已采去重；列表无价且设了价格区间时判拒",
+    "详情级筛选在入库前生效：一件起批、变体数上限、单件重量上限；不合格不落库",
+    "暂停在检查点挂起、停止后已入库成果保留",
+    "同一 offerId 一次任务内只抓一次详情；已入库商品不再重复抓",
+    "连续详情失败达阈值自动暂停并提示，不静默空转",
+    "useDashCollection 关键词预览的毛利估算结果与改动前逐字段一致",
+    "npm run check:deps / npm run typecheck / npm run build 通过，4 个新测试文件全绿"
+  ],
+  "verification": [
+    {
+      "name": "守卫/类型/构建/单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/sourcing-keyword-match.test.ts tests/sourcing-filters.test.ts tests/sourcing-margin-estimate.test.ts tests/sourcing-runner.test.ts && npm run build",
+      "covers": [
+        "src/domain/sourcing/types.ts",
+        "src/domain/sourcing/keyword-match.ts",
+        "src/domain/sourcing/margin-estimate.ts",
+        "src/domain/sourcing/filters.ts",
+        "src/app/workflows/sourcing-runner.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/app/handlers/collect.ts",
+        "src/shared/request-actions.ts",
+        "src/shared/task-ledger.ts",
+        "entrypoints/dash/sourcing/AutoSourcingModal.vue",
+        "entrypoints/dash/sourcing/useAutoSourcing.ts",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/dash/composables/useDashCollection.ts",
+        "tests/sourcing-keyword-match.test.ts",
+        "tests/sourcing-filters.test.ts",
+        "tests/sourcing-margin-estimate.test.ts",
+        "tests/sourcing-runner.test.ts"
+      ]
+    }
+  ]
+}

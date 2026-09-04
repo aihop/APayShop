@@ -236,7 +236,7 @@
               <div class="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center border border-gray-200/80 dark:border-gray-800 shadow-2xs">
                 <img
                   v-if="row.original.productImage"
-                  :src="row.original.productImage"
+                  :src="buildImageProxyUrl(row.original.productImage)"
                   :alt="row.original.productName || ''"
                   class="w-full h-full object-cover"
                 />
@@ -573,6 +573,7 @@ import AdminTopupRecordsPanel from '~/components/AdminTopupRecordsPanel.vue'
 const { t, te } = useI18n()
 const { formatDateTime } = useFormatTime()
 const { formatCurrencyAmount } = useCurrencyFormat()
+const { buildImageProxyUrl } = useImageProxy()
 
 definePageMeta({ title: 'Orders Management', layout: 'admin' })
 

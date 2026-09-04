@@ -119,6 +119,7 @@ export const products = sqliteTable('products', {
   imageUrls: text('image_urls', { mode: 'json' }).$type<string[]>(), // JSON array of multiple image URLs
   resource: text('resource'), // general resource for non-unique items
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  status: text('status').notNull().default('active'), // 'active' | 'hidden' | 'inactive'
   metaData: text('meta_data', { mode: 'json' }), // EAV Model: flexible JSON for custom attributes (e.g. size, color, version)
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
@@ -570,3 +571,37 @@ export const promoApplications = sqliteTable('promo_applications', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
+
+export const tickets = sqliteTable('tickets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketNo: text('ticket_no').notNull().unique(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  category: text('category').notNull().default('other'), // billing | account | listing | studio | extension | other
+  title: text('title').notNull(),
+  status: text('status').notNull().default('open'), // open | in_progress | auto_resolved | resolved | closed
+  priority: text('priority').notNull().default('normal'), // low | normal | high | urgent
+  context: text('context', { mode: 'json' }), // 无损现场快照：productId, taskId, errorCode, rawResponse 等
+  lastRepliedAt: integer('last_replied_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  lastRepliedBy: text('last_replied_by').notNull().default('user'), // user | admin | bot | system
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+}, (table) => ({
+  userIdIdx: index('tickets_user_id_idx').on(table.userId),
+  statusIdx: index('tickets_status_idx').on(table.status),
+  categoryIdx: index('tickets_category_idx').on(table.category),
+  lastRepliedAtIdx: index('tickets_last_replied_at_idx').on(table.lastRepliedAt),
+}))
+
+export const ticketMessages = sqliteTable('ticket_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketId: integer('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
+  senderType: text('sender_type').notNull(), // user | admin | bot | system
+  senderId: integer('sender_id'),
+  senderName: text('sender_name').notNull().default(''),
+  content: text('content').notNull(),
+  attachments: text('attachments', { mode: 'json' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+}, (table) => ({
+  ticketIdIdx: index('ticket_messages_ticket_id_idx').on(table.ticketId),
+  createdAtIdx: index('ticket_messages_created_at_idx').on(table.createdAt),
+}))

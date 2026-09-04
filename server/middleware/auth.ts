@@ -50,7 +50,7 @@ const EMAIL_VERIFY_STRICT_ALLOWLIST = [
   '/api/users/notifications',
   '/api/products',
   '/api/posts',
-  '/api/aihop',
+  '/api/hoxi',
   '/api/minimal',
 ]
 

@@ -43,7 +43,7 @@
 
 ```bash
 # 1. 克隆代码仓库
-git clone https://github.com/aihop/apay.git
+git clone https://github.com/hoxiai/apay.git
 cd apay
 
 # 2. 赋予脚本执行权限

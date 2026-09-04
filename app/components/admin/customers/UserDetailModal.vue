@@ -24,7 +24,7 @@
         <div class="flex items-center gap-3">
           <img
             v-if="detail.user.avatarUrl"
-            :src="detail.user.avatarUrl"
+            :src="buildImageProxyUrl(detail.user.avatarUrl)"
             class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-800"
           />
           <div
@@ -382,6 +382,7 @@ const { locale } = useI18n()
 const { formatDateTime } = useFormatTime()
 const { formatCurrencyAmount, formatCurrencyTotals } = useCurrencyFormat()
 const { getSetting, fetchSettings } = useSettings()
+const { buildImageProxyUrl } = useImageProxy()
 const toast = useToast()
 
 void fetchSettings()

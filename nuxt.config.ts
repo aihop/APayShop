@@ -193,6 +193,13 @@ export default defineNuxtConfig({
     return aliases
   })(),
   hooks: {
+    close() {
+      if (process.env.APAY_NUXT_BUILD === '1') {
+        setTimeout(() => {
+          process.exit(0)
+        }, 1000).unref()
+      }
+    },
     'nitro:config'(nitroConfig) {
       const nitroAliases = nitroConfig.alias ||= {}
       nitroAliases.klona = path.resolve(__dirname, 'node_modules/klona/full/index.mjs')
@@ -473,6 +480,7 @@ export default defineNuxtConfig({
       'admin/stats': false,
       'admin/promo': false,
       'admin/topups': false,
+      'admin/tickets': false,
     }
   },
   hub: {

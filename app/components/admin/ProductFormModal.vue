@@ -499,7 +499,7 @@
           @click="isPreviewModalOpen = false"
         />
         <img
-          :src="previewImageUrl"
+          :src="buildImageProxyUrl(previewImageUrl)"
           class="max-w-full max-h-[85vh] object-contain rounded"
         />
       </div>
@@ -518,6 +518,7 @@ import ProductLocaleTabs from './products/ProductLocaleTabs.vue'
 import ProductPricingFeaturesSection from './products/ProductPricingFeaturesSection.vue'
 import ProductServiceSchemaSection from './products/ProductServiceSchemaSection.vue'
 import { useAdminProductForm } from '~/composables/useAdminProductForm'
+import { useImageProxy } from '~/composables/useImageProxy'
 
 const props = defineProps<{
   modelValue: boolean
@@ -527,6 +528,7 @@ const props = defineProps<{
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const { t } = useI18n()
+const { buildImageProxyUrl } = useImageProxy()
 
 const isOpen = computed({
   get: () => props.modelValue,

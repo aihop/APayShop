@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "order-refund-commission-cancellation",
+  "title": "订单退款与撤销时同步冲正与撤销推广返佣记录",
+  "problem": "当订单被管理员置为已退款（refunded）或取消（cancelled）时，系统仅回收了充值余额，未联动处理该订单已生成的推广佣金记录，导致推广员账户中仍然保留有效分成记录，存在资金损失漏洞。",
+  "expectedOutcome": "在 commissions.ts 中实现 cancelPromoCommission，在订单退款、取消及网关退款回调时自动将关联的所有推广返佣记录状态置为 canceled 并写入冲正元数据，实现退款佣金全链路闭环冲正。",
+  "constraints": [
+    "幂等处理：多次调用或已撤销的佣金记录不重复处理",
+    "保留原有元数据与上下文，记录撤销时间与原因",
+    "支持管理员后台操作与网关退款回调两端闭环",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/promo/commissions.ts",
+        "server/api/admin/orders/[id].put.ts",
+        "server/api/webhooks/[order_id].post.ts"
+      ],
+      "claims": [
+        "server/promo/commissions.ts",
+        "server/api/admin/orders/[id].put.ts",
+        "server/api/webhooks/[order_id].post.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "commissions.ts 导出 cancelPromoCommission 函数，能够正确将对应订单的所有有效返佣记录置为 canceled",
+    "admin/orders/[id].put.ts 在 payStatus 为 refunded 或 cancelled 时触发 cancelPromoCommission",
+    "webhooks/[order_id].post.ts 收到 refunded / cancelled 回调时同步冲正佣金与充值余额",
+    "差异格式检查与静态守卫检查通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- server/promo/commissions.ts 'server/api/admin/orders/[id].put.ts' 'server/api/webhooks/[order_id].post.ts'"
+    }
+  ]
+}

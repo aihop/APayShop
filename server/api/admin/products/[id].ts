@@ -74,9 +74,8 @@ export default defineEventHandler(async (event) => {
     
     if (updateData.status) {
       updateData.isActive = updateData.status !== 'inactive'
-      delete updateData.status
     } else if (updateData.isActive !== undefined) {
-      delete updateData.status
+      updateData.status = updateData.isActive ? 'active' : 'inactive'
     }
 
     // SQLite doesn't like null values for string columns sometimes or missing fields

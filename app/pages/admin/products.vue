@@ -135,7 +135,7 @@
             <div class="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
               <img
                 v-if="row.original.imageUrl"
-                :src="String(row.original.imageUrl)"
+                :src="buildImageProxyUrl(String(row.original.imageUrl))"
                 class="w-full h-full object-cover"
                 :alt="String(row.original.name)"
               />
@@ -303,6 +303,7 @@ const { confirm } = useConfirm()
 const { hasPerm: hasAdminPerm } = useAdminPermissions()
 const { formatCurrencyAmount } = useCurrencyFormat()
 const { getSetting, fetchSettings } = useSettings()
+const { buildImageProxyUrl } = useImageProxy()
 
 await fetchSettings()
 const baseCurrency = computed(() => getSetting('currency', 'USD'))

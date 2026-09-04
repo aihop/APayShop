@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-login-captcha-render-fix",
+  "title": "修复后台滑块验证码 SVG 渲染与槽位切片对齐",
+  "problem": "滑块验证码使用 utf8 格式 Data URL，导致其中的 # 符号被浏览器误认为 URL hash 截断从而无法显示图片和槽位；且原拼图凸起部分超出 viewBox 产生边缘裁剪。",
+  "expectedOutcome": "所有验证码大图和切片均使用标准 Base64 Data URL 编码，消除字符截断；采用精确定位的 52x52 拼图矢量模型，槽位高亮清晰，切片图案与背景精确咬合，测试通过。",
+  "constraints": [
+    "禁止引入 C++ 或 Node 原生绑定依赖",
+    "保持 100% 纯 TS/SVG 自闭环",
+    "兼容现代所有浏览器的 Data URL 规范"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/adminLoginSecurity.ts",
+        "server/api/admin/auth/captcha/get.get.ts",
+        "server/api/admin/auth/captcha/check.post.ts",
+        "app/components/CaptchaSlider.vue",
+        "scripts/check-admin-login-security.mjs"
+      ],
+      "claims": [
+        "server/utils/adminLoginSecurity.ts",
+        "server/api/admin/auth/captcha/get.get.ts",
+        "server/api/admin/auth/captcha/check.post.ts",
+        "app/components/CaptchaSlider.vue",
+        "scripts/check-admin-login-security.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "背景大图和槽位能在所有主流浏览器正常渲染",
+    "切片图片正常显示且边缘无任何异常截断",
+    "拖拽拼图到缺口处能够准确吻合且校验通过",
+    "自动化守卫与 prebuild 门禁全部通过"
+  ],
+  "verification": [
+    {
+      "name": "后台登录安全与滑块自动化守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-admin-login-security.mjs"
+    }
+  ]
+}

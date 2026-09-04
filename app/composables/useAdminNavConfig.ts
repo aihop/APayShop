@@ -77,6 +77,7 @@ export const useAdminNav = () => {
       { to: '/admin/orders', icon: 'ph:shopping-cart', labelKey: 'admin.nav.orders', permission: 'orders' },
       { to: '/admin/products', icon: 'ph:package', labelKey: 'admin.nav.products', permission: 'products' },
       { to: '/admin/customers', icon: 'ph:users', labelKey: 'admin.nav.customers', permission: 'customers' },
+      { to: '/admin/tickets', icon: 'ph:ticket', labelKey: 'admin.nav.tickets', permission: 'tickets' },
       { to: '/admin/posts', icon: 'ph:newspaper-duotone', labelKey: 'admin.nav.blogs', permission: 'posts' },
     ],
   }

@@ -7,7 +7,7 @@ export const SEO_LOCALE_LANGUAGE = {
 } as const
 
 export type SeoRouteKind = 'public' | 'private' | 'redirect' | 'unknown'
-export type SeoDynamicSource = 'products' | 'posts' | 'shoply-apps' | 'shoply-themes' | 'aihop-models'
+export type SeoDynamicSource = 'products' | 'posts' | 'shoply-apps' | 'shoply-themes' | 'hoxi-models'
 
 export interface SeoDynamicRoute {
   pattern: string

@@ -40,6 +40,8 @@ export default defineConfig({
     "promo_agent_relations",
     "promo_order_attributions",
     "promo_commissions",
+    "tickets",
+    "ticket_messages",
     "_hub_migrations"
   ],
   push: {

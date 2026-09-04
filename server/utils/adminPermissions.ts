@@ -19,6 +19,7 @@ export const ADMIN_PERMISSIONS: AdminPermissionDef[] = [
   { code: 'logs', apiPrefixes: ['logs', 'access-logs', 'operation-logs'] },
   { code: 'settings', apiPrefixes: ['settings', 'setup', 'email', 'event-rules'] },
   { code: 'admins', apiPrefixes: ['admins'] },
+  { code: 'tickets', apiPrefixes: ['tickets'] },
   { code: 'system', apiPrefixes: ['system', 'upload', 'scheduler'] },
 ]
 

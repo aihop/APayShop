@@ -438,11 +438,11 @@
       <div class="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/50 shadow-xs flex flex-col">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-base font-bold text-gray-900 dark:text-white">最新交易动态</h2>
-            <p class="text-xs text-gray-400 mt-0.5">全站实时下单与支付记录</p>
+            <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ t('admin.dashboard.recentTransactions') }}</h2>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('admin.dashboard.recentTransactionsDesc') }}</p>
           </div>
           <NuxtLink to="/admin/orders" class="text-xs text-primary-600 hover:text-primary-700 font-medium">
-            查看全部订单 →
+            {{ t('admin.dashboard.viewAllOrders') }}
           </NuxtLink>
         </div>
 
@@ -450,11 +450,11 @@
           <table class="w-full text-xs">
             <thead>
               <tr class="border-b border-gray-100 dark:border-gray-800/80 text-left text-gray-400 font-medium">
-                <th class="py-2.5 pr-3">单号 / 客户</th>
-                <th class="py-2.5 pr-3">金额</th>
-                <th class="py-2.5 pr-3">支付状态</th>
-                <th class="py-2.5 pr-3">履约状态</th>
-                <th class="py-2.5 text-right">时间</th>
+                <th class="py-2.5 pr-3">{{ t('admin.dashboard.orderAndCustomer') }}</th>
+                <th class="py-2.5 pr-3">{{ t('admin.orders.amount') }}</th>
+                <th class="py-2.5 pr-3">{{ t('admin.orders.payStatus') }}</th>
+                <th class="py-2.5 pr-3">{{ t('admin.orders.fulfillment_label') }}</th>
+                <th class="py-2.5 text-right">{{ t('admin.orders.date') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800/50">
@@ -465,27 +465,27 @@
               >
                 <td class="py-2.5 pr-3">
                   <div class="font-mono font-medium text-gray-900 dark:text-white truncate max-w-[140px]">{{ order.id }}</div>
-                  <div class="text-[10px] text-gray-400 truncate max-w-[140px]">{{ order.contactEmail || '匿名下单' }}</div>
+                  <div class="text-[10px] text-gray-400 truncate max-w-[140px]">{{ order.contactEmail || t('admin.dashboard.anonymousOrder') }}</div>
                 </td>
                 <td class="py-2.5 pr-3 whitespace-nowrap">
                   <span class="font-semibold text-gray-900 dark:text-white">{{ formatCurrencyAmount(order.amount, order.currency) }}</span>
                 </td>
                 <td class="py-2.5 pr-3 whitespace-nowrap">
                   <UBadge
-                    :color="order.payStatus === 'paid' ? 'success' : (order.payStatus === 'pending' ? 'warning' : 'neutral')"
+                    :color="getPayStatusColor(order.payStatus)"
                     variant="subtle"
                     size="xs"
                   >
-                    {{ order.payStatus }}
+                    {{ getPayStatusLabel(order.payStatus) }}
                   </UBadge>
                 </td>
                 <td class="py-2.5 pr-3 whitespace-nowrap">
                   <UBadge
-                    :color="order.status === 'fulfilled' ? 'success' : (order.status === 'pending' ? 'warning' : 'neutral')"
+                    :color="getFulfillmentStatusColor(order.status)"
                     variant="subtle"
                     size="xs"
                   >
-                    {{ order.status || 'pending' }}
+                    {{ getFulfillmentStatusLabel(order.status) }}
                   </UBadge>
                 </td>
                 <td class="py-2.5 text-right whitespace-nowrap text-gray-400 text-[11px]">
@@ -493,7 +493,7 @@
                 </td>
               </tr>
               <tr v-if="!dashboardData?.recentOrders?.length">
-                <td colspan="5" class="py-8 text-center text-gray-400">暂无订单数据</td>
+                <td colspan="5" class="py-8 text-center text-gray-400">{{ t('admin.dashboard.noOrderData') }}</td>
               </tr>
             </tbody>
           </table>
@@ -517,6 +517,14 @@ definePageMeta({ title: 'Dashboard', layout: 'admin' })
 const { t } = useI18n()
 const { formatCurrencyAmount, formatCurrencyTotals } = useCurrencyFormat()
 const { formatDateTime } = useFormatTime()
+const {
+  OrderPayStatus,
+  OrderFulfillmentStatus,
+  getPayStatusLabel,
+  getPayStatusColor,
+  getFulfillmentStatusLabel,
+  getFulfillmentStatusColor,
+} = useOrderStatus()
 const router = useRouter()
 const hoveredIndex = ref<number | null>(null)
 const selectedRange = ref<'today' | '7d' | '30d'>('today')

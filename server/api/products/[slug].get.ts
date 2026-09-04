@@ -17,6 +17,7 @@ export default defineCachedEventHandler(async (event) => {
     .where(and(
       eq(products.slug, slug),
       eq(products.isActive, true),
+      ne(products.status, 'inactive'),
     ))
     .limit(1)
   const product = productList[0]

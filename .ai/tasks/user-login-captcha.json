@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "user-login-captcha",
+  "title": "APay 前台用户端登录防爆破与滑块验证联动",
+  "problem": "前台用户登录接口缺乏频次限制和失败锁定保护，面临大规模撞库和暴力破解风险；需接入统一的自包含滑块人机验证与阶梯式防护。",
+  "expectedOutcome": "前台登录支持 IP 频次限制、IP+Email 联合维度失败计数（3次弹滑块，5次锁定），联动全局 CaptchaSlider 组件，并通过自动化守卫测试。",
+  "constraints": [
+    "禁止引入 C++ 或 Node 原生绑定依赖",
+    "不依赖外部独立的 Go 服务",
+    "必须采用 IP+Email 联合维度，不得全站锁死用户邮箱（防止针对客户的 DoS 骚扰）",
+    "必须通过所有守卫测试与 npm run build"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "server/utils/userLoginSecurity.ts",
+        "server/api/auth/login.post.ts",
+        "app/themes/official/pages/auth/login.vue",
+        "scripts/check-user-login-security.mjs"
+      ],
+      "claims": [
+        "server/utils/userLoginSecurity.ts",
+        "server/api/auth/login.post.ts",
+        "app/themes/official/pages/auth/login.vue",
+        "scripts/check-user-login-security.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "前台登录输错 3 次以内不弹滑块，第 3 次及以上必须携带有效 captchaTicket",
+    "前台登录输错 5 次触发对该 IP 的临时锁定，返回 429",
+    "成功登录后清除该 IP+Email 失败记录",
+    "多 IP 之间互不干扰，一个恶意 IP 的爆破不影响正常用户的正常登录",
+    "自动化守卫测试通过"
+  ],
+  "verification": [
+    {
+      "name": "前台登录安全与滑块自动化守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-user-login-security.mjs"
+    }
+  ]
+}

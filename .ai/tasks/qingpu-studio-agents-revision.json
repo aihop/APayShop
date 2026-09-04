@@ -58,7 +58,7 @@
       "name": "跨仓自包含检查",
       "repository": "qingpu-theme",
       "always": true,
-      "command": "git diff --check -- pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/aihop/qingpu-ai|qingpu-ai/AGENTS.md' pages/user/studio/AGENTS.md"
+      "command": "git diff --check -- pages/user/studio/AGENTS.md; ! rg -q '/Users/hugh/code/hoxi/qingpu-ai|qingpu-ai/AGENTS.md' pages/user/studio/AGENTS.md"
     },
     {
       "name": "引用的共享契约文件真实存在",

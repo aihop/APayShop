@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "admin-login-captcha",
+  "title": "APay 内置自闭环滑块验证码与后台登录阶梯式安全防护",
+  "problem": "当前后台登录完全无防爆破机制，存在高并发暴力破解风险与用户名枚举漏洞；原 Minimal 主题中的滑块依赖外部 Go 服务，后台登录不能与外部独立系统强耦合。",
+  "expectedOutcome": "纯 TS 自闭环矢量滑块就绪，零外部服务依赖；后台登录支持 IP 限流、连续失败 3 次出滑块、5 次锁定、防用户名枚举，并通过自动化守卫测试。",
+  "constraints": [
+    "禁止引入 C++ 或 Node 原生绑定依赖（不得引入 canvas/sharp）",
+    "不依赖外部独立的 Go 服务",
+    "保持后台纯黑毛玻璃视觉一致性",
+    "必须通过所有守卫测试与 npm run build"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/components/CaptchaSlider.vue",
+        "app/pages/admin/login.vue",
+        "server/api/admin/login.post.ts",
+        "server/api/admin/auth/captcha/get.get.ts",
+        "server/api/admin/auth/captcha/check.post.ts",
+        "server/utils/adminLoginSecurity.ts",
+        "scripts/check-admin-login-security.mjs"
+      ],
+      "claims": [
+        "app/components/CaptchaSlider.vue",
+        "app/pages/admin/login.vue",
+        "server/api/admin/login.post.ts",
+        "server/api/admin/auth/captcha/get.get.ts",
+        "server/api/admin/auth/captcha/check.post.ts",
+        "server/utils/adminLoginSecurity.ts",
+        "scripts/check-admin-login-security.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "连续输错 3 次以内不弹滑块，第 3 次及以上登录必须携带有效 captchaTicket",
+    "未通过滑块直接发起的登录请求被拦截",
+    "连续输错 5 次触发临时锁定，返回 429",
+    "滑块挑战、切片与校验由 APay 内部纯 TS/SVG 实现，不依赖 Go 与外部进程",
+    "用户名或密码错误时统一报错提示，不泄露管理员账号是否存在",
+    "守卫测试通过且构建正常"
+  ],
+  "verification": [
+    {
+      "name": "后台登录安全与滑块自动化守卫",
+      "repository": "apay",
+      "always": true,
+      "command": "node scripts/check-admin-login-security.mjs"
+    }
+  ]
+}

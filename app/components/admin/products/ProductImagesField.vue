@@ -49,7 +49,7 @@
         <template #item="{ element, index }">
           <div class="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group cursor-move">
             <img
-              :src="element"
+              :src="buildImageProxyUrl(element)"
               class="w-full h-full object-cover"
             />
             <div class="absolute inset-0 bg-gray-900/50 dark:bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -77,6 +77,9 @@
 
 <script setup lang="ts">
 import draggable from 'vuedraggable'
+import { useImageProxy } from '~/composables/useImageProxy'
+
+const { buildImageProxyUrl } = useImageProxy()
 
 const props = defineProps<{
   visible: boolean

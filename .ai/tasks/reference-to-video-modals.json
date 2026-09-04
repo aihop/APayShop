@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "reference-to-video-modals",
+  "title": "封装参考视频弹出层组件并对接 /reference-to-video 页面交互",
+  "problem": "/reference-to-video 页面缺乏参考视频与参考图片上传弹出层交互，点击上传卡片无法唤起选择，且缺少独立的参考视频选择/来源链接管理组件。",
+  "expectedOutcome": "封装可复用的 StudioReferenceVideoModal 和 StudioReferenceImageModal 弹窗组件，支持本地上传与来源链接输入，并在 /reference-to-video 页面实现完整的卡片交互联动、预览与状态同步。",
+  "constraints": [
+    "遵循 Qingpu 统一组件命名与设计规范",
+    "只修改 claims 声明的文件，不自动执行 git commit、push 或发布"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "app/themes/qingpu/components/StudioReferenceVideoModal.vue",
+        "app/themes/qingpu/components/StudioReferenceImageModal.vue",
+        "app/themes/qingpu/pages/reference-to-video.vue",
+        "app/themes/qingpu/locales/zh.ts",
+        "app/themes/qingpu/locales/en.ts",
+        "app/themes/qingpu/locales/ru.ts"
+      ],
+      "claims": [
+        "app/themes/qingpu/components/StudioReferenceVideoModal.vue",
+        "app/themes/qingpu/components/StudioReferenceImageModal.vue",
+        "app/themes/qingpu/pages/reference-to-video.vue",
+        "app/themes/qingpu/locales/zh.ts",
+        "app/themes/qingpu/locales/en.ts",
+        "app/themes/qingpu/locales/ru.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "封装 StudioReferenceVideoModal 组件，支持本地视频上传与公网视频 URL 输入，带播放试看与删除",
+    "封装 StudioReferenceImageModal 组件，支持本地图片上传与公网图片 URL 输入，带缩略图预览与删除",
+    "/reference-to-video 页面点击参考图片和参考视频卡片能正确唤起对应弹窗，并双向联动显示缩略图和计数",
+    "多语言文案完备且验证通过"
+  ],
+  "verification": [
+    {
+      "name": "契约范围差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- app/themes/qingpu/pages/reference-to-video.vue app/themes/qingpu/locales/zh.ts app/themes/qingpu/locales/en.ts app/themes/qingpu/locales/ru.ts"
+    }
+  ]
+}

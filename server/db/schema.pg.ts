@@ -123,6 +123,7 @@ export const products = pgTable('products', {
   imageUrls: jsonb('image_urls').$type<string[]>(), // JSON array of multiple image URLs
   resource: text('resource'), // general resource for non-unique items
   isActive: boolean('is_active').notNull().default(true),
+  status: text('status').notNull().default('active'), // 'active' | 'hidden' | 'inactive'
   metaData: jsonb('meta_data'), // EAV Model: flexible JSON for custom attributes (e.g. size, color, version)
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
@@ -575,3 +576,37 @@ export const promoApplications = pgTable('promo_applications', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const tickets = pgTable('tickets', {
+  id: serial('id').primaryKey(),
+  ticketNo: text('ticket_no').notNull().unique(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  category: text('category').notNull().default('other'), // billing | account | listing | studio | extension | other
+  title: text('title').notNull(),
+  status: text('status').notNull().default('open'), // open | in_progress | auto_resolved | resolved | closed
+  priority: text('priority').notNull().default('normal'), // low | normal | high | urgent
+  context: jsonb('context'), // 无损现场快照：productId, taskId, errorCode, rawResponse 等
+  lastRepliedAt: timestamp('last_replied_at', { withTimezone: true }).notNull().defaultNow(),
+  lastRepliedBy: text('last_replied_by').notNull().default('user'), // user | admin | bot | system
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index('tickets_user_id_idx').on(table.userId),
+  statusIdx: index('tickets_status_idx').on(table.status),
+  categoryIdx: index('tickets_category_idx').on(table.category),
+  lastRepliedAtIdx: index('tickets_last_replied_at_idx').on(table.lastRepliedAt),
+}))
+
+export const ticketMessages = pgTable('ticket_messages', {
+  id: serial('id').primaryKey(),
+  ticketId: integer('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
+  senderType: text('sender_type').notNull(), // user | admin | bot | system
+  senderId: integer('sender_id'),
+  senderName: text('sender_name').notNull().default(''),
+  content: text('content').notNull(),
+  attachments: jsonb('attachments'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  ticketIdIdx: index('ticket_messages_ticket_id_idx').on(table.ticketId),
+  createdAtIdx: index('ticket_messages_created_at_idx').on(table.createdAt),
+}))

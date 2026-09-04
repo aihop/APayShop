@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     type: products.type
   })
   .from(products)
-  .where(eq(products.isActive, true))
+  .where(and(eq(products.status, 'active'), eq(products.isActive, true)))
 
   // 去重
   const types = [...new Set(result.map((row: { type: string | null }) => row.type).filter(Boolean))]

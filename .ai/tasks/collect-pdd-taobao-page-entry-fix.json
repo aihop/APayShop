@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "collect-pdd-taobao-page-entry-fix",
+  "title": "修正拼多多与淘宝详情页数据入口、字段口径与价格单位",
+  "problem": "拼多多详情真实数据在 window.rawData.store.initDataObj.goods（自 rawData 起深三层），而 pdd-bridge 的 findGoodsNode 只查根节点、几个固定键和一层 Object.values，pdd.ts 的 _extractSsrData 更是只试 __NUXT__/__page_data__/goodsInfo，两条路都取不到真实商品节点；即使取到，SKU 数组键名（真实为 goods.skus）、规格 snake_case 键（spec_key/spec_value/spec_note）和 goodsProperty 的 values 数组也都不匹配，SKU 图、skuId、包装重量、详情图、视频全部丢失。价格单位在两处互相矛盾且方向危险：桥接按 parsed>1000 才除以 100（真实 1200 元商品被算成 12 元），pdd.ts 一律除以 100，而拼多多主站 groupPrice 本身是元，导致采购成本被压低两个数量级并直接传导到 Ozon 挂牌价。淘宝详情当前入口是 _DATA_Detail/g_data 等历史键，真实入口 __ICE_APP_CONTEXT__.loaderData.home.data.res 未显式声明，只能靠受 120 个 window 键与 220 节点预算限制的广度搜索碰运气，且 SKU 色卡图与商品参数未回填。",
+  "expectedOutcome": "拼多多与淘宝的详情页数据入口显式声明并收敛为零 Chrome 依赖、可单测的纯解析模块，MAIN world 桥接与 ISOLATED 解析器共用同一口径；按页面真实结构回填 CollectedProductData 已有字段（SKU 图、skuId、包装重量、色卡图、参数、详情块、视频）；拼多多价格单位在单点定义为元并有测试钉住，消除桥接与解析器的两套口径。",
+  "constraints": [
+    "不新增 CollectedProductData 字段，不改动数据分层与归一层",
+    "不引入新依赖、不新增 host_permission、不新增消息通道或 storage 根键",
+    "不移植竞品的拟人反爬手段（模拟 mousemove/scroll、逐 SKU 点击取价）",
+    "详情事实不可用时保持明确失败，不用脆弱 DOM 伪造完整商品",
+    "新解析模块必须零 Chrome 运行时依赖，可被 MAIN world 内容脚本安全打包",
+    "不触碰工作区中本任务未声明的其他会话改动"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/pdd-bridge.content.ts",
+        "entrypoints/taobao-bridge.content.ts",
+        "src/collector/platforms/pdd.ts",
+        "src/collector/platforms/taobao.ts",
+        "src/collector/platforms/pdd-page-data.ts",
+        "src/collector/platforms/taobao-page-data.ts",
+        "tests/collector-pdd-page-data.test.ts",
+        "tests/collector-taobao-page-data.test.ts"
+      ],
+      "claims": [
+        "entrypoints/pdd-bridge.content.ts",
+        "entrypoints/taobao-bridge.content.ts",
+        "src/collector/platforms/pdd.ts",
+        "src/collector/platforms/taobao.ts",
+        "src/collector/platforms/pdd-page-data.ts",
+        "src/collector/platforms/taobao-page-data.ts",
+        "tests/collector-pdd-page-data.test.ts",
+        "tests/collector-taobao-page-data.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "拼多多解析显式支持 window.rawData.store.initDataObj.goods，并覆盖 skus/sku/skuList/skuMap 的键名回退",
+    "拼多多规格读取支持 spec_key/spec_value/spec_note 与既有驼峰键，goodsProperty 的 values 数组能正确落到属性值",
+    "拼多多价格单位在单点定义为元，桥接与解析器不再各自换算，测试钉住 1200 元商品不被压成 12 元",
+    "淘宝显式支持 __ICE_APP_CONTEXT__.loaderData.home.data.res 入口，并保留原有广度搜索兜底",
+    "淘宝回填 SKU 色卡图（skuBase.props[].valueMap[vid].image）与 componentsVO 商品参数",
+    "两个新解析模块为纯函数、零 Chrome 依赖，桥接与平台解析器共用同一实现",
+    "相关 vitest 通过，分层依赖守卫基线不增长，类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "拼多多与淘宝页面解析单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/collector-pdd-page-data.test.ts tests/collector-taobao-page-data.test.ts"
+    },
+    {
+      "name": "分层依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    }
+  ]
+}

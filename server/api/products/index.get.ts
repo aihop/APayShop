@@ -9,7 +9,7 @@ export default defineCachedEventHandler(async (event) => {
   const pageSize = Math.min(Math.max(parseInt(query.pageSize as string) || 100, 1), 200)
   const offset = (page - 1) * pageSize
 
-  const isPublicCondition = eq(products.isActive, true)
+  const isPublicCondition = and(eq(products.status, 'active'), eq(products.isActive, true))
 
   const totalResult = await db.select({ value: count() }).from(products).where(isPublicCondition)
   const total = totalResult[0]?.value || 0

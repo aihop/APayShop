@@ -26,9 +26,9 @@
   ],
   "acceptanceCriteria": [
     "app/layouts/default.vue 不再自行读取 settings.active_theme,改用 useActiveTheme()",
-    "APAY_DEV_THEME=aihop npm run dev 时前台渲染 aihop 自带布局(页头 AIHop、页脚发丝线),主题 locales 正常解析为中文而非 i18n 键名",
+    "APAY_DEV_THEME=hoxi npm run dev 时前台渲染 hoxi 自带布局(页头 hoxi、页脚发丝线),主题 locales 正常解析为中文而非 i18n 键名",
     "未设置 devTheme 时按 settings.active_theme 解析,取值非法时仍回落 core 布局",
-    "shared/generated/seo-routes.ts 与当前主题目录一致(包含 aihop)",
+    "shared/generated/seo-routes.ts 与当前主题目录一致(包含 hoxi)",
     "npm run check:seo 通过"
   ],
   "verification": [

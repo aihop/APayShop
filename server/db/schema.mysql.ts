@@ -123,6 +123,7 @@ export const products = mysqlTable('products', {
   imageUrls: json('image_urls').$type<string[]>(), // JSON array of multiple image URLs
   resource: text('resource'), // general resource for non-unique items
   isActive: boolean('is_active').notNull().default(true),
+  status: varchar('status', { length: 32 }).notNull().default('active'), // 'active' | 'hidden' | 'inactive'
   metaData: json('meta_data'), // EAV Model: flexible JSON for custom attributes (e.g. size, color, version)
   sortOrder: int('sort_order').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow()
@@ -579,3 +580,37 @@ export const promoApplications = mysqlTable('promo_applications', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
+
+export const tickets = mysqlTable('tickets', {
+  id: int('id').autoincrement().primaryKey(),
+  ticketNo: varchar('ticket_no', { length: 64 }).notNull().unique(),
+  userId: int('user_id').notNull().references(() => users.id),
+  category: varchar('category', { length: 64 }).notNull().default('other'), // billing | account | listing | studio | extension | other
+  title: text('title').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('open'), // open | in_progress | auto_resolved | resolved | closed
+  priority: varchar('priority', { length: 32 }).notNull().default('normal'), // low | normal | high | urgent
+  context: json('context'), // 无损现场快照：productId, taskId, errorCode, rawResponse 等
+  lastRepliedAt: timestamp('last_replied_at').notNull().defaultNow(),
+  lastRepliedBy: varchar('last_replied_by', { length: 32 }).notNull().default('user'), // user | admin | bot | system
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index('tickets_user_id_idx').on(table.userId),
+  statusIdx: index('tickets_status_idx').on(table.status),
+  categoryIdx: index('tickets_category_idx').on(table.category),
+  lastRepliedAtIdx: index('tickets_last_replied_at_idx').on(table.lastRepliedAt),
+}))
+
+export const ticketMessages = mysqlTable('ticket_messages', {
+  id: int('id').autoincrement().primaryKey(),
+  ticketId: int('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
+  senderType: varchar('sender_type', { length: 32 }).notNull(), // user | admin | bot | system
+  senderId: int('sender_id'),
+  senderName: varchar('sender_name', { length: 128 }).notNull().default(''),
+  content: text('content').notNull(),
+  attachments: json('attachments'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  ticketIdIdx: index('ticket_messages_ticket_id_idx').on(table.ticketId),
+  createdAtIdx: index('ticket_messages_created_at_idx').on(table.createdAt),
+}))

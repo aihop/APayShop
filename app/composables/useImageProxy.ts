@@ -2,8 +2,12 @@ const PROXY_ENDPOINT = '/api/proxy/image'
 const PROXIED_IMAGE_HOSTS = [
   'alicdn.com',
   'alibabausercontent.com',
+  '1688.com',
   '1688pic.com',
   'tbcdn.cn',
+  'taobaocdn.com',
+  'pinduoduo.com',
+  'yangkeduo.com',
   'aliyuncs.com',
 ] as const
 
@@ -24,9 +28,8 @@ export const useImageProxy = () => {
       .trim()
     if (!raw) return ''
 
-    if (raw.startsWith('/')) return raw
-
     const normalized = raw.startsWith('//') ? `https:${raw}` : raw
+    if (raw.startsWith('/') && !raw.startsWith('//')) return raw
     if (!/^https?:\/\//i.test(normalized)) return normalized
 
     if (!shouldProxyImage(normalized)) return normalized

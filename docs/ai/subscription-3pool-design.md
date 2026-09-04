@@ -1,7 +1,7 @@
 # 任务:在 APay  中接入 ainode 的订阅三池计费(发送订阅生命周期 Webhook)
 
 ## 背景
-- APay  是支付/电商平台(Nuxt 3 + Nitro server,TypeScript,代码在 /Users/hugh/code/aihop/APay ,服务端在 server/)。
+- APay  是支付/电商平台(Nuxt 3 + Nitro server,TypeScript,代码在 /Users/hugh/code/hoxi/APay ,服务端在 server/)。
 - ainode 是 AI 网关计费系统,它持有用户的余额「三池」:
   1. 订阅实付 sub(用户为订阅实际付的钱)
   2. 订阅赠送 grant(套餐附赠的额度)

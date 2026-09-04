@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "runtime-resilience-context-and-pacing",
+  "title": "扩展上下文失效统一处理与采集请求节流退避",
+  "problem": "扩展重载或热更新后，页面里残留的旧 content script 仍在运行，之后每一次 chrome API 调用都抛 Extension context invalidated；仓库当前对此零处理，用户看到的是悬浮窗按钮点了没反应、控制台刷错误，且没有任何提示告诉他刷新页面即可恢复。另一侧，1688 批量采集的限速是三处写死的 setTimeout（翻页 2~5 秒、店铺翻页 2~5 秒、详情 2.5~5 秒），既没有集中口径，也不区分平台是否已经开始拒绝——一旦触发风控，代码仍以同样节奏继续打，把可恢复的临时限流拖成整批失败。",
+  "expectedOutcome": "扩展上下文失效有集中识别与一次性提示：检测到失效后停止继续调用 chrome API，并把悬浮窗替换成「扩展已更新，请刷新页面」的说明，不再静默失效。采集限速收敛为可复用的节流器：基础节奏与现状一致（不单方面拖慢正常导入），但连续失败时按指数退避并封顶，成功后逐步恢复；另提供接口级冷却与 Retry-After 解析，供后续 Ozon 链路复用。",
+  "constraints": [
+    "不引入新依赖、不新增 host_permission、不新增 storage 根键",
+    "不改变正常路径下的采集基础节奏，只在出现失败信号时退避",
+    "不移植竞品的拟人反爬手段（模拟鼠标移动、滚动、逐 SKU 点击）",
+    "节流模块必须零 Chrome 依赖且可单测，时间推进在测试中可注入",
+    "src/collector/platforms/1688.ts 命中技术债地图的大文件拆分挂账项：本次只替换限速调用点，不做职责拆分，也不增加该文件的存量债",
+    "不触碰工作区中本任务未声明的其他会话改动，尤其是 src/shared/api-client.ts 与 src/domain/image-generation-tasks/factory.ts"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/extension-context.ts",
+        "src/shared/request-pacing.ts",
+        "src/content/panel.ts",
+        "entrypoints/content.ts",
+        "src/collector/platforms/1688.ts",
+        "tests/shared-extension-context.test.ts",
+        "tests/shared-request-pacing.test.ts"
+      ],
+      "claims": [
+        "src/shared/extension-context.ts",
+        "src/shared/request-pacing.ts",
+        "src/content/panel.ts",
+        "entrypoints/content.ts",
+        "src/collector/platforms/1688.ts",
+        "tests/shared-extension-context.test.ts",
+        "tests/shared-request-pacing.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "扩展上下文失效能按错误文案与 chrome.runtime.id 缺失两条线识别，且识别逻辑集中在单一模块",
+    "失效后安装的守卫只提示一次，并把悬浮窗替换为可读的刷新说明",
+    "失效后不再继续发起 chrome.runtime 消息，避免错误风暴",
+    "节流器基础间隔与现状一致，连续失败时按指数退避并有上限，成功后回落",
+    "提供接口级冷却与 Retry-After 解析（秒与 HTTP 日期两种形态）",
+    "1688 的翻页、店铺翻页、详情导入三处限速改为走同一节流器，详情失败会喂给退避",
+    "节流器与上下文模块均有单测，时间可注入，分层守卫基线不增长，类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "运行时韧性单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/shared-extension-context.test.ts tests/shared-request-pacing.test.ts"
+    },
+    {
+      "name": "采集相关回归",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npx vitest run tests/collector-1688.test.ts tests/collector-pdd-page-data.test.ts tests/collector-taobao-page-data.test.ts"
+    },
+    {
+      "name": "分层依赖守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps"
+    },
+    {
+      "name": "类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    }
+  ]
+}

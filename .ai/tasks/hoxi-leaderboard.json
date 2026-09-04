@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "hoxi-leaderboard",
+  "title": "实现模型榜单页 /models",
+  "problem": "P2 已经建好模型数据层,但站点仍然只有一个骨架首页,读者看不到任何数据。榜单页是本站的核心页面,也是「该用什么模型」「哪个更便宜」两个问题的主入口。这一页的难点不在渲染,而在诚实:数据集里 20 个模型只有 11 个有综合分,openWeights 全部未核实,coding/chinese 维度尚无数据,价格还分人民币与美元两种标价——如果照搬一个通用榜单模板,缺失值会被当成 0 参与排序,美元标价会被当成人民币直接比大小,读者据此做的选型判断就是错的。",
+  "expectedOutcome": "/models 呈现全部模型,支持分类 tab 与筛选排序,筛选状态同步到 URL 可分享可回退;缺失值在排序中沉底且显示为「—」而非 0;原始标价按各自币种显示,横向比较用统一折算的混合价,并在页面上写明折算汇率与混合价口径;性价比数字用线性指数、条形用对数刻度并标注;服务端渲染直接输出表格内容以便被搜索引擎抓取。",
+  "constraints": [
+    "只做数据支持得起的功能:coding/chinese 维度尚无数据,不做对应 tab;openWeights 全部未核实,不做开源筛选器;releasedAt 仅 Anthropic 有,不做发布时间列",
+    "缺失值一律显示「—」并在排序中沉底,禁止用 0 兜底",
+    "输入价与输出价按原始币种显示,跨币种比较只允许通过混合价进行,且页面必须写明折算汇率与核对日期",
+    "性价比条形必须使用 valueBarRatio(对数刻度)并在口径说明中标注,数字显示线性 valueIndex",
+    "表格不加卡片外壳、阴影与圆角;数字使用 tabular-nums 并右对齐;价格优势用文字色而非色块",
+    "筛选与排序状态同步到 URL query,不使用 localStorage",
+    "排序筛选在客户端完成,不发请求;首屏内容必须由服务端渲染输出",
+    "遵守主题硬约束:不使用 primary-*、不写 dark: 变体、不使用 @nuxt/ui 组件、类名不得运行时拼接",
+    "所有面向用户的文案走 $t('hoxi.*')"
+  ],
+  "repositories": [
+    {
+      "name": "apay-hoxi",
+      "path": "app/themes/hoxi",
+      "allowedPaths": [
+        "pages/**",
+        "components/**",
+        "composables/**",
+        "layouts/**",
+        "locales/**",
+        "seo.routes.json"
+      ],
+      "claims": [
+        "pages/**",
+        "components/**",
+        "composables/**",
+        "layouts/**",
+        "locales/**",
+        "seo.routes.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/models 渲染全部 20 个模型,分类 tab(综合/性价比/最便宜/最快/长上下文)切换后排序正确",
+    "带 query 直接访问能还原 tab、厂商筛选、推理筛选与价格上限",
+    "无综合分或无速度数据的模型显示「—」,且在按该列排序时始终排在末尾",
+    "页面写明混合价 3:1 口径、美元折算汇率与数据核对日期",
+    "性价比条形按对数刻度渲染并有文字说明,数字为线性指数",
+    "移动端 375px 无横向溢出,表格自身可横向滚动且首列固定",
+    "页面源码中可搜到模型名(服务端渲染),并输出 ItemList 结构化数据",
+    "导航中「模型榜单」由灰字占位改为可点击链接",
+    "主题脚手架自检与模型数据守卫均通过"
+  ],
+  "verification": [
+    {
+      "name": "主题脚手架与硬约束自检",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-theme-scaffold.mjs"
+    },
+    {
+      "name": "模型数据守卫",
+      "repository": "apay-hoxi",
+      "always": true,
+      "command": "node scripts/check-model-data.mjs"
+    }
+  ]
+}

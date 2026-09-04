@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "themes-login-captcha-wiring",
+  "title": "前台全主题登录页面接入滑块验证与防爆破联动",
+  "problem": "前台用户登录防爆破与滑块机制已就绪，但除 official 主题外，qingpu、ainode、design 主题的登录页面尚未接入 CaptchaSlider 组件与失败重试联动逻辑。",
+  "expectedOutcome": "qingpu、ainode、design 主题的登录页面均接入 CaptchaSlider 组件，密码错误达到阈值时自动弹出滑块，校验成功后携带 ticket 完成登录。",
+  "constraints": [
+    "保持各主题原有的页面视觉风格与回跳/重定向逻辑",
+    "必须通过前后台登录安全测试守卫及 npm run prebuild",
+    "不修改契约外文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "pages/auth/login.vue"
+      ],
+      "claims": [
+        "pages/auth/login.vue"
+      ]
+    },
+    {
+      "name": "ainode-theme",
+      "path": "app/themes/ainode",
+      "allowedPaths": [
+        "pages/auth/login.vue"
+      ],
+      "claims": [
+        "pages/auth/login.vue"
+      ]
+    },
+    {
+      "name": "design-theme",
+      "path": "app/themes/design",
+      "allowedPaths": [
+        "auth/login.vue"
+      ],
+      "claims": [
+        "auth/login.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu、ainode、design 主题登录页面引入 CaptchaSlider 组件",
+    "登录失败捕获 needCaptcha / 403 错误并自动唤起滑块",
+    "滑块校验成功后将 ticket 注入登录参数并重新提交",
+    "全量代码通过 prebuild 校验"
+  ],
+  "verification": [
+    {
+      "name": "前后台登录安全与全仓构建门禁",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node ../../../scripts/check-user-login-security.mjs && node ../../../scripts/check-admin-login-security.mjs && npm --prefix ../../.. run prebuild"
+    },
+    {
+      "name": "Qingpu 登录差异格式",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "git diff --check -- pages/auth/login.vue"
+    },
+    {
+      "name": "AInode 登录差异格式",
+      "repository": "ainode-theme",
+      "always": true,
+      "command": "git diff --check -- pages/auth/login.vue"
+    },
+    {
+      "name": "Design 登录差异格式",
+      "repository": "design-theme",
+      "always": true,
+      "command": "git diff --check -- auth/login.vue"
+    }
+  ]
+}
