@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "channel-prompt-extension-wiring",
+  "title": "扩展端接入服务器渠道提示词:取数客户端、短缓存、冻结进生图规格、取不到时降级并提示",
+  "problem": "渠道提示词(正向/负向指令,按渠道×媒体类型×用途×槽位×类目分槽,管理后台可热改)存在网页数据库 qingpu_channel_prompts,但只有网页端生图会用:api/listing/images/generate.ts 与 api/listing/blueprint.ts 在冻结任务规格前调 resolveChannelPromptSnapshotForSelector 塞进 spec。扩展端(Dash/Lite)自己在本地 buildImageGenerationTaskSpec,从不携带 channelPromptSnapshot——src/shared 与 entrypoints 下搜该字段零命中,也没有任何 channel-prompts 客户端。后果:同一商品在网页生一次、在插件生一次受不同提示词支配,管理后台调的渠道指令对插件完全无效且无任何提示,与 AGENTS.md §4.10 的三端同口径要求冲突。",
+  "expectedOutcome": "image-generation-tasks 导出 resolveImageGenerationChannelPromptSelector(channel, product, intent) 作为三端同一的选择器口径(用途/槽位/类目/类目画像);新增 channel-prompt-client 经设备令牌调 GET /api/qingpu/listing/channel-prompts 取生效快照,带按选择器分键的短缓存(默认 5 分钟)与并发去重;requestMainImageGenerationWorkflow 在冻结规格前取快照并传入 buildImageGenerationTaskSpec,取不到(未登录/接口不可用/该渠道未注册)时照常用本地模板生成,并在返回值里标记 channelPromptFallback 供调用方提示;Dash 发布图面板在降级时给一次可见提醒。缓存与快照都带 policyVersion,冻结进规格后可追溯当次用的是哪一版指令。",
+  "constraints": [
+    "取不到渠道提示词绝不阻断生图:降级到本地模板,只提示不报错",
+    "不改 ChannelPromptSnapshot 结构与合并口径(engine 既有单点);不新增 storage 根键,缓存并入既有 storage-caches",
+    "不触发 engine:release;主题侧新增只读接口不在本契约内(主题仓有其他会话未提交改动)"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/shared/channel-prompt-client.ts",
+        "src/shared/storage-caches.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "docs/prompts-inventory.md",
+        "tests/channel-prompt-client.test.ts",
+        "tests/image-generation-channel-prompt-wiring.test.ts"
+      ],
+      "claims": [
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/shared/channel-prompt-client.ts",
+        "src/shared/storage-caches.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "docs/prompts-inventory.md",
+        "tests/channel-prompt-client.test.ts",
+        "tests/image-generation-channel-prompt-wiring.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "resolveImageGenerationChannelPromptSelector:主图意图得到 outputUsage=main_image 无槽位;图集意图带 slotKey;Ozon 商品带 categoryId 与 categoryProfileKey;未注册渠道显式抛出而非套 Ozon",
+    "channel-prompt-client:首次取数打接口,TTL 内同选择器命中缓存不再打;并发同选择器只发一次请求;接口报错/无令牌返回 null 且不抛",
+    "requestMainImageGenerationWorkflow:取到快照时 taskSpec.channelPromptSnapshot 存在且带 policyVersion;取不到时 spec 不含该字段、生图照常进行、返回值 channelPromptFallback 为 true",
+    "Dash 发布图面板:降级时给一次可见提醒,不阻断生成",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/channel-prompt-client.test.ts tests/image-generation-channel-prompt-wiring.test.ts tests/channel-prompt-image-execution.test.ts tests/image-generation-task-factory.test.ts tests/image-generation-task-prompt-freeze.test.ts tests/image-generation-fact-translation-gate.test.ts tests/main-image-generation-fallback.test.ts tests/main-image-generation-ownership.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/shared/channel-prompt-client.ts",
+        "src/shared/storage-caches.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "docs/prompts-inventory.md",
+        "tests/channel-prompt-client.test.ts",
+        "tests/image-generation-channel-prompt-wiring.test.ts"
+      ]
+    }
+  ]
+}
