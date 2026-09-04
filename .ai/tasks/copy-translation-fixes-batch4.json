@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "copy-translation-fixes-batch4",
+  "title": "翻译与文案修复第四批:WB 重复词忽略虚词、「N в 1」不当电压声明、LLM 截断不入翻译记忆、描述中文残留进合规规则并去重",
+  "problem": "2026-09-04 核心链路审查确认的翻译/文案侧问题:(1) findDuplicateWord 把任何 ≥3 字母词出现两次都判为 WB 重复词,「для/или/при/без」这类虚词在标题里出现两次即报 title_duplicate_word,渠道分叉判定据此反复重生成;(2) numericClaims 把「3 в 1」(三合一)里的 в 当伏特单位提取成「3 voltage-v」,证据里没有电压事实即报 unsupported_technical_claim,多合一数据线/工具必踩;(3) callLlmApi 对 finish_reason=length 只 console.warn,截断后经 JSON 修复闭合的最后一条(或被截断的描述)照常返回并写进翻译记忆,永久命中脏译文;(4) validateListingDescription 没有中文残留规则:WB 渠道的共享描述含中文也判合规、不分叉,Ozon mapper 则在规则之外另拼「介绍含未翻译的中文」,规则源不一。",
+  "expectedOutcome": "findDuplicateWord 忽略俄/英虚词;numericClaims 提取前剥掉「N в M」(个位数)合一表述;callLlmApi 返回截断标记,translateText 截断不入记忆、translateSkuNames/translateProductAllText 丢弃最后一条(或被截断的描述/标题)且不入记忆;validateListingDescription 新增 desc_cjk,Ozon mapper 改为消费规则结果不再自拼中文残留文案,文案不重复。",
+  "constraints": [
+    "不改提示词正文;不改渠道 manifest;不新增 storage 键",
+    "不触发 engine:release,不改 apay 主题;不动其他会话的未提交文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/listing-compliance/text-rules.ts",
+        "src/domain/listing-compliance/channel-rules.ts",
+        "src/domain/listing-copy/context.ts",
+        "src/shared/pipeline/translator.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/listing-text-compliance.test.ts",
+        "tests/listing-copy.test.ts",
+        "tests/translator-truncation.test.ts",
+        "tests/channel-listing-compliance.test.ts"
+      ],
+      "claims": [
+        "src/domain/listing-compliance/text-rules.ts",
+        "src/domain/listing-compliance/channel-rules.ts",
+        "src/domain/listing-copy/context.ts",
+        "src/shared/pipeline/translator.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/listing-text-compliance.test.ts",
+        "tests/listing-copy.test.ts",
+        "tests/translator-truncation.test.ts",
+        "tests/channel-listing-compliance.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "「Кабель для телефона и для планшета」WB 校验不报 title_duplicate_word;「Кабель зарядный кабель」仍报",
+    "「Кабель 3 в 1」在无电压证据时不报 unsupported_technical_claim;「220 В」电压声明仍按原逻辑校验",
+    "finish_reason=length:translateText 结果不写记忆;translateSkuNames 丢弃最后一条且不写记忆;translateProductAllText 被截断的最后字段不写记忆",
+    "含中文的描述 validateListingDescription 报 desc_cjk;Ozon 草稿校验对同一描述只出现一条中文残留文案",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/listing-text-compliance.test.ts tests/listing-copy.test.ts tests/listing-copy-evidence-cjk.test.ts tests/translator-truncation.test.ts tests/channel-listing-compliance.test.ts tests/channel-copy-override.test.ts tests/ozon-validation-messages.test.ts tests/product-text-translation.test.ts tests/attribute-translation.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/domain/listing-compliance/text-rules.ts",
+        "src/domain/listing-compliance/channel-rules.ts",
+        "src/domain/listing-copy/context.ts",
+        "src/shared/pipeline/translator.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "tests/listing-text-compliance.test.ts",
+        "tests/listing-copy.test.ts",
+        "tests/translator-truncation.test.ts",
+        "tests/channel-listing-compliance.test.ts"
+      ]
+    }
+  ]
+}
