@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "sku-prompt-tests-realign",
+  "title": "SKU 生图与发布图集测试对齐新策略:守卫改名、俄文规格胶囊放开、SKU 图集剔除 SPU 主图",
+  "problem": "提交 25dec92d(多规格免抽象产品主图并确立 Hero SKU)有意变更了三处策略,但 5 个既有测试仍钉着旧红线,主线全量测试红着:(1) SKU 保真守卫条款从 ENHANCEMENT ONLY 更名为 ENHANCEMENT & PRESENTATION,并新增不许给商品改色、不许把文字印到商品本体两条更严的约束;(2) sku-parser 的安全标签从「颜色轴完全排除」改为「允许已翻译且无中文的俄文规格胶囊(含颜色)」,中文原值仍然禁止;(3) ozon-factory 的 SKU 图集跟随时剔除 SPU 主图,防买家切到蓝色规格却在第二张看到红色主图。旧测试断言 toContain('ENHANCEMENT ONLY')、not.toContain('черный'/'Оранжевый'/'Safe Russian SKU variant labels')、SKU 图集应含 SPU 主图,全部与新策略冲突。",
+  "expectedOutcome": "5 个失败用例按新策略重写,且钉住新红线而不是只改到通过:守卫测试断言新条款名与 never redesign or recolor the merchandise、Never print overlay text onto the product body;安全标签测试断言颜色轴以俄文形式产出(Цвет: черный)且中文原值仍被排除;两个 sku_image 提示词测试断言俄文胶囊允许出现、中文原值与未翻译值仍不得出现;发布测试断言 SKU 图集置顶专属主图并剔除 SPU 主图、只跟随通用轮播图。不改任何源码。",
+  "constraints": [
+    "只改测试,不动源码:新策略是用户已确认的产品决策",
+    "不得把断言放宽成空壳:每条旧红线要么保留,要么换成对应的新红线",
+    "不触发 engine:release,不改 apay 主题"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "tests/set-anchor-reference.test.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/ozon-publish.test.ts"
+      ],
+      "claims": [
+        "tests/set-anchor-reference.test.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/ozon-publish.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "守卫测试:断言 ENHANCEMENT & PRESENTATION、COLOR LOCK、never redesign or recolor the merchandise 同时成立",
+    "安全标签测试:颜色轴产出 Цвет: черный,含中文的型号轴仍被排除,标签整体不含任何中文",
+    "sku_image 提示词测试:俄文胶囊允许出现,中文原值(黑色/530橙色胸背带熊头/米白色胸背带熊头)与未翻译尺码仍不得出现",
+    "发布测试:细线 SKU 图集首张为其专属译图,不含 SPU 主图 1p.jpg;USB4 未处理原图仍不出厂",
+    "typecheck、相关 vitest、check:deps、build 通过,全量测试只剩已知偶发的 ONNX 超时"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/set-anchor-reference.test.ts tests/asset-prompt-contracts.test.ts tests/ozon-publish.test.ts tests/sku-prompt-evidence.test.ts tests/image-blueprint.test.ts tests/ozon-single-sku-payload.test.ts tests/published-image-refs.test.ts && npm run check:deps && npm run build",
+      "covers": [
+        "tests/set-anchor-reference.test.ts",
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/ozon-publish.test.ts"
+      ]
+    }
+  ]
+}
