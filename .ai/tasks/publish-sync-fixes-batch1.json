@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "publish-sync-fixes-batch1",
+  "title": "发布与同步修复第一批:草稿图集不再补 1688 原图、Ozon 轮询按渠道态判终态、同步计划读生产形状的规格轴值、首查即成功商品保持轮询",
+  "problem": "2026-09-04 核心链路审查确认的四个发布侧问题:(1) collectOzonDraftImageUrls 用 canonical 原图把图集补足到 10 张,与 collectPublishImageUrls「未处理原图永不进最终发布」硬规则直接冲突,中文水印原图与已翻译图的同槽位重复一起进 v3 payload(探针:发布规则只给 1 张译图,草稿却带 7 张);(2) syncOzonImportTasks 用 applyOzonSubmissionState 写回的 compat status 做控制流,而该值经 resolveCompatProductStatus 跨渠道派生——商品已在 WB 上线时,Ozon 仍在审核/已失败也被判 published:提前推库存、publishedCount++、云端记录写 published、失败永不计数;(3) sync-plan 的 projectVariantForContent 读 aspect.finalValue,草稿 OzonDraftVariant.aspectAttributes 只有 value——非字典规格轴改值永远算无变更,测试夹具用的是巡检形状所以是绿的;(4) 发布处理器对首查即成功的商品一律落 publishing 交给轮询,但响应 pendingCount 只数 driver 的 pendingProducts,background 仅在 pendingCount>0 时建 alarm——全部首查成功的批次没有 alarm,商品卡在「等待平台确认」直到 SW 重启,Dash 同时提示全部成功并清勾选。",
+  "expectedOutcome": "draft-media 删除 canonical 原图补足段,草稿图集只含发布规则允许的已处理资产(空则回落 workspaceImages);publish-tracking/ozon 新增纯函数 resolveOzonTrackerOutcome(product) 按 Ozon 渠道态返回 published/failed/pending,主循环的库存推送、计数、newlyPublished、队列文案、云端记录状态全部改用它;sync-plan 行级投影读 aspect.value ?? aspect.finalValue,并补生产形状用例;publish 处理器响应的 pendingCount 改为「本次落 publishing 的已提交商品数」(首查成功也算处理中),publishedCount 在提交路径恒为 0(published 只由轮询器产出),Dash 据此显示「处理中」而非清勾选。",
+  "constraints": [
+    "不改任务规格/发布 payload 协议形状;不改 compat status 的派生规则本身(展示层仍可读),只把轮询器控制流从 compat 切到渠道态",
+    "草稿图集不得含任何未处理原图;不引入新的补图来源",
+    "不触发 engine:release,不改 apay 主题"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/draft-media.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/app/handlers/publish.ts",
+        "tests/channel-sync-plan.test.ts",
+        "tests/ozon-import-sync.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/ozon-draft-media.test.ts",
+        "tests/ozon-publish-tracker-outcome.test.ts",
+        "docs/image-asset-model.md"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/draft-media.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/app/handlers/publish.ts",
+        "tests/channel-sync-plan.test.ts",
+        "tests/ozon-import-sync.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/ozon-draft-media.test.ts",
+        "tests/ozon-publish-tracker-outcome.test.ts",
+        "docs/image-asset-model.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "只有 1 张译图 + 6 张未处理原图的商品:collectOzonDraftImageUrls 只返回译图引用,不含任何 cbu01/1688 原图 URL",
+    "WB 已 succeeded 的商品,Ozon 渠道态 processing/failed 时:resolveOzonTrackerOutcome 返回 pending/failed,轮询器不推库存、不计 published、云端记录状态为 pending/failed",
+    "同步计划:生产形状变体(aspectAttributes[].value)规格轴值 1→2 判 content 变更;巡检形状用例保持通过",
+    "发布处理器:driver 首查即成功的商品仍计入 pendingCount(>0),publishedCount 为 0,渠道态 processing 带 taskId",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/ozon-draft-media.test.ts tests/ozon-publish-tracker-outcome.test.ts tests/channel-sync-plan.test.ts tests/ozon-import-sync.test.ts tests/channel-status-isolation.test.ts tests/channel-publish-handler.test.ts tests/published-image-refs.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/domain/channel-mappers/ozon/draft-media.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/domain/channel-mappers/sync-plan.ts",
+        "src/app/handlers/publish.ts",
+        "tests/channel-sync-plan.test.ts",
+        "tests/ozon-import-sync.test.ts",
+        "tests/channel-publish-handler.test.ts",
+        "tests/ozon-draft-media.test.ts",
+        "tests/ozon-publish-tracker-outcome.test.ts",
+        "docs/image-asset-model.md"
+      ]
+    }
+  ]
+}
