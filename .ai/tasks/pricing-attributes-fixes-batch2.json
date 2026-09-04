@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "pricing-attributes-fixes-batch2",
+  "title": "定价与属性修复第二批:费率百分比容错与 Lite 百分比输入、取整规则落工作区、零采购价告警、必填规格轴按行满足、多规格缺必填规格轴阻断、LLM 填参经写入门",
+  "problem": "2026-09-04 核心链路审查确认的定价与属性侧问题:(1) Lite 核价侧栏费率输入标签是「类目佣金 %」「目标利润 %」等百分比语义(max 95),却直接绑定存储的小数费率(0.17),用户填 15 即存 15=1500%,normalizePricingConfig 对 commission/profit/ad/other/return 六个费率没有 frontDiscountRate 那样的 >1 百分比容错,利润公式直接算出荒谬价;(2) applyAutoPricingToProductDraft 用 settings.priceRoundRule 算商品级建议价,但 deriveVariantPriceRub 读 workspace.pricing.priceRoundRule(类型上不存在、无人写入)恒回落 to9,to99 用户的 SKU 行派生价与商品级建议价尾数不一致;(3) buildProductPricingSummary 在有售价但采购价为 0 时按零成本算利润并显示「利润健康」,零成本诊断只在无售价分支出现;(4) 通用必填检查只看商品级 mappedIds,多规格商品的必填规格轴(如 required 的商品颜色)值天然落在行级,每行都有却报「缺少必填属性: 商品颜色」;(5) 变体巡检已有 missing_aspect 状态(必填规格轴为空)但多规格阻断只数 missing_price/missing_option_values,缺必填规格轴的 SKU 草稿仍判就绪,v3 导入才失败;(6) aiFillOzonAttributesWorkflow 与 runSpeculativeRequiredFill 的 LLM 结果直接 setOzonAttributeOverride(...,'ai') 绕过 commitOzonAttributeFill 写入门,字典型不带 dictionary_value_id、policy/boolean/count/physical_fact 等合同禁止 LLM 的类也进计划并落值。",
+  "expectedOutcome": "pricing-defaults 新增费率小数归一化(>1 视为百分比除以 100)并用于六个费率,导出百分比输入双向换算口径供 Lite 使用,Lite 侧栏费率输入改为百分比代理(显示 ×100,写回 ÷100);ListingWorkspacePricing 增加 priceRoundRule 字段,applyAutoPricingToProductDraft 与侧栏应用售价时写入,mapper 派生价读该字段;定价摘要在有售价但采购价缺失时输出 missing-cost 诊断且 tone 不得为 good;mapper 通用必填检查把「每个变体行都有非空终值的必填规格轴」计入 satisfiedByVariantIds,多规格且存在 missing_aspect 行时输出阻断文案;AI 填参计划只含合同允许 llm 来源的属性,LLM 结果统一经 commitOzonAttributeFill(source:'llm',字典型携带候选 id),陈旧中文 AI 值的纠偏先清旧覆盖再经门写入、失败则还原。",
+  "constraints": [
+    "不改利润公式与发布 payload;费率存储语义仍是小数,只加容错与 UI 换算",
+    "不改属性合同分类表 SOURCE_ORDER;不新增 storage 键",
+    "不触发 engine:release,不改 apay 主题;不动其他会话的未提交文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/pricing-defaults.ts",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "src/domain/workspace/types.ts",
+        "src/app/workflows/pricing-workflow.ts",
+        "src/app/composables/usePricingSidebarPersistence.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/shared/pipeline/product-pricing-summary.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "scripts/check-deps.mjs",
+        "tests/pricing-defaults.test.ts",
+        "tests/ai-attribute-fill.test.ts",
+        "tests/ozon-variant-aspect-guard.test.ts",
+        "tests/pricing-workflow-round-rule.test.ts",
+        "tests/product-pricing-summary-zero-cost.test.ts"
+      ],
+      "claims": [
+        "src/shared/pricing-defaults.ts",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "src/domain/workspace/types.ts",
+        "src/app/workflows/pricing-workflow.ts",
+        "src/app/composables/usePricingSidebarPersistence.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/shared/pipeline/product-pricing-summary.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "scripts/check-deps.mjs",
+        "tests/pricing-defaults.test.ts",
+        "tests/ai-attribute-fill.test.ts",
+        "tests/ozon-variant-aspect-guard.test.ts",
+        "tests/pricing-workflow-round-rule.test.ts",
+        "tests/product-pricing-summary-zero-cost.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "normalizePricingConfig({ profitRate: 15, commissionRate: 17 }) 得到 0.15/0.17;0.15 原样保留;百分比输入换算 0.17→17、17→0.17 往返一致",
+    "applyAutoPricingToProductDraft 后 workspace.pricing.priceRoundRule 等于 settings.priceRoundRule,to99 下 SKU 派生价尾数为 99",
+    "有售价但 costPriceCny=0 的商品:diagnostics 含 missing-cost,tone 不为 good",
+    "多规格商品每行都映射出 required 规格轴值时,不再报「缺少必填属性: <该规格轴>」;有行缺该值时输出多规格缺必填规格轴阻断文案且 ready=false",
+    "LLM 填参:字典型结果落 override 且候选表含该 id;policy/boolean 类属性不进计划、不落值;手填值不被覆盖;陈旧中文 AI 值被纠偏替换",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/pricing-defaults.test.ts tests/ai-attribute-fill.test.ts tests/ai-attribute-fill-dictionaries.test.ts tests/ozon-variant-aspect-guard.test.ts tests/ozon-model-name-split.test.ts tests/ozon-merge-card.test.ts tests/ozon-attribute-mapping.test.ts tests/pricing-workflow-round-rule.test.ts tests/product-pricing-summary-zero-cost.test.ts tests/pricing-sidebar-write.test.ts tests/pricing-packaging-follow.test.ts tests/ozon-attribute-contract.test.ts tests/ozon-defaults.test.ts tests/publish-strategy-pricing.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/shared/pricing-defaults.ts",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "src/domain/workspace/types.ts",
+        "src/app/workflows/pricing-workflow.ts",
+        "src/app/composables/usePricingSidebarPersistence.ts",
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/shared/pipeline/product-pricing-summary.ts",
+        "src/app/workflows/ai-attribute-fill-workflow.ts",
+        "scripts/check-deps.mjs",
+        "tests/pricing-defaults.test.ts",
+        "tests/ai-attribute-fill.test.ts",
+        "tests/ozon-variant-aspect-guard.test.ts",
+        "tests/pricing-workflow-round-rule.test.ts",
+        "tests/product-pricing-summary-zero-cost.test.ts"
+      ]
+    }
+  ]
+}
