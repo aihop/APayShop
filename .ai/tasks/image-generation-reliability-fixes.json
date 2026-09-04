@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "image-generation-reliability-fixes",
+  "title": "生图链路可靠性修复第一批:重试不换 planId、停止不泄漏、上传失败不丢图、提交未知可续、停止/失败记账、水印站范围、门禁文案可见、顺序条移除回落",
+  "problem": "2026-09-04 生图链路审查确认的一批问题:(1) generateMainImageWithRetry 重试不带 planId,工厂随机新号,超时后保留凭据的旧任务与新提交双双付费;(2) 批量主图「停止」后未开跑的商品永久留在 generatingMainImageIds 与 Dash 忙态,只能刷新;(3) 网关返回 b64 且自定义图床上传失败时,已付费成品被丢弃并摘掉续领凭据,错误文案又被判瞬时再付一次;(4) 提交结果未知(5xx/超时)被判 permanent,凭据悬空无人续领;(5) 启动/周期恢复续领成功后只写主图/SKU 指针,不写语义卡位当前版本与图集入队,先于后台落库时后台路径被判抢占,副作用丢失;(6) 蓝图站不接工作流返回值,逐图失败不记账,账本全 done、续跑跳过;停止信号进不了蓝图内部,补漏轮与 QA 重生成照常付费提交;(7) 水印站对整批商品(含内容准备失败、被拦的)打水印,未翻译原图被当作已处理版本进入发布;(8) 蓝图收尾「生成图插队首」是死代码,后台已按完成序追加队尾;(9) 门禁/配置/忙态文案在页面层被 formatUserFacingError 吞成「生成失败」;(10) Dash 顺序条移除最后一张非主图后写回空队列,回落默认序后图又回来且会发出去。",
+  "expectedOutcome": "generateMainImageWithRetry 首次即固定 planId 并两次沿用(重试走 mode 的 resume-before-resubmit);startMainImageGenerationWorkflow 在队列结束后清理未开跑商品的防重 id 并广播新增 status='stopped'(Dash 同步为「已停止」、不弹错、解除忙态);mode 上传失败降级为 dataUrl-only done 资产(与未配图床同口径);classifyGenerationError 对 state-unknown 错误返回 transient;task-recovery 续领成功时补写 setGeneratedImageSlotCurrentVersion 与 gallery 显式队列追加;runBlueprintStation 接返回值按逐图失败记账并把 control 传入工作流,工作流在派发任务/补漏/QA 前检查停止并把未开跑占位槽标「已停止」;水印站只跑 prepared.succeededProductIds;蓝图收尾把本轮生成的轮播按生成序移到队首;ImageGenerationGateError 标记 userFacing,formatUserFacingError 放行该类错误并新增「请先配置/生成中|进行中」规则;removePublishedImageAsset 结果为空时按默认序物化(剔除被移除项与主图)。",
+  "constraints": [
+    "不改工作流图、不改任务规格协议形状(仅 MainImageProgressPayload.status 兼容新增 'stopped')",
+    "重试层级不新增:只让既有层级复用 planId/凭据",
+    "水印站与蓝图站的范围收敛到内容准备成功的商品;不改手动批量水印语义",
+    "不触发 engine:release,不改 apay 主题"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/domain/image-modes/generation-errors.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/shared/i18n.ts",
+        "src/app/workflows/image-generation-gate.ts",
+        "src/shared/ui-broadcast.ts",
+        "src/app/workflows/dashboard-runtime-sync-workflow.ts",
+        "entrypoints/dash/composables/useDashRuntimeSync.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "tests/image-generation-reliability.test.ts",
+        "tests/image-generation-fact-translation-gate.test.ts",
+        "docs/task-system.md"
+      ],
+      "claims": [
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/domain/image-modes/generation-errors.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/shared/i18n.ts",
+        "src/app/workflows/image-generation-gate.ts",
+        "src/shared/ui-broadcast.ts",
+        "src/app/workflows/dashboard-runtime-sync-workflow.ts",
+        "entrypoints/dash/composables/useDashRuntimeSync.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "tests/image-generation-reliability.test.ts",
+        "tests/image-generation-fact-translation-gate.test.ts",
+        "docs/task-system.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "瞬时失败后重试:两次 buildImageGenerationTaskSpec 收到同一 planId;非瞬时不重试",
+    "批量主图停止:队列结束后未开跑商品的防重 id 被清理,收到 status='stopped' 广播,再次发起不再报「都在生成中」",
+    "mode 上传抛错:资产落 done 且带 dataUrl,不进失败分支、凭据已清、不触发重试",
+    "state-unknown 错误分类为 transient;明确终态失败仍为 permanent/config",
+    "恢复续领成功:主图指针/SKU override 之外,语义卡位当前版本与 gallery 显式队列一并写入",
+    "蓝图站:逐图失败进账本;control 停止后不再派发新任务、未开跑占位槽标已停止;水印站只处理内容准备成功的商品",
+    "蓝图收尾:本轮生成的轮播按生成序位于显式队列最前",
+    "formatUserFacingError 原样返回门禁文案;「请先配置图片模型 API Key」「都在生成中」映射到可读分类",
+    "顺序条移除最后一张非主图:写回的是默认序去掉该图(与主图),不再回落成原队列",
+    "typecheck、相关 vitest、check:deps、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/image-generation-reliability.test.ts tests/image-generation-fact-translation-gate.test.ts tests/main-image-generation-ownership.test.ts tests/task-recovery-translation.test.ts tests/image-generation-error-classification.test.ts tests/image-blueprint-generation-ownership.test.ts tests/pipeline-reference-snapshot.test.ts tests/automation-ledger-settle.test.ts && npm run check:deps && npm run build",
+      "covers": [
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/domain/image-modes/generation-errors.ts",
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/workflows/automation-stations.ts",
+        "src/app/workflows/automation-pipeline.ts",
+        "src/app/workflows/task-recovery.ts",
+        "src/shared/i18n.ts",
+        "src/app/workflows/image-generation-gate.ts",
+        "src/shared/ui-broadcast.ts",
+        "src/app/workflows/dashboard-runtime-sync-workflow.ts",
+        "entrypoints/dash/composables/useDashRuntimeSync.ts",
+        "entrypoints/dash/composables/usePublishImagePanel.ts",
+        "tests/image-generation-reliability.test.ts",
+        "tests/image-generation-fact-translation-gate.test.ts",
+        "docs/task-system.md"
+      ]
+    }
+  ]
+}

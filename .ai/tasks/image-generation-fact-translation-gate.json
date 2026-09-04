@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "image-generation-fact-translation-gate",
+  "title": "生图前置门禁:采集事实翻译未完成时拒绝主图/图集/SKU 图生成(扩展三入口 + 引擎出口)",
+  "problem": "三端共享工作流图已声明 images 节点 requires_success translate_facts,网页端蓝图接口也据此返回 409;但扩展端 Dash/Lite 的手动生图入口(AI 主图单品/批量、补图/完全生图、SKU 主图补齐、槽位生成)直接调 requestMainImageGenerationWorkflow / runImageBlueprintGenerationWorkflow,只检查图片模型 Key 与视觉分析,没有翻译门禁。生图提示词的 SKU 规格芯片只认 nameRu/attrsRu(sku-parser 明确拒喂中文),没做事实翻译就生图会丢芯片、把中文事实交给 planner 临场翻译;Ozon 图片要求禁止汉字作信息图文字。生图是全链最贵一步,翻译后返工等于双倍付费。",
+  "expectedOutcome": "新增 src/app/workflows/image-generation-gate.ts 作为单点:isFactTranslationComplete(product) 复用 collectFactTranslationNeeds(采集事实口径,与 listing-status-presenter 的 translate_facts 就绪判定同一函数),assertImageGenerationFactTranslationReady(product, intentKind) 对 main/gallery/sku/regenerate 四类意图抛统一文案「生图前置未完成:请先执行采集事实翻译」(与网页端 409 文案一致),localized/refine 不拦。三处接线:requestMainImageGenerationWorkflow 冻结 spec 前断言(覆盖 Dash/Lite 全部手动入口);runImageBlueprintGenerationWorkflow 在注册占位槽/视觉分析前断言(不花钱、不留失败槽);后台 PLAN_MAIN_IMAGE_GENERATION 处理器按最新商品复核为权威门禁。startMainImageGenerationWorkflow 所选商品全部被拦时直接抛门禁文案。product-text-translation 抽出 collectFactTranslationNeeds,presenter 改用它;engine index 导出门禁与事实口径供网页端后续接单图接口;caliber-redefine 守卫登记新口径;image-asset-model.md 记录门禁规则。",
+  "constraints": [
+    "门禁判据只认「采集事实翻译缺口为空」(includeListingCopy=false、includeManualOzonAttributes=false),不引入 sticky 布尔或新 storage 键",
+    "不改工作流图依赖、不改任务策略语义、不新增消息协议;仅在既有调用链上加断言",
+    "不触发 engine:release、不改 apay 主题(主题单图接口另建契约,当前主题工作区有其他会话改动)",
+    "被拦时不得注册占位槽、不得调用视觉分析或图片模型;文案与网页端 409 完全一致"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/app/workflows/image-generation-gate.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/handlers/pipeline.ts",
+        "src/app/presenters/listing-status-presenter.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/image-generation-fact-translation-gate.test.ts",
+        "docs/image-asset-model.md"
+      ],
+      "claims": [
+        "src/app/workflows/image-generation-gate.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/handlers/pipeline.ts",
+        "src/app/presenters/listing-status-presenter.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/image-generation-fact-translation-gate.test.ts",
+        "docs/image-asset-model.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "含未翻译中文维度名/规格值/参数的商品:requestMainImageGenerationWorkflow(main/gallery/sku/regenerate)在发送 PLAN_MAIN_IMAGE_GENERATION 前抛「生图前置未完成:请先执行采集事实翻译」;localized 意图不受影响",
+    "同一商品 runImageBlueprintGenerationWorkflow 抛门禁文案且不注册任何占位槽、不调用视觉分析/图片模型",
+    "后台 PLAN_MAIN_IMAGE_GENERATION 处理器按最新商品复核:未就绪返回 success=false + 门禁文案,不进入 runImageMode",
+    "事实翻译完成(维度名 nameRu 俄语、规格值/参数有译文)或商品本无中文事实时,三处均放行;computeDraftReadiness 的 translate_facts 步骤与门禁判定同源",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过;新增口径登记进 caliber-redefine 守卫"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/image-generation-fact-translation-gate.test.ts tests/product-text-translation.test.ts tests/listing-status-presenter.test.ts tests/main-image-generation-fallback.test.ts tests/image-blueprint-generation-ownership.test.ts tests/image-generation-task-factory.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/app/workflows/image-generation-gate.ts",
+        "src/app/workflows/product-text-translation.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "src/app/handlers/pipeline.ts",
+        "src/app/presenters/listing-status-presenter.ts",
+        "src/engine/index.ts",
+        "scripts/check-deps.mjs",
+        "tests/image-generation-fact-translation-gate.test.ts",
+        "docs/image-asset-model.md"
+      ]
+    }
+  ]
+}
