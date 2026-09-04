@@ -14,6 +14,10 @@ const PROXIED_IMAGE_HOSTS = [
 const shouldProxyImage = (value: string) => {
   try {
     const hostname = new URL(value).hostname.toLowerCase()
+    // AI 生成图与托管图（如 ainoderun、OSS 等）直出，不走反向代理
+    if (hostname.includes('ainoderun') || hostname.includes('.oss-') || hostname.startsWith('oss-')) {
+      return false
+    }
     return PROXIED_IMAGE_HOSTS.some(domain => hostname === domain || hostname.endsWith(`.${domain}`))
   }
   catch {
