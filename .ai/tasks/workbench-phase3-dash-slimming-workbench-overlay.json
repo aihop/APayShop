@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "workbench-phase3-dash-slimming-workbench-overlay",
+  "title": "单品工作台 Phase 3: Dash 表格大瘦身与单品工作台覆层联通",
+  "problem": "当前 Dash 列表行内嵌展开了极其冗长沉重的子表 DOM（包含 SkuSubTable 与多份 ProductPublishAssetsPanel），导致多商品场景下表格渲染迟钝；且单品编辑能力与 Lite 形成重复维护。需要让 Dash 表格彻底大瘦身，将单品精修收敛为通过单品工作台覆层（嵌入已具备完整能力的 Lite 单品工作台）无缝编辑与双向同步。",
+  "expectedOutcome": "Lite 支持通过 productId 查询参数快速载入指定商品；Dash 表格行移除内嵌展开冗长 DOM，收拢为「精修」动作入口；Dash 表格接入 SingleProductWorkbenchModal 覆层，点击精修即可弹出独立/浮层单品精修工作台，关闭时自动双向同步刷新 Dash 状态；通过 check:deps、typecheck 与全套构建验证。",
+  "constraints": [
+    "严格遵守分层依赖守卫 (scripts/check-deps.mjs)，src 内部不得反向 import entrypoints",
+    "保证 Dash 批量调度与流水线执行功能 100% 行为兼容不受影响",
+    "保证 Lite 单品工作台的跨窗口与 iframe 消息通信安全可用",
+    "只修改契约 claims 中的路径"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "entrypoints/dash/SingleProductWorkbenchModal.vue",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue"
+      ],
+      "claims": [
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "entrypoints/dash/SingleProductWorkbenchModal.vue",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "useLiteWorkbench 支持通过 URL ?productId= 参数直接恢复/载入指定商品",
+    "ListingWorkbenchTableRow 移除行内冗长展开 DOM，收拢为「精修」按钮与明确动作",
+    "Dash 接入 SingleProductWorkbenchModal 覆层，点击精修即可调起 Lite 单品工作台并支持多窗口弹窗",
+    "工作台关闭时与 Dash 运行时状态自动同步",
+    "npm run check:deps 分层守卫检查通过",
+    "npm run typecheck 检查通过",
+    "npm run build 打包成功"
+  ],
+  "verification": [
+    {
+      "name": "类型/守卫/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npm run build",
+      "covers": [
+        "entrypoints/lite/composables/useLiteWorkbench.ts",
+        "entrypoints/dash/SingleProductWorkbenchModal.vue",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue"
+      ]
+    }
+  ]
+}

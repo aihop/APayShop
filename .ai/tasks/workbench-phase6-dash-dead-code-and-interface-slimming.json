@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "workbench-phase6-dash-dead-code-and-interface-slimming",
+  "title": "单品工作台 Phase 6: Dash 冗余包装物理清理与表格接口精简",
+  "problem": "在完成单品工作台与 Dash 表格内联展开剥离后，entrypoints/dash 下遗留了不再使用的包装壳 ProductPublishAssetsPanel.vue 与 PricingSidebar.vue；同时 ListingWorkbenchTableRow 和 ListingWorkbenchTable 中残留了 7 个死 props、4 个死 emits 以及无用的计算属性，需要安全清理以减少体积和无用计算开销。",
+  "expectedOutcome": "1. 彻底物理删除 entrypoints/dash/ProductPublishAssetsPanel.vue 和 entrypoints/dash/PricingSidebar.vue；\n2. DashLayout.vue 直接导入 @/components/pricing/PricingSidebar.vue；\n3. 清理 ListingWorkbenchTableRow.vue 中的死 props（expanded、expandedMinHeight、expandedStickyTop、generatingMain、generatingLocalizedSlotIds、generatingSkuImageKeys、aiFilling）；\n4. 清理 ListingWorkbenchTable.vue 中的死 emits（translate-image、edit-image、generate-main-image、generate-sku-image）、死 props 及冗余计算逻辑；\n5. 清理 DashLayout.vue 向表格传递的废弃绑定；\n6. 通过 check:deps、typecheck、构建及单测验证。",
+  "constraints": [
+    "严格遵守分层依赖守卫 (scripts/check-deps.mjs)，src 内部不得反向 import entrypoints",
+    "保证 Dash 列表和单品精修工作台 100% 正常运行",
+    "避让其他并发任务的租约（无重合）",
+    "只修改契约 claims 中的 5 个文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/dash/ProductPublishAssetsPanel.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue",
+        "entrypoints/dash/DashLayout.vue"
+      ],
+      "claims": [
+        "entrypoints/dash/ProductPublishAssetsPanel.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue",
+        "entrypoints/dash/DashLayout.vue"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "删除 2 个冗余文件",
+    "表格与行组件移除全部死 props 与死 emits",
+    "npm run check:deps 分层守卫检查通过",
+    "npm run typecheck 检查通过",
+    "npm run build 打包成功",
+    "相关单测全部通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/守卫/构建/单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npm run build && npx vitest run tests/pricing-sidebar-write.test.ts tests/price-display.test.ts",
+      "covers": [
+        "entrypoints/dash/ProductPublishAssetsPanel.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "entrypoints/dash/ListingWorkbenchTable.vue",
+        "entrypoints/dash/DashLayout.vue"
+      ]
+    }
+  ]
+}

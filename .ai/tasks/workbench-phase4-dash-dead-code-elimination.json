@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "workbench-phase4-dash-dead-code-elimination",
+  "title": "单品工作台 Phase 4: Dash 废弃组件与死代码安全清理",
+  "problem": "在 Phase 2 发布资产面板下沉与 Phase 3 列表去子表收敛为单品工作台覆层后，entrypoints/dash 目录下遗留了 18 个全仓 0 引用的废弃组件（SkuSubTable 族、PublishAssets 族、旧版 composables/presenter、旧版工作线程及无用工具）。需要安全清理这些死代码，完成物理与架构层面的大瘦身。",
+  "expectedOutcome": "彻底清理 entrypoints/dash 下的 18 个孤儿文件（~130KB）；通过 check:deps、typecheck、构建及全部测试。",
+  "constraints": [
+    "严格遵守分层依赖守卫 (scripts/check-deps.mjs)，src 内部不得反向 import entrypoints",
+    "保证 Dash 批量调度与发布功能 100% 行为兼容不受影响",
+    "避让其他并发任务正在修改的租约文件（保留 usePublishImagePanel 暂不在此处清理）",
+    "只修改契约 claims 中的路径"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/dash/SkuSubTable.vue",
+        "entrypoints/dash/SkuSubTableHead.vue",
+        "entrypoints/dash/SkuSubTableRow.vue",
+        "entrypoints/dash/SkuSubTableToolbar.vue",
+        "entrypoints/dash/PublishAssetsDescriptionPreview.vue",
+        "entrypoints/dash/PublishAssetsGoalModal.vue",
+        "entrypoints/dash/PublishAssetsOrderStrip.vue",
+        "entrypoints/dash/PublishAssetsOrphanCard.vue",
+        "entrypoints/dash/PublishAssetsScreeningSummary.vue",
+        "entrypoints/dash/PublishAssetsSlotCard.vue",
+        "entrypoints/dash/PublishAssetsToolbar.vue",
+        "entrypoints/dash/PublishAssetsVideoList.vue",
+        "entrypoints/dash/PriceFormulaTooltipContent.vue",
+        "entrypoints/dash/image-worker.ts",
+        "entrypoints/dash/composables/useLocalImageScreening.ts",
+        "entrypoints/dash/composables/useBlueprintGeneration.ts",
+        "entrypoints/dash/composables/useDescriptionImageTranslation.ts",
+        "entrypoints/dash/presenters/publish-asset-presenter.ts"
+      ],
+      "claims": [
+        "entrypoints/dash/SkuSubTable.vue",
+        "entrypoints/dash/SkuSubTableHead.vue",
+        "entrypoints/dash/SkuSubTableRow.vue",
+        "entrypoints/dash/SkuSubTableToolbar.vue",
+        "entrypoints/dash/PublishAssetsDescriptionPreview.vue",
+        "entrypoints/dash/PublishAssetsGoalModal.vue",
+        "entrypoints/dash/PublishAssetsOrderStrip.vue",
+        "entrypoints/dash/PublishAssetsOrphanCard.vue",
+        "entrypoints/dash/PublishAssetsScreeningSummary.vue",
+        "entrypoints/dash/PublishAssetsSlotCard.vue",
+        "entrypoints/dash/PublishAssetsToolbar.vue",
+        "entrypoints/dash/PublishAssetsVideoList.vue",
+        "entrypoints/dash/PriceFormulaTooltipContent.vue",
+        "entrypoints/dash/image-worker.ts",
+        "entrypoints/dash/composables/useLocalImageScreening.ts",
+        "entrypoints/dash/composables/useBlueprintGeneration.ts",
+        "entrypoints/dash/composables/useDescriptionImageTranslation.ts",
+        "entrypoints/dash/presenters/publish-asset-presenter.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "彻底删除 entrypoints/dash 下 18 个无引用的冗余/废弃文件",
+    "npm run check:deps 分层守卫检查通过",
+    "npm run typecheck 检查通过",
+    "npm run build 打包成功",
+    "相关单测全部通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/守卫/构建/单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npm run build && npx vitest run tests/ozon-attribute-dictionary-search.test.ts tests/watermark-entry-contract.test.ts",
+      "covers": [
+        "entrypoints/dash/SkuSubTable.vue",
+        "entrypoints/dash/SkuSubTableHead.vue",
+        "entrypoints/dash/SkuSubTableRow.vue",
+        "entrypoints/dash/SkuSubTableToolbar.vue",
+        "entrypoints/dash/PublishAssetsDescriptionPreview.vue",
+        "entrypoints/dash/PublishAssetsGoalModal.vue",
+        "entrypoints/dash/PublishAssetsOrderStrip.vue",
+        "entrypoints/dash/PublishAssetsOrphanCard.vue",
+        "entrypoints/dash/PublishAssetsScreeningSummary.vue",
+        "entrypoints/dash/PublishAssetsSlotCard.vue",
+        "entrypoints/dash/PublishAssetsToolbar.vue",
+        "entrypoints/dash/PublishAssetsVideoList.vue",
+        "entrypoints/dash/PriceFormulaTooltipContent.vue",
+        "entrypoints/dash/image-worker.ts",
+        "entrypoints/dash/composables/useLocalImageScreening.ts",
+        "entrypoints/dash/composables/useBlueprintGeneration.ts",
+        "entrypoints/dash/composables/useDescriptionImageTranslation.ts",
+        "entrypoints/dash/presenters/publish-asset-presenter.ts"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "workbench-phase5-dash-disable-silent-automation",
+  "title": "单品工作台 Phase 5: 关停 Dash 静默自动跑任务并提供队列手动清空控制",
+  "problem": "当前打开 Dash 时，系统会在后台静默扫描存储中所有未筛图的商品并在后台用 ONNX 进行本地文字识别推理（useDashBootstrap.ts 中的 enqueueAutoScreening()）；同时系统任务设置 DEFAULT_AUTOMATION 中 autoRunOnImport 默认为 true，且 executionMode 默认为 'auto'，导致商品入库或开机后未经用户明确操作就自动启动大批量任务，占用大量 CPU 与 API 额度。同时底部任务队列 ProcessingQueue 缺乏手动清空/停止历史队列条目的交互入口。",
+  "expectedOutcome": "1. 移除 useDashBootstrap.ts 中开机自动调用的 enqueueAutoScreening()，开机零静默扫库；\n2. 将 src/domain/settings/automation.ts 中的任务自动化策略默认值收拢为完全手动：autoRunOnImport 默认 false，executionMode 默认 'manual'，screening 默认 false；\n3. 更新 tests/automation-quota.test.ts 针对默认值的断言；\n4. 在 ProcessingQueue.vue 与 DashLayout.vue 中增加清空已完成队列条目的操作入口；\n5. 手动触发链路（动作栏「开始任务」、批量生图、批量翻译、Lite 工作台）100% 正常可用；\n6. 通过 check:deps、typecheck、构建及自动化单测。",
+  "constraints": [
+    "严格遵守分层依赖守卫 (scripts/check-deps.mjs)，src 内部不得反向 import entrypoints",
+    "保证所有手动触发的流水线和长任务 100% 可用且可追踪",
+    "避让其他并发任务的租约（无重合）",
+    "只修改契约 claims 中的 5 个文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "entrypoints/dash/composables/useDashBootstrap.ts",
+        "src/domain/settings/automation.ts",
+        "entrypoints/dash/ProcessingQueue.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "tests/automation-quota.test.ts"
+      ],
+      "claims": [
+        "entrypoints/dash/composables/useDashBootstrap.ts",
+        "src/domain/settings/automation.ts",
+        "entrypoints/dash/ProcessingQueue.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "tests/automation-quota.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "打开 Dash 不再静默启动全库筛图任务",
+    "系统任务策略默认值改为 manual / false，入库不自动跑流水线",
+    "ProcessingQueue 提供清空已完成任务队列的操作",
+    "npm run check:deps 分层守卫检查通过",
+    "npm run typecheck 检查通过",
+    "npm run build 打包成功",
+    "tests/automation-quota.test.ts 及相关测试全部通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/守卫/构建/单测",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npm run build && npx vitest run tests/automation-quota.test.ts",
+      "covers": [
+        "entrypoints/dash/composables/useDashBootstrap.ts",
+        "src/domain/settings/automation.ts",
+        "entrypoints/dash/ProcessingQueue.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "tests/automation-quota.test.ts"
+      ]
+    }
+  ]
+}

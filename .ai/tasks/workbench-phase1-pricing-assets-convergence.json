@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "workbench-phase1-pricing-assets-convergence",
+  "title": "单品工作台 Phase 1: 共享资产面板与核价侧栏归一",
+  "problem": "Dash 与 Lite 之间存在严重的重复建设与功能割裂：(1) 核价侧栏在 Dash (PricingSidebar.vue, 867行) 与 Lite (LitePricingSidebar.vue, 300行) 各有一套模板，底层共用 usePricingSidebar 但模板漂移，被挂账于 docs/tech-debt-map.md；(2) 资产面板能力在 Dash (ProductPublishAssetsPanel.vue) 拥有完整的发布顺序条、槽位多版本历史和质检报告，但被深埋在 entrypoints/dash 中，受分层守卫限制无法被 entrypoints/lite 引用，导致 Lite 只能使用简陋且缺少版本回溯的 LiteImagePanel；(3) 为了实现 Dash 瘦身与单品工作台对齐，必须先将这两个核心能力下沉为共享组件。",
+  "expectedOutcome": "将核价侧栏下沉为统一的 src/components/pricing/PricingSidebar.vue，支持 Dash、Lite 及抽屉等不同容器形态，清偿 tech-debt-map 挂账并由 Dash/Lite 直接引入；将发布资产面板及其子组件迁移至 src/features/product-workbench/assets/，提供 full 与 compact 自适应布局，使 Dash 表格行与 Lite 均能无缝引入；通过 check:deps、typecheck 与相关单元测试。",
+  "constraints": [
+    "保持与既有 usePricingSidebar 与 usePublishImagePanel 的行为与接口兼容",
+    "严格遵守分层依赖守卫 (scripts/check-deps.mjs)，src 内部不得反向 import entrypoints",
+    "不修改利润公式、发布 payload 与四层数据模型结构",
+    "不动无关文件与并行会话的未提交文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/components/pricing/PricingSidebar.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "src/features/product-workbench/assets/ProductPublishAssetsPanel.vue",
+        "src/features/product-workbench/assets/PublishAssetsOrderStrip.vue",
+        "src/features/product-workbench/assets/PublishAssetsSlotCard.vue",
+        "src/features/product-workbench/assets/PublishAssetsToolbar.vue",
+        "src/features/product-workbench/assets/PublishAssetsScreeningSummary.vue",
+        "src/features/product-workbench/assets/PublishAssetsOrphanCard.vue",
+        "src/features/product-workbench/assets/PublishAssetsVideoList.vue",
+        "src/features/product-workbench/assets/PublishAssetsDescriptionPreview.vue",
+        "src/features/product-workbench/assets/PublishAssetsGoalModal.vue",
+        "src/features/product-workbench/assets/presenters/publish-asset-presenter.ts",
+        "src/features/product-workbench/assets/composables/usePublishImagePanel.ts",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "src/components/pricing/PricingSidebar.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "entrypoints/dash/DashLayout.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "src/features/product-workbench/assets/ProductPublishAssetsPanel.vue",
+        "src/features/product-workbench/assets/PublishAssetsOrderStrip.vue",
+        "src/features/product-workbench/assets/PublishAssetsSlotCard.vue",
+        "src/features/product-workbench/assets/PublishAssetsToolbar.vue",
+        "src/features/product-workbench/assets/PublishAssetsScreeningSummary.vue",
+        "src/features/product-workbench/assets/PublishAssetsOrphanCard.vue",
+        "src/features/product-workbench/assets/PublishAssetsVideoList.vue",
+        "src/features/product-workbench/assets/PublishAssetsDescriptionPreview.vue",
+        "src/features/product-workbench/assets/PublishAssetsGoalModal.vue",
+        "src/features/product-workbench/assets/presenters/publish-asset-presenter.ts",
+        "src/features/product-workbench/assets/composables/usePublishImagePanel.ts",
+        "entrypoints/dash/ListingWorkbenchTableRow.vue",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "新建 src/components/pricing/PricingSidebar.vue 集中收拢核价 UI，Dash 与 Lite 统一复用，docs/tech-debt-map.md 定价侧栏三份 UI 标记还清",
+    "发布资产面板迁移到 src/features/product-workbench/assets/，Dash 原展开行引用保持功能正常，且 entrypoints/lite 可合法引入",
+    "npm run check:deps 分层守卫无新增报错",
+    "npm run typecheck 检查通过",
+    "所有既有定价与图片单测通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/守卫/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/pricing-sidebar-write.test.ts tests/pricing-defaults.test.ts && npm run build",
+      "covers": [
+        "src/components/pricing/PricingSidebar.vue",
+        "entrypoints/dash/PricingSidebar.vue",
+        "entrypoints/lite/LitePricingSidebar.vue",
+        "src/features/product-workbench/assets/ProductPublishAssetsPanel.vue",
+        "docs/tech-debt-map.md"
+      ]
+    }
+  ]
+}

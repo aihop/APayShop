@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "workbench-phase2-lite-listing-capabilities",
+  "title": "单品工作台 Phase 2: 资产面板下沉与 Lite 完整能力注入",
+  "problem": "Lite 缺乏完整的图片资产处理与类目属性管理能力：(1) 当前使用简陋的 LiteImagePanel，无槽位版本追溯、无最终发布顺序条拖拽调序、无本地筛图质检报告；(2) 类目属性缺乏按值搜索字典与多值支持，大类目属性在表格中难以维护；(3) Dash 的 ProductPublishAssetsPanel 能力成熟，但深埋在 entrypoints/dash 无法被 Lite 共享复用。",
+  "expectedOutcome": "将发布资产面板完整下沉至 src/components/publish-assets/，Dash 原路径保持兼容，并在 LiteWorkbench 中接入该资产面板，全面替换老旧的 LiteImagePanel；在 Lite 中接入 AttributeFormDrawer 与 ProductInspectorDrawer，支持属性字典搜索与就绪度诊断；通过 check:deps、typecheck 与全套构建验证。",
+  "constraints": [
+    "严格遵守分层依赖守卫 (scripts/check-deps.mjs)，src 内部不得反向 import entrypoints",
+    "保持与既有 usePublishImagePanel 及相关 image workflow 的业务行为完全兼容",
+    "不破坏 Lite 现有顶栏流水线及上下拖拽分屏交互体验",
+    "不动无关文件与并行会话的未提交文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/components/publish-assets/ProductPublishAssetsPanel.vue",
+        "src/components/publish-assets/PublishAssetsOrderStrip.vue",
+        "src/components/publish-assets/PublishAssetsSlotCard.vue",
+        "src/components/publish-assets/PublishAssetsToolbar.vue",
+        "src/components/publish-assets/PublishAssetsScreeningSummary.vue",
+        "src/components/publish-assets/PublishAssetsOrphanCard.vue",
+        "src/components/publish-assets/PublishAssetsVideoList.vue",
+        "src/components/publish-assets/PublishAssetsDescriptionPreview.vue",
+        "src/components/publish-assets/PublishAssetsGoalModal.vue",
+        "src/components/publish-assets/presenters/publish-asset-presenter.ts",
+        "src/components/publish-assets/composables/usePublishImagePanel.ts",
+        "src/components/publish-assets/composables/useLocalImageScreening.ts",
+        "src/components/publish-assets/composables/useBlueprintGeneration.ts",
+        "src/components/publish-assets/composables/useDescriptionImageTranslation.ts",
+        "entrypoints/dash/ProductPublishAssetsPanel.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "entrypoints/lite/composables/useLiteWorkbench.ts"
+      ],
+      "claims": [
+        "src/components/publish-assets/ProductPublishAssetsPanel.vue",
+        "src/components/publish-assets/PublishAssetsOrderStrip.vue",
+        "src/components/publish-assets/PublishAssetsSlotCard.vue",
+        "src/components/publish-assets/PublishAssetsToolbar.vue",
+        "src/components/publish-assets/PublishAssetsScreeningSummary.vue",
+        "src/components/publish-assets/PublishAssetsOrphanCard.vue",
+        "src/components/publish-assets/PublishAssetsVideoList.vue",
+        "src/components/publish-assets/PublishAssetsDescriptionPreview.vue",
+        "src/components/publish-assets/PublishAssetsGoalModal.vue",
+        "src/components/publish-assets/presenters/publish-asset-presenter.ts",
+        "src/components/publish-assets/composables/usePublishImagePanel.ts",
+        "src/components/publish-assets/composables/useLocalImageScreening.ts",
+        "src/components/publish-assets/composables/useBlueprintGeneration.ts",
+        "src/components/publish-assets/composables/useDescriptionImageTranslation.ts",
+        "entrypoints/dash/ProductPublishAssetsPanel.vue",
+        "entrypoints/lite/LiteWorkbench.vue",
+        "entrypoints/lite/composables/useLiteWorkbench.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "src/components/publish-assets/ 下沉完整发布资产面板及子组件、presenter 和 composable",
+    "entrypoints/dash/ProductPublishAssetsPanel.vue 转发共享组件，Dash 原展开行行为保持正常",
+    "LiteWorkbench 接入 ProductPublishAssetsPanel，获得槽位版本切换、发布顺序条及筛图报告",
+    "LiteWorkbench 接入 AttributeFormDrawer 与 ProductInspectorDrawer，提供属性字典搜索与就绪度诊断",
+    "npm run check:deps 分层守卫无新增报错",
+    "npm run typecheck 检查通过",
+    "npm run build 打包成功"
+  ],
+  "verification": [
+    {
+      "name": "类型/守卫/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npm run build",
+      "covers": [
+        "src/components/publish-assets/ProductPublishAssetsPanel.vue",
+        "entrypoints/dash/ProductPublishAssetsPanel.vue",
+        "entrypoints/lite/LiteWorkbench.vue"
+      ]
+    }
+  ]
+}
