@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "prelaunch-fixes-batch5",
+  "title": "上线前修复第五批:单规格侧栏最终售价即提交价、字典拉丁候选整词命中、云端回拉保全运行期间的本地编辑、上线态按店铺归属与对账归档可重发",
+  "problem": "2026-09-04 上线前盘点确认的四个扩展端问题:(1) 单规格商品的提交价取 SKU 行价(覆盖 ?? 派生),侧栏用户显式定的最终售价只做兜底,而利润摘要按侧栏价显示——用户看到 799 卢布、Ozon/WB 实际提交 639;(2) 字典包含匹配对拉丁候选按子串命中,「USB-C」配成 USB、「Micro USB」/「HDMI 2.1」配成 USB/HDMI,发错 dictionary_value_id;(3) pullCloudProductsOverwriteLocal 无条件用云端版本覆盖本地,云端工作流等待窗口内用户改价、排除 SKU、手改文案全部丢失;(4) isChannelPublishLive 只看渠道态 succeeded,不看上线时所属店铺——换到第二家店同渠道被拒发;对账发现平台已归档/查无此品时只记云端 delisted 记录,本地渠道态仍是 succeeded,永远拦死重发;对账还把其他店铺上线的商品拿当前店凭证去查,误判下架。",
+  "expectedOutcome": "Ozon/WB mapper:有效变体只有 1 个时行价取「行内覆盖 > 侧栏显式最终售价 > 派生价 > 兜底」,priceOrigin 新增 final;定价摘要对多规格给出「按各行价格提交」提示;dictionary-matcher-factory 的包含匹配对非 CJK 候选要求整词命中(候选 token 序列在原值里被非拉丁字符或串首尾包住,相邻拉丁 token 之间仅空白视为同一名称的一部分);cloud-pull 接受 preserveLocalEditsSince,本地 updatedAt 晚于该时刻时保全 pricing、SKU 覆盖/排除/规格轴覆盖/手工 SKU、渠道文案覆盖与 manual 文案字段,并保留本地 updatedAt;isChannelPublishLive 接受当前 storeKey,上线态归属别店时不算已上线,两个驱动传入当前店;对账只查当前店归属的商品,归档/查无此品时把本地渠道态落 failed 并写明原因。",
+  "constraints": [
+    "不改发布 payload 协议与消息协议;不新增 storage 键;不新增 UI 入口",
+    "字典匹配只收紧拉丁候选的包含匹配,CJK 候选与精确/同义词/缩写策略不变",
+    "不触发 engine:release,不改 apay 主题;不动其他会话的未提交文件"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/shared/pipeline/product-pricing-summary.ts",
+        "src/domain/channel-mappers/ozon/dictionary-matcher-factory.ts",
+        "src/app/workflows/cloud-pull-workflow.ts",
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/domain/channels/publish-state.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/app/handlers/ozon.ts",
+        "scripts/check-deps.mjs",
+        "tests/single-sku-final-price.test.ts",
+        "tests/ozon-dictionary-matcher-factory.test.ts",
+        "tests/cloud-pull-preserve-local-edits.test.ts",
+        "tests/channel-publish-live-store.test.ts"
+      ],
+      "claims": [
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/shared/pipeline/product-pricing-summary.ts",
+        "src/domain/channel-mappers/ozon/dictionary-matcher-factory.ts",
+        "src/app/workflows/cloud-pull-workflow.ts",
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/domain/channels/publish-state.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/app/handlers/ozon.ts",
+        "scripts/check-deps.mjs",
+        "tests/single-sku-final-price.test.ts",
+        "tests/ozon-dictionary-matcher-factory.test.ts",
+        "tests/cloud-pull-preserve-local-edits.test.ts",
+        "tests/channel-publish-live-store.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "单规格商品:侧栏 finalPriceRub=799、派生价 639 时,Ozon 草稿 listing.pricing.finalPriceRub 与 variants[0].price 都是 799(priceOrigin final),WB 草稿 variants[0].price 为 799;行内覆盖 700 时为 700;多规格行价不受侧栏价影响",
+    "字典 [USB, Micro USB, USB Type-C, HDMI]:「USB-C」「Micro USB」「HDMI 2.1」不得命中 USB/HDMI,「Micro USB」精确命中,「接口 USB」仍可包含命中 USB;既有包含/缩写/ASCII 投影用例通过",
+    "cloud-pull:本地 updatedAt 晚于 preserveLocalEditsSince 的商品,pricing.finalPriceRub、excludedSkuIds、manual 标题保留本地值,云端描述等其余字段照常覆盖;未编辑的商品整体被云端覆盖",
+    "isChannelPublishLive:渠道态 succeeded 且 storeKey=A 时,对 storeKey=B 返回 false,对 A 或未传 storeKey 返回 true;存量无 storeKey 按已上线;markOzonDelisted 后 isChannelPublishLive 为 false 且 lastError 写明归档原因",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/single-sku-final-price.test.ts tests/ozon-dictionary-matcher-factory.test.ts tests/ozon-dictionary-match.test.ts tests/cloud-pull-preserve-local-edits.test.ts tests/channel-publish-live-store.test.ts tests/ozon-single-variant-packaging.test.ts tests/ozon-attribute-mapping.test.ts tests/ozon-sku-color-aspect.test.ts tests/channel-status-isolation.test.ts tests/channel-publish-handler.test.ts tests/ozon-import-sync.test.ts tests/cloud-content-preparation.test.ts tests/workbench-row-model-wb.test.ts tests/ozon-publish-tracker-outcome.test.ts tests/product-pricing-summary-zero-cost.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/domain/channel-mappers/ozon/mapper.ts",
+        "src/domain/channel-mappers/ozon/types.ts",
+        "src/domain/channel-mappers/wb/mapper.ts",
+        "src/app/presenters/listing-workbench-presenter.ts",
+        "src/shared/pipeline/product-pricing-summary.ts",
+        "src/domain/channel-mappers/ozon/dictionary-matcher-factory.ts",
+        "src/app/workflows/cloud-pull-workflow.ts",
+        "src/app/workflows/listing-workflow-client.ts",
+        "src/domain/channels/publish-state.ts",
+        "src/domain/publish-drivers/ozon-driver.ts",
+        "src/domain/publish-drivers/wb-driver.ts",
+        "src/shared/publish-tracking/ozon.ts",
+        "src/app/handlers/ozon.ts",
+        "scripts/check-deps.mjs",
+        "tests/single-sku-final-price.test.ts",
+        "tests/ozon-dictionary-matcher-factory.test.ts",
+        "tests/cloud-pull-preserve-local-edits.test.ts",
+        "tests/channel-publish-live-store.test.ts"
+      ]
+    }
+  ]
+}
