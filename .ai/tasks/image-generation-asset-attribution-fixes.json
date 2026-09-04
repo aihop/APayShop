@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "image-generation-asset-attribution-fixes",
+  "title": "生图链路修复第二批:生成资产槽位归属、重生目标恢复(assignTo/翻图源)、冻结规格补齐视觉规划与组锚点",
+  "problem": "2026-09-04 生图链路审查确认:(1) 冻结规格路径 restoreFrozenPromptPlan 把参考的 sourceAssetId 改写成合成值 frozen-task-reference-N,旧路径主图参考也是哨兵 original-main、SKU 参考是 sku:<key>,落到生成资产上的 sourceAssetId 解析不到任何槽位又非空——既不归属原图槽位也不算孤儿根:Lite 卡片没有编辑按钮、Dash 编辑器图册看不到 AI 主图/SKU 图、翻图结果不进源槽位版本链;(2) 存量图集资产 meta 为 outputUsage=main_image + 图集 slotKey 时,regenerate/refine 恢复出 assignTo='main',渠道 profile 只改判 outputUsage 不改 assignTo,生成的轮播图把商品主图覆盖;(3) 翻图资产 regenerate 丢 sourceSlotId/editGoal,参考图退回整商品集合、对主图跑翻图模板;(4) 规格工厂冻结提示词时不接收 visualDirection/allowedOverlayCopy/anchorReferenceUrl,后台命中冻结快照即跳过重建,图集视觉规划(每商品一次 vision 调用)与组锚点从未进入提示词,蓝图里锚点字段是空对象。",
+  "expectedOutcome": "restoreFrozenPromptPlan 接收商品,把冻结参考 URL 映射回 canonical 图 id 或既有资产 id(命不中才用合成 id);recordMainImagePromptPlan 只在 sourceAssetId 可解析(canonical 图或既有资产)且用途为主图/翻图/精修时落 sourceAssetId,gallery/sku 一律不挂父引用(成为孤儿根,可编辑、可展示);builder 旧路径主图参考按 URL 解析 canonical id。渠道 profile(ozon/wb)materialize 按最终 outputUsage 归一 assignTo/slotKey:main→'main'/'main',sku→restored assignTo,gallery/localized→无 assignTo。restoreAssetTarget 恢复 sourceSlotId/editGoal/allowedEdits,buildReferenceSnapshot 对 localized 用途的 regenerate/refine 以 target.sourceSlotId 取源图。buildImageGenerationTaskSpec 新增可选 visualDirection/allowedOverlayCopy/anchorReferenceUrl 并传入 buildMainImagePromptPlan;gallery 意图带锚点时冻结参考 imageUrls 以锚点为首;requestMainImageGenerationWorkflow 透传三字段;蓝图 runBlueprintTask 对轮播任务下发组锚点。",
+  "constraints": [
+    "不改任务规格协议形状(ImageGenerationTaskSpec 字段不变,只影响 promptSnapshot/referenceSnapshot 内容)",
+    "SKU 图与轮播图不得挂到 canonical 原图槽位(避免顶掉图集原图的当前版本);主图/翻图/精修才归属槽位或版本链",
+    "regenerate 的身份锚仍是 canonical 原图,refine 才引用当前生成图(AGENTS 4.0 第 8 条)",
+    "不触发 engine:release,不改 apay 主题"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-prompt-plans/regeneration-target.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-generation-tasks/ozon.ts",
+        "src/domain/image-generation-tasks/wb.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "tests/image-generation-asset-attribution.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "docs/image-asset-model.md"
+      ],
+      "claims": [
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-prompt-plans/regeneration-target.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-generation-tasks/ozon.ts",
+        "src/domain/image-generation-tasks/wb.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "tests/image-generation-asset-attribution.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "docs/image-asset-model.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "冻结路径生成主图:资产 sourceAssetId 为参考原图的 canonical id,resolveAssetRootSlotId 归到该槽位;SKU 图与轮播图 sourceAssetId 为空并出现在 listOrphanEditableRoots;翻图结果归属源槽位;精修结果链到被精修资产",
+    "存量图集资产(outputUsage=main_image + 图集 slotKey)regenerate/refine:outputUsage=gallery_image 且 assignTo 为空,不会写主图指针;主图资产 regenerate 仍 assignTo='main'",
+    "翻图资产 regenerate:sourceSlotId/editGoal 从 meta 恢复,冻结参考只含源图",
+    "带 visualDirection/allowedOverlayCopy 的冻结规格,promptSnapshot.prompt 含该文本;gallery 带 anchorReferenceUrl 时 referenceSnapshot.imageUrls[0] 为锚点",
+    "typecheck、相关 vitest、check:deps、engine:build、build 通过"
+  ],
+  "verification": [
+    {
+      "name": "类型/测试/守卫/引擎切片/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck && npx vitest run tests/image-generation-asset-attribution.test.ts tests/image-generation-task-factory.test.ts tests/image-generation-task-prompt-freeze.test.ts tests/image-generation-reliability.test.ts tests/image-generation-fact-translation-gate.test.ts tests/main-image-generation-ownership.test.ts tests/main-image-generation-fallback.test.ts tests/published-image-refs.test.ts tests/image-blueprint-generation-ownership.test.ts tests/channel-prompt-image-execution.test.ts && npm run check:deps && npm run engine:build && npm run build",
+      "covers": [
+        "src/domain/image-modes/modes/main-image-generate.ts",
+        "src/domain/workspace/workspace-media.ts",
+        "src/domain/image-prompt-plans/builder.ts",
+        "src/domain/image-prompt-plans/regeneration-target.ts",
+        "src/domain/image-generation-tasks/factory.ts",
+        "src/domain/image-generation-tasks/ozon.ts",
+        "src/domain/image-generation-tasks/wb.ts",
+        "src/app/workflows/main-image-generation-workflow.ts",
+        "src/app/workflows/image-blueprint-generation-workflow.ts",
+        "tests/image-generation-asset-attribution.test.ts",
+        "tests/image-generation-task-factory.test.ts",
+        "docs/image-asset-model.md"
+      ]
+    }
+  ]
+}
