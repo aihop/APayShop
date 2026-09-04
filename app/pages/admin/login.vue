@@ -150,8 +150,10 @@
 
 <script setup lang="ts">
 import { firstAllowedAdminRoute, useAdminSession } from '~/composables/useAdminPermissions'
+import { useAdminExtensions } from '~/composables/useAdminExtensions'
 
 const { settings, fetchSettings, getSetting } = useSettings()
+const { extensionPermissionDefs } = useAdminExtensions()
 
 // Resolved HERE, in the synchronous setup context — never inside handleLogin().
 // Past the first `await` the component instance is gone, and useI18n() (which
@@ -231,24 +233,29 @@ const handleLogin = async () => {
 
   // Credentials were accepted. Nothing below may block the redirect — working
   // out the *best* landing page is a nice-to-have, being stranded on the login
-  // form after a successful login is not. '/admin/profile' is the safe floor:
-  // isRouteAllowedForAdmin() permits it for every admin regardless of grants.
-  let redirectTarget = '/admin/profile'
+  // form after a successful login is not. '/admin/dashboard' is the default target.
+  let redirectTarget = '/admin/dashboard'
   try {
     // Always refresh before navigating, including when a redirect query is
     // present. Otherwise the route middleware still sees the anonymous state
     // cached when this login page opened and immediately sends us back here.
     await loadAdmin(true)
-    if (typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')) {
+    if (
+      typeof route.query.redirect === 'string' &&
+      route.query.redirect.startsWith('/admin') &&
+      !route.query.redirect.startsWith('/admin/login') &&
+      route.query.redirect !== '/admin/profile'
+    ) {
       redirectTarget = route.query.redirect
     } else {
       await fetchSettings()
-      // Don't assume '/admin' (dashboard) is reachable — an admin without
-      // the 'dashboard' permission needs to land on their first allowed page.
-      redirectTarget = firstAllowedAdminRoute(admin.value, extensionPermissionDefs.value) || '/admin/profile'
+      // Don't assume '/admin/dashboard' is reachable for limited admins without
+      // the 'dashboard' permission — they will land on their first allowed page.
+      redirectTarget = firstAllowedAdminRoute(admin.value, extensionPermissionDefs?.value) || '/admin/dashboard'
     }
   } catch (e) {
     console.error('[admin-login] could not resolve the post-login landing page:', e)
+    redirectTarget = '/admin/dashboard'
   } finally {
     isLoading.value = false
   }
