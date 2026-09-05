@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "migrate-domain-logic-to-qingpu-engine",
+  "title": "将 WB 特征推断与质量分纯计算器迁移至 Qingpu Engine 核心引擎",
+  "problem": "部分纯业务领域模型（WB 特征推断、商品质量分计算器）孤立在 theme server 侧，未收口到 server/engine，导致无法跨端（浏览器端、探针端）直接复用，且渠道实现不对称。",
+  "expectedOutcome": "将 wb-defaults 与 workspace-quality.calculator 核心逻辑收纳进 server/engine；服务端与浏览器端双出口统一导出；theme 侧保留薄壳兼容层；全量测试与守卫 100% 通过。",
+  "constraints": [
+    "不修改或删除 ../qingpu-ai 仓中的任何文件",
+    "不触碰数据库 schema 或 SQL 查询文件",
+    "不破坏现有业务调用方接口",
+    "不提交未暂存的他人在途文件",
+    "不进行生产发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/engine/**",
+        "server/listing/wb-defaults.ts",
+        "server/listing/workspace-quality.calculator.ts",
+        "server/listing/workspace-quality.ts",
+        "scripts/check-workspace-quality-score.mjs"
+      ],
+      "claims": [
+        "server/engine/**",
+        "server/listing/wb-defaults.ts",
+        "server/listing/workspace-quality.calculator.ts",
+        "server/listing/workspace-quality.ts",
+        "scripts/check-workspace-quality-score.mjs"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/engine/domain/channel-mappers/wb/defaults 完整实现 WB 默认特征推断",
+    "server/engine/domain/listing-quality/calculator 完整实现质量分纯计算模型",
+    "server/engine 出口同时向 server 与 browser 导出质量分计算模型",
+    "theme 侧 wb-defaults.ts 转为薄壳转发",
+    "主题 Vitest 测试全量通过 (786 tests)",
+    "主题类型检查 check-theme-typecheck 通过",
+    "三端口径防漂移守卫 check-caliber-drift 通过",
+    "质量分专项守卫 check-workspace-quality-score 通过"
+  ],
+  "verification": [
+    {
+      "name": "主题测试全量通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-tests.mjs"
+    },
+    {
+      "name": "主题服务端与前端类型检查通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-typecheck.mjs"
+    },
+    {
+      "name": "三端口径防漂移守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-caliber-drift.mjs"
+    },
+    {
+      "name": "质量分专项守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-workspace-quality-score.mjs"
+    }
+  ]
+}
