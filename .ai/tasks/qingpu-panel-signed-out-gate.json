@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-panel-signed-out-gate",
+  "title": "悬浮面板未登录时只显示登录卡，不露任何功能",
+  "problem": "面板当前未登录也把统计块、功能块和整套采集控件摊开，只在顶部加一条提示。用户明确要求改为门禁：未登录只显示品牌头 + 登录卡，功能一个不露；登录后才出现账号块与功能块。（此前按「采集不需要登录，挡住是产品倒退」保留了功能，用户已否决该判断。）",
+  "expectedOutcome": "1. 未登录时面板只渲染品牌头与登录卡（说明 + 授权按钮），统计块、功能块网格、采集控件与状态行全部不渲染；\n2. 登录后恢复现有布局：账号块 + 功能块 + 采集控件；\n3. 账号态读完之前不表态，避免已登录用户先闪一下登录卡；\n4. 折叠为头像的能力在两种状态下都保留。",
+  "constraints": [
+    "只做显示与否，不改采集逻辑、不改授权流程、不改消息协议",
+    "登录态未就绪时不得先渲染登录卡（闪一下再切会显得像掉线）",
+    "面板样式沿用 .qingpu-* 前缀裸 CSS"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "claims": [
+        "src/content/FloatingPanel.vue",
+        "src/content/PanelAccountBar.vue",
+        "src/content/composables/useAccountBadge.ts",
+        "src/content/panel.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "未登录时面板内看不到统计块、功能块与采集控件",
+    "登录成功后面板即时出现账号块与功能块，不需要刷新页面",
+    "退出登录后面板即时回到登录卡",
+    "npm run check:deps / npm run typecheck / npm run build 通过；面板单测全绿"
+  ],
+  "verification": [
+    {
+      "name": "守卫/类型/面板单测/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/panel-account-badge.test.ts tests/panel-action-grid.test.ts && npm run build"
+    }
+  ]
+}
