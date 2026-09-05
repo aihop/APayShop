@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-authorize-page-under-auth",
+  "title": "授权确认页从 /user/ 迁到 /auth/",
+  "problem": "扩展授权确认页当前落在 /user/authorize-extension。/user/** 挂着 user-auth.global.ts 全局登录闸：未登录访问先被它弹去登录页，页面里自己写的「带着 state 去登录再回来」那段永远执行不到，两套重定向机制重叠。而授权确认本质是登录前的流程，/auth/** 才是它的地盘（登录、注册、找回密码都在那儿），没有登录闸，页面自己控制提示与回跳。服务端半边尚未部署也未 push，此时改地址零迁移成本；再晚就要考虑老地址兼容。",
+  "expectedOutcome": "1. 确认页与落地页迁到 /auth/authorize-extension 与 /auth/authorize-extension/done，旧的 /user/authorize-extension 目录删除，不留双入口；\n2. 服务端 buildAuthorizeDoneUrl 与扩展的 buildExtensionAuthorizeUrl / getExtensionAuthorizeDoneUrlPrefix 同步改到新路径——三处地址必须一致，任何一处漏改都会让扩展等到超时；\n3. 主题侧 handoff 用例断言新路径；扩展侧用例从实现取前缀，无需跟改。；\n4. 扩展侧用例与工作流注释里写死的旧路径一并更新（用例断言打开的授权页地址，漏改即红）。",
+  "constraints": [
+    "地址是跨仓契约：服务端签发的完成地址与扩展的前缀匹配必须逐字一致，只改路径段，不动 origin 必须整前缀匹配这条安全约束",
+    "不保留 /user/authorize-extension 旧路由：服务端未部署也未 push，没有在途用户，留兼容只会多一个无人走的入口",
+    "页面内容与授权语义一字不改：本次只搬位置",
+    "避让并行会话：不碰其他契约持有的 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "claims": [
+        "pages/auth/authorize-extension/index.vue",
+        "pages/auth/authorize-extension/done.vue",
+        "pages/user/authorize-extension/index.vue",
+        "pages/user/authorize-extension/done.vue",
+        "server/shared/extensionAuthorize.ts",
+        "tests/extension-authorize-handoff.test.ts"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "claims": [
+        "src/shared/account-client.ts",
+        "tests/web-session-authorize.test.ts",
+        "src/app/workflows/web-session-authorize.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "/auth/authorize-extension 与 /auth/authorize-extension/done 可直接访问，不被 user-auth 全局闸拦截",
+    "/user/authorize-extension 不再存在",
+    "服务端完成地址、扩展打开的授权页地址、扩展的完成地址前缀三处路径一致",
+    "主题 tests/extension-authorize-handoff.test.ts 全绿；扩展 tests/web-session-authorize.test.ts 全绿",
+    "扩展 npm run check:deps / typecheck / build 通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-theme handoff 语义测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/extension-authorize-handoff.test.ts"
+    },
+    {
+      "name": "扩展守卫/类型/授权单测/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/web-session-authorize.test.ts && npm run build"
+    }
+  ]
+}
