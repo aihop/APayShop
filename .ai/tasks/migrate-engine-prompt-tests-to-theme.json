@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "migrate-engine-prompt-tests-to-theme",
+  "title": "将引擎与提示词核心测试套件迁移至 APay Qingpu 主题",
+  "problem": "为消除 qingpu-ai 与 APay 主题之间的两套引擎与提示词镜像代码（双向漂移与代码冗余），需要将 qingpu-ai/tests/ 中覆盖核心引擎与 Prompt 契约的测试套件整体搬迁至 app/themes/qingpu/tests/，直接针对 server/engine/src 开展测试，使 APay Qingpu 服务端具备完全自主独立的引擎单测覆盖。",
+  "expectedOutcome": "1. 在 app/themes/qingpu/ 下建立轻量 vitest.config.ts 配置，支持 @/ 别名解析至 server/engine/src；\n2. 将 13 组引擎与提示词核心测试套件迁移至 app/themes/qingpu/tests/ 并以 engine- 前缀规范命名；\n3. 13 组测试全部在主题环境下顺利通过；\n4. 主题原有测试套件不受破坏，引擎构建验证全绿。",
+  "constraints": [
+    "遵守 AGENTS.md 契约与租约规范，只修改 claims 范围内文件",
+    "直接对 server/engine/src/ 展开测试，不破坏已有代码",
+    "保持测试用例原有断言语义完整，零遗漏"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "vitest.config.ts",
+        "tests/engine-asset-prompt-contracts.test.ts",
+        "tests/engine-channel-prompts.test.ts",
+        "tests/engine-gallery-slot-goals.test.ts",
+        "tests/engine-platform-image-rules.test.ts",
+        "tests/engine-product-text-bundle.test.ts",
+        "tests/engine-product-text-translation-rounds.test.ts",
+        "tests/engine-wb-copy-caliber.test.ts",
+        "tests/engine-wb-attribute-fill.test.ts",
+        "tests/engine-gallery-plan.test.ts",
+        "tests/engine-prompt-kind.test.ts",
+        "tests/engine-prompt-files.test.ts",
+        "tests/engine-visual-attribute-filter.test.ts",
+        "tests/engine-sku-prompt-evidence.test.ts"
+      ],
+      "claims": [
+        "vitest.config.ts",
+        "tests/engine-asset-prompt-contracts.test.ts",
+        "tests/engine-channel-prompts.test.ts",
+        "tests/engine-gallery-slot-goals.test.ts",
+        "tests/engine-platform-image-rules.test.ts",
+        "tests/engine-product-text-bundle.test.ts",
+        "tests/engine-product-text-translation-rounds.test.ts",
+        "tests/engine-wb-copy-caliber.test.ts",
+        "tests/engine-wb-attribute-fill.test.ts",
+        "tests/engine-gallery-plan.test.ts",
+        "tests/engine-prompt-kind.test.ts",
+        "tests/engine-prompt-files.test.ts",
+        "tests/engine-visual-attribute-filter.test.ts",
+        "tests/engine-sku-prompt-evidence.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "13 组 engine-*.test.ts 测试文件创建完成",
+    "vitest.config.ts 别名配置生效",
+    "node app/themes/qingpu/scripts/check-theme-tests.mjs -- tests/engine-*.test.ts 全部绿灯通过",
+    "node app/themes/qingpu/scripts/build-engine.mjs 正常无报错"
+  ],
+  "verification": [
+    {
+      "name": "迁移测试套件全量通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "../../../../qingpu-ai/node_modules/.bin/vitest run tests/engine-asset-prompt-contracts.test.ts tests/engine-channel-prompts.test.ts tests/engine-gallery-slot-goals.test.ts tests/engine-platform-image-rules.test.ts tests/engine-product-text-bundle.test.ts tests/engine-product-text-translation-rounds.test.ts tests/engine-wb-copy-caliber.test.ts tests/engine-wb-attribute-fill.test.ts tests/engine-gallery-plan.test.ts tests/engine-prompt-kind.test.ts tests/engine-prompt-files.test.ts tests/engine-visual-attribute-filter.test.ts tests/engine-sku-prompt-evidence.test.ts"
+    },
+    {
+      "name": "引擎构建与零泄漏冒烟",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/build-engine.mjs"
+    }
+  ]
+}
