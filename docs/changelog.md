@@ -2,6 +2,10 @@
 
 本文件记录曾影响开发约束、数据契约或跨系统边界的变化。它是历史索引，不是当前执行协议；当前规则以根 `AGENTS.md` 及其文档地图指向的专项文档为准。
 
+## 2026-09
+
+- `2026-09-05`：AI 任务契约瘦身：`allowedPaths` 改为可选的扩围预算，`problem / expectedOutcome / constraints / acceptanceCriteria` 可选，`covers` 不再读取；越界只看工作区里 claims 之外的新增改动，其他活动租约、他人已提交的改动与 `.DS_Store` 不算越界；`finish` 只校验 claims 内文件哈希；新增 `extend / renew / abort`，租约默认 480 分钟。存量契约无需迁移。
+
 ## 2026-08
 
 - `2026-08-07`：根 `AGENTS.md` 收口为短版执行入口；详细工程规则迁至 `docs/engineering-constraints.md`，AI 任务契约迁至 `docs/ai/task-contract.md`，Qingpu 跨仓协作迁至 `docs/ai/cross-repository-development.md`。

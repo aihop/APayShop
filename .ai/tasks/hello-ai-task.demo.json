@@ -2,35 +2,22 @@
   "schemaVersion": 1,
   "id": "hello-ai-task-demo",
   "title": "创建 AI 契约流程演示结果",
-  "problem": "需要用一个无业务风险的小任务，证明 AI 会先取得文件租约、只修改约定路径、通过机器验证后再完成任务。",
   "expectedOutcome": "AI 创建 docs/ai-task-demo-result.txt，文件内容严格等于 AI_TASK_DEMO_OK。",
-  "constraints": [
-    "不得修改 docs/ai-task-demo-result.txt 以外的业务文件",
-    "不得跳过 prepare、验证或 complete",
-    "不得用修改验证命令的方式制造通过"
-  ],
   "repositories": [
     {
       "name": "apay",
       "path": ".",
-      "allowedPaths": [
-        "docs/ai-task-demo-result.txt"
-      ],
-      "claims": [
-        "docs/ai-task-demo-result.txt"
-      ]
+      "claims": ["docs/ai-task-demo-result.txt"]
     }
   ],
   "acceptanceCriteria": [
     "只新增或修改 docs/ai-task-demo-result.txt",
-    "文件去除首尾空白后的内容严格等于 AI_TASK_DEMO_OK",
-    "快捷流程生成成功验证报告并释放租约"
+    "文件去除首尾空白后的内容严格等于 AI_TASK_DEMO_OK"
   ],
   "verification": [
     {
       "name": "Demo 输出合同",
       "repository": "apay",
-      "always": true,
       "command": "node -e \"const fs=require('node:fs');const value=fs.readFileSync('docs/ai-task-demo-result.txt','utf8').trim();if(value!=='AI_TASK_DEMO_OK')process.exit(1)\""
     }
   ]

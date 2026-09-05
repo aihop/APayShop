@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "ai-contract-system-slimdown",
+  "title": "契约系统瘦身：范围只看 claims、支持扩围/续租/放弃、去掉整树摘要与摆设字段",
+  "problem": "对 438 份契约与 280 份验证报告的分析表明：allowedPaths 与 claims 在 428 份里完全相同，covers 字段脚本不读，triggers 机制 1115:5 无人使用；finish 用整棵工作树的摘要做校验，任何无关脏文件（包括 .DS_Store）都会阻断闭环；不能扩围、不能 abort、不能续租导致任务被切成 phase/batch/s0x 小契约，每份都要一轮用户确认；35 份失败报告里有三份在验证失败后一分钟内代码照样提交，说明门禁挡路时会被绕过。",
+  "expectedOutcome": "新脚本向后兼容全部存量契约：allowedPaths/problem/expectedOutcome/constraints/acceptanceCriteria 变为可选，allowedPaths 语义改为「预先批准的扩围预算」；越界检查只看工作树里 claims 之外的新增改动，排除 .DS_Store、.ai/tasks/**、其他活动租约的 claims 以及别人已提交的改动；finish 只比对 claims 内文件的哈希；新增 extend / renew / abort 子命令，TTL 默认 480 分钟；自测覆盖以上行为；文档与 AGENTS 门禁同步收口。",
+  "constraints": [
+    "不迁移或改写存量 .ai/tasks/*.json，新校验器必须原样接受它们",
+    "不触碰 package.json（当前有其他会话的未提交改动）；npm 别名作为后续项登记",
+    "不改主题仓与 qingpu-ai 的业务代码，qingpu-ai 只更新 AGENTS.md 中关于扩围的一句事实",
+    "租约与报告仍按 worktree 隔离存放在 .tmp/ai-tasks，不引入新依赖"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "scripts/ai-task.mjs",
+        "scripts/ai-task-flow.mjs",
+        "scripts/ai-task.selftest.mjs",
+        ".ai/README.md",
+        ".ai/tasks/hello-ai-task.demo.json",
+        "docs/ai/task-contract.md",
+        "docs/ai-development-workflow-example.md",
+        "docs/changelog.md",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "scripts/ai-task.mjs",
+        "scripts/ai-task-flow.mjs",
+        "scripts/ai-task.selftest.mjs",
+        ".ai/README.md",
+        ".ai/tasks/hello-ai-task.demo.json",
+        "docs/ai/task-contract.md",
+        "docs/ai-development-workflow-example.md",
+        "docs/changelog.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": ["AGENTS.md"],
+      "claims": ["AGENTS.md"]
+    }
+  ],
+  "acceptanceCriteria": [
+    "npm run ai:selftest 通过，覆盖：精简契约校验、越界阻断、.DS_Store 与其他租约 claims 不算越界、他人已提交改动不阻断、finish 只校验 claims 内哈希、extend 预算内免确认/预算外需确认、renew、abort、过期与 resume",
+    "本任务自身用新脚本完成 ai:complete（租约由旧脚本建立，验证与释放由新脚本执行）",
+    "docs/ai/task-contract.md、.ai/README.md、AGENTS.md §2.1/§2.3/§7.A 与示例文档描述一致，changelog 登记本次变更"
+  ],
+  "verification": [
+    {
+      "name": "契约脚本自测与空白检查",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run ai:selftest && git diff --check"
+    },
+    {
+      "name": "qingpu-ai 空白检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "git diff --check"
+    }
+  ]
+}

@@ -46,7 +46,7 @@ APay 是 Nuxt 4 + NuxtHub 的虚拟商品独立站，也是 SaaS 矩阵的计费
 - 目标存在多个会影响数据模型、协议、支付或发布链的合理方案；
 - 需要删除数据、修改生产状态、扩大外部权限或执行不可逆操作；
 - 外部 API/平台规则无法从代码、样本或权威文档确认；
-- 契约范围需扩大、租约冲突或工作区无法安全隔离；
+- 扩围超出契约 `allowedPaths` 预算且用户尚未确认、租约冲突或工作区无法安全隔离；
 - 验证失败且根因指向更高层方案错误。
 
 ## 3. 系统硬边界
@@ -119,12 +119,12 @@ sqlc 开启 `emit_json_tags` 和 `json_tags_case_style: camel`；修改查询后
 
 所有代码任务及高风险执行文档调整都必须：
 
-1. 创建 `.ai/tasks/<task-id>.json`，声明仓库、allowedPaths、claims、验收与验证；
+1. 创建 `.ai/tasks/<task-id>.json`，至少声明 `id`、`title`、各仓 `claims` 与 `verification`；预计会追加路径就先声明 `allowedPaths` 作为预算；
 2. 用户确认后运行 `npm run ai:prepare -- --contract <path> --agent <name>`；
-3. 只修改 claims；扩围先停下并重新审批；
+3. 只修改 claims；需要新路径先补进契约再 `extend`，超出 `allowedPaths` 预算时先征得用户确认；快到期 `renew`，做不下去 `abort`；
 4. 运行 `npm run ai:complete -- --contract <path> --agent <name>`，验证通过并释放租约才算完成。
 
-`.ai/` 目录结构和文件维护规则见 `.ai/README.md`；租约过期、中断恢复、跨仓与完成定义见 `docs/ai/task-contract.md`。`ai:complete` 不授权 commit、push、发布或生产迁移。
+范围检查只看 claims：其他活动租约的路径、别人已提交的改动和系统元数据不算越界。`.ai/` 目录结构见 `.ai/README.md`；字段、命令、过期与恢复见 `docs/ai/task-contract.md`。`ai:complete` 不授权 commit、push、发布或生产迁移。
 
 ## 8. 交付与自审
 
