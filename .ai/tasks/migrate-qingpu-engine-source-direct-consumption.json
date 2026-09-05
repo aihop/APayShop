@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "migrate-qingpu-engine-source-direct-consumption",
+  "title": "Qingpu 主题引擎源码直接引用迁移：去掉 engine/src 层级，直接消费 TS 源码并取消 vendor 构建副本",
+  "problem": "Qingpu 主题目前依赖手工运行 build-engine.mjs 把 server/engine/src 预打包到 server/vendor/qingpu-engine。业务端 150+ 文件消费该产物副本，导致改动引擎源码后必须手动重建产物，否则类型检查绿但运行时读旧产物报 500；且多出一层 engine/src 嵌套层级，内部使用 @/ 别名与 APay 宿主别名重叠。",
+  "expectedOutcome": "移除 server/engine/src 层级，所有模块直接位于 server/engine/*；公开入口直接暴露为 server/engine/index.ts 与 browser.ts；业务端通过 @qingpu-engine/server 与 @qingpu-engine/browser 直接消费 TypeScript 源码；内部引用使用 @engine/*；删除 vendor/qingpu-engine 产物及 build-engine.mjs 打包脚本；测试与守卫全部适配通过。",
+  "constraints": [
+    "保持服务端与浏览器出口隔离，浏览器切片不泄漏 Node 内建模块或敏感能力",
+    "不全局修改 APay 宿主的 @/ 别名",
+    "不删除 server/vendor 下其他无关内容",
+    "不触碰工作区中其他会话的未提交改动与未跟踪契约",
+    "不进行生产提交、推送、发布或数据变更"
+  ],
+  "repositories": [
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "nuxt.config.ts"
+      ],
+      "claims": [
+        "nuxt.config.ts"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/engine/**",
+        "server/vendor/**",
+        "scripts/**",
+        "api/**",
+        "pages/**",
+        "utils/**",
+        "components/**",
+        "server/**",
+        "tests/**",
+        "vitest.config.ts",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "server/engine/**",
+        "server/vendor/**",
+        "scripts/**",
+        "api/**",
+        "pages/**",
+        "utils/**",
+        "components/**",
+        "server/**",
+        "tests/**",
+        "vitest.config.ts",
+        "AGENTS.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/engine/src 层级已移除，所有模块位于 server/engine 下，index.ts 与 browser.ts 为顶层公开入口",
+    "主题所有业务与测试代码通过 @qingpu-engine/server 与 @qingpu-engine/browser 消费源码",
+    "server/vendor/qingpu-engine 及其构建脚本已删除，全仓无活跃引用",
+    "主题 Vitest 测试全量通过 (780+ tests)",
+    "守卫 check-theme-typecheck 不新增致命错误",
+    "守卫总闸 check:qingpu-all 不产生新增破坏"
+  ],
+  "verification": [
+    {
+      "name": "APay 别名配置与差异格式检查",
+      "repository": "apay",
+      "always": true,
+      "command": "git diff --check -- nuxt.config.ts"
+    },
+    {
+      "name": "主题测试全量通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-tests.mjs"
+    },
+    {
+      "name": "主题服务端与前端类型检查通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-typecheck.mjs"
+    },
+    {
+      "name": "引擎源码直通守卫（无 vendor 残留）",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-engine-artifact-fresh.mjs"
+    },
+    {
+      "name": "三端口径防漂移守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-caliber-drift.mjs"
+    },
+    {
+      "name": "定价计算能力消费守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-pricing-calculator.mjs"
+    },
+    {
+      "name": "合卡型号码单点消费守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-merge-card-codes.mjs"
+    },
+    {
+      "name": "渠道注册完备性守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-channel-registration.mjs"
+    },
+    {
+      "name": "发布事实源检查守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-listing-publish-facts.mjs"
+    }
+  ]
+}
