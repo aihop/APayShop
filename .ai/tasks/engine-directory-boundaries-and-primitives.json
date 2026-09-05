@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "engine-directory-boundaries-and-primitives",
+  "title": "规范 server/engine 目录职责并建立 primitives 基元层与依赖门禁",
+  "problem": "原计划建立的 server/engine/public 与 Nuxt 静态资源约定冲突且职责未形式化；server/engine 下各子目录缺乏机器强制执行的分层单向依赖门禁，存在未来退化或循环依赖的风险。",
+  "expectedOutcome": "移除空的 public/，设立零依赖的 primitives/ 基元层，更新软链与别名配置；建立 check-engine-boundaries.mjs 门禁守护目录白名单、primitives 零外部依赖、app 不被反向依赖和相对跨界引用规则；文档同步；守卫全绿通过。",
+  "constraints": [
+    "不破坏现有业务调用方接口与现有导出",
+    "不修改除目标范围外的其它主题或核心业务代码",
+    "不提交未暂存的他人在途文件",
+    "不进行生产发布"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/engine/primitives/**",
+        "scripts/ensure-engine-links.mjs",
+        "scripts/check-engine-boundaries.mjs",
+        "AGENTS.md"
+      ],
+      "claims": [
+        "server/engine/primitives/**",
+        "scripts/ensure-engine-links.mjs",
+        "scripts/check-engine-boundaries.mjs",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "name": "apay",
+      "path": ".",
+      "allowedPaths": [
+        "package.json"
+      ],
+      "claims": [
+        "package.json"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "server/engine/public 移除，替换为 server/engine/primitives",
+    "ensure-engine-links.mjs 注册 primitives 子包并保证软链就绪",
+    "check-engine-boundaries.mjs 门禁守护 rules 全部生效并跑通",
+    "app/themes/qingpu/AGENTS.md 记录 engine 分层依赖规范与 primitives 定位",
+    "根 package.json 注册 check:qingpu-engine-boundaries 命令并验证通过",
+    "主题全量类型检查通过"
+  ],
+  "verification": [
+    {
+      "name": "引擎分层门禁守卫通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-engine-boundaries.mjs"
+    },
+    {
+      "name": "主题类型检查通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-typecheck.mjs"
+    },
+    {
+      "name": "引擎源码直通守卫通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-engine-artifact-fresh.mjs"
+    },
+    {
+      "name": "根配置引擎门禁命令运行通过",
+      "repository": "apay",
+      "always": true,
+      "command": "npm run check:qingpu-engine-boundaries"
+    }
+  ]
+}
