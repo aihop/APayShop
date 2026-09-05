@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "clean-unused-qingpu-engine-dead-code",
+  "title": "清理 Qingpu 主题引擎中无调用的死代码与旧工作流，保留 Ozon 默认模板与 Studio 依赖",
+  "problem": "Qingpu 引擎内存在 38 个全仓零引用的无用文件（包括历史遗留的前端/扩展工作流与客户端适配器），增加代码库杂音与维护负担。",
+  "expectedOutcome": "保留 domain/channel-mappers/ozon/defaults/* 默认模板与 Studio 创意能力；删除主题 server/engine 下确认无引用的 38 个死代码文件；测试与类型检查全部通过。",
+  "constraints": [
+    "不修改或删除 ../qingpu-ai 仓中的任何文件",
+    "保留 domain/channel-mappers/ozon/defaults/* 全部 8 个文件",
+    "保留 Studio 依赖的 domain/creative-capabilities 与 domain/image-edit-capabilities",
+    "不破坏任何正在被业务端调用的接口与类型",
+    "不进行生产发布或提交推送"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/engine/**"
+      ],
+      "claims": [
+        "server/engine/**"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "主题 server/engine 下无调用的 38 个死代码文件已被删除",
+    "domain/channel-mappers/ozon/defaults/* 8 个模板文件完整保留",
+    "主题 Vitest 测试全量通过 (786 tests)",
+    "主题类型检查 check-theme-typecheck 通过且无新增致命错误",
+    "口径防漂移守卫 check-caliber-drift 通过"
+  ],
+  "verification": [
+    {
+      "name": "主题测试全量通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-tests.mjs"
+    },
+    {
+      "name": "主题服务端与前端类型检查通过",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-theme-typecheck.mjs"
+    },
+    {
+      "name": "三端口径防漂移守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-caliber-drift.mjs"
+    },
+    {
+      "name": "引擎源码直通守卫",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/check-engine-artifact-fresh.mjs"
+    }
+  ]
+}
