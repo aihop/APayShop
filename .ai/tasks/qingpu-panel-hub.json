@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-panel-hub",
+  "title": "悬浮面板改为入口中心：品牌头 + 账号块 + 功能块网格",
+  "problem": "面板已经撑破容器：220px 宽的一列里塞着头部图标、账号条、三个统计块、预览卡、自动解析开关、全选栏、模式 tabs、页数输入、可能几十条的解析列表、状态行、四个按钮和说明文案。入口（Dash / Lite / 草稿箱 / 自动选品）散在头部图标和正文按钮里，发现性差。同时 popup 与面板都在长成入口中心，docs/tech-debt-map.md 记着 popup 定位待拍板——用户已拍板：入口中心只留面板一处，popup 退成草稿列表。本契约只做入口归位，采集 UI 原地不动（它是主链路第一站，搬迁另立契约，任何回归才能立刻归因）。",
+  "expectedOutcome": "1. 面板头部改为品牌头：图标 + 名称 + 当前版本 + 有更新红点 + 官网链接，保留拖拽手柄与折叠；\n2. 账号块两态：未登录给提示与授权入口，已登录显示脱敏账号与退出登录；\n3. 新增功能块网格：精铺上架 / 自动选品 两列，批量采集（详情页为一键采集）与工作台各占一栏；草稿数仍由统计块承载，更新红点放在品牌头版本号旁；\n4. 面板由 220px 加宽到 280px 以容纳两列功能块，折叠为头像的能力保留；\n5. 退出登录经消息交给 Service Worker 执行：清账号的同时要清店铺缓存（跨账号串店铺密钥的老问题），该逻辑在 app 层，content 层按 check:deps 不得依赖；清理逻辑与 useAccountSession.logout 收口为同一函数；\n6. popup 去掉整页登录门禁，改为顶部一条提示：它退成草稿列表，而草稿是本地的，未登录也该能看；\n7. docs/tech-debt-map.md 的 popup 条目更新为已拍板结果。",
+  "constraints": [
+    "采集逻辑一行不动：useCollection / useSniffPool / PanelSniffList / PanelSelectionBar / PanelModeTabs / PanelProductPreview 全部保持原样。仅把采集主按钮改为占栏功能块，且必须原样承载它的进度态（采集中第 x/y 页、spinner、按模式与页面类型变化的文案），标签仍由面板计算后传入，不把 i18n 搬进功能块模块。列表搬侧栏另立契约",
+    "功能块只收拢**已存在**的入口，不新增功能、不接新页面；检查更新复用既有 extensionUpdateAvailable 设置与 background 定时检查，不写新的检查逻辑",
+    "content 层不得依赖 app 层：退出登录走显式消息协议，不在面板里直接写账号存储",
+    "退出登录必须与 useAccountSession.logout 共用同一份清理逻辑，不得为后台再写一套（店铺缓存漏清会导致跨账号读到上一个账号的店铺密钥）",
+    "面板样式沿用 .qingpu-* 前缀裸 CSS，不引入 naive-ui",
+    "面板加宽不得超过 280px：它浮在 1688 页面上，再宽开始挡内容",
+    "避让并行会话：不碰其他契约持有的 claims"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "claims": [
+        "src/content/FloatingPanel.vue",
+        "src/content/PanelHeader.vue",
+        "src/content/PanelAccountBar.vue",
+        "src/content/PanelActionGrid.vue",
+        "src/content/panel.ts",
+        "src/content/composables/useAccountBadge.ts",
+        "src/app/workflows/account-session-landing.ts",
+        "src/app/composables/useAccountSession.ts",
+        "src/app/handlers/auth.ts",
+        "src/shared/request-actions.ts",
+        "entrypoints/popup/App.vue",
+        "src/popup/components/AuthGate.vue",
+        "docs/tech-debt-map.md",
+        "tests/panel-account-badge.test.ts",
+        "tests/panel-action-grid.test.ts",
+        "src/content/composables/usePanelActions.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "面板顶部显示品牌头（名称 + 版本 + 官网），有扩展更新时带红点",
+    "未登录显示授权入口；已登录显示脱敏账号与退出登录，退出后面板即时回到未登录态",
+    "功能块网格为两列 + 两个占栏块，采集块完整保留原按钮的进度态与文案，不可用的入口显示为禁用而非消失",
+    "退出登录经消息由 Service Worker 执行，店铺缓存与账号一并清除",
+    "popup 未登录时仍可查看本地草稿，只在顶部显示提示",
+    "采集相关 UI 与行为与本次改动前完全一致",
+    "npm run check:deps / npm run typecheck / npm run build 通过；面板账号态与功能块单测全绿"
+  ],
+  "verification": [
+    {
+      "name": "守卫/类型/面板单测/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/panel-account-badge.test.ts tests/panel-action-grid.test.ts tests/device-token-contract.test.ts && npm run build"
+    }
+  ]
+}
