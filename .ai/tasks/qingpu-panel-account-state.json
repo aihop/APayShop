@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-panel-account-state",
+  "title": "1688 悬浮面板显示账号状态与授权入口",
+  "problem": "悬浮面板完全不感知登录态（src/content 全目录搜不到一处 login/session/auth）。采集本身不需要登录（collect.ts 不碰任何凭据），所以未登录用户照常采集、照常入库，直到进 Dash 想翻译或发布才撞墙——面板上没有任何提示，也没有任何登录入口。更隐蔽的一种：设备令牌是单设备策略，在别的机器登录会把这台顶下线，本地 accountLoggedIn 仍为 true 但令牌已被吊销，面板看不出任何异常。",
+  "expectedOutcome": "1. 面板顶部新增一条账号状态栏：未登录显示提示与授权入口，已登录显示账号与在线状态；\n2. 登录态直接读本地设置并监听变更（面板在 ISOLATED world，有完整 Chrome API），不为「有没有登录」发网络请求——断网不得被误判成未登录；\n3. 面板展开时按节流校验一次设备令牌（既有 /api/qingpu/device-tokens/verify），把「被别的设备顶下线」这种本地看不出的情况显式呈现；\n4. 授权入口复用已搬进 Service Worker 的一键授权（START_WEB_AUTHORIZE），面板只发起、从落盘状态回显，不自己编排；\n5. 服务端授权端点探测不到时降级为「打开登录页」，与 dash/lite/popup 同一条规矩；\n6. 状态推导为纯函数并有单测覆盖：登录态、令牌状态、探测结果三者的组合决定展示什么。",
+  "constraints": [
+    "不给面板加登录门禁：采集不需要登录，挡住它是产品倒退；状态栏只提示与提供入口",
+    "content 层不得依赖 app 层（check-deps 硬规则）：只用 shared 的 storage / device-tokens-client / request-actions",
+    "不自行编排授权：一键授权已由 Service Worker 拥有，面板发 START_WEB_AUTHORIZE 即可，不得在页面上下文重新注册标签页监听",
+    "令牌校验必须节流且失败静默：面板每次展开都打一次接口会变成噪音，网络类失败不得写成「未登录」把用户吓走",
+    "面板样式沿用 .qingpu-* 前缀裸 CSS，不引入 naive-ui（content script 不走扩展页那套组件）",
+    "避让并行会话：qingpu-dead-code-batch1-safe-removals 持有的 handlers/domain/naive-ui 等 claims 一律不碰"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "claims": [
+        "src/content/FloatingPanel.vue",
+        "src/content/PanelAccountBar.vue",
+        "src/content/composables/useAccountBadge.ts",
+        "src/content/panel.ts",
+        "tests/panel-account-badge.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "未登录时面板顶部出现状态栏与可点的授权入口；已登录时显示账号与在线状态",
+    "登录状态变化（另一处登录/退出）后面板自行更新，不需要刷新页面",
+    "设备令牌被别处顶掉时面板显示为掉线并给出重新登录入口",
+    "断网或服务不可用时不改写登录态，只保留上一次已知状态",
+    "服务端授权端点不可用时入口降级为「打开登录页」",
+    "npm run check:deps / npm run typecheck / npm run build 通过；tests/panel-account-badge.test.ts 全绿"
+  ],
+  "verification": [
+    {
+      "name": "守卫/类型/面板账号态单测/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/panel-account-badge.test.ts && npm run build"
+    }
+  ]
+}
