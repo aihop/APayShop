@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "id": "clean-qingpu-ai-redundant-tests-and-prompts",
+  "title": "清理 qingpu-ai 冗余测试与镜像提示词",
+  "problem": "引擎源码已收归 APay Qingpu 主题，且第一步已将 13 组测试套件迁移至主题 tests/ 下顺利运行。但 qingpu-ai 磁盘仍残留该 13 组旧单测、30 个未清理的提示词镜像文件及 export-ainode-prompts 脚本，导致两仓存在双向漂移与代码冗余，且 check-engine-parity 报告分叉。",
+  "expectedOutcome": "1. 从 qingpu-ai 删除已迁移的 13 组旧测试文件；\n2. 将 scenario 槽位测试改为本地 fixture 校验，安全删除 src/prompts/ 下除 image_edit_ocr.ts 外的 31 个提示词文件；\n3. 下线 scripts/export-ainode-prompts.ts；\n4. 同步并消除 check-engine-parity 报告的分叉，修复 blueprint.ts 中的中文提示词硬编码；\n5. qingpu-ai 守卫总闸与构建全绿。",
+  "constraints": [
+    "遵守 AGENTS.md 契约与租约规范，只修改 claims 范围内文件",
+    "保留产品决定留在本地的 image_edit_ocr.ts 提示词",
+    "确保 qingpu-ai 剩余测试与构建无报错，守卫基线只减不增"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/channel-prompts.test.ts",
+        "tests/gallery-slot-goals.test.ts",
+        "tests/platform-image-rules.test.ts",
+        "tests/product-text-bundle.test.ts",
+        "tests/product-text-translation-rounds.test.ts",
+        "tests/wb-copy-caliber.test.ts",
+        "tests/wb-attribute-fill.test.ts",
+        "tests/gallery-plan.test.ts",
+        "tests/prompt-kind.test.ts",
+        "tests/prompt-files.test.ts",
+        "tests/visual-attribute-filter.test.ts",
+        "tests/sku-prompt-evidence.test.ts",
+        "tests/helpers/scenario-preset-catalog.ts",
+        "tests/scenario-slot-catalog.test.ts",
+        "tests/generated-image-regeneration-target.test.ts",
+        "src/prompts/**",
+        "scripts/export-ainode-prompts.ts",
+        "scripts/check-bundle-prompt-leak.mjs",
+        "scripts/check-engine-parity.mjs",
+        "src/domain/image-blueprint/blueprint.ts",
+        "docs/tech-debt-map.md"
+      ],
+      "claims": [
+        "tests/asset-prompt-contracts.test.ts",
+        "tests/channel-prompts.test.ts",
+        "tests/gallery-slot-goals.test.ts",
+        "tests/platform-image-rules.test.ts",
+        "tests/product-text-bundle.test.ts",
+        "tests/product-text-translation-rounds.test.ts",
+        "tests/wb-copy-caliber.test.ts",
+        "tests/wb-attribute-fill.test.ts",
+        "tests/gallery-plan.test.ts",
+        "tests/prompt-kind.test.ts",
+        "tests/prompt-files.test.ts",
+        "tests/visual-attribute-filter.test.ts",
+        "tests/sku-prompt-evidence.test.ts",
+        "tests/helpers/scenario-preset-catalog.ts",
+        "tests/scenario-slot-catalog.test.ts",
+        "tests/generated-image-regeneration-target.test.ts",
+        "src/prompts/**",
+        "scripts/export-ainode-prompts.ts",
+        "scripts/check-bundle-prompt-leak.mjs",
+        "scripts/check-engine-parity.mjs",
+        "src/domain/image-blueprint/blueprint.ts",
+        "docs/tech-debt-map.md"
+      ]
+    },
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/engine/src/app/workflows/automation-pipeline.ts",
+        "server/engine/src/app/workflows/automation-stations.ts",
+        "server/engine/src/app/workflows/image-blueprint-generation-workflow.ts",
+        "server/engine/src/app/workflows/review-workflow.ts",
+        "server/engine/src/domain/asset-prompts/scenario-presets.ts",
+        "server/engine/src/domain/asset-prompts/scenario-slots.ts",
+        "server/engine/src/domain/asset-prompts/scenario-presets-builtin.ts",
+        "server/engine/src/domain/channel-prompts/ozon.ts",
+        "server/engine/src/domain/channel-prompts/wb.ts",
+        "server/engine/src/domain/image-blueprint/blueprint.ts",
+        "server/engine/src/domain/image-generation-tasks/ozon.ts",
+        "server/engine/src/domain/image-generation-tasks/wb.ts",
+        "server/engine/src/domain/image-prompt-plans/regeneration-target.ts",
+        "server/engine/src/domain/image-providers/providers/openai-compatible.ts",
+        "server/engine/src/domain/workspace/published-image-refs.ts",
+        "server/engine/src/domain/workspace/workspace-media.ts",
+        "server/engine/src/engine/index.ts",
+        "server/engine/src/prompts/gallery_scenarios.ts",
+        "server/engine/src/prompts/image_generation_fragments.ts",
+        "server/engine/src/prompts/localized_scenarios.ts",
+        "server/vendor/qingpu-engine/**",
+        "tests/engine-gallery-slot-goals.test.ts"
+      ],
+      "claims": [
+        "server/engine/src/app/workflows/automation-pipeline.ts",
+        "server/engine/src/app/workflows/automation-stations.ts",
+        "server/engine/src/app/workflows/image-blueprint-generation-workflow.ts",
+        "server/engine/src/app/workflows/review-workflow.ts",
+        "server/engine/src/domain/asset-prompts/scenario-presets.ts",
+        "server/engine/src/domain/asset-prompts/scenario-slots.ts",
+        "server/engine/src/domain/asset-prompts/scenario-presets-builtin.ts",
+        "server/engine/src/domain/channel-prompts/ozon.ts",
+        "server/engine/src/domain/channel-prompts/wb.ts",
+        "server/engine/src/domain/image-blueprint/blueprint.ts",
+        "server/engine/src/domain/image-generation-tasks/ozon.ts",
+        "server/engine/src/domain/image-generation-tasks/wb.ts",
+        "server/engine/src/domain/image-prompt-plans/regeneration-target.ts",
+        "server/engine/src/domain/image-providers/providers/openai-compatible.ts",
+        "server/engine/src/domain/workspace/published-image-refs.ts",
+        "server/engine/src/domain/workspace/workspace-media.ts",
+        "server/engine/src/engine/index.ts",
+        "server/engine/src/prompts/gallery_scenarios.ts",
+        "server/engine/src/prompts/image_generation_fragments.ts",
+        "server/engine/src/prompts/localized_scenarios.ts",
+        "server/vendor/qingpu-engine/**",
+        "tests/engine-gallery-slot-goals.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "qingpu-ai 中 13 个旧测试文件成功删除",
+    "src/prompts/ 下除 image_edit_ocr.ts 外的提示词文件完全删除",
+    "scripts/export-ainode-prompts.ts 安全下线",
+    "node scripts/check-bundle-prompt-leak.mjs 通过",
+    "node scripts/check-engine-parity.mjs 通过",
+    "npm run typecheck 通过",
+    "npm test 通过"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-ai 守卫与分层检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "node scripts/check-deps.mjs && node scripts/check-channel-capability.mjs"
+    },
+    {
+      "name": "qingpu-ai 产物提示词防泄漏守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "node scripts/check-bundle-prompt-leak.mjs"
+    },
+    {
+      "name": "qingpu-ai 引擎副本防漂移守卫",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "node scripts/check-engine-parity.mjs"
+    },
+    {
+      "name": "qingpu-ai 类型检查",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "qingpu-ai 单元测试套件",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm test"
+    },
+    {
+      "name": "qingpu-theme 引擎构建验证",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "node scripts/build-engine.mjs"
+    }
+  ]
+}
