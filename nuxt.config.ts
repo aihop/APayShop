@@ -25,6 +25,29 @@ const isCloudflarePagesTarget = (() => {
 
 // Single source of truth shared with scripts/generate-theme-build.mjs, so the
 // nitro handlers/public assets/global components registered here always match
+// 主题内置引擎(app/themes/<theme>/server/engine)的源码别名。
+//
+// 为什么必须在这里登记:引擎不是 npm 包,根仓没有对应依赖、workspaces 或 tsconfig
+// paths,此前解析**全靠** node_modules 里的软链,而软链只由主题的
+// scripts/{check-all,check-theme-tests,test-qingpu}.mjs 调用 ensureEngineLinks() 创建。
+// 于是 `rm -rf node_modules && npm install` 后直接 dev/build 一律解析不到——本机不炸
+// 只因软链是上次跑守卫时留下的,新机器与 CI 必炸。登记成别名后 dev / build / prepare /
+// vue-tsc 四条路径都走源码,不再依赖文件系统软链(Nuxt 会把 alias 写进 .nuxt/tsconfig.*.json
+// 的 paths,所以类型检查一并覆盖)。软链保留,只服务于不经 Nuxt 的裸 Node 脚本。
+//
+// `@engine` 不带主题前缀:这个名字被写死在引擎自身的内部 import 里,改不动;
+// 目前只有 qingpu 带 server/engine,多主题各带引擎时需要先解决命名冲突。
+// 由 app/themes/qingpu/scripts/check-engine-resolution.mjs 守住两侧登记都在。
+const resolveThemeEngineAliases = (themesDir: string, theme: string): Record<string, string> => {
+  const engineDir = path.join(themesDir, theme, 'server', 'engine')
+  if (!fs.existsSync(path.join(engineDir, 'index.ts'))) return {}
+  return {
+    [`@${theme}-engine/server`]: path.join(engineDir, 'index.ts'),
+    [`@${theme}-engine/browser`]: path.join(engineDir, 'browser.ts'),
+    '@engine': engineDir,
+  }
+}
+
 // the themes bundled into the client (app/generated/theme-build.ts).
 const resolveBuildThemes = () => {
   const themesDir = path.resolve(__dirname, 'app/themes')
@@ -188,6 +211,7 @@ export default defineNuxtConfig({
         if (fs.existsSync(vendorDir)) {
           aliases[`@${theme}-vendor`] = vendorDir
         }
+        Object.assign(aliases, resolveThemeEngineAliases(themesDir, theme))
       })
     }
     return aliases
@@ -278,6 +302,9 @@ export default defineNuxtConfig({
           if (fs.existsSync(vendorDir)) {
             nitroAliases[`@${theme}-vendor`] = vendorDir
           }
+
+          // 主题内置引擎源码别名(与上方 app 侧同一份,两侧解析到同一目录)
+          Object.assign(nitroAliases, resolveThemeEngineAliases(themesDir, theme))
 
           // 自动发现并挂载主题服务端插件（如事件动作注册）
           const pluginsDir = path.join(themesDir, theme, 'server', 'plugins')
