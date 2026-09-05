@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-authorize-survives-popup-teardown",
+  "title": "一键授权改由 Service Worker 编排：弹窗被销毁与 SW 休眠都不丢",
+  "problem": "一键授权的等待逻辑跑在发起页的内存里（authorizeFromWebSession 在页面上下文注册 chrome.tabs 监听并 await 五分钟）。产物 manifest 由 WXT 自动补了 action.default_popup，工具栏点开的是真正的浏览器 action 弹窗——它在失去焦点时就被浏览器销毁，而授权第一步正是 chrome.tabs.create 打开授权页并让它获得焦点。于是弹窗连同监听器一起没了，授权永远完不成。同一份代码在页面内 iframe 与独立弹窗窗口里能跑，唯独工具栏那条路是死的。即便搬进 Service Worker，MV3 的 SW 也随时可能被回收，运行时注册的监听器不会随之复活，所以待授权状态必须落盘、监听器必须顶层注册。服务端半边（qingpu-theme 0cd315b）已落地，部署后这条路就会被用户走到。",
+  "expectedOutcome": "1. 待授权状态落 chrome.storage.session（既有 SESSION_KEYS 单点新增一项，不新增持久化根键、不涉及迁移）：state、标签页 id、截止时间、终态与错误；\n2. web-session-authorize.ts 由「页面内 await 一次性流程」改为三个可重入入口：发起、标签页地址变化、标签页关闭；判定保持纯函数，不碰 chrome；\n3. background.ts 顶层注册 chrome.tabs.onUpdated / onRemoved，SW 被回收后由事件唤醒仍能续上；\n4. 新增 START_WEB_AUTHORIZE 进 RequestActionMap 显式协议，配套新增 src/app/handlers/auth.ts 处理模块并在 background 装配；\n5. 会话落地逻辑抽出 src/app/workflows/account-session-landing.ts 单点，SW 与 useAccountSession 共用，避免两处写会话分叉；\n6. useAccountSession 监听设置变更重读会话，dash / lite / popup 三处门禁在后台完成授权后自行解除，不依赖发起页存活；\n7. AuthLogin 与 AuthGate 改为发消息发起并从落盘状态还原「授权中 / 已取消 / 失败」，页面被销毁后重开仍显示正确状态；\n8. tests/device-token-contract.test.ts 的设备令牌落地断言改指新的落地单点：该守卫的意图是「落地写的是 rawToken 而不是旧的 tenant key」，落地实现搬走后断言必须跟着搬，否则它盯的是一个已经不承担该职责的文件。；\n9. docs/storage-map.md 登记新的 session 键 qingpu_pending_web_authorize（会话级、浏览器关即清，无迁移）。",
+  "constraints": [
+    "不新增持久化 storage 根键：待授权状态只用 chrome.storage.session，且经既有 SESSION_KEYS 单点声明",
+    "不改服务端契约：授权页地址、完成地址前缀、state 校验、换令牌请求体与既有实现保持一致（qingpu-theme 0cd315b 已按此上线）",
+    "三处严格不得放松：只认自己开的 tabId、state 必须一致（缺 state 也拒）、完成地址必须整前缀匹配含 origin",
+    "会话落地只保留一条路径：密码登录、注册与一键授权共用同一个落地单点，不得为后台再写一套设置写入",
+    "不改 qingpu-theme 与 apay：本契约只动扩展仓",
+    "避让并行会话：工作区中 task-recovery / image-processing-workflow / useDashRuntimeSync 及其测试属其他会话，不得触碰",
+    "device-token-contract 守卫只改被读取的文件路径，断言意图与其余各条一字不改"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-ai",
+      "path": "../qingpu-ai",
+      "allowedPaths": [
+        "src/shared/session-storage.ts",
+        "src/app/workflows/web-session-authorize.ts",
+        "src/app/workflows/account-session-landing.ts",
+        "src/app/composables/useAccountSession.ts",
+        "src/app/handlers/auth.ts",
+        "src/shared/request-actions.ts",
+        "entrypoints/background.ts",
+        "src/popup/components/AuthGate.vue",
+        "src/components/AuthLogin.vue",
+        "tests/web-session-authorize.test.ts",
+        "tests/device-token-contract.test.ts",
+        "docs/storage-map.md"
+      ],
+      "claims": [
+        "src/shared/session-storage.ts",
+        "src/app/workflows/web-session-authorize.ts",
+        "src/app/workflows/account-session-landing.ts",
+        "src/app/composables/useAccountSession.ts",
+        "src/app/handlers/auth.ts",
+        "src/shared/request-actions.ts",
+        "entrypoints/background.ts",
+        "src/popup/components/AuthGate.vue",
+        "src/components/AuthLogin.vue",
+        "tests/web-session-authorize.test.ts",
+        "tests/device-token-contract.test.ts",
+        "docs/storage-map.md"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "发起授权后发起页即使被销毁，授权仍由 Service Worker 完成并写入会话",
+    "SW 被回收后由 chrome.tabs 事件唤醒，能从落盘状态续上未完成的授权",
+    "用户关掉授权页记为「已取消」而非超时；重开面板仍能看到该结果",
+    "state 不一致、非本次打开的标签页、完成地址前缀不含 origin 三种情况均不被接受",
+    "登录后 dash / lite / popup 的门禁自行解除，无需重开页面",
+    "npm run check:deps / npm run typecheck / npm run build 通过；tests/web-session-authorize.test.ts 与 tests/device-token-contract.test.ts 全绿",
+    "tests/device-token-contract.test.ts 的断言指向 account-session-landing.ts 并保持全绿"
+  ],
+  "verification": [
+    {
+      "name": "守卫/类型/授权单测/构建",
+      "repository": "qingpu-ai",
+      "always": true,
+      "command": "npm run check:deps && npm run typecheck && npx vitest run tests/web-session-authorize.test.ts tests/device-token-contract.test.ts && npm run build"
+    }
+  ]
+}
