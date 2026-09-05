@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "qingpu-extension-authorize-server",
+  "title": "网页已登录 → 一键授权扩展：服务端授权页与端点",
+  "problem": "qingpu-ai 已落地「已在网页登录 → 一键授权扩展」的客户端半边（a4218815 workflow + AuthLogin 入口，d6746455 popup 登录门禁），但服务端那半（确认授权页 + 换令牌端点）不存在。扩展的能力探测打 POST /api/qingpu/device-tokens/authorize 拿到 404，一律判定不可用并隐藏入口，因此这条路目前对用户完全不可见：dash/lite 只能输密码，popup 只能降级成「打开登录页」。本任务补齐服务端半边，让能力探测转正。",
+  "expectedOutcome": "1. 新增 server/shared/extensionAuthorize.ts：一次性 handoff token 的 user_tokens.name 标记（含 state 绑定）、TTL 与 state 格式校验单点，镜像既有 checkoutHandoff 的写法；\n2. 新增 POST /api/qingpu/device-tokens/authorize-grant：要求网页 cookie 会话（resolveApiAuth，viaDeviceToken 直接拒），签发绑定 state 的一次性短时效 handoff token，返回完成地址；\n3. 新增 POST /api/qingpu/device-tokens/authorize：不需要 cookie（handoff token 自身即凭据），校验 name 标记 + state 全等 + 未撤销未过期，先置 revoked 再签发设备令牌，返回与 /api/qingpu/login 完全同形状的 { success, user, deviceToken, rawToken }；\n4. 新增 /user/authorize-extension 确认页：未登录跳 /auth/login?redirect= 回来；已登录显示当前账号与「这把令牌能做什么」，用户显式确认后调 authorize-grant 并跳 /user/authorize-extension/done?handoff=..&state=..；\n5. 新增 /user/authorize-extension/done 落地页：扩展通常会自行关掉该标签页，抓取失败时用户仍看到可读的「已授权，可关闭本页」；\n6. 新增 tests/extension-authorize-handoff.test.ts 钉住四条拒绝语义：state 不符、name 标记不符、已撤销/已过期、设备令牌通道调 authorize-grant。",
+  "constraints": [
+    "handoff token 复用 user_tokens 表与既有 checkout-handoff 的形态（短时效、一次性、name 标记区分用途），不新增表、不改 schema、不做数据迁移",
+    "签发设备令牌只走既有 issueDeviceToken，不另写一套；返回体与 /api/qingpu/login 逐字段同形状，否则扩展侧 applyAuthResult 会分叉",
+    "authorize-grant 必须要求网页 cookie 会话：它签发的是能读完整店铺密钥的设备令牌，不得由设备令牌自举，也不得静默签发——用户必须在页面上显式确认",
+    "authorize 端点只认自己签发的 name 标记行；state 缺失或不符一律拒绝，不按「没带就放行」处理（登录 CSRF）",
+    "token 先置 revoked 再签发设备令牌，任一后续步骤失败也不得留下可重放的 token",
+    "不改 qingpu-ai 仓：客户端半边已落地并已验证，本契约只补服务端",
+    "不改既有 login.ts / checkout-handoff / device-tokens 既有端点的行为",
+    "文案走 locales/{zh,en,ru}.ts 既有 qingpu.* 命名空间，不新增第二套文案入口"
+  ],
+  "repositories": [
+    {
+      "name": "qingpu-theme",
+      "path": "app/themes/qingpu",
+      "allowedPaths": [
+        "server/shared/extensionAuthorize.ts",
+        "api/device-tokens/authorize.ts",
+        "api/device-tokens/authorize-grant.ts",
+        "pages/user/authorize-extension/index.vue",
+        "pages/user/authorize-extension/done.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "tests/extension-authorize-handoff.test.ts"
+      ],
+      "claims": [
+        "server/shared/extensionAuthorize.ts",
+        "api/device-tokens/authorize.ts",
+        "api/device-tokens/authorize-grant.ts",
+        "pages/user/authorize-extension/index.vue",
+        "pages/user/authorize-extension/done.vue",
+        "locales/zh.ts",
+        "locales/en.ts",
+        "locales/ru.ts",
+        "tests/extension-authorize-handoff.test.ts"
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "POST /api/qingpu/device-tokens/authorize 存在且对空 body 返回 400/401 而非 404（扩展的能力探测据此判定可用）",
+    "扩展点「快捷登录」后打开确认页；用户确认即完成登录，落地路径与密码登录共用 applyAuthResult",
+    "未登录访问 /user/authorize-extension 会先跳登录页，登录后回到确认页",
+    "state 不符、token 已用过、token 过期三种情况均被拒绝，且用过的 token 不可重放",
+    "设备令牌（Bearer）调 authorize-grant 被 403 拒绝",
+    "tests/extension-authorize-handoff.test.ts 全绿，既有 device-tokens 相关测试不回归"
+  ],
+  "verification": [
+    {
+      "name": "qingpu-theme 一键授权 handoff 语义测试",
+      "repository": "qingpu-theme",
+      "always": true,
+      "command": "npx vitest run tests/extension-authorize-handoff.test.ts"
+    }
+  ]
+}
