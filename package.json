@@ -85,6 +85,7 @@
     "@types/crypto-js": "^4.2.2",
     "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.2.6",
     "wrangler": "^4.78.0"
   }
